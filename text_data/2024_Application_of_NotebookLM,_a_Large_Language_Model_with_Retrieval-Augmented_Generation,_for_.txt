@@ -1,0 +1,451 @@
+Application of NotebookLM, a Large Language Model with
+Retrieval-Augmented Generation, for Lung Cancer Staging
+RYOTA TOZUKA(1)(2), HISASHI JOHNO(1)∗, AKITOMO AMAKAWA(1), JUNICHI SATO(1),
+MIZUKI MUTO(1), SHOICHIRO SEKI(1), ATSUSHI KOMABA(1), and HIROSHI ONISHI(1)
+Abstract
+Purpose
+In radiology, large language models (LLMs), including ChatGPT, have recently gained attention, and
+their utility is being rapidly evaluated. However, concerns have emerged regarding their reliability
+in clinical applications due to limitations such as hallucinations and insufficient referencing. To
+address these issues, we focus on the latest technology, retrieval-augmented generation (RAG),
+which enables LLMs to reference reliable external knowledge (REK). Specifically, this study examines
+the utility and reliability of a recently released RAG-equipped LLM (RAG-LLM), NotebookLM, for
+staging lung cancer.
+Materials and methods
+We summarized the current lung cancer staging guideline in Japan and provided this as REK to
+NotebookLM. We then tasked NotebookLM with staging 100 fictional lung cancer cases based
+on CT findings and evaluated its accuracy. For comparison, we performed the same task using a
+gold-standard LLM, GPT-4 Omni (GPT-4o), both with and without the REK.
+Results
+NotebookLM achieved 86 % diagnostic accuracy in the lung cancer staging experiment, outperform-
+ing GPT-4o, which recorded 39 % accuracy with the REK and 25 % without it. Moreover, NotebookLM
+demonstrated 95 % accuracy in searching reference locations within the REK.
+Conclusion
+NotebookLM successfully performed lung cancer staging by utilizing the REK, demonstrating
+superior performance compared to GPT-4o. Additionally, it provided highly accurate reference lo-
+cations within the REK, allowing radiologists to efficiently evaluate the reliability of NotebookLM’s
+responses and detect possible hallucinations. Overall, this study highlights the potential of Note-
+bookLM, a RAG-LLM, in image diagnosis.
+Keywords
+Large language model (LLM), Retrieval-augmented generation (RAG), Reliable external knowledge
+(REK), NotebookLM, GPT-4 Omni (GPT-4o), Lung cancer staging
+(1) Department of Radiology, University of Yamanashi, Yamanashi, Japan.
+(2) Department of Radiation Oncology, Tohoku University Graduate School of Medicine, Sendai, Japan.
+∗Corresponding author: Hisashi Johno, M.D., Ph.D. Department of Radiology, University of Yamanashi 1110 Shimokato,
+Chuo, Yamanashi, 409-3898, Japan. Tel: +81-55-273-1111, Fax: +81-55-273-6744. E-mail: johnoh@yamanashi.ac.jp.
+This study was partially supported by JSPS KAKENHI Grant Number JP21K15762.
+arXiv:2410.10869v1  [cs.CL]  8 Oct 2024
+2
+Tozuka et al.
+1
+Introduction
+Large language models (LLMs) are artificial intelligence (AI) models designed to understand natu-
+ral language and generate human-like responses, achieving considerable success in a variety of
+domains [1]. In radiology, the potential of LLMs has recently been explored in areas such as image
+diagnostic support, radiology education, and medical physics [2–4]. While these studies emphasize
+the promising role of LLMs in the field, it has been observed that their responses sometimes deviate
+from user expectations or fail to align with established clinical consensus. LLMs often process
+information indiscriminately from diverse references, occasionally generating answers based on
+unreliable or outdated references. This phenomenon, referred to as LLM hallucinations, can gener-
+ate seemingly plausible but factually incorrect information, making it difficult to rely on LLMs for
+clinical diagnoses [2, 5, 6].
+Retrieval-augmented generation (RAG) is an emerging technology designed to reduce halluci-
+nations in LLMs by enabling them to reference reliable external knowledge (REK) [7, 8]. A key
+feature of RAG is its ability to link LLM responses to specific sources within REK, allowing users
+to easily verify the reliability of those responses. Research on RAG-equipped LLMs (RAG-LLMs)
+in the medical field is still in its early stages [9–13], and their effectiveness, particularly in image
+diagnosis, remains largely unexplored.
+NotebookLM (https://notebooklm.google) is a web-based RAG-LLM, experimentally released
+by Google Inc. in June 2024. It generates responses by clearly citing sources from user-provided
+REK, utilizing the advanced language model, Gemini 1.5 Pro [14]. NotebookLM is designed to be
+user-friendly, requiring no specialized knowledge of AI—users simply need to prepare and provide
+REK.
+In this study, we focus on the utility of NotebookLM for lung cancer staging. Specifically, we
+provided NotebookLM with a lung cancer staging guideline as REK and tasked it with diagnosing
+TNM classifications based on fictional lung cancer CT findings. Its accuracy was then compared to
+that of GPT-4 Omni (GPT-4o; OpenAI Inc., San Francisco, CA, USA), a widely used LLM.
+2
+Materials and methods
+An overview of the experimental process is schematically summarized in Fig. 1.
+Data preparation
+Two radiologists from our team generated CT findings for 100 fictional lung cancer patients, along
+with TNM classifications based on the latest lung cancer staging guideline in Japan, i.e., the 8th
+edition of the General Rule for Clinical and Pathological Record of Lung Cancer [15]. The CT
+findings and TNM classifications were subsequently reviewed and confirmed by two additional
+radiologists. The entire process was verified by a senior radiologist. The breakdown of TNM
+classifications for the 100 fictional lung cancer patients is listed in Table 1. All the fictional CT
+findings with TNM classifications are available in Online Resource 1†, with the first of the 100
+cases provided below as an example:
+Case 1 CT findings: A 4.9 cm tumor with invasion of the great vessels is
+identified in the left lower lobe. Enlarged lymph nodes are seen in
+the contralateral hilum. No distant metastasis.
+Case 1 TNM classification: T4 N3 M0.
+†Online Resources 1 to 3 can be found in the ancillary files uploaded with this paper on arXiv.
+Application of NotebookLM for Lung Cancer Staging
+3
+NotebookLM
+with REK
+GPT-4o
+with REK
+GPT-4o
+without REK
+CT findings of 100 fictional lung cancer patients
+TNM classifications
+TNM classifications
+TNM classifications
+Diagnostic accuracy
+Search accuracy
+Diagnostic accuracy
+Diagnostic accuracy
+Fig. 1. An overview of the experimental process. Radiologists from our team created CT findings for 100
+fictional lung cancer patients, and each patient’s TNM classification was diagnosed by the different LLM
+settings (NotebookLM with REK, GPT-4o with REK, and GPT-4o without REK). Our team’s radiologists
+evaluated these diagnoses and calculated their diagnostic accuracies. For NotebookLM, since it searches
+and explicitly presents reference locations within REK as the basis for its answers, we also assessed the
+appropriateness of these locations (search accuracy). REK=reliable external knowledge.
+Table 1. The breakdown of TNM classifications for the 100 fictional lung cancer patients.
+T classification
+TX
+T0
+Tis
+T1mi
+T1a
+T1b
+T1c
+T2a
+T2b
+T3
+T4
+Number of patients
+2
+2
+4
+4
+4
+9
+8
+18
+10
+14
+25
+N classification
+N0
+N1
+N2
+N3
+Number of patients
+48
+15
+19
+18
+M classification
+M0
+M1a
+M1b
+M1c
+Number of patients
+60
+11
+17
+12
+Preparation of REK and prompt texts
+As REK for NotebookLM and GPT-4o, we summarized the current lung cancer staging guideline in
+Japan. This REK is available in Online Resource 2†. NotebookLM was provided with the REK along
+with the following prompt ([file name] is the file provided to NotebookLM as REK):
+According to [file name], identify the TNM classification corresponding
+to the following CT findings. Note that, for T1 and T2, specify
+the appropriate subclass (the subclasses for T1 are T1mi, T1a, T1b,
+T1c; and for T2, T2a and T2b). In addition, the tongue ward refers
+to a segment of the left upper lobe of the lung. For a primary
+tumor in the left lung, ‘ipsilateral’ refers to the left side and
+‘contralateral’ refers to the right side, whereas for a primary
+tumor in the right lung, ‘ipsilateral’ refers to the right side and
+†Online Resources 1 to 3 can be found in the ancillary files uploaded with this paper on arXiv.
+4
+Tozuka et al.
+86
+39
+25
+95
+0
+20
+40
+60
+80
+100
+NotebookLM
+with REK
+GPT-4o
+with REK
+GPT-4o
+without REK
+Diagnostic accuracy (%)
+Search accuracy (%)
+Fig. 2. Diagnostic accuracies of TNM classifications for each LLM setting (i.e., NotebookLM with REK, GPT-4o
+with REK, or GPT-4o without REK) in the experiment using 100 fictional lung cancer cases. A diagnosis
+of TNM classification was considered correct if all the T, N, and M factors were correctly diagnosed. For
+NotebookLM with REK, search accuracy was also calculated as the percentage of lung cancer cases in which
+NotebookLM referenced the appropriate locations within the REK. REK=reliable external knowledge.
+‘contralateral’ refers to the left side. If a tumor nodule is found
+in the contralateral lung from the primary lung cancer, it meets the
+criteria for M1a. If the solid component diameter is less than or
+equal to 1cm and the overall lesion (ground-glass nodule) diameter
+is greater than 3 cm, then it meets the criteria for T1a. The right
+upper lobe, right middle lobe, right lower lobe, left upper lobe,
+and left lower lobe are distinct from one another.
+We used almost the same prompt when providing GPT-4o with the REK. Note that the REK for
+GPT-4o was supplied directly within the prompt, rather than through RAG. For GPT-4o without
+REK, the prompt only instructed it to classify the lung cancer stages based on the latest lung cancer
+staging guideline in Japan.
+Evaluation
+Diagnostic accuracy for each LLM setting (i.e., NotebookLM with REK, GPT-4o with REK, or GPT-4o
+without REK) was calculated as the percentage of correctly diagnosed TNM classifications across
+the 100 lung cancer cases. Note that a TNM classification was considered correct when all the T, N,
+and M factors were correctly diagnosed. Additionally, diagnostic accuracies of the LLMs for each
+of the T, N, and M factors were also calculated.
+For NotebookLM with REK, search accuracy was also calculated as the percentage of lung cancer
+cases, out of 100, in which NotebookLM referenced the appropriate locations within the REK. The
+correctness of these referenced locations was evaluated by radiologists from our team. In contrast,
+for GPT-4o with and without REK, the reference points were generally unclear, making it impossible
+to calculate search accuracy.
+Application of NotebookLM for Lung Cancer Staging
+5
+Case 2 CT findings:
+A 2 cm solid component diameter tumor is observed in the
+left lower lobe. The tumor invades the main bronchus but not
+the carina. Enlarged left mediastinal lymph nodes. There is
+a metastasis in the axial vertebrae.
+Correct answer:
+T2a N2 M1b
+Output by LLMs:
+NotebookLM with REK
+• T2a: The tumor size is 2 cm in diameter and invades the main
+bronchus. According to source
+1○, tumors with a solid
+component diameter greater than 3 cm and less than or equal
+to 5 cm, or a solid component diameter less than or equal to
+3 cm with involvement of the main bronchus meet the criteria
+for T2. Additionally, source
+2○states that tumors meeting
+the T2 criteria but are 3 cm or less in size are classified
+as T2a.
+• N2: The case presents with enlarged left mediastinal lymph
+nodes. Since the primary tumor is in the left lung, the
+mediastinal lymph nodes are considered ipsilateral. Source
+3○states that metastasis to the ipsilateral mediastinal
+lymph nodes falls under the N2 classification.
+• M1b: The case notes "metastasis in the axial vertebrae,"
+indicating metastasis outside the lungs. Source
+4○states
+that a single metastasis outside the lungs is classified as
+M1b.
+Correct
+GPT-4o with REK
+• T2b: Tumor is 2 cm in diameter, invades the main bronchus
+without carina involvement.
+• N2: Enlarged left mediastinal lymph nodes.
+• M1b: Metastasis in the axial vertebrae.
+Incorrect
+GPT-4o without REK
+• T3: Tumor invades the main bronchus but not the carina.
+• N2: Enlarged left mediastinal lymph nodes.
+• M1c: Metastasis in the axial vertebrae.
+Incorrect
+Fig. 3. A representative result from the lung cancer staging experiment using LLMs. The sources 1○to 4○
+referenced in the answer by NotebookLM with REK are available in Online Resource 3†. LLM=large language
+model, REK=reliable external knowledge.
+3
+Results
+In the experiment using 100 fictional lung cancer cases, NotebookLM with REK diagnosed TNM
+classifications with a high accuracy of 86 %, whereas GPT-4o with REK showed a lower diagnostic
+†Online Resources 1 to 3 can be found in the ancillary files uploaded with this paper on arXiv.
+6
+Tozuka et al.
+90
+99
+97
+45
+96
+88
+40
+91
+64
+0
+10
+20
+30
+40
+50
+60
+70
+80
+90
+100
+T factor
+N factor
+M factor
+Diagnostic accuracy (%) for each TNM factor
+NotebookLM
+with REK
+GPT-4o
+with REK
+GPT-4o
+without REK
+Fig. 4. Diagnostic accuracies of the LLMs (NotebookLM with REK, GPT-4o with REK, and GPT-4o without
+REK) for each of the T, N, and M factors in the experiment with 100 fictional lung cancer patients. REK=reliable
+external knowledge.
+Case 50 CT findings:
+A 4.2 cm tumor is observed in the right upper lobe,
+surrounded by lung. No lymph node enlargement. No distant
+metastasis.
+Correct answer:
+T2b N0 M0
+Output by NotebookLM with REK:
+• T2a: The tumor has a solid component diameter greater than 3
+cm and less than or equal to 4 cm, specifically 4.2 cm. This
+falls under the T2 classification
+1○. As the tumor size is 3
+cm or less, it is classified as T2a
+2○.
+• N0: The case notes specify "no lymph node enlargement." This
+fits the criteria for N0, which signifies no regional lymph
+node metastasis
+3○.
+• M0: The case explicitly states "no distant metastasis."
+Therefore, it is classified as M0, indicating the absence of
+distant metastasis
+4○.
+Incorrect
+Fig. 5. An experimental result where NotebookLM made an incorrect numerical comparison. The sources 1○
+to 4○referenced in the answer are available in Online Resource 3† (which happened to be the same as the
+case in Fig. 3). REK=reliable external knowledge.
+accuracy of 39 %, and without REK, it dropped further to 25 % (Fig. 2). In contrast to GPT-4o with
+and without REK, NotebookLM explicitly presented the reference locations it searched within the
+†Online Resources 1 to 3 can be found in the ancillary files uploaded with this paper on arXiv.
+Application of NotebookLM for Lung Cancer Staging
+7
+REK as the basis for its diagnoses (see Fig. 3 for an example), and its search accuracy, representing
+the appropriateness of these locations, was quite high at 95 % (Fig. 2). A similar trend was observed
+in the diagnostic accuracies for each of the T, N, and M factors, and in particular, NotebookLM’s
+diagnostic accuracy for the T factor was notably higher than that of GPT-4o with and without REK
+(Fig. 4). Even so, with the high accuracy of NotebookLM, there were a few cases where, similar to
+GPT-4o, NotebookLM made errors in numerical comparisons (see Fig. 5 for an example).
+4
+Discussion
+There have been several previous studies on lung cancer stage classification using traditional
+LLMs, including GPT-4o, but their diagnostic accuracy is not considered high enough for clinical
+application [16–18]. Similarly, in our experiment, the accuracy of lung cancer staging by GPT-4o
+was found to be insufficient (Figs. 2 and 4). As the guidelines for lung cancer TNM classification in
+various countries are frequently updated, the difficulty in determining which standards to reference
+from the vast amount of online information may be one reason for the low diagnostic accuracy of
+traditional LLMs.
+To improve the diagnostic accuracy of LLMs, we provided the latest lung cancer staging guideline
+in Japan as REK to the LLMs. As seen in Figs. 2 and 4, providing GPT-4o with the REK in its
+prompt resulted in slightly better performance compared to when the REK was not provided,
+but the diagnostic accuracy was still not sufficient. On the other hand, NotebookLM with REK
+demonstrated remarkably high diagnostic accuracy. This is likely because NotebookLM is designed
+to generate responses exclusively based on the provided REK through RAG, avoiding irrelevant
+information.
+In our experiment, unlike GPT-4o, NotebookLM was able to clearly indicate the reference
+locations it found within the REK (see Fig. 3 for an example), and its search accuracy was notably
+high (Fig. 2). Although the search accuracy was slightly short of 100 %, at 95 %, the explicit indication
+of reference locations allows radiologists to easily verify the correctness of NotebookLM’s responses
+as needed, making it a promising tool for providing reliable assistance in clinical diagnosis.
+Among the cases where the reference locations identified within the REK by NotebookLM
+were appropriate, there were a few instances of diagnostic errors, primarily caused by numerical
+comparison mistakes (see Fig. 5 for an example). Such numerical reasoning errors were observed in
+GPT-4o as well and are recognized as a common issue with LLMs in general [19]. This is not an
+issue that can be resolved by RAG, and we hope that future advancements in LLMs will provide a
+solution.
+This study has several limitations. First, unlike in actual clinical settings, we validated the
+diagnostic accuracy of LLMs using fictional lung cancer CT findings and Japan’s lung cancer
+staging guideline in English (instead of Japanese). To rigorously assess their usefulness in real
+clinical practice, actual clinical data should be used. Additionally, while this study demonstrated the
+usefulness of NotebookLM as a diagnostic support tool, it is not appropriate to generalize the results
+to all RAG-LLMs, and further validation using other RAG-LLMs is necessary for the generalization.
+Moreover, NotebookLM is currently a free online system in trial release by Google, available for easy
+use by anyone, but how it will evolve in the future remains uncertain. Furthermore, using online
+LLMs like GPT-4o and NotebookLM in clinical practice poses substantial challenges regarding
+hospital information security and copyright issues surrounding REK. To address this concern, it is
+likely that LLM systems for clinical use will need to be implemented offline or on-premises. Despite
+these limitations, we hope that this study will serve as a first step toward applying RAG-LLMs in
+image diagnosis.
+8
+Tozuka et al.
+5
+Conclusion
+NotebookLM, a recently released RAG-LLM from Google, demonstrated superior accuracy in
+a lung cancer staging experiment compared to GPT-4o, a widely recognized LLM. Additionally,
+NotebookLM explicitly provided accurate reference points from the given REK, allowing radiologists
+to efficiently assess the reliability of its responses and identify possible hallucinations. Overall, this
+study highlights the potential of NotebookLM in assisting radiologists with image diagnosis.
+6
+Declarations
+Funding
+This study was partially supported by JSPS KAKENHI Grant Number JP21K15762.
+Competing interests
+There is no conflict of interest with regard to this manuscript.
+Ethics approval
+Since the study used only fictional patient data, ethical approval was not required.
+Informed consent
+Not applicable.
+Data availability statement
+The data that support the findings of this study are available from the corresponding author, upon
+reasonable request.
+References
+[1] Alec Radford, Karthik Narasimhan, Tim Salimans, and Ilya Sutskever. Improving language understanding by generative
+pre-training. Open AI, 2018.
+[2] Pedram Keshavarz, Sara Bagherieh, Seyed Ali Nabipoorashrafi, Hamid Chalian, Amir Ali Rahsepar, Grace Hyun J. Kim,
+Cameron Hassani, Steven S. Raman, and Arash Bedayat. ChatGPT in radiology: A systematic review of performance,
+pitfalls, and future perspectives. Diagnostic and Interventional Imaging, 105(7–8):251–265, 2024.
+[3] Kazufumi Suzuki, Hiroki Yamada, Hiroshi Yamazaki, Goro Honda, and Shuji Sakai. Preliminary assessment of TNM
+classification performance for pancreatic cancer in Japanese radiology reports using GPT-4. Japanese Journal of
+Radiology, 2024. Online ahead of print.
+[4] Noriyuki Kadoya, Kazuhiro Arai, Shohei Tanaka, Yuto Kimura, Ryota Tozuka, Keisuke Yasui, Naoki Hayashi, Yoshiyuki
+Katsuta, Haruna Takahashi, Koki Inoue, and Keiichi Jingu. Assessing knowledge about medical physics in language-
+generative AI with large language model: using the medical physicist exam. Radiological physics and technology, 2024.
+Online ahead of print.
+[5] Ziwei Ji, Nayeon Lee, Rita Frieske, Tiezheng Yu, Dan Su, Yan Xu, Etsuko Ishii, Yejin Bang, Andrea Madotto, and Pascale
+Fung. Survey of hallucination in natural language generation. ACM Computing Surveys, 55(12):1–38, 2023.
+[6] Lei Huang, Weijiang Yu, Weitao Ma, Weihong Zhong, Zhangyin Feng, Haotian Wang, Qianglong Chen, Weihua Peng,
+Xiaocheng Feng, Bing Qin, and Ting Liu. A survey on hallucination in large language models: Principles, taxonomy,
+challenges, and open questions. arXiv preprint arXiv:2311.05232, 2023.
+[7] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler,
+Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, and Douwe Kiela. Retrieval-augmented generation for
+knowledge-intensive NLP tasks. In Proceedings of the 34th International Conference on Neural Information Processing
+Systems, volume 12, pages 9459–9474, 2020.
+[8] Kurt Shuster, Spencer Poff, Moya Chen, Douwe Kiela, and Jason Weston. Retrieval augmentation reduces hallucination
+in conversation. arXiv preprint arXiv:2104.07567, 2021.
+[9] Jin Ge, Steve Sun, Joseph Owens, Victor Galvez, Oksana Gologorskaya, Jennifer C. Lai, Mark J. Pletcher, and Ki Lai.
+Development of a liver disease-specific large language model chat interface using retrieval-augmented generation.
+Hepatology, 2024. Online ahead of print.
+Application of NotebookLM for Lung Cancer Staging
+9
+[10] Qingqing Zhou, Can Liu, Yuchen Duan, Kaijie Sun, Yu Li, Hongxing Kan, Zongyun Gu, Jianhua Shu, and Jili Hu.
+GastroBot: a Chinese gastrointestinal disease chatbot based on the retrieval-augmented generation. Frontiers in
+Medicine (Lausanne), 11:1392555, 2024.
+[11] Jing Miao, Charat Thongprayoon, Supawadee Suppadungsuk, Oscar A. Garcia Valencia, and Wisit Cheungpasit-
+porn. Integrating retrieval-augmented generation with large language models in nephrology: Advancing practical
+applications. Medicina (Kaunas), 60(3):445, 2024.
+[12] Simone Kresevic, Mauro Giuffrè, Miloš Ajčević, Agostino Accardo, Lory S. Crocè, and Dennis L. Shung. Optimization
+of hepatological clinical guidelines interpretation by large language models: a retrieval augmented generation-based
+framework. npj Digital Medicine, 7(1):102, 2024.
+[13] Shayan Mashatian, David G. Armstrong, Aaron Ritter, Jeffery Robbins, Shereen Aziz, Ilia Alenabi, Michelle Huo,
+Taneeka Anand, and Kouhyar Tavakolian. Building trustworthy generative artificial intelligence for diabetes care and
+limb preservation: A medical knowledge extraction case. Journal of Diabetes Science and Technology, 2024. Online
+ahead of print.
+[14] Gemini Team, Google. Gemini 1.5: Unlocking multimodal understanding across millions of tokens of context. arXiv
+preprint arXiv:2403.05530, 2024.
+[15] The Japan Lung Cancer Society. General Rule for Clinical and Pathological Record of Lung Cancer. The 8th Edition,
+Revised Version. Kanehara & Co., Ltd., Tokyo, 2021.
+[16] Yuta Nakamura, Tomohiro Kikuchi, Yosuke Yamagishi, Shouhei Hanaoka, Takahiro Nakao, Soichiro Miki, Takeharu
+Yoshikawa, and Osamu Abe. ChatGPT for automating lung cancer staging: feasibility study on open radiology report
+dataset. medRxiv preprint doi:10.1101/2023.12.11.23299107, 2023.
+[17] Hidetoshi Matsuo, Mizuho Nishio, Takaaki Matsunaga, Koji Fujimoto, and Takamichi Murakami. Exploring multilingual
+large language models for enhanced TNM classification of radiology report in lung cancer staging. arXiv preprint
+arXiv:2406.06591, 2024.
+[18] Jong Eun Lee, Ki-Seong Park, Yun-Hyeon Kim, Ho-Chun Song, Byunggeon Park, and Yeon Joo Jeong. Lung cancer
+staging using chest CT and FDG PET/CT free-text reports: Comparison among three ChatGPT large-language models
+and six human readers of varying experience. American Journal of Roentgenology, 2024. Online ahead of print.
+[19] Qintong Li, Leyang Cui, Xueliang Zhao, Lingpeng Kong, and Wei Bi. GSM-Plus: A comprehensive benchmark for
+evaluating the robustness of LLMs as mathematical problem solvers. arXiv preprint arXiv:2402.19255, 2024.

@@ -1,0 +1,451 @@
+arXiv:2410.16741v1  [q-bio.GN]  22 Oct 2024
+Hierarchical Classiﬁcation for Predicting Metastasis
+Using Elastic-Net Regularization on Gene Expression
+Data
+Alex Chu1
+Benjamin Osafo Agyare2
+Blessing Oloyede3
+1Department of Cellular and Molecular Pathology, University of Michigan, Ann Arbor
+1Department of Bioinformatics, University of Michigan, Ann Arbor
+2Department of Statistics, University of Michigan, Ann Arbor
+3Department of Chemical Biology, University of Michigan, Ann Arbor
+Abstract
+Motivation: Metastasis is a leading cause of cancer-related mortality and remains
+challenging to detect during early stages. Accurate identiﬁcation of cancers likely
+to metastasize can improve treatment strategies and patient outcomes. This study
+leverages publicly available gene expression proﬁles from primary cancers, with
+and without distal metastasis, to build predictive models. We utilize elastic net
+regularization within a hierarchical classiﬁcation framework to predict both the
+tissue of origin and the metastasis status of primary tumors.
+Results:
+Our elastic net-based hierarchical classiﬁcation achieved a tissue-
+of-origin prediction accuracy of 97%, and a metastasis prediction accuracy of
+90%.
+Notably, mitochondrial gene expression exhibited signiﬁcant negative
+correlations with metastasis, providing potential biological insights into the
+underlying mechanisms of cancer progression.
+1
+Introduction
+Cancer metastasis is the spread of cancer cells from a primary tumor site to surrounding tissues or
+distant locations and contributes to around 90% of cancer moralities (Seyfried, 2013). In recent
+years, cancer incidences have been steadily increasing due to multiple factors such as longer aver-
+age lifespans and better early detection. To address this, advancement in cancer therapeutics and
+surgeries has resulted in drastic improvement in prognosis for most localized cancers. However,
+patient survival continues to be signiﬁcantly impacted after detection of metastasis, which is most
+commonly is detected during cancer recurrence and can be years after tumor resection. The ap-
+pearance of metastasis after tumor resection implies that the majority of cancers have metastasized
+prior to surgery. This makes detection of cancers with metastatic potential important so that patients
+can begin conventional metastasis treatments such as surgery, chemotherapy, hormone therapy, im-
+munotherapy, or radiation therapy earlier.
+Different cancers also have different metastatic potential. An estimated 6% of breast cancer patients
+are presented with metastasis, with bones, brain, liver, and lungs being the most common metastasis
+location. On the other hand, approximately 60% of lung cancer patients will have metastasis com-
+monly to the brain, bone, liver, adrenal glands, thoracic cavity, or distal lymph nodes (Riihimäki,
+2018). Differences in metastatic potential and location of metastasis makes early detection and
+diagnosis paramount for effective treatment.
+For a cancer to metastasize, it must overcome a series of obstacles including detachment from the pri-
+mary tumor location, intravasate into the circulatory and lymphatic system, evade immune responses
+and attacks, extravasate at distal capillary locations, invasion of distal locations, and proliferation at
+distal locations (Hunter, 2008). In spite of the prevalence of metastasis in cancer patients, the mech-
+anism of metastasis is extremely inefﬁcient and risky for detached cells. Current efforts into using
+these circulating tumor cells (CTCs) as a biomarkers for metastasis have been inconclusive due to the
+difﬁculty of accurately predicting whether these tumor cells are capable of establishing metastasis
+at distal locations.
+Therefore, new methods and ways to help predict the metastatic potential in patients will be an
+asset for clinicians. Early detection of metastatic events can drastically improve patient survival by
+introducing them to therapeutics earlier and treating distal metastasis while it is still small.
+In this study, we use publicly available expression datasets to investigate if expression data from
+primary tissue can be a predictor of metastasis events using a hierarchical classiﬁcation mechanism
+as discussed in the next sections of this paper. We then apply the model to examine if there are
+shared underlying gene expressions that can help predict whether a cancer has metastasized or not.
+2
+Approach
+Figure 1: Hierarchical structure of the classiﬁcation task.
+We implement a hierarchical classiﬁcation model that follows the structure as seen in Figure 1.
+First, train an elastic-net multinomial regression model to classify from which tissue source the tu-
+mor grew. Speciﬁcally, we predict the tissue source as one of the seven (7) cites, i.e breast, colon,
+gastric, kidney, liver, lung, pancreas, and skin. We then ﬁt a hierarchical elastic-net logistic regres-
+sion model to predict whether the cancer has metastasized. Due to the hierarchical nature of our
+prediction task, we deﬁne accuracy as ability to ﬁrst correctly predict the tissue source, and then
+conditionally predicting metastasis given the predicted tissue sources and the gene expressions.
+3
+Methods
+3.1
+Datasets
+3.1.1
+Data sources
+Expression data from various primary tissues with and without metastasis were obtained from
+the Genomic Data Commons Data Portal (GDC). We chose primary tissues of the most com-
+mon tissue types on the GDC and compiled a total of approximately 5000 samples. These sam-
+ples represent data collected from various studies including The Cancer Genome Atlas Program
+(TCGA), Clinical Proteomic Tumor Analysis Consortium (CPTAC), Human Cancer Models Initia-
+tive (HCMI), Count Me In (CMI). Around 400 additional datasets were also gathered from vari-
+ous independent studies available on Gene Expression Omnibus (GEO), including (Kim SK, 2014)
+(Siegel MB, 2018) (Rothwell DG, 2014) (McDonald OG, 2017a) (Badal B, 2017) (McDonald OG,
+2017b) (Wang, 2021) (Menck K, 2022), to further increase the number of metastasis samples and
+introduce different types of expression data. Overall, our samples are represented by about 23%
+Breast, 11% Colon, 8% Gastric, 14% Kidney, 8% Liver, 20% Lung, 2% Pancreas, and 15% Skin
+tissues. With respect to metastasis, approximate 80% of samples were primary tissues without
+metastasis while 20% were from primary tissues with metastasis.
+2
+3.1.2
+Data-Prepossessing
+To simplify the model, we ﬁltered out non-protein-coding genes from the dataset such as lncRNAs
+and ncRNAs to remove sources of confusions. To ensure standardization of the 19,938 features,
+we utilized transcripts per millions (TPM), then transformed the features by Z scores to obtain
+unit variance across features. This ensures that differences between samples and methods can be
+normalized to sequencing depth and that no feature will dominate the predictive power of the model
+by their raw scale.
+As a matter of key relevance, it is noteworthy that we standardize the test feature sets based on the
+mean and standard deviation of the training features in order to reduce data leakage. The section
+below discusses in detail the strategies adopted in splitting the data.
+3.1.3
+Data-Splitting
+To assess the performance of the models under consideration, we adopt training-testing splitting
+where the training set comprises 70% of the dataset, totalling 3,875 samples while the testing set
+takes up the remaining 30%, totalling 1,665 samples. To foster adequate representation of all tissue
+sources, especially as our data is imbalanced, the split was performed using stratiﬁed sampling.
+The training set was further split into cross-validation sets. This step is highly imperative in model
+selection and hyper-parameter tuning. Speciﬁcally, by randomly splitting and assigning each the
+3,875 training samples into 10 folds, we obtain a training and validation sample of 3,488 and 387
+respectively, yet ensuring proportionate representation of each tissue source across all splits.
+3.2
+Modeling
+3.2.1
+Multinomial Model
+Given our multi-class prediction task for the tissue source prediction, we use the multinomial model
+which extends the binomial when the number of classes is more than two (Hastie T, 2021). Suppose
+the response variable has K levels G = {1, 2, . . ., K}, and features X ∈RN×p for a dataset of
+sample size N with p predictors. Here we model
+Pr(G = k | X = x) =
+eβ0k+βT
+k x
+PK
+ℓ=1 eβ0ℓ+βT
+ℓx
+(1)
+This structure induces a linear predictor for each class.
+3.2.2
+The Elastic-Net Model
+The elastic net (Zou, 2005) is a regularized method that coalesces the L1 and L2 penalties of the
+lasso and ridge regression methods by learning from their shortcomings to improve the regulariza-
+tion of statistical models. It does so by linearly combining the variable selection feature of the lasso
+and parameter shrinkage property of the ridge model simultaneously. This effective regularization
+technique allows for controlling multicollinearity, performing regression in high dimensional data
+settings (p >> n), and for reducing excessive noise in our data to allow for isolating the most inﬂu-
+ential variables while balancing prediction accuracy Boehmke and Greenwell (2019). Speciﬁcally,
+for a multi-class prediction task given by (1), we specify our model is as follows:
+Let Y be the N × K indicator response matrix, with elements yiℓ= I (gi = ℓ). Then the elastic net
+penalized negative log-likelihood function is given by:
+ℓ
+
+{β0k, βk}K
+1
+
+= −1
+N
+N
+X
+i=1
+ K
+X
+k=1
+yil
+ β0k + xT
+i βk
+
+!
++ 1
+N log
+ K
+X
+ℓ=1
+eβ0ℓ+xT
+i βℓ
+!
++ λ
+
+(1 −α)∥β∥2
+F /2 + α
+p
+X
+j=1
+∥βj∥1
+
+
+(2)
+3
+Figure 2: Hyperparameter tuning for α. The best tuned α is 0.4, as it yields the smallest multinomial
+deviance. This is used in training our elastic net model for predicting tissue source.
+Here β is a p × K matrix of coefﬁcients. βk refers to the k th column (for outcome category k ),
+and βj the j th row (vector of K coefﬁcients for variable j ) Hastie T (2021). The tuning parameters
+λ ≥0 and α ∈[0, 1] control the amount of regularization, and the mixing rate of the ridge and lasso
+penalties respectively. Thus, setting α = 0 leaves a ridge model while an α value of 1 resets to a
+lasso model.
+3.3
+Tumor cite prediction
+We employed an elastic-net multinomial regression model to predict the tumor source, with the
+tumor site as the response variable and gene expression levels as the features. The model estimates
+bG1 = Pr(G = k|X) for k ∈{1, 2, . . ., 7}, corresponding to the seven possible tumor sites.
+To optimize the model’s hyperparameters, we ﬁrst deﬁned a common fold identiﬁer, ensuring con-
+sistent cross-validation folds across all models. We then established a tuning grid for the elastic-net
+mixing parameter, α, ranging from {0, 0.1, 0.2, . . ., 1}. A 10-fold cross-validation was performed
+to determine the optimal penalty parameter, λ ≥0, with the best λ minimizing the multinomial
+deviance.
+By iterating over the grid of α values, we identiﬁed the model that achieved the lowest deviance,
+which was then selected for subsequent analysis and tumor site predictions.
+3.4
+Metastasis prediction
+For metastasis prediction, we followed a similar approach to that used for tumor site prediction.
+However, given the binary outcome (metastasis: yes or no), we applied an elastic-net logistic regres-
+sion model. This is a special case of the multinomial regression model when K = 2, corresponding
+to two classes: G = {1, 2}.
+In alignment with the hierarchical classiﬁcation framework, our prediction is represented as bG2 =
+Pr(G = k| bG1, X), where bG1 is the predicted tumor site and X represents the gene expression
+features. This hierarchical structure allows the model to incorporate the tumor site prediction into
+the metastasis prediction process.
+4
+Results
+4.1
+Tumor cite prediction
+We trained multiple elastic-net models across 10 values of α (ranging from 0 to 1 in increments
+of 0.1) and used cross-validation to determine the optimal value of the regularization parameter, λ.
+The best model was selected based on the value of α that minimized the multinomial deviance. The
+results from the hyperparameter tuning process are shown in 2.
+4
+Table 1: Confusion Matrix for tissue cite prediction.
+Prediction
+Ground Truth
+Breast
+Colon Gastric Kidney Liver Lung Pancreas Skin Total
+Breast
+373
+0
+0
+0
+0
+1
+0
+0
+374
+Colon
+1
+169
+4
+1
+2
+0
+2
+1
+180
+Gastric
+1
+1
+120
+1
+0
+1
+1
+0
+125
+Kidney
+0
+0
+0
+221
+0
+0
+0
+0
+221
+Liver
+0
+1
+0
+0
+137
+1
+0
+0
+139
+Lung
+2
+3
+5
+2
+0
+310
+5
+1
+328
+Pancreas
+0
+1
+2
+0
+0
+2
+48
+0
+53
+Skin
+0
+0
+0
+0
+1
+1
+0
+243
+245
+Total
+377
+175
+131
+225
+140
+316
+56
+245
+1665
+The elastic-net at α = 0.4 yields an impressive accuracy of 97.36%. The confusion matrix further details
+what classes are better predicted. Generally, the model easily misclassiﬁes tissues as lung as seen from the
+table in terms of prediction error.
+As depicted in Figure 2, α = 0 (which corresponds to the fully ridge model) yields the highest
+deviance, indicating the poorest performance. The smallest deviance is achieved at α = 0.4, which
+we selected as the optimal value for the elastic-net model. The corresponding λ value of 0.007619
+was tuned using 10-fold cross-validation.
+With these optimal parameters, the elastic-net model achieved a prediction accuracy of 97.36% for
+tumor site classiﬁcation. Given the multi-class nature of the task and the class imbalance, we further
+assessed model performance using a confusion matrix, as shown in Table 1.
+While the overall accuracy is high, the confusion matrix reveals that misclassiﬁcation rates were
+higher for the Lung class. Despite this, an accuracy of 97.36% is notably impressive, particularly
+when compared to the expected accuracy of approximately 14% from random guessing across seven
+classes. These results provide strong conﬁdence in the hierarchical framework used for metastasis
+prediction, which depends on the accuracy of the tumor site model.
+4.2
+Metastasis prediction
+Following a similar procedure of hyperparameter tuning, the logistic regression model for metastasis
+prediction selected a fully lasso model (α = 1) with an optimal λ value of 0.0058. Using this model,
+we achieved a prediction accuracy of 90.33%. The confusion matrix for metastasis prediction is
+presented in Table 2.
+The model demonstrates higher precision in predicting cases where metastasis did not occur, with a
+precision rate of 91.5%, compared to 84% precision for cases where metastasis was present. While
+the overall accuracy is strong, the difference in precision suggests that the model is more reliable
+for non-metastasis predictions. Despite this, the results provide a solid foundation for metastasis
+classiﬁcation, particularly when combined with the high accuracy of tumor site prediction in the
+hierarchical framework.
+Table 2: Confusion matrix for metastasis prediction
+Prediction
+Ground Truth
+No
+Yes
+Total
+No
+1286
+119
+1405
+Yes
+42
+218
+260
+Total
+1328
+337
+1665
+4.3
+Top Inﬂuential genes for metastasis
+To identify the top predictors of metastasis, we analyzed the coefﬁcients of the elastic-net logistic
+regression model. The top 25 most inﬂuential genes were selected based on the absolute values of
+5
+their coefﬁcients, representing their contribution to the metastasis prediction (Figure 3). Of these 25
+genes, 6 were positively correlated with metastasis, while 19 were negatively correlated.
+Notably, several mitochondrially associated genes involved in the oxidative phosphorylation path-
+way, such as ATP5MD, MT-ND1, and MT-CO1, were negatively associated with metastasis. This
+observation aligns with existing knowledge that cancer cells often exhibit altered metabolic pro-
+cesses, and our ﬁndings suggest that cancers with a higher metastatic potential may reduce their
+reliance on oxidative phosphorylation.
+Among the positively associated genes, AXL emerged as a key gene linked to metastasis. AXL,
+part of the Gas6/AXL signaling pathway, is known to play a role in cancer invasion and metastasis,
+further reinforcing the biological relevance of our model’s results.
+These ﬁndings suggest that the genes identiﬁed by our model as inﬂuential in predicting metastasis
+align with established literature, indicating that the model’s predictions are biologically interpretable
+and not driven by artifacts.
+Figure 3: Top Inﬂuential genes for metastasis prediction
+4.4
+Overall prediction accuracy
+To evaluate the overall performance of our hierarchical classiﬁcation algorithm, we assess the ability
+to predict metastasis given the predicted tissue source. The hierarchical structure of the model intro-
+duces varying levels of complexity in assessing prediction accuracy. We categorize the prediction
+outcomes into three distinct cases:
+1. Accurately predict metastasis given an erroneously predicted tissue source and vice-versa
+which we code as semi-accurate.
+2. Accurately predicting metastasis given accurate prediction of the tissue source, coded as
+accurate, and
+3. Inaccurately predicting metastasis given an erroneously predicted tissue source, coded as
+inaccurate.
+Based on this classiﬁcation scheme, our hierarchical algorithm achieves an overall prediction accu-
+racy of 97% for the accurate case, 3% for the inaccurate case, and 0% for the semi-accurate case.
+These results highlight the robustness and reliability of our hierarchical classiﬁcation framework,
+with the model consistently delivering highly accurate predictions.
+5
+Discussion
+The expression proﬁles of cancer can be very distinct between tissue of origin as well as between
+individuals, which makes establishing general trends among different cancers difﬁcult. Our model
+6
+was able to achieve an accuracy of 97% in predicting tissue of origin and a 90% for predicting
+whether the tumor has metastasis given the tissue of origin.
+It is know that recurrent oncogene mutations are often used as a biomarker in cancer classiﬁcation.
+What is unique about our study is the usage of expression proﬁles without including gene mutations.
+The complexity of annotating and understanding the effects of different gene mutations makes devel-
+oping models based on gene mutations difﬁcult for all but the most recurrent mutations. However,
+by using expression data regardless of mutation status, we provide a model that can be more easily
+understood and representative of the cell biology of cancer cells.
+However, there are many confounders which limits the accuracy of the model. Although we tried
+to include as many samples as possible across different studies, batch effects within studies may re-
+sult in differences between samples that were collected as primary and samples that were collected
+for metastasis studies. Additionally, patients for whom both primary and metastasis samples are
+sequenced may not represent the whole population of patients with metastasis, as primary tissues of
+patients with metastasis are typically late-stage cancers while normal primary tissues may be gath-
+ered from any stage. These effects may result in those primary samples with metastasis representing
+severity and development of cancers rather than metastasis potential.
+Overall, the results are promising in showing that there may be sufﬁcient evidence in expression
+proﬁles of primary tumors that can predict metastasis events. Further studies and incorporation of
+additional datasets may help with improving the accuracy of the model.
+Funding
+This project was not funded by anyone in particular.
+References
+Badal B, Solovyov A, D. C. S. C. J. e. a. (2017). Transcriptional dissection of melanoma identiﬁes
+a high-risk subtype underlying tp53 family genes and epigenome deregulation. The Journal of
+Clinical Investigation, 2(9).
+Boehmke, B. C. and Greenwell, B. M. (2019). Hands-on machine learning with r.
+Hastie T, Qian, J. T. K. (2021). An introduction to glmnet.
+Hunter, K. W., C. N. P. . A. J. (2008). Mechanisms of metastasis. Breast cancer research: BCR, 10,
+S1.
+Kim SK, Kim SY, K. J. R. S. e. a. (2014). A nineteen gene-based risk score classiﬁer predicts
+prognosis of colorectal cancer patients. Molecular Oncology, 8, 1653–1666.
+McDonald OG, Li X, S. T. T. R. e. a. (2017a). Epigenomic reprogramming during pancreatic cancer
+progression links anabolic glucose metabolism to distant metastasis.
+Nature Genetics, 49(3),
+367–376.
+McDonald OG, Li X, S. T. T. R. e. a. (2017b). Recurrently deregulated lncrnas in hepatocellular
+carcinoma. Nature Communications, 8, 14421.
+Menck K, Wlochowitz D, W. A. C. L. W. A. S. A. K. U. W. S. S. H. B. H. W. E. P. T. H. K. B.
+T. B. A. (2022). High-throughput proﬁling of colorectal cancer liver metastases reveals intra-
+and inter-patient heterogeneity in the egfr and wnt pathways associated with clinical outcome.
+Cancers (Basel), 14(9), 2084.
+Riihimäki, M., T. H. S. K. S. J. . H. K. (2018). Clinical landscape of cancer metastases. Cancer
+medicine, 7(11), 5534–5542.
+Rothwell DG, Li Y, A. M. T. C. e. a. (2014). Evaluation and validation of a robust single cell rna-
+ampliﬁcation protocol through transcriptional proﬁling of enriched lung cancer initiating cells.
+BMC Genomics, 15(1), 1129.
+7
+Seyfried, T. N., . H. L. C. (2013). On the origin of cancer metastasis. Critical reviews in oncogenesis,
+18(1-2), 43–73.
+Siegel MB, He X, H. K. H. A. e. a. (2018). Integrated rna and dna sequencing reveals early drivers
+of metastatic breast cancer. The Journal of Clinical Investigation, 128(4), 1371–1383.
+Wang, B., Z. Y. Q. T. e. a. (2021). Comprehensive analysis of metastatic gastric cancer tumour cells
+using single-cell rna-seq. Sci Rep, 11, 1141.
+Zou, H., . H. T. (2005). Regularization and variable selection via the elastic net. Journal of the Royal
+Statistical Society. Series B (Statistical Methodology, 67(2), 301–320.
+8

@@ -1,0 +1,2766 @@
+Fusion of Tree-induced Regressions for Clinico-genomic
+Data
+Jeroen M. Goedhart∗a, Mark A. van de Wiela, Wessel N. van Wieringena,b, Thomas Klauscha
+November 5, 2024
+aDepartment of Epidemiology and Data Science, Amsterdam Public Health Research Institute, Amsterdam Uni-
+versity Medical Centers Location AMC, Meibergdreef 9, Noord-Holland, the Netherlands
+bDepartment of Mathematics, Vrije Universiteit, De Boelelaan 1081a, Noord-Holland, the Netherlands
+Abstract
+Cancer prognosis is often based on a set of omics covariates and a set of established clini-
+cal covariates such as age and tumor stage. Combining these two sets poses challenges. First,
+dimension difference: clinical covariates should be favored because they are low-dimensional
+and usually have stronger prognostic ability than high-dimensional omics covariates. Second,
+interactions: genetic profiles and their prognostic effects may vary across patient subpop-
+ulations. Last, redundancy: a (set of) gene(s) may encode similar prognostic information
+as a clinical covariate. To address these challenges, we combine regression trees, employ-
+ing clinical covariates only, with a fusion-like penalized regression framework in the leaf
+nodes for the omics covariates. The fusion penalty controls the variability in genetic profiles
+across subpopulations. We prove that the shrinkage limit of the proposed method equals
+a benchmark model: a ridge regression with penalized omics covariates and unpenalized
+clinical covariates. Furthermore, the proposed method allows researchers to evaluate, for
+different subpopulations, whether the overall omics effect enhances prognosis compared to
+only employing clinical covariates. In an application to colorectal cancer prognosis based on
+established clinical covariates and 20,000+ gene expressions, we illustrate the features of our
+method.
+∗Corresponding author, E-mail address: j.m.goedhart@amsterdamumc.nl
+1
+arXiv:2411.02396v1  [stat.ME]  4 Nov 2024
+1
+Introduction
+Because cancer is largely molecular in nature, biomedical studies often employ omics de-
+rives for diagnosis and prognosis of the disease. Along the measured omics covariates, well-
+established clinical covariates such as age, smoking behavior, tumor stage or grade, and
+blood measures are typically also available. These well-established covariates, sometimes
+summarized by prognostic indices such as the International Prognostic Index (IPI) and the
+Nottingham Prognostic Index (NPI), should be included in the model of choice to render
+more accurate and stable predictions [De Bin et al., 2014, Bøvelstad et al., 2009].
+This
+manuscript presents a method to deal with prognostic models based on omics derives and
+well-established clinical risk factors. Such models are usually called clinico-genomic models
+[Bøvelstad et al., 2009].
+As a motivating example, we consider a model that estimates relapse-free survival of
+914 colorectal cancer (CRC) patients based on a combination of expression levels of 21, 292
+genes and clinical covariates age, gender, tumor stage, and tumor site. Several considerations
+should be taken into account for such a model. First, the large difference in dimensionality:
+the omics data are high-dimensional, so shrinkage is required for these covariates, whereas
+only few clinical covariates are available. Second, it is expected that on average a clinical
+covariate adds more to prognosis than an omics covariate. Third, interactions between the
+clinical and omics covariates may be present. For example, stage I and stage IV patients
+may strongly differ in their genetic profile and its effect on the outcome, which ideally should
+be taken into account. In addition, for some clinically-based subpopulations, e.g. Stage IV
+patients that are older than 80, the overall omics effect may hardly improve prognosis.
+A model that finds such patterns provides valuable information on the added benefit of
+measuring relatively costly omics covariates.
+To address the aforementioned challenges, we present FusedTree, a novel clinico-genomic
+model. The main idea is to fit a regression tree using solely the clinical covariates and,
+subsequently, fitting linear models in the leaf nodes of the tree using the omics covariates.
+The regression tree automatically finds potential interaction terms between clinical covariates
+and it naturally handles ordinal (e.g.
+tumor stage) and categorical data.
+Furthermore,
+subsamples in the different nodes belong to well-defined clinically-based subpopulations,
+which therefore allows for easy assessment of the benefit of omics data for prognosis of a
+2
+particular subpopulation. Because trees are less-suited for continuous variables (e.g. age),
+we also include such variables additively with unpenalized linear effects in the model.
+Each node has its own omics-based regression and hence interactions between clinical
+covariates and omics covariates are modeled. To control the interaction strength, we in-
+corporate a fusion-like penalty into the omics-based regression estimators. Specifically, this
+penalty shrinks the omics effect estimates in the different nodes to each other. Further-
+more, coupling the regressions in the different nodes stabilizes effect size estimation. We
+also include a standard penalty to each omics-based regression to accommodate the high-
+dimensionality of omics data.
+The intercepts of the linear models in the nodes, which
+correspond to the effects of the clinical covariates, are left unpenalized to account for their
+established predictive power. This overall shrinkage procedure renders a unique ridge-based
+penalized likelihood framework which can be optimized efficiently for (very) large numbers
+of omics covariates. Furthermore, we prove that the strength of the proposed fusion-like
+penalty interpolates between a fully interactive model, in which the omics-based regression
+in each node is estimated freely, and a standard ridge regression model, in which no clinical-
+omics interactions are present. We opt for ridge penalties instead of lasso penalties because
+ridge often outperforms lasso in prediction, as we will also show in simulations, and because
+omics applications are rarely sparse [Boyle et al., 2017].
+The remainder of this work is organized as follows. We start by reviewing related models
+and alternative strategies to clinico-genomic modeling in Section 1.1 and 1.2, respectively.
+Section 2 deals with a detailed description of the methodology of FusedTree, which han-
+dles continuous, binary, and survival response. Subsequently, we illustrate the benefits of
+FusedTree compared to other models in simulations (Section 3). We then apply FusedTree
+to the aforementioned colorectal cancer prognosis study in Section 4. We conclude with a
+summary and a discussion in Section 5.
+1.1
+Related models
+FusedTree is a type of model-based partitioning, first suggested by Zeileis et al. [2008].
+Model-based partitioning recursively tests for parameter instability of model covariates, in
+our case the omics covariates, with respect to partitioning covariates, in our case the clinical
+covariates. A splitting rule is created with the partitioning covariate showing the largest
+3
+model parameter instability. This is done recursively until all model parameter instability is
+resolved within some tolerance level. FusedTree has important distinctions compared to the
+model-based partitioning. First, we do not optimize the tree and the linear models in the
+leafs jointly, but instead first fit a tree with just the clinical covariates and then conditional
+on the tree the linear models in the leafs. Optimizing the tree structure for only the clinical
+covariates acknowledges their established predictive power. Second, as mentioned above,
+we regularize the fit to account for high-dimensionality and we link the regressions in the
+different nodes to obtain more stable estimates.
+Model-based partitioning is a varying coefficients model [Hastie and Tibshirani, 1993].
+Such a model allows the effects of a set of predictors to vary with a different set of predic-
+tors/effect modifiers. A relevant example is glinternet [Lim and Hastie, 2015], a model that
+allows for sparsely incorporating interactions between a low-dimensional covariate set and a
+(potentially) high-dimensional covariate set. Ng et al. [2023] proposed modeling interactions
+between omics covariates and a linear combination of the clinical covariates by smoothing
+splines. Omics effects and omics-clinical covariate interactions are estimated using lasso-
+based penalties. This model, however, does not allow for nonlinear clinical covariate effects,
+and is, combined with lasso penalties, arguably better suited for variable selection than for
+prediction.
+1.2
+Alternative strategies for clinico-genomic data
+Other models addressing some of the challenges of clinico-genomic data may be divided in
+two groups: linear models and nonlinear models. For linear models, a simple solution is to
+employ a regularization framework in which the the clinical covariates are penalized differ-
+ently (or not penalized at all) compared to the omics covariates. Examples implementing
+this idea are IPF-Lasso [Boulesteix et al., 2017] employing lasso penalization [Tibshirani,
+1996], and multistep elastic net [Chase and Boonstra, 2019] employing elastic net penaliza-
+tion [Zou and Hastie, 2005]. Another linear approach is boosting ridge regression [Binder
+and Schumacher, 2008], in which, at each boosting step, a single covariate is updated ac-
+cording to a penalized likelihood criterion with a large penalty for the omics covariates and
+no penalty for the clinical covariates. Downsides of linear clinico-genomic models compared
+to FusedTree are 1) the clinical part may possess nonlinearities which may be estimated
+4
+fairly easily because the clinical part is usually low-dimensional, 2) clinical-omics covariate
+interactions are less straightforwardly incorporated, especially when part of the clinical data
+is ordinal/categorical.
+For nonlinear models, tree-based methods such as random forest [Breiman, 2001], gradient
+boosting [Friedman, 2001], and Bayesian additive regression trees (BART) [Chipman et al.,
+2010] are widely used. To incorporate a clinical-omics covariate hierarchy into tree-based
+methods, the prior probabilities of covariates being selected in the splitting rules may be
+adjusted, e.g. by upweighting the clinical covariates. Block forest considers a random forest
+with covariate-type-specific selection probabilities, which are estimated by cross-validation
+[Hornung and Wright, 2019]. EB-coBART considers the same strategy as Block Forests, but
+employs BART as base-learner and estimates the covariate-type-specific selection probabil-
+ities using empirical Bayes [Goedhart et al., 2023]. A downside of sum-of-trees models is
+their complexity, which is arguably too large to reliably estimate effects of high-dimensional
+omics covariates. Additionally, interpreting such models is more challenging compared to
+FusedTree (and penalized regression models). We illustrate how FusedTree may be used for
+interpretation in Section 4.
+2
+FusedTree
+2.1
+Set-up
+Let data {yi, xi, zi}N
+i=1 consist of N observations, indexed by i, of a response yi, an omics
+covariate vector xi ∈Rp having elements xij, and clinical covariate vector zi ∈Rq having
+elements zil. We collect the clinical and omics covariate measurements in design matrices
+Z =
+ z⊤
+1 , . . . , z⊤
+N
+⊤∈RN×q, and X =
+ x⊤
+1 , . . . , x⊤
+N
+⊤∈RN×p, respectively. We assume
+that zi is low-dimensional and that xi is high-dimensional, i.e. q < N < p. We further
+assume normalized xi (zero mean and standard deviation equal to 1).
+We present our
+method for continuous yi and briefly describe differences with binary and survival response
+for which full details are found in supplementary Sections 1 and 2, respectively.
+In prediction, we consider yi = f (xi, zi) + ϵi, with error ϵi an iid unobserved random
+variable with E[ϵi] = 0, and we aim to estimate a function f (·) that accurately predicts yi.
+Clinical covariates zi should often be prioritized above xi in f (·) because of their established
+5
+predictive value compared to omics covariates. To acknowledge the difference in predictive
+power and dimensions of the two types of covariates, we propose to combine regression trees
+with linear regression models in the leaf nodes. The regression trees are estimated using the
+clinical covariates zi only, thereby accounting for possible nonlinearities and interactions.
+Subsequently, the linear regressions in the leaf nodes are fitted using the omics covariates xi
+(including an intercept term to account for zi). Thus, we fit cluster-specific linear regressions
+using omics covariates with the clusters defined in data-driven fashion by fitting a tree with
+the clinical covariates. Our method, which we call FusedTree, is summarized in Figure 1.
+2.2
+Regression Trees
+We fit regression trees using the CART algorithm [Breiman et al., 1984] implemented in
+the R package rpart. CART clusters the clinical covariates z by M nonoverlapping (hy-
+per)rectangular regions R = {Rm}M
+m=1 in the clinical covariate space Z. Clusters Rm cor-
+respond to the leaf nodes of the tree. CART then predicts yi by assigning constants cm,
+combined in vector c = (c1, . . . , cM)T ∈RM, to the corresponding Rm. Thus, we have the
+following prediction model:
+f (c, R; zi) =
+M
+X
+m=1
+cmI (zi ∈Rm) ,
+(1)
+with I (·) the indicator function.
+Regions/leaf nodes Rm are defined by a set of binary splitting rules {zil > al} , with each
+rule representing an internal node of the tree. The rules are found in greedy fashion by
+computing the split that renders the largest reduction in average node impurity, which we
+quantify by the mean square error for continuous yi and the Gini index for binary yi. For
+survival response, we use the deviance of the full likelihood of a proportional hazards model
+[LeBlanc and Crowley, 1992] as is implemented in the R package rpart.
+To prevent overfitting, we post-prune the tree by penalizing the number of terminal nodes
+M with pruning hyperparameter κ. The best κ is determined using K-fold cross-validation
+[Breiman et al., 1984]. We also consider a minimal sample size in the nodes of 30 to avoid
+too few samples for the omics-based regressions.
+6
+2.3
+Model
+FusedTree adds omics-based regressions to the leaf-node-specific constants cm :
+yi | R = f (c, β; xi, zi) + ϵi =
+M
+X
+m=1
+
+cm + x⊤
+i β(m)
+
+I (zi ∈Rm) + ϵi,
+(2)
+with β(m) ∈Rp the leaf-node-specific omics regression parameter vectors having elements
+βj(m). All omics parameter vectors are combined in the vector β =
+
+β⊤
+(1), . . . , β⊤
+(M)
+⊤
+∈
+RMp. Model (2) treats the fitted tree structure defined by R as fixed. Specifically, we first
+determine R using zi only and then consider (2). Parameters cm and β(m) will be estimated
+jointly. Model (2) defines yi as a combination of a clinically-based intercept cm, which is
+usually nonlinear in zi, and a linear omics part xiβ(m). Because β(m) is leaf-node-specific,
+model (2) also incorporates interactions between xi and zi.
+For
+binary
+response,
+yi
+∈
+{0, 1} ,
+we
+consider
+yi
+|
+R, xi, zi
+∼
+Bern {exp (f(·)) / [exp (f(. )) + 1]} ,
+while
+for
+survival
+response,
+we
+consider
+a
+Cox
+proportional hazards model [Cox, 1972]:
+h (t | R, xi, zi) = h0 (t) exp (f(·)) , with f(·)
+defined as in model (2), and h0 (t) the baseline hazard function.
+To recast model (2) in matrix notation, we define leaf-node specific data
+
+1nm, X(m), y(m)
+
+= {1, xi, yi}i:zi∈Rm , with 1nm ∈Rnm a vector of all ones indicating
+the leaf-node-specific intercept for node m (clinical effect), and omics X(m) ∈Rnm×p and
+response y(m) ∈Rnm observations in leaf node m.
+Next, we collect the data of all M leaf nodes in the block-diagonal omics matrix ˜X ∈
+RN×Mp, the block-diagonal leaf-node-intercept-indicator matrix ˜U ∈RN×M, and response
+vector ˜y ∈RN :
+˜U =
+
+
+
+
+
+
+
+
+
+1n1
+0n1
+· · ·
+0n1
+0n2
+1n2
+...
+...
+...
+...
+...
+0nM−1
+0nM
+· · ·
+0nM
+1nM
+
+
+
+
+
+
+
+
+
+,
+˜X =
+
+
+
+
+
+
+
+
+
+X(1)
+0n1×p
+· · ·
+0n1×p
+0n2×p
+X(2)
+...
+...
+...
+...
+...
+0nM−1×p
+0nM×p
+· · ·
+0
+X(M)
+
+
+
+
+
+
+
+
+
+,
+˜y =
+
+
+
+
+
+
+
+
+
+y(1)
+y(2)
+...
+y(M)
+
+
+
+
+
+
+
+
+
+,
+with 0 a vector/matrix with all zeros. We then rewrite model (2) to
+˜y =
+˜Uc
+|{z}
+clinical
++
+˜Xβ
+|{z}
+omics×clinical
++
+ϵ,
+(3)
+7
+where we absorb the dependence/conditioning on R of Model (3) in the ˜· notation. Recall
+the clinical effect vector c = (c1, . . . , cM)T , which collects the leaf-node specific intercepts.
+2.4
+Penalized estimation
+We jointly estimate clinical effects c by ˆc and omics effects β by ˆβ using penalized least
+squares optimization.
+We leave ˆc unpenalized to account for the established predictive
+power of the clinical covariates zi. We penalize ˆβ by 1) the standard ridge penalty [Hoerl
+and Kennard, 1970] controlled by hyperparameter λ > 0 to accommodate high-dimensional
+settings and 2) a fusion-type penalty controlled by hyperparameter α > 0 to shrink the
+interactions between the covariates xi and zi. This fusion-type penalty shrinks elements
+β(1)j, β(2)j, . . . , β(M)j, which represent the effect sizes of omics covariate j in the different
+leaf nodes/clinical clusters, to their shared mean. More fusion shrinkage implies more sim-
+ilar β(1)j, β(2)j, . . . , β(M)j, which reduces the interaction effects between omics and clinical
+covariates. Furthermore, the fusion-type penalty ensures that each leaf node regression is
+linked to the other leaf node regressions, which allows for information exchange.
+Specifically, estimators ˆc and ˆβ are found by
+ˆc, ˆβ = arg max
+c,β
+L
+
+c, β; ˜U, ˜X, ˜y
+
+−λβT β −αβ⊤Ωβ,
+(4)
+with L
+
+c, β; ˜U, ˜X, ˜y
+
+=
+˜y −˜Uc −˜Xβ
+
+2
+2 the least squares estimator, λβ⊤β the standard
+ridge penalty, and fusion-type penalty
+αβ⊤Ωβ = α
+M
+X
+m=1
+p
+X
+j=1
+ β(m)j −¯βj
+2 ,
+¯βj = 1
+M
+M
+X
+m=1
+β(m)j,
+(5)
+with fusion matrix Ω∈RMp×Mp. Penalty (5) shrinks the effects of omics covariate j in the
+different nodes to their shared mean ¯βj, which reduces the interaction effect sizes between
+clinical and omics covariates. Importantly, this shared mean is not specified in advance, but
+is also learned from the data. This shrinkage approach is related to ridge to homogeneity
+proposed by Anatolyev [2020]. Penalty (5), however, only shrinks specific elements of β to
+a shared value, whereas ridge to homogeneity shrinks all elements to a shared value.
+Matrix
+Ω
+has
+a
+block
+diagonal
+structure
+with
+identical
+blocks
+after
+reshuf-
+8
+fling the elements of
+β
+(and corresponding columns of
+˜X). By redefining β
+=
+ β(1)1, β(2)1 . . . , β(M)1, β(1)2, . . . β(M)2, . . . , β(1)p, . . . β(M)p
+⊤, the fusion matrix equals Ω=
+Ip×p
+N  IM×M −1
+M 1M×M
+
+, with 1M×M a matrix with all elements equal to 1. Matrix Ω
+is nonnegative definite and therefore, after including λβ⊤β, the optimization in (4) has a
+unique solution.
+Solving optimization (4) renders, as derived by Lettink et al. [2023], the following esti-
+mators for c and β :
+ˆc =
+
+˜U
+⊤h
+˜X (λIMp×Mp + αΩ)−1 ˜X
+⊤+ IN×N
+i−1 ˜U
+−1
+× ˜U
+⊤h
+˜X (λIMp×Mp + αΩ)−1 ˜X
+⊤+ IN×N
+i−1
+˜y
+ˆβ =
+
+˜X
+⊤˜X + λIMp×Mp + αΩ
+−1 ˜X
+⊤
+˜y −˜Uˆc
+
+.
+(6)
+By
+defining
+W
+=
+h
+˜X (λIMp×Mp + αΩ)−1 ˜X
+⊤+ IN×N
+i−1
+,
+estimator
+ˆc
+=
+
+˜U
+⊤W ˜U
+−1 ˜U
+⊤W ˜y is recognized as the weighted least squares estimator with weights
+related to the variation in ˜X. This reformulation implies that observations with a large
+variation in omics covariates are downweighted in their contribution to clinical effects
+estimator ˆc.
+The shrinkage limits of (6), as we derive in Supplementary Section 4, equal
+lim
+λ→∞ˆc =
+
+˜U
+⊤˜U
+−1 ˜U
+⊤˜y,
+lim
+λ→∞
+ˆβ = 0Mp,
+lim
+α→∞ˆc =
+(
+˜U
+⊤
+X
+ 1
+λM Ip×p
+
+X⊤+ IN×N
+−1
+˜U
+)−1
+˜U
+⊤
+X
+ 1
+λM Ip×p
+
+X⊤+ IN×N
+−1
+˜y
+lim
+α→∞
+ˆβ =
+
+X⊤X + λMIp×p
+−1
+X⊤
+˜y −˜Uˆc
+
+∗1M×N.
+(7)
+Thus, lim
+λ→∞reduces ˆc to the standard normal equation, and shrinks the omics effect sizes to
+zero, as expected. Limit lim
+α→∞reduces the FusedTree estimators in (6) to a standard ridge
+regression with the original omics matrix X ∈RN×p, and penalty λMIp×p. Note that the
+penalty is a factor M (number of leaf nodes) larger to account for having Mp parameter
+estimates instead of p. The notation ∗indicates the column-wise Kronecker product [Khatri
+and Rao, 1968] with 1M×N, which ensures that each entry j of the standard ridge estimator
+is repeated M times. We show regularization paths, i.e. estimators (6) as a function of
+9
+𝒛𝒊𝒍> 𝒂𝒍
+𝒛𝒊𝒍′ > 𝒂𝒍′
+𝒛𝒊𝒍′′ > 𝒂𝒍′′
+1
+2
+3
+4
+yes
+no
+Fusion
+𝒚(1) = 𝒄1 + 𝑿(1)𝜷(1)
+𝒚(2) = 𝒄2 + 𝑿(2)𝜷(2)
+𝒚(3) = 𝒄3 + 𝑿(3)𝜷(3)
+𝒚(4) = 𝒄4 + 𝑿(4)𝜷(4)
+Figure 1: Set-up of FusedTree. In each leaf node m (m = 1, . . . , 4 in this example), we fit a linear
+regression using nm samples with omics covariates X(m) and an intercept cm.
+The intercept
+contains the (potentially nonlinear) clinical information. The regression in leaf node m borrows
+information from the other leaf nodes by linking the regressions (indicated with ←→) through
+fusion penalty (5).
+fusion penalty α for several fixed values of λ in Supplementary Section 5 (Figure S2) for a
+simulated data example.
+For binary yi ∈{0, 1} , we consider optimizing a penalized Bernoulli likelihood with
+identical penalization terms λβ⊤β and αβ⊤Ωβ. The penalized likelihood is optimized using
+iterative re-weighted least squares (IRLS). For survival response, we use a penalized pro-
+portional hazards model in which the regression parameters are found by optimizing the
+full penalized likelihood using IRLS, similarly to binary yi ∈{0, 1} [van Houwelingen et al.,
+2006]. Full details are found in Supplementary Sections 1 and 2.
+2.5
+Efficient hyperparameter tuning
+We tune hyperparameters λ and α by optimizing a K-fold cross-validated predictive perfor-
+mance criterion. We partition the data into K non-overlapping test folds Γk, with Γk a set
+of indices {i}i∈Γk indicating which observations from data D belong to Γk. The number of
+samples in each Γk should be as equal as possible. Furthermore, for FusedTree, the folds
+are stratified with respect to the tree-induced clinical clusters. For binary response, we also
+balance the folds.
+For test fold Γk, we then estimate the model parameters on the training fold (−Γk) and
+10
+estimate the performance on Γk. We then aim to find λ = ˆλ, α = ˆα such that the average
+performance over the K folds is optimized. For continuous response, we use the mean square
+error as performance measure, and hence we solve:
+ˆλ, ˆα = arg min
+λ, α
+1
+K
+K
+X
+k=1
+˜yΓk −˜U Γkˆc−Γk (λ, α) −˜XΓk ˆβ−Γk (λ, α)
+
+2
+2 ,
+subject to
+λ, α > 0.
+(8)
+Optimization (8) is computationally intensive because a Mp × Mp matrix has to inverted,
+costing O
+ (Mp)3
+, repeatedly according to (6) until (8) is at a minimum.
+To solve (8) in computationally more efficient fashion, we may evaluate the linear pre-
+dictors ˜U Γkˆc−Γk and ˜XΓk ˆβ−Γk without having to directly evaluate ˆc−Γk and ˆβ−Γk, as was
+shown by van de Wiel et al. [2021]. For our penalized regression setting with penalties λβ⊤β
+and αβ⊤Ωβ, Lettink et al. [2023] showed, for general nonnegative Ω, how to efficiently com-
+pute ˜U Γkˆc−Γk and ˜XΓk ˆβ−Γk, which only requires repeated operations with relatively small
+matrices of dimension N −|Γk| .
+Prior to these repeated operations, we compute the eigendecomposition Ω= V ΩDΩV T
+Ω,
+with eigenbasis V Ω
+and diagonal eigenvalue matrix DΩ, and the matrix
+˜X
+′
+=
+˜XV Ω(λIp×p + αDΩ)−1
+2 once. For Ω= Ip×p
+N  IM×M −1
+M 1M×M
+
+, the eigenbasis equals
+V Ω= Ip×p
+N V A, with V A the eigenbasis for A =
+ IM×M −1
+M 1M×M
+
+, and the eigen-
+values are DΩ= Ip×p
+N DA, with DA the eigenvalues of A. Computing V A and DA only
+costs O
+ M3
+, while computing ˜X
+′ requires O
+ (Mp)2
+.
+To summarize, tuning λ and α requires a single operation quadratic in Mp, after which
+only operations in dimension N are required.
+For the typical Mp ≫N, this means a
+significant reduction in computational time compared to a naive evaluation of (8).
+Full details on how to compute ˜U Γkˆc−Γk and ˜XΓk ˆβ−Γk are found in Supplementary
+Section 3 (including binary and survival response).
+2.6
+Inclusion of linear clinical covariate effects
+A single regression tree may model interaction/nonlinear effects, but is less suited for mod-
+eling additive effects and continuous covariates. Ensemble methods such as random forest
+[Breiman, 2001] and gradient boosted trees [Friedman, 2001] (partly) solve this issue by
+combining multiple trees additively. However, combining FusedTree with ensemble methods
+11
+will greatly increase computational time and more importantly, the model will be harder to
+interpret. We therefore propose to additively incorporate the clinical covariates zi linearly
+in the model as well. These linear effects will be absorbed in the clinical design matrix ˜U.
+We only incorporate continuous covariates, categorical/ordinal covariates are only used for
+tree fitting. The inclusion of linear clinical effects hardly increases the number of covariates
+considering the dimension of the omics design matrix ˜X.
+2.7
+Test for the added value of omics effects in the leaf nodes
+In some instances, (a combination of) clinical covariates may (partly) encode the same
+predictive information as (a combination of) omics covariates. For FusedTree, this implies
+that in node m, the clinical intercept cm contains most predictive power and estimating the
+omics effects β(m) is not necessary. Omitting omics effects in some of the nodes renders
+a simpler model. Furthermore, the nodes that only require a clinical effect do not impact
+tuning of the fusion parameter α, which may therefore lead to improved tuning of α and
+the subsequent estimation of β(m) in the nonempty nodes.
+Last and most importantly,
+because the nodes correspond to well-defined and easy to understand clinically-based clusters,
+FusedTree provides valuable information on the benefit of measuring relatively costly omics
+covariates for diagnosis or prognosis of patient subpopulations.
+In principle, we may evaluate all 2M possibilities of including/excluding β(m) in FusedTree
+and then select the simplest model that predicts well. However, this quickly becomes com-
+putationally intensive for large M. To balance between model simplicity, predictive per-
+formance, and computational feasibility, similarly as in backward selection procedures, we
+suggest the following heuristic strategy, summarized by bullet points:
+• In each node separately, we test whether the omics covariates add to the explained vari-
+ation of the response. For the hypothesis test, we employ the global test implemented
+in the R package globaltest [Goeman et al., 2004]. Shortly, the test computes a score
+statistic that quantifies how much the sum of all omics covariates combined add to the
+explained variation of the response compared to solely using an intercept. In Supple-
+mentary Section 6, we provide more detail on the global test method in the context of
+FusedTree. The global test renders a p-value for each node m: p1, . . . , pM, which guide
+a greedy search for the best model.
+12
+• We order the p-vales from largest (suggesting small added explained variation of omics
+covariates) to smallest. We denote the ordered p-value vector by pord.
+• We fit several FusedTree models, guided by pord. We start by fitting the full FusedTree
+model, i.e. without any omics effects removed. Then, we remove β(m′) and X(m′)
+associated with the first element of pord and re-estimate model (2). Next, we remove
+β(m′), β(m′′) and X(m′), X(m′′), associated with the first two elements of pord and re-
+estimate model (2). We do so until all omics effects are removed rendering a total of
+M + 1 models.
+• The model that balances between predictive power, estimated on an independent test
+set, and simplicity, i.e. for how many nodes omics covariates are present, should be
+preferred. Selecting the final FusedTree model may be context dependent. For ex-
+ample, when omics measurements are costly, stronger preference for simpler models
+is advisable. As a rule of thumb, we suggest opting for the simplest model that is
+performs maximally 2% less than the model with the best test performance. Because
+we only evaluate M + 1 models, with typically M < 5, the optimism bias introduced
+by this method is minimal.
+3
+Simulations
+We conduct three simulation experiments with different functional relationships f
+=
+(f1f2, f3) between continuous response y = f (z, x) + ϵi, with ϵi ∼N (0, 1) , and clinical
+covariates z ∈R5 and omics covariates x ∈R500 to showcase FusedTree:
+1. Interaction. We specify f1 inspired by model (2):
+f1 (x, z, β) = I (z1 ≤2.5) I
+
+z2 ≤1
+2
+ 
+−10 + 8x⊤
+1:125β1:125
+
++ I (z1 ≤2.5) I
+
+z2 > 1
+2
+ 
+−5 + 2x⊤
+1:125β1:125
+
++ I (z1 > 2.5) I
+
+z3 ≤1
+2
+ 
+5 + 1
+2x⊤
+1:125β1:125
+
++ I (z1 > 2.5) I
+
+z3 > 1
+2
+ 
+10 + 1
+8x⊤
+1:125β1:125
+
++ x⊤
+126:500β126:500. + 5z4.
+13
+Clinical covariates are simulated according to Thus, f1 is a tree with 4 leaf nodes,
+defined by clinical covariates, with different linear omics models in the leaf nodes for
+25% of the omics covariates. The remaining 75% of the omics covariates has a constant
+effect size.
+2. Full Fusion. We specify f2 by two separate parts, a nonlinear clinical part and a linear
+omics part:
+f2 (x, z, β) = 15 sin (πz1z2) + 10
+
+z3 −1
+2
+2
++ 2 exp (z4) + 2z5 + x⊤β.
+Clinical and omics covariates do not interact, so FusedTree should benefit from a large
+fusion penalty.
+3. Linear. In this experiment, we specify f3 by a separate linear clinical and a linear omics
+part:
+f3 (x, z, c, β) = z⊤c + x⊤β.
+Again, FusedTree should benefit from a large fusion penalty.
+Full descriptions of the experiments are found in Supplementary Section 7. Shortly, for
+each experiment, we consider two simulation settings: N = 100 and N = 300. For each
+experiment and for each setting, we simulate Nsim = 500 data sets with i = 1, . . . , N, and
+clinical covariates zil ∼Unif (0, 1) , for l = 1, . . . , 5, and omics covariates xi ∼N (0p, Σp×p) ,
+with p = 500, and correlation matrix Σp×p set to the estimate of a real omics data set
+[Best et al., 2015]. We simulate elements j of the omics effect regression parameter vector
+by β1, . . . , βp ∼Laplace(0, θ), with scale parameter θ. The Laplace distribution is the prior
+density for Bayesian lasso regression and ensures many effect sizes that are close to zero.
+To each data set, we fit FusedTree (FusTree) and several competitors: ridge regression
+and lasso regression with unpenalized zi and penalized xi, random forest (RF) , and gradient
+boosted trees (GB). To assess the benefit of tuning fusion penalty α, we also fit FusedTree
+with α = 0 (ZeroFus), and Fully FusedTree (FulFus). Fully FusedTree jointly estimates a
+separate clinical part, defined by the estimated tree, and a separate linear omics part that
+does not vary with respect to the clinical covariates, which corresponds to FusedTree with
+α = ∞as shown by (7). For the Interaction experiment, we also include an oracle tree
+model. This model knows the tree structure in advance and only estimates the regression
+14
+N = 100
+N = 300
+Interaction
+Full Fusion
+Linear
+Oracle FusTree FullFus ZeroFus
+GB
+RF
+Ridge
+Lasso
+I−Lasso
+Oracle FusTree FullFus ZeroFus
+GB
+RF
+Ridge
+Lasso
+I−Lasso
+15
+30
+45
+15
+30
+45
+15
+30
+45
+PMSE
+Oracle
+FusTree
+FullFus
+ZeroFus
+GB
+RF
+Ridge
+Lasso
+I−Lasso
+Figure 2: Boxplots of the prediction mean square errors of several prediction models across 500
+simulated data sets for the Interaction(top), Full Fusion (middle), and Linear (bottom) simulation
+experiment. For all experiments, we consider N = 100 (left) and N = 300 (right). The oracle
+prediction model is only considered for the Interaction experiment (∗indicates that oracle model
+boxplots are missing for the Full Fusion and Linear experiment). We do not depict results for
+ridge regression in the Interaction experiment because its PMSE’s fall far outside the range of the
+PMSE’s of the other models (indicated by ↑). Outliers of boxplots are not shown.
+parameters in the leaf nodes and tunes λ and α. For all FusedTree-based models, we include
+all continuous clinical covariates zi linearly in the regression model, as explained in Section
+2.6. We quantify the predictive performance by the prediction mean square error (PMSE),
+i.e. N−1
+test
+PNtest
+i=1 (yi −ˆyi)2 , estimated on an independent test set with Ntest = 5, 000.
+FusedTree has a lower prediction mean square error (PMSE) compared to the linear
+15
+models ridge and lasso regression for the Interaction and Full Fusion experiment because
+nonlinear clinical effects are better captured by FusedTree (Figure 2). For the Linear exper-
+iment, FusedTree performs only marginally worse than ridge regression, and has a slightly
+smaller PMSE compared to lasso, even though omics effect sizes β were drawn from a lasso
+prior. These findings suggest that 1) ridge penalties are better suited for prediction com-
+pared to lasso penalties and 2) the inclusion of linear clinical effects (Section 2.6) to the
+tree ensures that linear clinical-covariate-response relationships are only marginally better
+approximated by ridge regression compared to FusedTree. FusedTree clearly outperforms
+nonlinear models random forest and gradient boosted trees for all experiments. Gradient
+boosting has a lower PMSE than random forest because we simulated mainly low-order in-
+teractions, which can be better approximated by shallow trees, as is the case for gradient
+boosting.
+The experiments also show a clear benefit of having a fusion-type penalty whose strength
+is tuned by α. For the Full Fusion and Linear experiment, for which no interactions be-
+tween clinical and omics covariates are present, FusedTree, which tunes α, performs nearly
+identical to an a priori fully fused model, which corresponds to setting α →∞in advance.
+Furthermore, FusedTree performs better than FusedTree without the fusion-type penalty,
+i.e. when we set α = 0 in advance. This finding suggests the benefit of borrowing informa-
+tion across leaf nodes. For the Interaction experiment, FusedTree benefits from tuning α,
+such that interactions between clinical and omics covariates may be modeled, by showing a
+clearly better performance compared to the fully fused model.
+4
+Application
+4.1
+Description of the data
+We apply FusedTree to a combination of 4 publicly available cohorts consisting of 914 colorec-
+tal adenocarcinoma patients with microsatellite stability (MSS) for which we aim to predict
+relapse-free survival based on 21, 292 gene expression covariates and clinical covariates: age,
+gender, tumor stage (4-leveled factor), and the site of the tumor (left versus right). In ad-
+dition, a molecular clustering covariate called consensus molecular subtype [Guinney et al.,
+2015] is available. This clustering covariate, having four levels related to gene pathways,
+16
+mutation rates, and metabolics, is an established prognostic factor and hence we include it
+to the clinical covariate set. The combined cohorts are available as a single data set in the
+R package mcsurvdata.
+Patients with missing response values were omitted, rendering a final data set with N =
+845 and 253 events. Missing values in the clinical covariate set were imputed using a single
+imputation with the R package mice [van Buuren and Groothuis-Oudshoorn, 2011].
+4.2
+Model fitting and evaluation
+We fit FusedTree and several competitors to the data. We consider FusedTree with and
+without post removal of omics effects in the nodes as described in Section 2.7. We incorporate
+continuous covariate age linearly in FusedTree, as explained in Section 2.6. We fit the tree
+with a minimal leaf node sample size of 30 and we prune the tree and tune penalty parameters
+λ and α using 5-fold CV.
+As competitors, we consider tree-based methods random survival forest Ishwaran et al.
+[2008] implemented in the R package randomforestSRC, gradient boosted survival trees
+implemented in the R package gbm, and block forest [Hornung and Wright, 2019], a random
+survival forest which estimates separate weights for the clinical and omics covariates.
+For the linear competitor models, we consider a cox proportional hazards model with only
+the clinical covariates, and we consider lasso and ridge cox regression, both implemented in
+the R package glmnet [Simon et al., 2011], with unpenalized clinical covariates and penal-
+ized omics covariates. To favor clinical covariates more strongly, we also consider fitting a
+cox proportional hazards model with only clinical covariates, and, subsequently, fitting the
+residuals of this model using penalized regression with only the omics covariates, as pro-
+posed by Boulesteix and Sauerbrei [2011]. This residual approach, however, performs worse
+than jointly estimating the clinical (unpenalized) and the omics (penalized) effects, and we
+therefore do not show its results. We do not consider CoxBoost [Binder and Schumacher,
+2008], mentioned in Section 1.2, because publicly available software was missing.
+To evaluate the fit of all different models, we estimate the test performance. To do so,
+we split the data set in a training set (Ntrain = 676) on which we fit the models, and a test
+set (Ntest = 169) on which we estimate the performance. We show survival curves of the
+training and test response in supplementary Figure S9. As performance metrics, we consider
+17
+Stage I,Stage II
+CMS1,CMS2,CMS3
+Stage I
+Stage III
+ < 80
+Stage III,Stage IV
+CMS4
+Stage II
+Stage IV
+ >= 80
+1
+2
+4
+8
+9
+5
+3
+6
+12
+13
+7
+Stage I,Stage II
+CMS1,CMS2,CMS3
+Stage I
+Stage III
+ < 80
+Stage III,Stage IV
+CMS4
+Stage II
+Stage IV
+ >= 80
+Stage
+CMS
+Stage
+0.16
+1 / 35
+0.48
+41 / 256
+0.96
+29 / 98
+Stage
+age
+1.3
+85 / 211
+2.3
+20 / 33
+5.3
+29 / 43
+1
+2
+4
+8
+9
+5
+3
+6
+12
+13
+7
+-0.01
+0.00
+0.01
+0.02
+-5
+0
+5
+10
+log(α)
+Effect estimates
+MAGEA6_N5
+βAGEA6_N12
+βAGEA6_N13
+βLA-DRB4_N5
+βLA-DRB4_N12
+βLA-DRB4_N13
+a
+b
+Figure 3: (a) The estimated survival tree of FusedTree. In the leaf nodes, the relative death rate
+(top) and the number of events/node sample size (bottom) are depicted. The plot is produced
+using the R package rpart.plot. (b) Regularization paths as a function of fusion penalty α for
+the effect estimates of two genes in nodes 5, 12, and 13 of FusedTree. The vertical dotted line (at
+log α = 9.6) indicates the tuned α of FusedTree.
+the robust (against censoring distribution) concordance index (C-index) [Uno et al., 2011]
+and the time-dependent area under the curve (t-AUC) [Heagerty et al., 2004] using a cut-off
+of five years.
+We investigate the effect of the number of omics covariates p on the fitted models. There-
+fore, we consider psel = {500, 5000, 21292 (all)} and select the psel genes with the largest
+variance.
+4.3
+Results and downstream analysis
+The tree fit of FusedTree, having six leaf nodes, suggests the importance of the clinical factor
+covariate stage, with stage IV patients having the worst outcome as expected (Figure 3a).
+The tree incorporates interactions between stage and the molecular clustering covariate CMS
+and between stage and age. CMS only interacts with stage I and II patients, as reported
+previously [Zhao and Pan, 2021]. Clinical covariates gender and the site of the tumor are
+not part of FusedTree.
+FusedTree with omics effects in nodes 7, 8, and 9 removed outperforms FusedTree without
+omics effect removal for all psel (Table 1). Removing omics effects in more nodes degrades
+18
+Table 1: Concordance index (C-index) and time-dependent AUC (with 5 years cut-off) of CRC
+prognosis of several survival models. The performance measures are estimated on an independent
+test set with Ntest = 167. Because of memory issues, results for gradient boosting with psel =
+21, 292 are missing.
+psel = 500
+psel = 5000
+psel = 21, 292
+C-index
+t-AUC
+C-index
+t-AUC
+C-index
+t-AUC
+FusedTree
+0.72
+0.77
+0.73
+0.74
+0.73
+0.75
+FusedTree N7,N8,N9
+0.75
+0.79
+0.76
+0.77
+0.76
+0.77
+Cox PH (clinical only)
+0.72
+0.69
+0.72
+0.69
+0.72
+0.69
+Ridge
+0.73
+0.73
+0.73
+0.72
+0.73
+0.72
+Lasso
+0.71
+0.72
+0.71
+0.71
+0.73
+0.72
+Gradient Boosting
+0.69
+0.74
+0.68
+0.67
+-
+-
+Random forest
+0.71
+0.74
+0.68
+0.71
+0.62
+0.64
+Block Forest
+0.77
+0.80
+0.77
+0.78
+0.75
+0.75
+performance. This finding suggests that the overall omics effect is not required for prognosis
+for patients that 1) have a tumor in stage I or II and belong to molecular cluster CMS1,
+CMS2, or CMS3 and 2) have a stage IV tumor. For patients that 1) have a tumor in stage I
+or II and belong to molecular cluster CMS4 and 2) have a stage III tumor, the overall omics
+effect improves prognosis. Apparently, the subgroups with the best prognosis (most left two
+nodes of the tree) and the poorest prognosis (most right node of the tree) do not require
+omics effects.
+FusedTree (with omics effect removal) tunes λ = 1508 and fusion penalty α = 14836
+Figure 3b shows regularization paths of the effect sizes of genes MAGEA6 and HLA-DRB4
+as a function of α at the tuned λ (vertical dotted line indicates the tuned α). These two genes
+show the greatest variability across the leaf nodes. Figure 3b reveals that, at α = 14836,
+interaction effects between clinical and omics covariates are present but that these effects
+are substantially shrunken.
+Among competitors, we first compare FusedTree (omics effect removed in nodes 7, 8, and
+9) with the linear models. FusedTree performs substantially better than the clinical cox
+model and ridge and lasso regression perform marginally better, which suggests that the
+omics covariate set improves prognosis on top of the clinical covariate set. The compara-
+tive performance of FusedTree and ridge implies that FusedTree better approximates the
+prognostic clinical covariate part by modeling interactions and by more naturally handling
+categorical covariates. Additionally, the shrunken clinical × omics interaction effects may
+enhance prognosis. FusedTree and linear competitors do not show a decline in performance
+19
+for larger number of omics covariates.
+Among nonlinear models, FusedTree is competitive to block forest, and FusedTree out-
+performs gradient boosting and standard random forest. We do not have results for gradient
+boosting for all omics covariates (psel = 21, 292) because we ran into memory issues. Ran-
+dom forest and gradient boosting show strong decline in performance for larger psel. This
+decline suggests that nonlinear models have difficulty in finding the prognostic signal when
+many (noisy) covariates are added. These models require a priori favoring of the clinical
+covariate set, as indicated by the comparative performance of block forest and random forest.
+However, for psel = 21, 292, the performance of block forest also decreases.
+A strong benefit of FusedTree, in particular with respect to variations of the random for-
+est such as block forest, is its interpretability on various levels: the relevance of the clinical
+covariates is easily extracted from the single tree, whereas the regression coefficients allow
+quantification of relevance of genomics for patient subgroups. We illustrate the interpretabil-
+ity of FusedTree for the CRC application below.
+First, the fitted FusedTree model suggests that for patient subpopulations defined by leaf
+node 7, 8, and 9 the omics effects do not add to prognosis. Second, the regularization paths
+in Figure 3b indicate that overall interactions between clinical and omics covariates in the
+nonzero leaf nodes (5, 12, and 13) are weak. Third, the sum of absolute omics effect size
+estimates is largest in leaf node 12: (∥βN5∥1 = 10.7, ∥βN12∥1 = 11.9, and ∥βN13∥1 = 10.1).
+This finding suggests that omics covariates have the strongest overall effect on prognosis
+of patients younger than 80 years with a stage III tumor.
+Fourth, the variance of gene
+effect size estimates across nodes is informative. For example, the MAGE-A set of genes is
+over-represented in the top 20 of genes with the largest variance across nodes (e.g. Figure
+3b). This set of genes expresses cancer/testis (CT) antigens and is therefore important in
+immunotherapy [Mori et al., 1996]. This variability may turn out valuable for e.g. heteroge-
+neous treatment estimation because the prognostic effect of immunotherapy may vary across
+patient subpopulations. Last, the total absolute sum of effect size estimates of a recently
+published gene signature associated with CRC prognosis [Song et al., 2022] is twice as large
+in node 13 compared to node 5 and 12, suggesting a difference in importance of this signature
+across different subpopulations.
+20
+5
+Conclusion
+We developed FusedTree, a model that deals with high-dimensional omics covariates and
+well-established clinical risk factors by combining a regression tree with fusion-like ridge
+regression. We showed the benefits of the fusion penalty in simulations. An application to
+colorectal cancer prognosis illustrated that FusedTree 1) had a better model fit compared to
+several competitors and 2) rendered insights in the added overall benefit of omics measure-
+ments to prognosis for different patient subgroups compared to only employing clinical risk
+factors.
+We opted for fitting the penalized regression conditional on the tree instead of optimizing
+the regression and tree jointly as is considered by Zeileis et al. [2008]. The conditional strat-
+egy puts more weight on the clinical covariates that define the tree and is therefore more
+consistent with the established prognostic effect of these covariates. Furthermore, joint op-
+timization is challenging because the omics data is high-dimensional and because optimizing
+a tree is a non-convex and non-smooth problem. One solution may be to embed FusedTree
+in a Bayesian framework by employing Bayesian CART model search [Chipman et al., 1998]
+for the tree combined with linear regressions with normal priors. This approach, however,
+is computationally intensive and model interpretations from the sampled tree posterior will
+likely be more challenging than for our current solution.
+Additional structures may be incorporated into FusedTree.
+For example, the fusion
+strength may decrease with a distance measure between leaf nodes.
+Tuck et al. [2021]
+proposed a related strategy in which interaction effects were weaker for more similar instances
+of the effect modifiers. Defining a generic distance measure for the leaf nodes of FusedTree
+is nontrivial because the difference in interaction strength between leaf nodes depends on
+the characteristic of variables employed in the splitting rules.
+6
+Data availability and software
+Data of the colorectal cancer application are publicly available in the R package mcsurvdata.
+These data and R code (version 4.4.1) to reproduce results presented in Section 3 and 4 are
+available via https://github.com/JeroenGoedhart/FusedTree_paper.
+21
+Competing interests
+No competing interest is declared.
+Acknowledgments
+The authors thank Hanarth Fonds for their financial support.
+References
+S. Anatolyev. A ridge to homogeneity for linear models. Journal of Statistical Computa-
+tion and Simulation, 90(13):2455–2472, 2020. doi: 10.1080/00949655.2020.1779722. URL
+https://doi.org/10.1080/00949655.2020.1779722.
+M. G. Best, N. Sol, I. Kooi, J. Tannous, B. A. Westerman, F. Rustenburg, P. Schellen,
+et al. Rna-seq of tumor-educated platelets enables blood-based pan-cancer, multiclass,
+and molecular pathway cancer diagnostics. Cancer cell, 28(5):666–676, 2015. doi: 10.
+1016/j.ccell.2015.09.018.
+H. Binder and . Schumacher. Allowing for mandatory covariates in boosting estimation of
+sparse high-dimensional survival models. BMC Bioinformatics, 9(1):14, 2008. ISSN 1471-
+2105. doi: 10.1186/1471-2105-9-14. URL https://doi.org/10.1186/1471-2105-9-14.
+A. L. Boulesteix and W. Sauerbrei.
+Added predictive value of high-throughput molecu-
+lar data to clinical data and its validation. Briefings in Bioinformatics, 12(3):215–229,
+2011. ISSN 1467-5463. doi: 10.1093/bib/bbq085. URL https://doi.org/10.1093/bib/
+bbq085.
+A. L. Boulesteix, R. De Bin, X. Jiang, and M. Fuchs. Ipf-lasso: Integrative l1-penalized
+regression with penalty factors for prediction based on multi-omics data. Computational
+and Mathematical Methods in Medicine, 2017:7691937, 2017. ISSN 1748-670X. doi: 10.
+1155/2017/7691937. URL https://doi.org/10.1155/2017/7691937.
+H. M. Bøvelstad, S. Nygaard, and Ø. Borgan.
+Survival prediction from clinico-genomic
+22
+models - a comparative study. BMC Bioinformatics, 10(1):413, 2009. ISSN 1471-2105.
+doi: 10.1186/1471-2105-10-413. URL https://doi.org/10.1186/1471-2105-10-413.
+E. A. Boyle, Y. I. Li, and J. K. Pritchard. An expanded view of complex traits: From
+polygenic to omnigenic. Cell, 169(7):1177–1186, 2017. doi: 10.1016/j.cell.2017.05.038.
+URL https://doi.org/10.1016/j.cell.2017.05.038.
+L. Breiman. Random forests. Machine Learning, 45(1):5–32, 2001. ISSN 1573-0565. doi:
+10.1023/A:1010933404324. URL https://doi.org/10.1023/A:1010933404324.
+L. Breiman, J. H. Friedman, C. J. Stone, and R. A. Olshen. Classification and Regression
+Trees. Chapman and Hall/CRC, 1984. doi: https://doi.org/10.1201/9781315139470.
+E. C. Chase and P. S. Boonstra. Accounting for established predictors with the multistep
+elastic net. Statistics in Medicine, 38(23):4534–4544, 2019. doi: https://doi.org/10.1002/
+sim.8313. URL https://onlinelibrary.wiley.com/doi/abs/10.1002/sim.8313.
+H. A. Chipman, E. I. George, and R. E. McCulloch. Bayesian cart model search. Journal of
+American Statistical Association, 93(443):935–948, 1998. ISSN 0162-1459. doi: 10.1080/
+01621459.1998.10473750. URL https://doi.org/10.1080/01621459.1998.10473750.
+H. A. Chipman, E. I. George, and R. E. McCulloch. Bart: Bayesian additive regression
+trees. Annals of Applied Statistics, 4(1):266–298, 2010. doi: 10.1214/09-AOAS285. URL
+https://doi.org/10.1214/09-AOAS285.
+D. R. Cox.
+Regression models and life-tables.
+Journal of the Royal Statistical Society,
+Series B (Methodology), 34(2):187–202, 1972. doi: https://doi.org/10.1111/j.2517-6161.
+1972.tb00899.x.
+URL https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/j.
+2517-6161.1972.tb00899.x.
+R. De Bin, W. Sauerbrei, and A. L. Boulesteix.
+Investigating the prediction ability of
+survival models based on both clinical and omics data: two case studies. Statistics in
+Medicine, 33(30):5310–5329, 2014. doi: https://doi.org/10.1002/sim.6246. URL https:
+//onlinelibrary.wiley.com/doi/abs/10.1002/sim.6246.
+23
+J. H. Friedman. Greedy function approximation: A gradient boosting machine. Annals of
+Statistics, 29(5):1189 – 1232, 2001. doi: 10.1214/aos/1013203451. URL https://doi.
+org/10.1214/aos/1013203451.
+J. M. Goedhart, T. Klausch, J. Janssen, and M. A. van de Wiel.
+Co-data learning for
+bayesian additive regression trees. arXiv, 2023.
+J. J. Goeman, S. A. van de Geer, F. de Kort, and H. C. van Houwelingen. A global test for
+groups of genes: testing association with a clinical outcome. Bioinformatics, 20(1):93–99,
+2004. ISSN 1367-4803. doi: 10.1093/bioinformatics/btg382. URL https://doi.org/10.
+1093/bioinformatics/btg382.
+J. Guinney, R. Dienstmann, X. Wang, A. de Reyni`es, A. Schlicker, C. Soneson, et al. The
+consensus molecular subtypes of colorectal cancer. Nature Medicine, 21(11):1350–1356,
+2015. ISSN 1546-170X. doi: 10.1038/nm.3967. URL https://doi.org/10.1038/nm.
+3967.
+T. Hastie and R. Tibshirani. Varying-coefficient models. Journal of the Royal Statistical
+Society, Series B (Methodology), 55(4):757–779, 1993.
+doi: https://doi.org/10.1111/j.
+2517-6161.1993.tb01939.x. URL https://rss.onlinelibrary.wiley.com/doi/abs/10.
+1111/j.2517-6161.1993.tb01939.x.
+P. J. Heagerty, T. Lumley, and M. S. Pepe. Time-Dependent ROC Curves for Censored Sur-
+vival Data and a Diagnostic Marker. Biometrics, 56(2):337–344, 2004. ISSN 0006-341X.
+doi: 10.1111/j.0006-341X.2000.00337.x. URL https://doi.org/10.1111/j.0006-341X.
+2000.00337.x.
+A. E. Hoerl and R. W. Kennard. Ridge regression: Biased estimation for nonorthogonal
+problems. Technometrics, 12(1):55–67, 1970. ISSN 00401706. URL http://www.jstor.
+org/stable/1267351.
+R. Hornung and M. N. Wright.
+Block forests: random forests for blocks of clinical and
+omics covariate data. BMC Bioinformatics, 20(1):358, Jun 2019. ISSN 1471-2105. doi:
+10.1186/s12859-019-2942-y. URL https://doi.org/10.1186/s12859-019-2942-y.
+24
+H. Ishwaran, Udaya B. K., B. H. Eugene, and L. S. Michael. Random survival forests. Annals
+of Applied Statistics, 2(3), 2008. ISSN 1932-6157. doi: 10.1214/08-aoas169.
+C. G. Khatri and C. R. Rao. Solutions to some functional equations and their applications
+to characterization of probability distributions. The Indian Journal of Statistics, Series
+A, 30(2):167–180, 1968. URL http://www.jstor.org/stable/25049527.
+M. LeBlanc and J. Crowley. Relative risk trees for censored survival data. Biometrics, 48
+(2):411–425, 1992. doi: 2024-04-29. URL https://doi.org/10.2307/2532300.
+A. Lettink, M. Chinapaw, and W. N. van Wieringen. Two-dimensional fused targeted ridge
+regression for health indicator prediction from accelerometer data. The Journal of the
+Royal Statistical Society, Series C (Applied Statistics), 72(4):1064–1078, 2023. ISSN 0035-
+9254. doi: 10.1093/jrsssc/qlad041. URL https://doi.org/10.1093/jrsssc/qlad041.
+M. Lim and T. Hastie.
+Learning interactions via hierarchical group-lasso regularization.
+Journal of Computational and Graphical Statistics, 24(3):627–654, Jul 2015.
+doi: 10.
+1080/10618600.2014.938812.
+M. Mori, H. Inoue, K. Mimori, K. Shibuta, K. Baba, H. Nakashima, et al.
+Expres-
+sion of mage genes in human colorectal carcinoma.
+Annals of Surgery, 224(2), 1996.
+ISSN 0003-4932. URL https://journals.lww.com/annalsofsurgery/fulltext/1996/
+08000/expression_of_mage_genes_in_human_colorectal.11.aspx.
+H. M. Ng, B. Jiang, and K. Y. Wong. Penalized estimation of a class of single-index varying-
+coefficient models for integrative genomic analysis. Biometrical Journal, 65(1):2100139,
+2023.
+doi:
+https://doi.org/10.1002/bimj.202100139.
+URL https://onlinelibrary.
+wiley.com/doi/abs/10.1002/bimj.202100139.
+N. Simon, J Friedman, R. Tibshirani, and T. Hastie. Regularization paths for cox’s propor-
+tional hazards model via coordinate descent. Journal of Statistical Software, 39(5):1–13,
+2011. doi: 10.18637/jss.v039.i05.
+D. Song, D. Zhang, S. Chen, J. Wu, Q. Hao, L. Zhao, H. Ren, and N. Du. Identification
+and validation of prognosis-associated dna repair gene signatures in colorectal cancer.
+25
+Scientific reports, 12(1):6946, 2022. ISSN 2045-2322. doi: 10.1038/s41598-022-10561-w.
+URL https://doi.org/10.1038/s41598-022-10561-w.
+R. Tibshirani. Regression shrinkage and selection via the lasso. Journal of the Royal Sta-
+tistical Society, Series B (Methodology), 58(1):267–288, 1996.
+ISSN 00359246.
+URL
+http://www.jstor.org/stable/2346178.
+J. Tuck, S. Barratt, and S. Boyd. A distributed method for fitting laplacian regularized
+stratified models. Journal of Machine Learning Research, 22(60):1–37, 2021. URL http:
+//jmlr.org/papers/v22/19-345.html.
+H. Uno, T. Cai, M. J. Pencina, R. B. D’Agostino, and L. J. Wei. On the c-statistics for
+evaluating overall adequacy of risk prediction procedures with censored survival data.
+Statistics in Medicine, 30(10):1105–1117, 2011. doi: https://doi.org/10.1002/sim.4154.
+URL https://onlinelibrary.wiley.com/doi/abs/10.1002/sim.4154.
+S. van Buuren and K. Groothuis-Oudshoorn. mice: Multivariate imputation by chained
+equations in r. Journal of Statistical Software, 45(3):1–67, 2011. doi: 10.18637/jss.v045.
+i03.
+M. A. van de Wiel, M. M. van Nee, and A. Rauschenberger.
+Fast cross-validation for
+multi-penalty high-dimensional ridge regression. Journal of Computational and Graphical
+Statistics, 30(4):835–847, 2021. doi: 10.1080/10618600.2021.1904962. URL https://doi.
+org/10.1080/10618600.2021.1904962.
+H. C. van Houwelingen, T. Bruinsma, A. A. M. Hart, L. J. van’t Veer, and L. F. A.
+Wessels.
+Cross-validated cox regression on microarray gene expression data.
+Statis-
+tics in Medicine, 25(18):3201–3216, 2006. doi: https://doi.org/10.1002/sim.2353. URL
+https://onlinelibrary.wiley.com/doi/abs/10.1002/sim.2353.
+A. Zeileis, T. Hothorn, and K. Hornik. Model-based recursive partitioning. Journal of Com-
+putational and Graphical Statistics, 17(2):492–514, 2008. doi: 10.1198/106186008X319331.
+URL https://doi.org/10.1198/106186008X319331.
+L. Zhao and Y. Pan.
+Sscs: A stage supervised subtyping system for colorectal cancer.
+Biomedicines, 9(12), 2021. doi: 10.3390/biomedicines9121815.
+26
+H. Zou and T. Hastie. Regularization and Variable Selection Via the Elastic Net. Jour-
+nal of the Royal Statistical Society, Series B (Methodology), 67(2):301–320, 2005. ISSN
+1369-7412. doi: 10.1111/j.1467-9868.2005.00503.x. URL https://doi.org/10.1111/j.
+1467-9868.2005.00503.x.
+27
+SUPPLEMENTARY MATERIAL TO: Fusion of Tree-induced
+Regressions for Clinico-genomic Data
+Jeroen M. Goedhart∗a, Mark A. van de Wiela, Wessel N. van Wieringena,b, Thomas Klauscha
+∗Correspondence e-mail address: j.m.goedhart@amsterdamumc.nl
+aDepartment of Epidemiology and Data Science, Amsterdam Public Health Research Institute,
+Amsterdam University Medical Centers Location AMC, Meibergdreef 9, the Netherlands
+bDepartment of Mathematics, Vrije Universiteit, De Boelelaan 1081a, 1081 HV Amsterdam, The
+Netherlands
+1
+FusedTree for binary outcome
+Recall that the fitted tree with M leaf nodes induces data ˜y ∈RN×1, ˜X ∈RN×Mp, and ˜U ∈
+RN×M. We index observations, corresponding to the rows, of ˜y, ˜
+X, and ˜U by i, i.e. ˜yi, ˜xi, and
+˜ui . Then, for binary response yi ∈{0, 1} , we consider the model
+˜yi ∼Bernoulli
+
+expit
+ ˜u⊤
+i c + ˜x⊤
+i β
+
+,
+i = 1, . . . , N,
+(1)
+with again clinical intercept parameter vector c ∈RM, omics parameter vector β ∈RMp, and
+expit(x)= exp (x) [1 + exp (x)]−1 . To find estimates ˆc of c and ˆβ and β, we solve
+ˆc, ˆβ = arg max
+c,β
+N
+X
+i=1
+˜yi log
+
+expit
+ ˜u⊤
+i c + ˜x⊤
+i β
+
++ (1 −˜yi) log
+
+1 −expit
+ ˜u⊤
+i c + ˜x⊤
+i β
+
+−λβTβ −αβ⊤Ωβ
+= arg max
+c,β
+N
+X
+i=1
+
+˜yi
+ ˜u⊤
+i c + ˜x⊤
+i β
+
+−log
+
+1 + exp
+ ˜u⊤
+i c + ˜x⊤
+i β
+	
+−λβTβ −αβ⊤Ωβ,
+(2)
+i.e. optimizing the penalized log likelihood of all data for model (1).
+Estimator (2) cannot be evaluated analytically and is hence found using the iterative re-
+weighted least squares (IRLS) algorithm.2
+1
+arXiv:2411.02396v1  [stat.ME]  4 Nov 2024
+The IRLS algorithm updates estimates ˆc(t), ˆβ
+(t) →ˆc(t+1), ˆβ
+(t+1), with iteration index t, until
+the estimates stabilize within some tolerance level. Specifically, define the linear predictor for
+the observations η(t) =
+
+η(t)
+i
+N
+i=1 ∈RN×1, with η(t)
+i
+= ˜u⊤
+i ˆc(t) + ˜x⊤
+i ˆβ
+(t), diagonal weight matrix
+W (t) with ith element on the diagonal W (t)
+ii = exp
+
+η(t)
+i
+ h
+exp
+
+η(t)
+i
+
++ 1
+i−2
+, Then, given current
+estimates ˆc(t), ˆβ
+(t), the updates equal:
+ˆc(t+1) =
+(
+˜U
+⊤
+W (t)−1 
+˜X (λIMp×Mp + αΩ)−1 ˜X
+⊤+
+
+W (t)−1−1
+˜U
+)−1
+× ˜U
+⊤
+˜X (λIMp×Mp + αΩ)−1 ˜X
+⊤+
+
+W (t)−1−1 
+η(t) +
+
+W (t)−1 ˜y −expit
+ η(t)
+ˆβ
+(t+1) =
+
+˜X
+⊤W (t) ˜X + λIMp×Mp + αΩ
+−1 ˜X
+⊤h
+W (t) 
+η(t) −˜Uˆc(t+1)
++ ˜y −expit
+ η(t)i
+, (3)
+as was shown by Lettink et al. [2023]. We run the iterative algorithm until the penalized likelihood
+has stabilized within an absolute tolerance tol = 10−10.
+2
+FusedTree for survival outcome
+For survival data, we have response ˜yi = (ti, δi) for observations i = 1, . . . , N with ti the observed
+time at which patients had an event (δi = 1) or were censored (δi = 0) . Again, we have tree-
+induced data ˜X ∈RN×Mp, and ˜U ∈RN×M. We impose a proportional hazards model h (t | Xi) =
+h0 (t) exp
+ ˜u⊤
+i c + ˜xiβ
+
+, which induces the penalized full log likelihood
+lpen 
+β, c, h0 (t) ; ˜y, ˜
+X, ˜U
+
+=
+N
+X
+i=1
+
+−exp
+ ˜u⊤
+i c + ˜x⊤
+i β
+
+H0(ti) + δi
+
+log (h0(ti)) + ˜u⊤
+i c + ˜x⊤
+i β
+	
+−λβTβ −αβ⊤Ωβ,
+(4)
+with baseline hazard h0 (t) and cumulative baseline hazard H0 (t) =
+R t
+t′=0 h0 (t′) dt′. We then
+aim to find estimators ˆc, ˆβ by
+ˆc, ˆβ = arg max
+c,β
+lpen 
+β, c, h0 (t) ; ˜y, ˜
+X, ˜U
+
+.
+(5)
+To solve (5), we use the iterative re-weighted least squares (IRLS) algorithm proposed by van
+2
+Houwelingen et al. [2006]. Conveniently, this algorithm is almost identical to the IRLS algorithm
+for logistic regression, i.e.
+(3), as shown by van de Wiel et al. [2021].
+The only differences
+between logistic regression and penalized cox regression are weights W (t)
+ii , which for penalized cox
+regression become W (t)
+ii = ˆH(t)
+0 (t) exp
+
+˜u⊤
+i ˆc(t) + ˜x⊤
+i ˆβ
+(t)
+, and centered response ˜y −expit
+ η(t)
+,
+which equals ˜y −diag
+
+W (t)
+for penalized cox regression. These changes are plugged into (3)
+and we run the iterative algorithm until penalized likelihood (4) has stabilized within an absolute
+tolerance tol = 10−10.
+For iterative estimates ˆH(t)
+0 (t) of baseline hazard H0 (t) , we employ the Breslow estimator:
+ˆH(t)
+0 (t) = P
+i: ti≤t
+
+δi
+hP
+j: tj≥ti exp
+
+˜u⊤
+i ˆc(t−1) + ˜x⊤
+i ˆβ
+(t−1)i−1
+.
+3
+Hyper-parameter tuning
+To tune hyperparameters α and λ, we solve for continuous response:
+ˆλ, ˆα = arg min
+λ, α
+1
+K
+K
+X
+k=1
+˜yΓk −˜U Γkˆc−Γk (λ, α) −˜XΓk ˆβ−Γk (λ, α)
+
+2
+2 ,
+subject to
+λ, α > 0,
+(6)
+and for binary response, we solve:
+ˆλ, ˆα = arg min
+λ, α
+1
+K
+K
+X
+k=1
+(X
+i∈Γk
+˜yi
+
+˜uiˆc−Γk (λ, α) + ˜x⊤
+i ˆβ−Γk (λ, α)
+)
+−1
+K
+K
+X
+k=1
+(X
+i∈Γk
+log
+h
+1 + exp
+
+˜u⊤
+i ˆc−Γk (λ, α) + ˜x⊤
+i ˆβ−Γk (λ, α)
+i)
+subject to
+λ, α > 0,
+(7)
+and for survival response, we solve:
+ˆλ, ˆα = arg min
+λ, α
+1
+K
+K
+X
+k=1
+(X
+i∈Γk
+−exp
+
+˜u⊤
+i ˆc−Γk (λ, α) + ˜x⊤
+i ˆβ−Γk (λ, α)
+
+ˆH0(ti)
+)
++ 1
+K
+K
+X
+k=1
+(X
+i∈Γk
+δi
+h
+log
+
+ˆh0(ti)
+
++ ˜u⊤
+i ˆc−Γk (λ, α) + ˜x⊤
+i ˆβ−Γk (λ, α)
+i)
+(8)
+subject to
+λ, α > 0,
+3
+with Γk the observations in test fold K and −Γk the remaining samples forming the training
+set.
+Thus, we select ˆλ, ˆα by minimizing the cross-validated prediction mean square error for
+continuous ˜yi and the cross-validated likelihood for binary and survival ˜yi.
+The above optimizations depend on repeated evaluation of estimators ˆc−Γk (λ, α) and
+ˆβ−Γk (λ, α) , which requires considerable computational time for high-dimensional data. As was
+shown by van de Wiel et al. [2021], a computationally more efficient procedure is to directly eval-
+uate the linear predictors ˜U Γkˆc−Γk (λ, α) and ˜XΓk ˆβ−Γk (λ, α) , i.e. the estimators in combination
+with their corresponding design matrices. These linear predictors can be reformulated such that
+their evaluation only requires repeated operations on matrices of dimension N −|Γk| instead of
+dimension Mp for evaluation of ˆc−Γk (λ, α) and ˆβ−Γk (λ, α) . The linear predictors are given, as
+derived by Lettink et al. [2023], with ˇX = ˜XV Ω(λIp×p + αDΩ)−1
+2 , by
+˜U Γkˆc−Γk (λ, α) = ˜U Γk
+
+˜U
+⊤
+−Γk
+
+ˇX−Γk ˇX
+⊤
+−Γk + I|−Γk|×|−Γk|
+−1 ˜U −Γk
+−1
+× ˜U
+⊤
+−Γk
+
+ˇX−Γk ˇX
+⊤
+−Γk + I|−Γk|×|−Γk|
+−1
+˜y−Γk
+˜XΓk ˆβ−Γk (λ, α) = ˇXΓk ˇX
+⊤
+−Γk
+
+ˇX−Γk ˇX
+⊤
+−Γk + I|−Γk|×|−Γk|
+−1 
+˜y−Γk −˜U −Γkˆc−Γk
+
+,
+for continuous response, and
+˜U Γkˆc(t+1)
+−Γk (λ, α) = ˜U Γk
+(
+˜U
+⊤
+−Γk
+
+W (t)
+−Γk,−Γk
+−1 
+ˇX−Γk ˇX
+⊤
+−Γk +
+
+W (t)
+−Γk,−Γk
+−1−1
+˜U −Γk
+)−1
+× ˜U
+⊤
+−Γk
+
+ˇX−Γk ˇX
+⊤
+−Γk +
+
+W (t)
+−Γk,−Γk
+−1−1 
+η(t)
+−Γk +
+
+W (t)
+−Γk,−Γk
+−1
+×
+h
+˜y−Γk −expit
+
+η(t)
+−Γk
+io
+˜XΓk ˆβ
+(t+1)
+−Γk (λ, α) = ˇXΓk ˇX
+⊤
+−Γk
+
+ˇX−Γk ˇX
+⊤
+−Γk +
+
+W (t)
+−Γk,−Γk
+−1−1
+×
+
+η(t)
+−Γk −˜U −Γkˆc(t+1)
+−Γk +
+
+W (t)
+−Γk,−Γk
+−1 h
+˜y−Γk −expit
+
+η(t)
+−Γk
+i
+,
+for binary response, with diagonal weight matrix W (t)
+−Γk,−Γk and linear predictor η(t)
+−Γk defined as in
+Appendix 1 combined with appropriate subsetting. Again, for survival response, we use a similar
+algorithm as for binary response in which only weights W (t)
+−Γk,−Γk and ˜y−Γk −expit
+
+η(t)
+−Γk
+
+are
+modified as described in Appendix 2 .
+4
+Optimizations 6 and 7 are performed using the Nelder-Mead method (Nelder and Mead, 1965)
+implemented in the base R optim function with penalties λ, α on the log-scale.
+4
+Shrinkage limits
+Here, we derive the shrinkage limits of the FusedTree estimator, which we presented in eq. 6 of
+the main text.
+Define Λλ,α = λIMp×Mp + αΩ, and recall Ω= Ip×p
+N  IM×M −1
+M 1M×M
+
+, with M the
+number of leaf nodes. The estimators for the tree-induced clinical effect c and omics effects β are
+ˆc =
+
+˜U
+⊤h
+˜XΛ−1
+λ,α ˜X
+⊤+ IN×N
+i−1 ˜U
+−1
+× ˜U
+⊤h
+˜XΛ−1
+λ,α ˜X
+⊤+ IN×N
+i−1
+˜y
+ˆβ =
+
+˜X
+⊤˜X + Λλ,α
+−1 ˜X
+⊤
+˜y −˜Uˆc
+
+,
+=
+
+Λ−1
+λ,α −Λ−1
+λ,α ˜X
+⊤
+˜XΛ−1
+λ,α ˜X
+⊤+ IN×N
+−1 ˜XΛ−1
+λ,α
+
+˜X
+⊤
+˜y −˜Uˆc
+
+(9)
+with the last line of (9) following from Woodbury’s identity. To derive the shrinkage limits (λ →∞
+and α →∞) of (9), we first find Λ−1
+λ,α. Because Λλ,α = Ip×p
+N A, with A = (λ + α)IM×M −
+α
+M 1M×M, we have Λ−1
+λ,α = Ip×p
+N A−1, and we are left with determining A−1, which can be shown
+to equal
+A−1 =
+
+
+
+
+
+
+
+
+
+a
+b
+· · ·
+b
+b
+...
+...
+...
+...
+...
+a
+b
+b
+· · ·
+b
+a
+
+
+
+
+
+
+
+
+
+∈RM×M,
+having identical diagonal elements a = λ−1 −α (1 −1/M) (λ2 + λα)−1 and identical off-diagonal
+elements b = α (λ2M + λαM)−1 . For λ →∞, we have a = b = 0, and for α →∞, we have
+a = b = 1/ (λM) . Thus, we have
+lim
+λ→∞Λ−1
+λ,α = 0Mp×Mp
+(10)
+lim
+α→∞Λ−1
+λ,α =
+1
+λM Ip×p
+O
+1M×M.
+(11)
+5
+Limit (10) renders estimators:
+lim
+λ→∞ˆc =
+
+˜U
+⊤˜U
+−1 ˜U
+⊤˜y
+(12)
+lim
+λ→∞
+ˆβ = 0Mp,
+with the first line the standard normal equation, as expected.
+For α →∞, we first define the face-splitting product (Slyusar, 1999) by •, with matrix
+C = A • B having row i defined by the Kronecker product of corresponding rows i of A and
+B. For A ∈RN×M and B ∈RN×p, we then have C ∈RN×Mp. We also define the column-wise
+Kronecker product, i.e. the the Khatri–Rao product (Khatri and Rao, 1968), by ∗, with C = A∗B
+having column j defined by the Kronecker product of column j of A and B. For these products,
+the following useful properties hold (Slyusar, 1999):
+(A • B)
+
+C
+O
+D
+
+= (AC) • (BD)
+
+A
+O
+B
+
+(C ∗D) = (AC) ∗(BD)
+(A • B) (C ∗D) = (AC) ◦(BD)
+(A • B)⊤= A⊤∗B⊤
+with ◦the Hadamard product, and all matrices of the right dimension to perform multiplication.
+These definitions are useful because we may define the tree-induced omics matrix ˜X by
+˜X = X • ˜U,
+(13)
+with X ∈RN×p the original omics covariate matrix.
+We start with lim
+α→∞ˆc. The limit lim
+α→∞
+h
+˜XΛ−1
+λ,α ˜X
+⊤+ IN×N
+i−1
+in (9) is simplified using (13) to
+lim
+α→∞
+˜XΛ−1
+λ,α ˜X
+⊤=
+1
+λM
+
+X • ˜U
+ 
+Ip×p
+O
+1M×M
+ 
+X • ˜U
+⊤
+=
+1
+λM
+
+X • ˜U1M×M
+
+X⊤∗˜U
+⊤
+=
+1
+λM
+ XX⊤
+◦
+
+˜U1M×M ˜U
+⊤
+=
+1
+λM XX⊤,
+(14)
+6
+where we used ˜U1M×M ˜U
+⊤= 1N×N. This leads to the following limit
+lim
+α→∞ˆc =
+(
+˜U
+⊤
+X
+ 1
+λM Ip×p
+
+X⊤+ IN×N
+−1
+˜U
+)−1
+× ˜U
+⊤
+X
+ 1
+λM Ip×p
+
+X⊤+ IN×N
+−1
+˜y.
+(15)
+Equation (15) is almost identical to the unpenalized effect estimator of a standard ridge regression
+with unpenalized ˜U and penalized X (so the limit lim
+α→∞reduces ˜X to X). The standard ridge
+penalty, however, is multiplied by M in (15) to account for having a factor M more omics effect
+estimates.
+Next, we compute lim
+α→∞
+ˆβ. We first note the equality
+lim
+α→∞Λ−1
+λ,α ˜X
+⊤=
+1
+λM
+
+Ip×p
+O
+1M×M
+ 
+X⊤∗˜U
+⊤
+=
+1
+λM X⊤∗1M×N.
+(16)
+Then, plugging (14) and (16) into the last line of (9) renders
+lim
+α→∞
+ˆβ =
+"
+1
+λM X⊤∗1M×N −
+1
+λM X⊤∗1M×N
+
+IN×N +
+1
+λM XX⊤
+−1
+1
+λM XX⊤
+# 
+˜y −˜Uˆc
+
+=
+"
+1
+λM X⊤−
+1
+(λM)2X⊤
+
+IN×N +
+1
+λM XX⊤
+−1
+XX⊤
+#
+∗1M×N
+
+˜y −˜Uˆc
+
+=
+("
+1
+λM IN×N −
+1
+(λM)2X⊤
+
+IN×N +
+1
+λM XX⊤
+−1
+X
+#
+X⊤∗1M×N
+) 
+˜y −˜Uˆc
+
+,
+with the second line following from the associativity of the Khatri-Rhao product: A ∗1M×N +
+B ∗1M×N = (A + B) ∗1M×N, and because (A ∗1M×N) B = (AB) ∗1M×N. In the last line, we
+pulled out X⊤at the right-hand side of the [] brackets. We then recognize the Woodbury identity
+1
+λM IN×N −
+1
+(λM)2X⊤
+
+IN×N +
+1
+λM XX⊤
+−1
+X =
+ X⊤X + λMIp×p
+−1 ,
+which finally yields
+lim
+α→∞
+ˆβ =
+h X⊤X + λMIp×p
+−1 X⊤
+˜y −˜Uˆc
+i
+∗1M×N,
+7
+with ˆc given by (15). We again recognize the standard ridge regression estimator with unpenalized
+˜U and with penalty λMIp×p. Each entry j of this estimator is repeated M times because of the
+Khatri-Rhao product of the standard ridge estimator with 1M×N.
+5
+Regularization paths
+To evaluate the effect of fusion penalty α on estimates of the leaf-node-specific omics effects ˆβ,
+we show regularization plots for several fixed values of λ (λ = {0, 1, 10, 100, 500, 5000}). We do
+so for a simulated data set in which some omics covariates xi interact with clinical covariates zi.
+The effect of the clinical covariates on the response is defined by a tree structure.
+We consider sample size N = 500 and number of omics covariates p = 10. We simulate
+omics covariates xi ∼N (0p, Ip×p) , clinical covariates zil ∼Unif (0, 1) , and define response
+yi = f (zi, xi) + ϵi, with ϵi ∼N (0, 1) , for i = 1, . . . , N and clinical covariate index l = 1, . . . , 5.
+The relationship f (·) between clinical and omics covariates and response yi is given by
+f (x, z, β) = I
+
+z1 ≤1
+2
+
+I
+
+z2 ≤1
+2
+  −10 + 6x⊤
+1,2β1,2
+
++ I
+
+z1 ≤1
+2
+
+I
+
+z2 > 1
+2
+  −5 + 3x⊤
+1,2β1,2
+
++ I
+
+z1 > 1
+2
+
+I
+
+z4 ≤1
+2
+ 
+5 + 1
+2x⊤
+1,2β1,2
+
++ I
+
+z1 > 1
+2
+
+I
+
+z4 > 1
+2
+ 
+10 + 1
+5x⊤
+1,2β1,2
+
++ x⊤
+3:10β3:10.,
+(17)
+with βj ∼N (0, 5/p) . Thus, omics covariates j = {1, 2} interact with the clinical covariates and
+the other 8 omics covariates do not. The estimated tree structure, using R package rpart, is
+shown in Figure S1, and equals the true tree structure specified in (17).
+8
+z1 < 0.5
+z2 < 0.5
+z4 < 0.5
+−10
+n=108
+−5
+n=138
+5
+n=120
+10
+n=134
+yes
+no
+1
+2
+4
+5
+3
+6
+7
+Figure S1: Fit of the tree
+We then estimate omics effects ˆβas a function of penalty α for the λ grid. We show estimates
+for β2 = 0.62, which interacts with zi, and β6 = −0.92, which does not interact with zi. In addition,
+we show the estimated constant c6 in node 6 (Figure S1), whose true value equals c6 = 5.
+9
+λ =  500
+λ =  5000
+λ =  10
+λ =  100
+λ =  0
+λ =  1
+-5
+0
+5
+-5
+0
+5
+0
+2
+4
+0
+2
+4
+0
+2
+4
+log(α)
+Effect estimates
+c6
+β2_N4
+β2_N5
+β2_N6
+β2_N7
+β6_N4
+β6_N5
+β6_N6
+β6_N7
+Figure S2: Regularization plots as a function of fusion penalty α for several values of λ. For
+illustration purposes, we only depict the node-specific estimates of β2, β6 and the clinical intercept
+estimated in node 6, i.e. c6.
+Results are depicted in Figure (S2). For small α, and λ < 500, the node-specific estimates
+of β2 vary substantially, which is expected because there is a strong interaction effect between
+this omics covariate and the clinical covariates. Estimates of β6 remain relatively stable across
+nodes, which is also expected as for this omics covariate no interactions are present. For large
+10
+α, the node-specific effects of β2 are shrunken towards a shared value. Figure (S2) also shows
+that larger λ values shrink the node-specific omics effect estimates towards 0, as expected. The
+clinical intercept c6, which is left unpenalized slightly decreases for large α. Because c and β are
+estimated jointly, penalization of β by the fusion penalty introduces bias in estimation of c (see
+limit (15)) This bias becomes smaller for larger λ and diminishes for limλ→∞, i.e. limit (12).
+6
+Global Test summary
+We shortly summarize the global test methodology (Goeman et al., 2006) applied to FusedTree.
+In node m, we have data Dm =
+n
+y(m)
+k
+, x(m)
+k
+onm
+k=1 and we model the response by:
+E
+
+y(m)
+k
+| x(m)
+i
+
+= cm +
+p
+X
+j=1
+x(m)
+kj β(m)
+j
+.
+We then test:
+H0 :
+β(m)
+1
+= β(m)
+2
+= · · · = β(m)
+p
+= 0,
+which is infeasible using a standard F-test for p > nm. To make progress, it is assumed that
+elements of β(m) come from a common distribution with zero mean and variance τ 2. The method
+then tests
+H0 :
+τ 2 = 0,
+using the score test statistic. Because this statistic is asymptotically normal under H0, p-values
+may be computed from this asymptotic distribution. Alternatively, for small sample sizes, the
+empirical distribution for the test statistic may be determined using permutations. The global
+test method also applies to binary yi ∈{0, 1} and survival response. For full details, see (Goeman
+et al., 2004).
+7
+Simulations results
+Here, we show the full descriptions and results of the simulations summarized in Section 4 of the
+main text.
+11
+We conduct three simulation experiments with different functional relationships f1, f2, f3
+between the response y and clinical z and omics covariates x to showcase FusedTree:
+1. Interaction (Section 7.1). We specify f1 inspired by model (1) of the main text. Thus f1
+is a tree, defined by clinical covariates, with different linear omics models in the leaf nodes
+for 25% of the omics covariates. The remaining 75% of the omics covariates has a constant
+effect size. Thus, the clinical covariates interact with 25% of the omics covariates.
+2. Full Fusion (Section 7.2). In this experiment, we specify f2 by two separate parts, a nonlinear
+clinical part and a linear omics part. In this experiment, the clinical covariates do not act
+as effect modifiers and FusedTree would benefit from a large fusion penalty α.
+3. Linear (Section 7.3). In this experiment, we specify f3 by a separate linear clinical and a
+linear omics part. Again, FusedTree would benefit from a large fusion penalty α.
+The set-up for the three experiments is as follows. We simulate response yi = f (zi, xi) + ϵi,
+with ϵi ∼N (0, 1) for i = 1, . . . , N, and with different f (·) for each experiment. We consider
+two simulation settings: N = 100 and N = 300. For each experiment and for each setting, we
+simulate clinical covariates zil ∼Unif (0, 1) , for l = 1, . . . , q and q = 5, and omics covariates
+xi ∼N (0p, Σp×p) , with p = 500, and correlation matrix Σp×p set to the estimate of a real
+omics data set (Best et al., 2015) of which we randomly select p = 500 covariates. For correlation
+matrix estimation, we employ work by Sch¨afer and Strimmer [2005] implemented in the R package
+corpcor. Finally, we simulate elements j = 1, . . . , p of the omics effect regression parameter vector
+by β1, . . . , βp ∼Laplace(0, θ), with scale parameter θ. The Laplace distribution is the prior density
+for Bayesian lasso regression and ensures many close-to-zero effect sizes. We tune θ to control the
+signal in the omics covariates. Specifics of this parameter are found in the subsections.
+In each experiment and for each setting, we simulate 500 data sets.
+To each data set,
+we fit FusedTree and several competitors: ridge regression and lasso regression with unpenal-
+ized zi implemented in the R package porridge (van Wieringen and Aflakparast, 2024) and
+glmnetFriedman et al. [2010], respectively, random forest (RF) implemented in the R package
+randomforestSRC (Ishwaran et al., 2008), and gradient boosting (Friedman, 2001) (GB) imple-
+mented in the R package gbm (Ridgeway, 2004). To assess the benefit of tuning fusion penalty
+12
+α, we also fit FusedTree with α = 0 (ZeroFus), and Fully FusedTree (FulFus). Fully FusedTree
+jointly estimates a separate clinical part, defined by the estimated tree, and a separate omics
+part that does not vary with respect to the clinical covariates. For experiment 1, we also include
+an oracle tree model. This model knows the tree structure in advance and only estimates the
+regression parameters in the leaf nodes and tunes λ and α. For all FusedTree-based models, we
+also include all continuous clinical covariates zi linearly in the regression model, as explained in
+Section 2.6 of the main text.
+We
+compare
+prediction
+models
+using
+the
+prediction
+mean
+square
+error
+(PMSE):
+N −1 PN
+i=1 (yi −ˆyi)2 , with ˆyi the prediction of the given model for observation i. The PMSE
+is estimated on an independent test data set of size Ntest = 5, 000. We summarize the PMSEs over
+the 500 simulated data sets using boxplots. Finally, we tune the hyperparameter of all considered
+prediction models by 5-fold cross validation. For FusedTree, we first prune the tree and then tune
+λ and α, for ridge and lasso regression, we tune the standard penalties, and for gradient boosting,
+we tune the learning rate and the number of trees. We do not tune random forest because it is
+relatively robust to different hyperparameter settings.
+7.1
+Interaction between clinical and omics covariates
+We specify the relationship f1 between response and clinical and omics covariates by
+f1 (x, z, β) = I
+
+z1 ≤1
+2
+
+I
+
+z2 ≤1
+2
+  −10 + 8x⊤
+1:125β1:125
+
++ I
+
+z1 ≤1
+2
+
+I
+
+z2 > 1
+2
+  −5 + 2x⊤
+1:125β1:125
+
++ I
+
+z1 > 1
+2
+
+I
+
+z4 ≤1
+2
+ 
+5 + 1
+2x⊤
+1:125β1:125
+
++ I
+
+z1 > 1
+2
+
+I
+
+z4 > 1
+2
+ 
+10 + 1
+8x⊤
+1:125β1:125
+
++ x⊤
+126:500β126:500. + 3z3.
+The scale parameter of the Laplace distribution equals θ = 10/p. Clinical covariates z contain one
+noise covariate: z5, and 4 predictive covariates: tree covariates z1, z2, and z4 and linear covariate
+z3. The predictive clinical covariates interact with the first 25% of omics covariates, while the last
+13
+75% of omics covariates have a constant effect size.
+N = 100
+N = 300
+FusTree Oracle FullFus ZeroFus
+GB
+RF
+Lasso
+FusTree Oracle FullFus ZeroFus
+GB
+RF
+Lasso
+10
+15
+20
+25
+30
+35
+40
+PMSE
+FusTree
+Oracle
+FullFus
+ZeroFus
+GB
+RF
+Lasso
+Figure S3: Boxplots of prediction mean square errors for several learners across 500 simulated
+data sets for N = 100 and N = 300 for the interaction simulation experiment. For illustration
+purposes, we excluded ridge regression because it performed much worse compared to the other
+models.
+FusedTree clearly outperforms FulFus and competitors GB, RF, and lasso for both sample size
+settings (Figure S3 and Table S1). We excluded results for ridge regression because it performed
+much worse than the other models.
+The oracle model performs better than FusedTree indicating that the tree structure is not
+always estimated reliably. This difference becomes smaller for a larger sample size because tree
+structure estimation improves. For N = 100, FusedTree with α = 0 (ZeroFus) has a slightly lower
+average PMSE than FusedTree, while FusedTree has a lower PMSE than ZeroFus for N = 300.
+Supplementary Figure S4 reveals that for N = 100, fusion penalty parameter α is in some cases
+rather large, which explains why ZeroFus performs slightly better. For N = 300, α is tuned more
+reliably by FusedTree. Consequently, FusedTree has a lower average PMSE than ZeroFus.
+14
+Table S1: Average PMSE for several learners for the interaction simulation experiment
+N = 100
+N = 300
+FusedTree
+20.5
+11.6
+Oracle
+14.9
+10.2
+FulFus
+24.1
+19.8
+ZeroFus
+20.0
+12.5
+GB
+24.7
+14.5
+RF
+33.0
+23.2
+Ridge
+50.6
+47.2
+Lasso
+37.5
+33.5
+N = 100
+N = 300
+-10
+-5
+0
+5
+10
+15
+-10
+-5
+0
+5
+10
+15
+0.8
+1.0
+1.2
+log(α)
+PMSE Ratio
+Figure S4: Scatter plot of PMSEZeroFus/PMSEFusedTree as a function of fusion penalty α (log scale)
+across 500 simulated data sets for N = 100 and N = 300 for the effect modification simulation
+experiment (Section 4.1)
+7.2
+Full Fusion
+For the full fusion experiment, we specify f2 by
+f2 (x, z, β) = 15 sin (πz1z2) + 10
+
+z3 −1
+2
+2
++ 2 exp (z4) + 2z5 + x⊤β.
+(18)
+15
+We set the scale parameter of the Laplace distribution to θ = 75/p, which ensures that the clinical
+covariate part explains slightly more variance in the response compared to the omics covariate
+part.
+N = 100
+N = 300
+FusTree
+FullFus
+ZeroFus
+GB
+RF
+Ridge
+Lasso
+FusTree
+FullFus
+ZeroFus
+GB
+RF
+Ridge
+Lasso
+12
+20
+28
+36
+44
+PMSE
+FusTree
+FullFus
+ZeroFus
+GB
+RF
+Ridge
+Lasso
+Figure S5: Boxplots of prediction mean square errors for several learners across 500 simulated
+data sets for N = 100 and N = 300 for the full fusion simulation experiment
+Figure S5 and Table S2 reveal that FusedTree and FulFus perform similarly for both sample
+sizes. Figure S6 plots the PMSE ratio of FulFus and FusedTree across simulated data sets as a
+function of the tuned fusion penalty α. This plot shows that α is typically set to a large value in
+which case the ratio is close to 1. For the few cases that the tuned α is small, FulFus outperforms
+FusedTree. FusedTree has a lower PMSE compared to ZeroFus, especially for N = 300. This
+finding suggests a clear benefit of borrowing information across nodes compared to independently
+estimating the omics effects.
+FusedTree has a lower PMSE compared to competitors ridge and lasso regression, random
+forest, and gradient boosting, although the difference with ridge and lasso regression is small for
+N = 100.
+16
+Table S2: Average PMSE for several learners for the full fusion simulation experiment
+N = 100
+N = 300
+FusedTree
+27.9
+17.4
+FulFus
+27.8
+17.2
+ZeroFus
+30.0
+24.8
+GB
+35.0
+23.3
+RF
+38.2
+29.0
+Ridge
+28.2
+20.5
+Lasso
+31.1
+21.6
+N = 100
+N = 300
+-5
+0
+5
+10
+15
+-5
+0
+5
+10
+15
+0.8
+0.9
+1.0
+log(α)
+PMSE Ratio
+Figure S6: Scatter plot of PMSEFull Fus/PMSEFusedTree as a function of fusion penalty α (log scale)
+across 500 simulated data sets for N = 100 and N = 300 for the full fusion simulation experiment
+(Section 4.2)
+7.3
+Linear
+For the linear experiment, we specify f3 by
+f3 (x, z, c, β) = z⊤c + x⊤β,
+with elements cl ∼Laplace
+
+75
+p
+
+of clinical regression parameter c ∈R5, and elements βj ∼
+Laplace
+
+35
+p
+
+of omics regression parameter vector β ∈R500. The linear clinical part explains
+17
+slightly more variation in y compared to the linear omics part.
+N = 100
+N = 300
+FusTree
+FullFus
+ZeroFus
+GB
+RF
+Ridge
+Lasso
+FusTree
+FullFus
+ZeroFus
+GB
+RF
+Ridge
+Lasso
+6
+19
+32
+45
+PMSE
+FusTree
+FullFus
+ZeroFus
+GB
+RF
+Ridge
+Lasso
+Figure S7: Boxplots of prediction mean square errors for several learners across 500 simulated
+data sets for N = 100 and N = 300 for the linear simulation experiment
+FusedTree clearly outperforms the nonlinear competitors GB and RF (Figure S7 and Table S3).
+For both sample size settings, FusedTree has a slightly larger PMSE compared to ridge regression.
+This difference becomes smaller for N = 300 compared to N = 100. FusedTree performs slightly
+better than lasso regression for N = 100, while for N = 300 performance is similar.
+Compared to FulFus, FusedTree performs nearly identical.
+Therefore, the benefit of fully
+fusing the omics effects in advance compared to estimating the fusion strength is negligible for
+this simulation experiment. Again, FusedTree has a lower PMSE than ZeroFus because of the
+benefit of borrowing information across nodes.
+18
+Table S3: Average PMSE for several learners for the linear simulation experiment
+N = 100
+N = 300
+FusedTree
+16.7
+8.23
+FulFus
+16.5
+8.17
+ZeroFus
+20.8
+20.3
+GB
+34.6
+23.6
+RF
+39.6
+32.5
+Ridge
+15.8
+7.62
+Lasso
+21.0
+8.29
+N = 100
+N = 300
+-20
+-10
+0
+10
+-20
+-10
+0
+10
+0.8
+0.9
+1.0
+1.1
+1.2
+1.3
+log(α)
+PMSE Ratio
+Figure S8: Scatter plot of PMSEFull Fus/PMSEFusedTree as a function of fusion penalty α (log scale)
+across 500 simulated data sets for N = 100 and N = 300 for the linear simulation experiment
+(Section 4.3)
+19
+8
+Survival curves for CRC application
+0.00
+0.25
+0.50
+0.75
+1.00
+0
+4
+8
+12
+16
+Time
+Survival probability
+Train
+Test
+Figure S9:
+Kaplan-Meier estimate of the overall survival probability of the training and test
+response as a function of time (in years). The plot is produced using the R package survminer
+References
+M. G. Best, N. Sol, I. Kooi, J. Tannous, B. A. Westerman, F. Rustenburg, P. Schellen, H. Ver-
+schueren, E. Post, J. Koster, et al. Rna-seq of tumor-educated platelets enables blood-based
+pan-cancer, multiclass, and molecular pathway cancer diagnostics. Cancer cell, 28(5):666–676,
+2015. doi: 10.1016/j.ccell.2015.09.018.
+J. Friedman, R. Tibshirani, and T. Hastie. Regularization paths for generalized linear models via
+coordinate descent. J Stat Softw, 33(1):1–22, 2010. doi: 10.18637/jss.v033.i01.
+J. H. Friedman. Greedy function approximation: A gradient boosting machine. Ann Stat, 29
+(5):1189 – 1232, 2001. doi: 10.1214/aos/1013203451. URL https://doi.org/10.1214/aos/
+1013203451.
+J. J. Goeman, S. A. van de Geer, F. de Kort, and H. C. van Houwelingen. A global test for
+groups of genes: testing association with a clinical outcome.
+Bioinformatics, 20(1):93–99,
+2004. ISSN 1367-4803. doi: 10.1093/bioinformatics/btg382. URL https://doi.org/10.1093/
+bioinformatics/btg382.
+20
+J. J. Goeman, S. A. Van De Geer, and H. C. Van Houwelingen. Testing against a high dimensional
+alternative. J R Stat Soc Ser B Methodol, 68(3):477–493, 2006. doi: https://doi.org/10.1111/
+j.1467-9868.2006.00551.x. URL https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/
+j.1467-9868.2006.00551.x.
+H. Ishwaran, Udaya B. K., B. H. Eugene, and L. S. Michael. Random survival forests. Ann Appl
+Stat, 2(3), 2008. ISSN 1932-6157. doi: 10.1214/08-aoas169.
+C. G. Khatri and C. R. Rao. Solutions to some functional equations and their applications to
+characterization of probability distributions. The Indian Journal of Statistics, Series A (1961-
+2002), 30(2):167–180, 1968. URL http://www.jstor.org/stable/25049527.
+A. Lettink, M. Chinapaw, and W. N. van Wieringen.
+Two-dimensional fused targeted ridge
+regression for health indicator prediction from accelerometer data. R Stat Soc Ser C Appl, 72
+(4):1064–1078, 2023. ISSN 0035-9254. doi: 10.1093/jrsssc/qlad041. URL https://doi.org/
+10.1093/jrsssc/qlad041.
+J. A. Nelder and R. Mead. A Simplex Method for Function Minimization. Comput J, 7(4):308–313,
+1965. doi: 10.1093/comjnl/7.4.308. URL https://doi.org/10.1093/comjnl/7.4.308.
+G. Ridgeway. The gbm package. R Foundation for Statistical Computing, 5(3), 2004.
+J. Sch¨afer and K. Strimmer. A shrinkage approach to large-scale covariance matrix estimation
+and implications for functional genomics. Stat Appl Genet Mol Biol, 4(1):Article32, 2005. doi:
+10.2202/1544-6115.1175.
+V. I. Slyusar. A family of face products of matrices and its properties. Cybern Syst Anal, 35(3):
+379–384, 1999. doi: 10.1007/BF02733426. URL https://doi.org/10.1007/BF02733426.
+M. A. van de Wiel, M. M. van Nee, and A. Rauschenberger. Fast cross-validation for multi-
+penalty high-dimensional ridge regression. J Comput Graph Stat, 30(4):835–847, 2021. doi:
+10.1080/10618600.2021.1904962. URL https://doi.org/10.1080/10618600.2021.1904962.
+H. C. van Houwelingen, T. Bruinsma, A. A. M. Hart, L. J. van’t Veer, and L. F. A. Wessels. Cross-
+validated cox regression on microarray gene expression data. Stat Med, 25(18):3201–3216, 2006.
+21
+doi: https://doi.org/10.1002/sim.2353. URL https://onlinelibrary.wiley.com/doi/abs/
+10.1002/sim.2353.
+W. N. van Wieringen and M. Aflakparast. porridge: Ridge-Type Estimation of a Potpourri of
+Models, 2024. URL https://CRAN.R-project.org/package=porridge. R package version
+0.3.3.
+22

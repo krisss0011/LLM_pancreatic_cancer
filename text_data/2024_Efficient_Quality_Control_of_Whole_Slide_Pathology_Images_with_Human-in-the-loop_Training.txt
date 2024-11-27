@@ -1,0 +1,648 @@
+Efficient Quality Control of Whole Slide
+Pathology Images with Human-in-the-loop
+Training
+Abhijeet Patil, Harsh Diwakar, Jay Sawant, Nikhil Cherian Kurian,
+Subhash Yadav, Swapnil Rane, Tripti Bameta, Amit Sethi
+October 1, 2024
+Abstract
+Histopathology whole slide images (WSIs) are being widely used to
+develop deep learning-based diagnostic solutions, especially for precision
+oncology. Most of these diagnostic softwares are vulnerable to biases and
+impurities in the training and test data which can lead to inaccurate di-
+agnoses. For instance, WSIs contain multiple types of tissue regions, at
+least some of which might not be relevant to the diagnosis. We introduce
+HistoROI, a robust yet lightweight deep learning-based classifier to segre-
+gate WSI into six broad tissue regions – epithelium, stroma, lymphocytes,
+adipose, artifacts, and miscellaneous. HistoROI is trained using a novel
+human-in-the-loop and active learning paradigm that ensures variations in
+training data for labeling-efficient generalization. HistoROI consistently
+performs well across multiple organs, despite being trained on only a single
+dataset, demonstrating strong generalization. Further, we have examined
+the utility of HistoROI in improving the performance of downstream deep
+learning-based tasks using the CAMELYON breast cancer lymph node
+and TCGA lung cancer datasets. For the former dataset, the area under
+the receiver operating characteristic curve (AUC) for metastasis versus
+normal tissue of a neural network trained using weakly supervised learning
+increased from 0.88 to 0.92 by filtering the data using HistoROI. Similarly,
+the AUC increased from 0.88 to 0.93 for the classification between adeno-
+carcinoma and squamous cell carcinoma on the lung cancer dataset. We
+also found that the performance of the HistoROI improves upon HistoQC
+for artifact detection on a test dataset of 93 annotated WSIs. The limita-
+tions of the proposed model are analyzed, and potential extensions are also
+discussed. Code available at https://github.com/abhijeetptl5/historoi.
+1
+Introduction
+Computational pathology – the use of computational (specifically, deep learning)
+techniques for diagnostic analysis of digital pathology whole slide images (WSIs)
+1
+arXiv:2409.19587v1  [eess.IV]  29 Sep 2024
+– is well on its way to being incorporated for clinical diagnosis in the coming
+few years. However, variance in the quality of tissue and slide preparation as
+well as scanning of WSIs, remains a concern in ensuring that deep learning
+models trained on curated datasets during the development phase work well
+during deployment as well.
+Due to this reason and also due to the lack of
+sufficient computational power and software libraries that can handle WSIs,
+most of the research on computational pathology in the last few years was
+concentrated on the analysis of clean and carefully curated datasets of patches
+(sub-images of manageable size) extracted from histopathology WSIs [22, 18].
+With increasing computational resources, research on using WSIs for diagnosis
+has gained traction, where either region-level annotations or weakly supervised
+learning methods are used. The former is laborious and prone to human bias
+and errors due to the large (gigapixel) size of WSIs. On the other hand, while
+weakly supervised learning can eliminate the burden of regional annotations and
+reduce human bias [14, 6, 2], it can introduce its own biases as we lose control
+over the accidental association of slide-level labels to even some of the irrelevant
+patches in a WSI.
+In order to improve patch selection for various levels of supervision, we
+propose a fast, semi-automated, and iterative method that combines dataset
+preparation and model training to classify WSI patches into various commonly
+used tissue segment classes. Our method has the following advantages. Firstly,
+it keeps a human-in-the-loop for cluster-level weakly supervised annotations.
+Secondly, its number of iterative model refinements can be manually controlled
+to trade-off between the quality of its results and annotation effort. Thirdly, the
+trained model generalizes from only one dataset to unseen datasets and organs
+for patch-level classification. And lastly, we show that the results of weakly
+supervised learning algorithms can be improved using the patch classification
+based on our model as a quality-control (QC or filtering) strategy for multiple
+problems and organs.
+We elaborate upon the problem that we have solved as follows. Many di-
+agnostic tasks, such as identifying cancer in breast tissue or subtypes of renal
+carcinoma, depend on the structure of epithelial cells [3, 14]. Structural features
+of the stroma have been shown to be related to the survival and recurrence of
+breast cancer [26, 7].
+Similarly, the interaction between epithelial cells and
+lymphocytes is used as an indicator of survival in breast cancer patients [19].
+However, most of these tasks do not depend on the analysis of the adipose (fat)
+regions or the artifacts. In fact, it has been shown in multiple studies that the
+performance of histopathology classification algorithms degrades if artifacts are
+not removed from the analysis [25, 20, 11]. Artifacts in a WSI can get intro-
+duced during various stages, including improper tissue fixation, irregularities in
+thickness while cutting tissues, tissue folds introduced while putting tissue sec-
+tions on glass slides, over- or under-staining, the introduction of foreign objects,
+the introduction of air bubbles while putting slide cover, marking with a pen
+over the tissue area, and improper focus while scanning. Artifact removal can
+further improve both strongly and weakly supervised classification pipelines.
+While neural networks take patches as input instances, in weakly supervised
+2
+Figure 1: An example of segmentation results on a whole slide image using
+HistoROI into epithelium, stroma, lymphocytes, adipose, artifacts, and miscel-
+laneous areas
+learning, the labels are available only at the bag level, where bag refers to a set
+of patches extracted from a WSI. Introducing too many irrelevant instances in
+a bag, such as those containing artifacts, can confuse neural networks.
+Though a variety of histopathology datasets are publicly available on plat-
+forms, such as TCGA [5] and grand challenges [8], there is no general and
+reliable solutions available for pre-processing patches pathology-specific labels,
+such as artifacts. A few solutions proposed earlier for the detection of artifacts
+in WSIs [1, 27, 9] provide good results only for specific organs and datasets.
+Detection of artifacts in WSI is challenging because the range of visual fea-
+tures associated with artifacts is very broad and prone to subjectivity. Another
+challenge in developing a model for whole slide image segmentation or patch
+classification is the unavailability of training data containing enough variations
+for generalization.
+3
+In this study, we present a lightweight classifier – HistoROI – to segregate
+patches of WSIs into one of the following classes – epithelium, stroma, lympho-
+cytes, adipose, artifacts, and miscellaneous. Figure 1 shows an input-output
+map of HistoROI on a sample WSI. HistoROI is trained with a novel human-
+in-the-loop training paradigm to ensure variation in training data and robust
+classification and to reduce the annotation and labeling burden on human ex-
+perts.
+Our method runs a few iterations of over-clustering of patches, label
+assignment to pure clusters, sampling from the impure clusters for labeling, and
+improving the classifier.
+We have validated HistoROI on a patch-based colon cancer dataset [12] to
+show its ability to generalize to organs other than the breast tissue on which it
+was trained. We have also demonstrated the applicability of the proposed model
+for detecting artifacts in WSIs. Further, we have shown improvement in the per-
+formance of the weakly-supervised learning models for the CAMELYON [17] and
+TCGA-Lung [5] datasets after using HistoROI to remove obviously unwanted
+patches from WSI bags.
+Specifically, our contributions are the following:
+• We introduce HistoROI, the classification model trained using the human-
+in-the-loop training paradigm.
+This method makes optimal use of the
+annotators’ time by ensuring presenting them only difficult and diverse
+patches. [Publically available HistoROI.]
+• We prepared a dataset of histopathology patches with six different classes.
+This dataset contains more than 2 million patches with enough variation
+for each class. It includes a variety of artifacts and can be used to prepare
+quality control (QC) solutions. [Publically available HistoROI-dataset.]
+• We show the utility of the proposed model on the CAMELYON and
+TCGA-Lung datasets. We have used the proposed model as a pre-processor
+for a classification algorithm and showed an increase in AUC from 0.88 to
+0.92 on the CAMELYON dataset. We also explored the effect of quality
+control (QC) on the automatic WSI diagnosis pipeline. We have conducted
+a similar study on the TCGA-Lung dataset and demonstrated promising
+results. Though a few studies have been done on the effects of QC on
+diagnosis using patches of WSIs using simulated data [25, 20, 11], to the
+best of our knowledge, this is the first study to show results on WSIs using
+real artifacts. We also present improvement in the explainability of weakly
+supervised learning models with the help of HistoROI.
+• To validate HistoROI for QC, we annotated the foreground tissue region
+for 93 WSIs with a binary mask. This dataset can also be useful for the
+development and validation of novel QC solutions for WSIs. [Publically
+available TCGA-4Org.]
+We introduce the datasets used for training and evaluation in Section 2.
+We describe our human-in-the-loop active learning method in more detail in
+Section 3. We share the results of using HistoROI as a pre-processing tool, its
+4
+Dataset
+Composition
+Purpose
+BRIGHT
+2,169,355 Patches from 50 WSIs
+787,168 - Epithelium, 863,989 - Stroma
+98,293 - Lymphocytes, 245,525 - Adipose
+127,393 - Artifacts, 46,987 - Miscellaneous
+Training and validation of
+HistoROI
+CRC-100k
+100,000 patches of colon cancer
+10407 - ADI, 8763 - NORM, 10566 - BACK,
+11557 - LYM, 14317 - TUM, 13536 - MUS,
+8896 - MUC, 10446 - STR, 11512 - DEB
+Validation of HistoROI on
+external dataset
+TCGA-4Org
+93 multi-organ WSIs annotated with
+annotated tissue region
+Application of HistoROI
+for QC
+CAMELYON16
+399 WSIs - 270/129 in train/test set
+Train - 70/100 positive/negative WSIs
+Test - 49/80 positive/negative WSIs
+Application of HistoROI
+as WSI pre-processing
+TCGA-Lung
+1034 WSIs - 634/404 in train/test set
+Train - 316/318 adeno/squamous WSIs
+Test - 211/193 adeno/squamous WSIs
+Table 1: Summary of the datasets used in this study
+applicability to the colon cancer dataset and using it for QC in Section 4. We
+conclude in Section 5.
+2
+Datasets
+The datasets used in this study are summarised in Table
+1. BRIGHT is a
+dataset with 503 WSIs labeled as cancerous, pre-cancerous, or non-cancerous [3].
+We have used the patches from 50 WSIs of the BRIGHT dataset for the training
+of HistoROI. These WSIs were selected carefully to capture variations for bet-
+ter generalization. The detailed process of selecting these WSIs and patch-level
+data preparation is described in Section 3. This dataset contains more than 2
+million labeled patches. Each patch is assigned one of the six possible labels
+– epithelium, stroma, lymphocytes, adipose, artifacts, or miscellaneous. WSIs
+from all the classes in the BRIGHT dataset were considered for the preparation
+of patch-level datasets. The artifact class includes patches with out-of-focus ar-
+eas, tissue folds, cover slips, air bubbles, pen markers, and extreme overstaining
+or understaining.
+CRC dataset [12] is a colon cancer dataset of 100,000 patches of size 224x224.
+The patches in this dataset are segregated into nine different classes, viz. normal
+(NORM), tumor (TUM), mucin (MUC), muscle (MUS), background (BACK),
+debris (DEB), adipose (ADI), lymphocytes (LYM) and stroma (STR). Class-
+wise distribution of patches in this dataset can be found in Table 1.
+Classification models trained using weakly supervised learning are trained
+and validated on CAMELYON16 and TCGA-Lung datasets. CAMELYON16
+5
+is a dataset of 399 WSIs of sentinel lymph nodes associated with breasts with
+270 images for training and validation and 129 WSIs for testing. The TCGA-
+Lung dataset contains 1034 WSIs. Further details of these datasets are shown
+in Table 1.
+To validate the effectiveness of HistoROI for identifying artifacts in WSIs, we
+manually annotated a dataset of 93 WSIs to delineate the foreground tissue re-
+gions (excluding artifacts). These WSIs were selected from four different organs
+and contain various artifacts and a wide range of stain intensities and colors. All
+the WSIs were downloaded from the TCGA data portal. This dataset contains
+27 WSIs from breast tissue, 21 WSIs from lung tissue, and 21 and 24 WSIs from
+kidney and prostate tissues, respectively. This test dataset was selected from
+a different source and contains three additional organs to test if the model can
+strongly generalize after being trained solely on WSIs from the BRIGHT breast
+tissue dataset [3].
+3
+METHODOLOGY
+Figure 2: Human-in-the-loop training pipeline for HistoROI: Actions in red
+boxes are automatic while those in green boxes are manual. (a) Embeddings
+of the patches of WSI are divided into clusters.
+(b) Clusters are manually
+annotated. Heterogeneous clusters are re-clustered (shown using dotted line)
+(c) Newly annotated data is added to previously annotated data and HistoROI
+is trained with the updated data. (d) The trained model is applied (tested) on
+multiple WSIs. WSIs with poor performance are manually identified (denoted
+by X) and annotated for the next iteration of training.
+HistoROI is a ResNet18-based six-class classifier that assigns a pathology-
+relevant label to a patch extracted from a WSI. To reduce annotation time for
+6
+a WSI, we have taken advantage of features from shallow layers of pre-trained
+CNNs. We have leveraged a novel human-in-loop active learning approach to
+ensure diversity in the annotated datasets. With the help of k-means clustering
+and easy-to-use user interfaces, the annotation of each WSI (around 40,000
+patches) takes less than 15 minutes. The details of dataset preparation and
+training of HistoROI are explained in this section.
+Annotation of a single WSI: We have used a clustering-based approach
+to annotate patches of WSIs. We extract patches of size 256x256 at 10x mag-
+nification (approx. 1µm × 1µm per pixel dimension) from a WSI. Patches with
+mostly white pixels are not considered for data annotation by removing those
+with more than 95% of pixels with average RGB values greater than 230. The
+rest of the patches are given as an input to an EfficientNet-b0 [23] CNN architec-
+ture pre-trained on ImageNet to extract instance (patch) features. Specifically,
+we extract a tensor with 40 feature channels from block-2 of EfficientNet-b0 and
+use global average pooling to get a 40-dimensional feature vector for a patch. We
+have tried extracting features from other layers of EfficientNet-b0 and different
+versions of EfficientNets as well as ResNets and observed that clusters created
+using features of block-2 of EfficientNet-b0 are semantically more homogeneous.
+While segregating patches of WSI, we mostly care about local features, such as
+texture, to distinguish between different types of tissue regions, such as stroma
+or nucleus-dense epithelium. The diameter of nuclei at a 10x magnification level
+is less than a few pixels, which can be learned by such local features. Therefore,
+we hypothesize that the identification of classes of our interest can better be
+done with local features extracted by block-2 of EfficientNet-b0 than the global
+features we get from deeper layers of pre-trained CNNs.
+Features of all the patches in a WSI are then clustered using a k-means
+clustering algorithm, for which fast implementation is available in scikit-learn
+[4]. We learn 32 clusters and sample 25 patches from a cluster in the form of
+a 5x5 grid for annotation. Upon manual inspection if a grid of 5x5 patches
+turns out to be homogeneous – that is, it contains patches of the same class –
+then we assign one of the following labels to all the patches corresponding to
+that cluster: 1. Epithelium 2. Stroma 3. Lymphocytes 4. Adipose 5. Artifact,
+and 6. Miscellaneous. Patches from heterogeneous clusters are pooled together
+and re-clustered into 32 new clusters using another round of k-means, and the
+labeling process is repeated, as shown by a dotted line in Figure 2. Patches
+belonging to heterogeneous clusters after the second stage of this human-in-the-
+loop labeling are discarded. Generally, less than 5% of the patches are discarded
+from a WSI after the second round.
+We initially created a training dataset with 20 WSIs and grew this dataset
+as the training process progressed. The annotation of each WSI took around 15
+minutes.
+Diversity-based expansion of annotations: WSI annotation is a time-
+consuming task. Therefore it is important to annotate a diverse set of WSIs
+instead of wasting time and effort annotating multiple WSIs with similar visual
+features. Diversity and label uncertainty are two major guiding principles of
+active learning approaches [21]. We trained the model and annotated additional
+7
+WSIs with an approach inspired from active learning to address this problem.
+We initially trained a ResNet18-based [10] six-class classifier with the data
+from 20 WSIs. We used patches from 15 WSIs for training and 5 WSIs for val-
+idation. The classifier was trained on NVIDIA-3090Ti with a batch size of 128.
+Cross entropy loss was optimized with Adam optimiser [13], and the model with
+the least validation loss was applied on all the WSIs from the BRIGHT dataset.
+QuPath-compatible [15] visualisations were created for all images. WSIs and
+their predicted patch classifications were visually analyzed using QuPath. WSIs
+with poor performance indicate that the current WSI is out-of-distribution with
+respect to the training dataset. That is, such WSIs has high label uncertainty,
+and it should be a good candidate for annotation in the next round to max-
+imize information gain while minimizing annotation effort. These WSIs were
+manually identified, annotated and added to the training dataset for further
+fine-tuning of the classifier. We repeated this cycle three times, adding 10 WSIs
+to the training dataset at a time. Thus, we created a training dataset with 50
+carefully selected and annotated WSIs containing enough variation for gener-
+alization. The whole process of human-in-the-loop training is summarised in
+Figure 2.
+Classification models: As a representative of the downstream models that
+can benefit from HistoROI, we trained widely used weakly supervised learn-
+ing algorithm called CLAM for histopathology [14]. CLAM is trained with a
+multiple-instance learning paradigm, where the feature of a patch is used as an
+instance, and the set of these instances from a WSI (either all patches or a sub-
+set thereof) is used to create a bag. CLAM has shown improved performance
+on multiple publicly available datasets [17, 5]. We trained and validated CLAM
+in multiple patch pre-filtering settings to verify the effectiveness of the pro-
+posed classification method and model in improving the effectiveness of weakly
+supervised learning.
+4
+RESULTS AND DISCUSSION
+4.1
+HistoROI as WSI pre-processing tool
+We first show the applicability of HistoROI as a pre-processing tool for a weakly
+supervised learning algorithm – CLAM [14]. Even though weakly supervised
+learning methods are supposed to filter out irrelevant regions, including arti-
+facts, automatically, we show that these methods can still benefit from data
+pre-filtering based on HistoROI. As a baseline, we train CLAM with the bag
+prepared by features of all the patches from a WSI. Then, for comparison, we
+filter out patches from the bags based on the prediction of HistoROI and ana-
+lyze changes in the performance of CLAM applied to this filtered data. More
+specifically, we perform two experiments. The first experiment shows the utility
+of HistoROI at train and test times. In this experiment, we use the CAME-
+LYON dataset to demonstrate improvement in the performance of CLAM when
+data filtering is used at both training and test times. In the second experiment,
+8
+Figure 3: HistoROI quantitative results: (a) Box plot of AUCs on the test
+split of the CAMELYON16 dataset shows improvement in performance when
+WSIs are pre-processed with HistoROI. (b) Box plot of AUCs for the TCGA-
+LUNSC dataset. (c) Comparison of HistoROI with HistoQC [1] for QC using
+TCGA-4Org dataset shows that HistoROI’s Dice score is better than HistoQC
+for 65 WSIs out of 93 WSIs. (d) HistoROI predicts 77% of patches correctly in
+the CRC-100k without being trained on this dataset.
+we try to emulate a real-world scenario. Generally, training data goes through
+a few iterations of labeling/annotations before being fed to the deep learning
+algorithm. Through this process, training data is cleaned and curated hence
+expected to contain lesser anomalies. On the other hand, test data can not be
+manually curated. Hence, in the second experiment, we do not use data filtering
+on training data but filter the patches in test WSI using HistoROI at inference.
+We have used the TCGA-Lung dataset to distinguish between adenocarcinoma
+and squamous cell carcinoma for this experiment and have shown significant
+improvement in the performance when HistoROI is used for data filtering. This
+experiment also shows the possibilities of using HistoROI on algorithms that are
+independently developed. We have created bags for CLAM in three different
+ways in these experiments. 1. Bags with the features from all the non-white
+patches (“All”), 2. Bags without patches identified as artefacts by HistoROI
+(“QC”), and 3. Bags without artefacts and adipose patches (“QCFat-”).
+We trained CLAM ten times with different train-validation splits on the
+CAMELYON16 dataset. We used the same test split created by the CAME-
+LYON16 challenge organizers for testing. We used 80% of training WSIs for
+training and the remaining 20% for validation to tune hyper-parameters. The
+mean AUC on test data was observed to increase from 0.88 to 0.90, while the
+median AUC increased from 0.87 to 0.92 as shown in Figure 3 (a). Filtering
+out the patches with artifacts clearly improves the performance compared to
+using all the patches. Further removing patches with adipose tissue increased
+performance even further. We tried various other patch selection criteria along
+with different color normalization methods [24, 16] and did not notice a signif-
+icant change in test accuracy. Interestingly, we noticed a significant reduction
+in test accuracy when we used only epithelial patches. Upon closer inspection,
+9
+Figure 4: Qualitative results on CAMELYON16: CLAM [14] trained on
+regions filtered by HistoROI generates better attention maps.
+Metastasised
+region is annotated with cyan color in the first column. CLAM attention map
+for the ”All” strategy is scattered compared to the accurate and specific one
+generated using the ”QCFat–” strategy.
+we noticed that for a few WSIs, most patches contain both epithelial nuclei
+and lymphocytes. HistoROI predicted those patches as lymphocytes, and hence
+informative patches were filtered out from the training algorithm. This obser-
+vation highlights that assigning multiple labels for a patch can be more useful
+than assigning a single one.
+For our next experiment, we assessed the impact of using HistoROI for a sce-
+nario in which the training data is relatively cleaner than the test data, which
+is to be expected in practice. We hypothesize that if real-world data is filtered
+using a reliable quality control pipeline, the performance of the model trained
+on relatively cleaner data can be improved during test time. To demonstrate
+this, we have conducted experiments with TCGA-Lung cancer data. For this
+experiment, we intentionally prepared a test split with WSIs that contain a rel-
+atively higher proportion of artifacts. The list of WSIs in the test split is listed
+on the webpage with the code of our method HistoROI. We trained CLAM ten
+times with different train-validation splits and analysed the change in perfor-
+mance at test time with and without data filtering. Quantitative results are
+shown as boxplots in Figure 3 (b). We observe that the performance of CLAM
+significantly improves when inferred WSI is pre-processed using HistoROI.
+Along with better quantitative performance, the model trained with the
+assistance of HistoROI produces better explainability. We have visualized at-
+10
+tention maps for a few WSIs trained with the “All” strategy and “QCFat–”
+strategies for the CAMLEYON dataset. As shown in Figure 4, the attention
+map created by CLAM when trained with filtered patches is in concordance
+with the annotations, whereas CLAM trained with all the patches gives high
+attention to arbitrary locations, including regions containing adipose. Accord-
+ing to our domain knowledge, features of the adipose region do not correlate
+with the presence of metastasis in lymph nodes. But high attention on the adi-
+pose region indicates the potential data bias with the correlation between the
+adipose region and the presence of metastasis. We have removed this potential
+bias by filtering out adipose region from analysis and observed better results
+with the “QCFat–” strategy.
+4.2
+Validation of HistoROI on CRC-100k dataset
+We applied HistoROI to the CRC dataset to validate its generalization on the
+colon cancer dataset even though it was trained on the BRIGHT breast cancer
+dataset. The CRC dataset contains a few classes exclusive to the prediction
+classes of HistoROI. We expect the adipose (ADI) class of the CRC dataset to
+be predicted as adipose, normal (NORM) as epithelium, background (BACK)
+as artifacts, lymphocytes (LYM) as lymphocytes, tumor (TUM) as epithelium,
+mucus (MUC) and debris (DEB) as miscellaneous, and stroma (STR) and mus-
+cle (MUS) as stroma.
+HistoROI predicted 77% of images in the CRC-100k
+dataset correctly. HistoROI predicted more than 90% of patches in LYM, ADI,
+and BACK classes correctly. More than 70% of patches from the DEB class
+were correctly classified as miscellaneous. Twenty percent of DEB patches were
+predicted as epithelium. Most of these wrongly predicted patches contain a few
+epithelial nuclei in debris. For normal class (NORM), 13% of patches were pre-
+dicted as artifacts. Our analysis indicates that few of these wrongly predicted
+patches contain blurry regions, and the remaining patches are overstained and
+thus contain some artifacts. Similarly, tumor patches misclassified as miscella-
+neous were observed to contain debris. Most classification errors were observed
+in the mucus (MUC) class. Most of the mucus patches were predicted as stroma
+by HistoROI as the two classes share visual features. Additionally, HistoROI has
+not seen patches with mucus while training on the BRIGHT dataset. Finally,
+it can be hard to distinguish between stroma and mucus in a small patch to
+begin with. The dataset contains patches of size 224x244 at 20x, corresponding
+to 112x112 when downscaled to 10x for HistoROI.
+Figure 3 (d) shows quantitative results and Figure 5 highlights a few correctly
+and wrongly predicted patches for the CRC dataset. Analysis of these results
+can lead to better design of models and datasets. For example, a few patches
+in the NORM class that were incorrectly predicted as artifacts contain artifacts
+in the form of blur or dark stains. These observations highlight subjectivity in
+labeling histopathology patches. We propose that rather than assigning hard
+labels to a patch, a better strategy would be to assign multiple labels or assign a
+level of a particular class along with the label. Since we have trained a HistoROI
+with patches from breast cancer dataset, the low accuracy for the MUC class
+11
+shows that patches from multiple diverse organs should be used to train a robust
+model. The human-in-the-loop paradigm presented here provides an easy way
+to expand the dataset and the model generalization.
+4.3
+HistoROI as QC tool
+The background (BACK) class in CRC dataset contains mostly white patches,
+which does not effectively validate predictions for the artifact class of HistoROI.
+To address this issue, we annotated the foreground region in 93 WSIs and com-
+pared predictions made by HistoROI with it. Annotated dataset contains WSIs
+from four different organs (27 from breast, 21 from lung, 21 from kidney, and 27
+from prostate). We also compared predictions made by HistoQC [1] – a popular
+histopathology quality control tool – with HistoROI. The mean Dice score over
+WSIs between HistoROI and hand annotations was 0.87, whereas, for HistoQC,
+it was 0.83. A few qualitative results are shown in Figure 6. The performance
+of HistoROI was better on 65 WSIs out of 93 WSIs, as shown in Figure 3 (c).
+According to our observations, HistoQC tends to identify the region with
+relatively less dense tissue as fat . Also, HistoQC fails to distinguish between
+foreground and background when background pixels are greyish. Because of this,
+the performance of HistoQC degrades in the presence of air bubbles (Figure 6
+(c)) and coverslip-related artifacts ). HistoROI performs better compared to
+HistoQC for the scenarios mentioned above.
+On the other hand, HistoQC detects pen marks better than the proposed
+HistoROI. Further analysis of training data for HistoROI showed that it con-
+tains only one WSI with pen marks. These pen marks were also observed to
+be outside the tissue region. Hence, in Figure 6 (c) , pen marks outside the
+tissue region are correctly identified as background by HistoROI. In contrast,
+the pen marker inside the tissue region is not delineated properly by HistoROI.
+Also, for a few WSIs, the Dice score for HistoQC was observed to be greater
+than that for HistoROI, even if visually, HistoROI performance is better. This
+uncovers difficulties in annotating WSIs. One such example is shown in Fig-
+ure 6 (d). Detailed analysis of the prediction of HistoROI can lead to guidelines
+for building the next generation of a QC solution, which we think will simply
+involve sampling from more diverse training data, such as one that contains
+more organs and slides with marker pen artifacts. Though the predictions of
+HistoROI are pixelated (because its model is based on patches), the overall Dice
+score is better than HistoQC. This indicates that the patch-based dataset con-
+tains enough variation for recognizing most artifacts. A dataset for semantic
+segmentation with current data can be useful for designing the next generation
+of QC solutions for histopathology images.
+5
+Conclusion
+In this study, we have developed a human-in-the-loop active learning paradigm
+to prepare a patch-level dataset for classifying pathology patches. With the
+12
+prepared data, we have trained a ResNet18-based six-class classifier called His-
+toROI. To validate the generalization of HistoROI, we tested it for classifying
+colon tissue patches using the CRC dataset. We also explored the potential of
+HistoROI as a quality control (QC) tool for WSIs. Further, we investigated the
+use case for HistoROI for pre-processing WSIs in classification pipelines based on
+the widely-used weakly supervised learning classification algorithm — CLAM.
+Through our experiments, we have shown improvement in the performance of
+CLAM when HistoROI is used for pre-filtering instances (patches) for each bag
+(WSI). We have also shown improvements over the widely used quality con-
+trol tool, HistoQC, for the artifact detection. HistoROI was trained using the
+BRIGHT dataset, which is a breast cancer dataset. We conducted validation
+experiments utilizing datasets from multiple data centers and organs, such as
+TCGA, CAMELYON and CRC-100k. The results demonstrate that HistoROI
+can generalize effectively on high resolution whole slide images. Nonetheless,
+it remains to be determined whether HistoROI can perform equally well on
+manually acquired microscope images, which may exhibit significant domain
+shifts.
+Our analysis of HistoROI has brought to light certain limitations that impede
+its ability to accurately classify patches of histopathology images containing mul-
+tiple tissue segments. These limitations stem from the single label assignment
+strategy to annotate the dataset, which restricts HistoROI to assigning a single
+label to each patch of a WSI. To address this issue, we propose several solutions,
+including optimizing patch size for annotation, employing segmentation masks
+instead of patch-wise labeling, and providing pathologists with easy-to-use inter-
+active segmentation and active learning tools for faster annotation. Moreover,
+we suggest asking annotators to identify the presence of a certain class in a given
+patch rather than selecting from a set of labels, as well as utilizing multiple an-
+notators to improve accuracy of annotations. By implementing these measures,
+we believe that HistoROI can be improved and better utilized in the field of
+histopathology analysis. Also, we propose that the performance of HistoROI
+can be improved by training it on multiple organs to develop more robust and
+generalizable models. For the artifact detection task, we have noticed that the
+performance of HistoROI does not detect pen marks well due to the lack thereof
+in its training data. Further analysis should be carried out to investigate cases
+where the proposed model can not predict artifacts correctly. This can lead to
+the preparation of better datasets using which the next version of HistoROI can
+be trained and released.
+Acknowledgment
+This project has received funding from the Department of Biotechnology Min-
+istry of Science and Technology, Government of India under grant agreement No.
+BT/PR32348/AI/133/25/2020 (Project name: Imaging Biobank for cancer).
+13
+References
+[1]
+Janowczyk A et al. “HistoQC: An Open-Source Quality Control Tool for
+Digital Pathology Slides.” In: JCO Clin Cancer Inform. (2019).
+[2]
+Deepak Anand et al. “Weakly supervised learning on unannotated H&E-
+stained slides predicts BRAF mutation in thyroid cancer with high accu-
+racy”. In: The Journal of Pathology (2021). doi: 10.1002/path.5773.
+[3]
+Nadia Brancati et al. “Gigapixel Histopathological Image Analysis Using
+Attention-Based Neural Networks”. In: IEEE Access 9 (2021), pp. 87552–
+87562. doi: 10.1109/ACCESS.2021.3086892.
+[4]
+Lars Buitinck et al. “API design for machine learning software: experiences
+from the scikit-learn project”. In: ECML PKDD Workshop: Languages for
+Data Mining and Machine Learning. 2013, pp. 108–122.
+[5]
+Kyle et. al. Chang. “The Cancer Genome Atlas Pan-Cancer analysis project”.
+In: Nature Genetics (2013). doi: 10.1038/ng.2764.
+[6]
+Chengkuan Chen et al. “Fast and scalable search of whole-slide images via
+self-supervised deep learning”. In: Nature Biomedical Engineering (2022).
+doi: 10.1038/s41551-022-00929-8.
+[7]
+Millar EK et al. “Tumour Stroma Ratio Assessment Using Digital Image
+Analysis Predicts Survival in Triple Negative and Luminal Breast Cancer.”
+In: Cancers (Basel) 12 (2020). doi: 10.3390/cancers12123749.
+[8]
+Grand Challenges. url: https://grand- challenge.org/ (visited on
+09/09/2022).
+[9]
+M. Haghighat, L. Browning, and K. et al. Sirinukunwattana. “Automated
+quality assessment of large digitised histology cohorts by artificial intelli-
+gence.” In: Sci Rep (2022). doi: 10.1038/s41598-022-08351-5.
+[10]
+Kaiming He et al. “Deep Residual Learning for Image Recognition”. In:
+CoRR abs/1512.03385 (2015). arXiv: 1512.03385. url: http://arxiv.
+org/abs/1512.03385.
+[11]
+Abhiraj S. Kanse et al. “Cautious Artificial Intelligence Improves Out-
+comes and Trust by Flagging Outlier Cases”. In: JCO Clinical Cancer
+Informatics 6 (2022), e2200067. doi: 10.1200/CCI.22.00067.
+[12]
+Jakob Nikolas Kather, Niels Halama, and Alexander Marx. 100,000 his-
+tological images of human colorectal cancer and healthy tissue. Apr. 2018.
+doi: 10.5281/zenodo.1214456.
+[13]
+Diederik P. Kingma and Jimmy Ba. Adam: A Method for Stochastic Opti-
+mization. 2014. doi: 10.48550/ARXIV.1412.6980. url: https://arxiv.
+org/abs/1412.6980.
+[14]
+Ming Y. Lu et al. Data Efficient and Weakly Supervised Computational
+Pathology on Whole Slide Images. 2020. doi: 10.48550/ARXIV.2004.
+09666. url: https://arxiv.org/abs/2004.09666.
+14
+[15]
+Bankhead P et al. “QuPath: Open source software for digital pathology
+image analysis.” In: Sci Rep. (2017). doi: 10.1038/s41598-017-17204-5.
+[16]
+Abhijeet Patil et al. “Fast, Self Supervised, Fully Convolutional Color
+Normalization Of H&E Stained Images”. In: 2021 IEEE 18th International
+Symposium on Biomedical Imaging (ISBI). 2021, pp. 1563–1567. doi: 10.
+1109/ISBI48211.2021.9434121.
+[17]
+B´andi P´eter et al. “From Detection of Individual Metastases to Classifi-
+cation of Lymph Node Status at the Patient Level: The CAMELYON17
+Challenge”. In: IEEE Transactions on Medical Imaging 38.2 (2019), pp. 550–
+560. doi: 10.1109/TMI.2018.2867350.
+[18]
+Ant´onio Pol´onia, Catarina Eloy, and Paulo Aguiar. BACH Dataset: Grand
+Challenge on Breast Cancer Histology images. May 2019. doi: 10.5281/
+zenodo.3632035.
+[19]
+Mart van Rijthoven. “tumor-infiltrating lymphocytes (TILs) in H&E breast
+cancer”. In: 2021. url: https://tiger.grand-challenge.org/Home/
+(visited on 09/09/2022).
+[20]
+B. Sch¨omig-Markiefka, A. Pryalukhin, and W. et al. Hulla. “Quality con-
+trol stress test for deep learning-based diagnostic model in digital pathol-
+ogy.” In: Modern Pathology 34 (2021). doi: 10.1038/s41379-021-00859-
+x.
+[21]
+Ozan Sener and Silvio Savarese. “Active learning for convolutional neu-
+ral networks: A core-set approach”. In: arXiv preprint arXiv:1708.00489
+(2017).
+[22]
+Fabio Alexandre Spanhol et al. “Breast cancer histopathological image
+classification using Convolutional Neural Networks”. In: 2016 Interna-
+tional Joint Conference on Neural Networks (IJCNN). 2016, pp. 2560–
+2567. doi: 10.1109/IJCNN.2016.7727519.
+[23]
+Mingxing Tan and Quoc V. Le. “EfficientNet: Rethinking Model Scaling
+for Convolutional Neural Networks”. In: (2019). doi: 10.48550/ARXIV.
+1905.11946. url: https://arxiv.org/abs/1905.11946.
+[24]
+Abhishek Vahadane et al. “Structure-Preserving Color Normalization and
+Sparse Stain Separation for Histological Images”. In: IEEE Transactions
+on Medical Imaging 35.8 (2016), pp. 1962–1971. doi: 10.1109/TMI.2016.
+2529665.
+[25]
+Alexander I. Wright et al. “The Effect of Quality Control on Accuracy of
+Digital Pathology Image Analysis”. In: IEEE Journal of Biomedical and
+Health Informatics 25.2 (2021), pp. 307–314. doi: 10.1109/JBHI.2020.
+3046094.
+[26]
+Sj. Xu, Sy. Zhang, and Ly. et al. Dong. “Dynamic survival analysis of
+gastrointestinal stromal tumors (GISTs): a 10-year follow-up based on
+conditional survival.” In: BMC Cancer 21 (2021). doi: 10.1186/s12885-
+021-08828-y.
+15
+[27]
+Chen Y et al. “Assessment of a computerized quantitative quality control
+tool for whole slide images of kidney biopsies.” In: J Pathol. (2021).
+16
+Figure 5: Qualitative results on CRC-100k[12]: Example predictions (col-
+umn labels) on CRC-100k dataset by HistoROI for various classes (row labels)
+shows that misclassified patches (with red crosses) tend to have background,
+staining issues, or multiple classes, which are not present in the correct classi-
+fied patches (with green ticks). Here BACK stands for the background, ADI for
+adipose, MUC for mucus, NORM for normal, TUM for tumor, STR for stroma,
+MUS for muscle, DEB for debris, and LYM for lymphocytes.
+17
+Figure 6: Qualitative results on TCGA-4Org dataset: Foreground de-
+tection (with Dice score) for a few examples WSIs show improved foreground
+detected by HistoROI over HistoQC.
+18

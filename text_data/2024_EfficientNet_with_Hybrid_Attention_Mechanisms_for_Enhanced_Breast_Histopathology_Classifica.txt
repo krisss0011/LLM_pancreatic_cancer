@@ -1,0 +1,904 @@
+IEEE TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS, VOL. X, NO. X, XXXX 2024
+1
+EfficientNet with Hybrid Attention Mechanisms for
+Enhanced Breast Histopathology Classification: A
+Comprehensive Approach
+Naren Sengodan
+Department of Information Science and Engineering,
+JAIN (Deemed-to-be University), Kanakapura 560069, India
+Email: narensengodan@gmail.com
+Abstract—Breast cancer histopathology image classification
+is crucial for early cancer detection, offering the potential to
+reduce mortality rates through timely diagnosis. This paper
+introduces a novel approach integrating Hybrid EfficientNet
+models with advanced attention mechanisms, including Convo-
+lutional Block Attention Module (CBAM), Self-Attention, and
+Deformable Attention, to enhance feature extraction and focus
+on critical image regions. We evaluate the performance of our
+models across multiple magnification scales using publicly avail-
+able histopathological datasets. Our method achieves significant
+improvements, with accuracy reaching 98.42% at 400X magnifi-
+cation, surpassing several state-of-the-art models, including VGG
+and ResNet architectures. The results are validated using metrics
+such as accuracy, F1-score, precision, and recall, demonstrating
+the clinical potential of our model in improving diagnostic
+accuracy. Furthermore, the proposed method shows increased
+computational efficiency, making it suitable for integration into
+real-time diagnostic workflows.
+Index Terms—Transfer Learning, Modality Specific, Efficient-
+Net, CBAM, Self-Attention, Deformable Attention, Histopathol-
+ogy, Image Classification, Deep Learning, Breast Cancer.
+I. INTRODUCTION
+Breast cancer remains one of the most prevalent and deadly
+forms of cancer, especially affecting women worldwide. Ac-
+cording to global cancer statistics, breast cancer accounts
+for more than 2.3 million new cases each year, contributing
+to a significant number of cancer-related deaths [3]. Early
+detection plays a critical role in reducing the mortality rate
+associated with this disease. The standard diagnostic procedure
+for detecting breast cancer involves histopathological analysis,
+where biopsy tissue samples are examined under a microscope.
+This process is time-consuming, labor-intensive, and prone to
+subjective interpretation errors, even among trained patholo-
+gists [1].
+Pathologists rely on morphological abnormalities in cell
+structures, particularly the nuclei, to distinguish between be-
+nign and malignant cells [2]. Benign tumors typically exhibit
+well-organized cellular structures and rarely invade surround-
+ing tissues or metastasize to other parts of the body. In contrast,
+malignant tumors display uncontrolled growth, irregular nu-
+clei, and the potential to spread, making them life-threatening.
+Early identification of these malignant traits is critical for
+improving patient prognosis and guiding treatment plans.
+In recent years, computer-aided diagnosis (CAD) systems
+have been developed to assist pathologists by automating
+the analysis of histopathology images. Deep learning (DL)
+models, particularly Convolutional Neural Networks (CNNs),
+have shown great promise in this domain due to their ability
+to automatically learn complex features from medical images
+[7]. However, despite their success in natural image classifi-
+cation, traditional CNN architectures, such as VGGNet and
+ResNet, struggle to capture the intricate features present in
+histopathological images, primarily due to the variability in
+magnification scales and the complex structure of the tissue
+samples.
+To address these challenges, researchers have begun ex-
+ploring hybrid models that combine CNNs with attention
+mechanisms. These attention mechanisms, including the Con-
+volutional Block Attention Module (CBAM), Self-Attention,
+and Deformable Attention, have been designed to enhance
+feature extraction by allowing the network to focus on the most
+relevant parts of the image. CBAM, for example, has shown
+considerable potential in medical image analysis by directing
+the network’s attention toward critical regions, leading to im-
+proved classification accuracy. Similarly, Self-Attention mech-
+anisms, initially introduced in transformer models for Natural
+Language Processing (NLP), have been adapted to medical
+imaging tasks, where they capture long-range dependencies
+across the image. Deformable Attention further enhances this
+by dynamically adjusting the receptive field based on the com-
+plexity of the input features, making it particularly effective
+for identifying abnormalities in histopathology images.
+In this study, we propose a series of Hybrid EfficientNet
+models integrated with advanced attention mechanisms to im-
+prove the performance of breast cancer histopathology image
+classification. EfficientNet, a highly scalable CNN architec-
+ture, has been recognized for its ability to achieve state-of-
+the-art performance with fewer parameters by optimizing the
+depth, width, and resolution of the model. By incorporating
+attention mechanisms such as CBAM, Self-Attention, and
+Deformable Attention into EfficientNet, we aim to enhance
+the network’s focus on key features, thereby improving the
+classification of benign and malignant breast cancer tissue
+samples.
+The dataset used in this study is the BreakHis dataset,
+a publicly available dataset widely used for breast cancer
+histopathology image classification tasks . The dataset consists
+of 9,109 images at four different magnification levels (40X,
+100X, 200X, and 400X), providing a comprehensive set of
+arXiv:2410.22392v2  [eess.IV]  4 Nov 2024
+IEEE TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS, VOL. X, NO. X, XXXX 2024
+2
+data to test the proposed models across varying scales of tissue
+detail. The performance of the proposed models is evaluated
+using key metrics such as accuracy, precision, recall, and F1-
+score.
+The rest of the paper is structured as follows: In Sec-
+tion II, we review the existing literature on breast cancer
+histopathology image classification and attention mechanisms.
+Section III describes the methodology, including the dataset,
+preprocessing techniques, model architecture, and training
+procedures. Section IV presents the experimental results and
+provides a discussion on the comparative performance of the
+models. Finally, Section V concludes the paper and outlines
+potential directions for future research.
+Automated histopathology image classification has seen
+substantial improvements with the advent of deep learning
+techniques, particularly with convolutional neural networks
+(CNNs). However, existing methods, such as using generic
+CNNs like VGGNet and ResNet, may fail to capture critical
+features from histopathology images due to their complex
+structure and variability in magnification scales. Efficient-
+Net models have demonstrated strong performance in image
+classification tasks due to their scalability and efficiency. To
+further enhance feature extraction, attention mechanisms such
+as Convolutional Block Attention Module (CBAM), Self-
+Attention, and Deformable Attention have been proposed.
+In this study, we explore Hybrid EfficientNet models that
+incorporate these advanced attention mechanisms to address
+the challenges posed by histopathological image variability.
+The models are evaluated across multiple magnification scales
+(40X, 100X, 200X, 400X) using the BreakHis dataset, which
+is a widely recognized dataset for breast cancer histopathology
+image classification.
+II. LITERATURE REVIEW
+In recent years, extensive research has been conducted on
+breast cancer classification using deep learning, particularly
+convolutional neural networks (CNNs). Several studies have
+explored the use of hybrid models and attention mechanisms
+to improve the performance of CNNs in histopathology image
+classification.
+Chuang Zhu et al. proposed a hybrid model that assem-
+bles multiple compact CNNs for breast cancer classification.
+This architecture includes a squeeze excitation pruning block
+and local and global branches, which help reduce channel
+redundancy and provide a strong representation of the input
+images. Experiments were performed using the BreakHis
+and BACH datasets, and the multi-model assembling strat-
+egy achieved comparable results with state-of-the-art models
+Another approach by Togacar et al. developed a residual ar-
+chitecture called BreastNet, which includes attention modules
+for identifying key regions in histopathology images. The
+hypercolumn technique was also employed to enhance feature
+representation. The BreastNet model achieved an accuracy of
+98.80% using dense pooling and residual blocks.
+Similarly, EM Nejad et al. introduced a single-layer CNN to
+extract salient features from histopathology images from the
+BreakHis dataset. Their model achieved a recognition rate of
+77.5% . AA Nahid et al. combined Long Short-Term Memory
+(LSTM) networks with CNNs for breast cancer classification,
+using Support Vector Machines (SVM) and softmax for final
+decision-making. Their model achieved 91.00% accuracy.
+Yan et al. proposed a model that integrates recurrent neural
+networks (RNN) with CNNs for histopathology image anal-
+ysis. Using the BreakHis dataset, they achieved an accuracy
+of 91.3% for the classification of four cancer classes. Xie et
+al. also explored deep convolutional neural networks (DCNN)
+for binary and multi-class breast cancer classification. Their
+approach used InceptionResNetV2 to extract features, which
+were further compressed using an autoencoder. This model
+achieved improved clustering results.
+Several studies have leveraged transfer learning to miti-
+gate the data scarcity issue in medical imaging. Sana Ullah
+et al. developed a model that extracts features from pre-
+trained networks like VGGNet, GoogleNet, and ResNet. These
+features are then passed through fully connected layers for
+binary classification, achieving 97.525% accuracy. Ahmad
+et al. applied transfer learning using AlexNet, ResNet, and
+GoogleNet for breast cancer classification, obtaining a maxi-
+mum accuracy of 85% with ResNet . In another study, Vesal et
+al. applied transfer learning to classify breast cancer into four
+sub-classes using the BACH dataset. They utilized ResNet50
+and InceptionV3, achieving an accuracy of 97.50% .
+Despite these advances, many of the existing methods fail
+to fully capture the complex structure of breast histopathology
+images, particularly at different magnification scales. This
+has led to the exploration of attention mechanisms, which
+improve the ability of models to focus on the most relevant
+regions of the image. Woo et al. proposed the Convolutional
+Block Attention Module (CBAM), which applies attention
+along both the channel and spatial dimensions to enhance
+feature extraction . By focusing on critical areas, CBAM
+has demonstrated significant performance improvements in
+medical image classification tasks.
+In this context, our work aims to further enhance breast
+cancer classification by integrating attention mechanisms, such
+as CBAM, Self-Attention, and Deformable Attention, with
+the EfficientNet architecture. EfficientNet has demonstrated
+state-of-the-art performance in image classification tasks due
+to its compound scaling strategy, which optimally balances
+model depth, width, and resolution. By combining EfficientNet
+with attention mechanisms, our Hybrid EfficientNet models
+are designed to focus on both local and global features
+in histopathology images, leading to improved classification
+performance.
+In this study, we evaluate several Hybrid EfficientNet mod-
+els integrated with attention mechanisms on the BreakHis
+dataset, which contains histopathology images at multiple
+magnification levels. The inclusion of CBAM, Self-Attention,
+and Deformable Attention in these models enables them to
+dynamically adjust their focus on key areas of interest in the
+images, resulting in more accurate and reliable breast cancer
+classification.
+Our proposed approach builds upon existing research by
+incorporating advanced attention mechanisms and leverag-
+ing the strengths of EfficientNet, making it more robust in
+IEEE TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS, VOL. X, NO. X, XXXX 2024
+3
+handling the variability of histopathology images. Through
+comprehensive experimentation and comparison with other
+state-of-the-art methods, we aim to demonstrate that our Hy-
+brid EfficientNet models significantly improve breast cancer
+classification accuracy, particularly at higher magnification
+scales.
+III. METHODOLOGY
+This section outlines the detailed methodology employed in
+this study for classifying breast cancer histopathology images
+using Hybrid EfficientNet models integrated with advanced
+attention mechanisms. Our focus is on enhancing model per-
+formance through a robust preprocessing pipeline, modality-
+specific transfer learning, and a well-defined training strategy.
+A. Hybrid EfficientNet Model Architecture
+The backbone of our proposed model consists of the
+EfficientNet architecture, specifically EfficientNet-B4 and
+EfficientNet-B8. These models leverage compound scaling to
+optimize accuracy and efficiency, achieving state-of-the-art
+results in various image classification tasks. The architecture
+utilizes a combination of depth, width, and resolution scaling
+to adapt to the complexities of histopathological images, which
+often exhibit considerable variability in cellular structures and
+staining quality.
+To enhance feature extraction capabilities, we integrate the
+following advanced attention mechanisms:
+• Convolutional Block Attention Module (CBAM): The
+CBAM module consists of two sequential attention
+mechanisms—channel attention and spatial attention. The
+channel attention mechanism allows the model to focus
+on informative features by leveraging global information
+from feature maps, while spatial attention helps the model
+concentrate on salient regions within the feature maps.
+This two-step process is crucial for enhancing the net-
+work’s focus on pertinent structures in histopathological
+images.
+• Self-Attention: The Self-Attention mechanism captures
+long-range dependencies across the input image, enabling
+the model to aggregate contextual information from vari-
+ous parts of the image. This is particularly important for
+histopathology images, where cancerous patterns may be
+dispersed throughout the tissue.
+• Deformable Attention: This mechanism adaptively ad-
+justs the receptive fields in response to the input features,
+allowing the model to better capture complex shapes
+and variations common in histopathological images. The
+deformable attention layers are instrumental in adapting
+to the irregularities of tumor shapes and sizes, thus
+improving classification accuracy.
+The integrated architecture, depicted in Fig. 1, begins with
+the EfficientNet backbone, followed by attention modules that
+refine the feature representation before passing through fully
+connected classification layers.
+B. CBAM-EfficientNet Architecture
+In this section, we detail the proposed modality-specific
+CBAM-EfficientNet architecture designed for the classifica-
+tion of H and E stained breast histopathology images. This
+architecture enhances the traditional EfficientNet framework
+by integrating the Convolutional Block Attention Module
+(CBAM), allowing for improved focus on relevant features
+within the input images.
+Fig. 1: CBAM
+1) Channel Attention Module: The Channel Attention
+Module (CAM) is pivotal in our architecture for identifying
+significant features across the channel dimension. This module
+utilizes the interdependencies among channels, emphasizing
+crucial information while suppressing less relevant features.
+The channel attention process follows these steps:
+1. Pooling Operations: The input feature map F is first
+subjected to average pooling and maximum pooling to capture
+the global contextual information:
+Favg = AvgPool(F)
+and
+Fmax = MaxPool(F)
+2. Feature Aggregation: The pooled feature maps are then
+fed into a multi-layer perceptron (MLP) to generate channel
+attention scores, Mc(F), which are defined as:
+Mc(F) = σ (MLP(Favg) + MLP(Fmax))
+where σ denotes the sigmoid activation function.
+3. Weighting: The resulting channel attention scores are
+used to weight the original feature map F to obtain the refined
+feature representation F ′
+c:
+F ′
+c = Mc(F) ⊙F
+Here, ⊙represents the element-wise multiplication, effectively
+scaling the original features based on their importance.
+2) Spatial Attention Module: Following the channel atten-
+tion mechanism, the Spatial Attention Module (SAM) refines
+the feature maps by focusing on the spatial locations of
+the features. This module enhances the model’s capability
+to discern where important features are located in the input
+image.
+1. Feature Map Aggregation: The spatial attention mecha-
+nism aggregates the features across the channel dimension by
+applying both average and maximum pooling, resulting in two
+feature maps:
+Favg c = AvgPool(F ′)
+and
+Fmax c = MaxPool(F ′)
+IEEE TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS, VOL. X, NO. X, XXXX 2024
+4
+2. Spatial Attention Calculation: These aggregated maps
+are then concatenated and passed through a convolutional layer
+to produce the spatial attention map Ms(F ′):
+Ms(F ′) = σ (f7×7([Favg c; Fmax c]))
+where f7×7 denotes a convolution operation with a 7 × 7
+kernel.
+3. **Feature Refinement**: The refined feature map F ′
+s is
+obtained by applying the spatial attention map to the already
+refined channel-wise features:
+F ′
+s = Ms(F ′) ⊙F ′
+Fig. 2: Spatial and Channel Attention
+3) EfficientNet Backbone: The backbone of our model
+utilizes the EfficientNet architecture, known for its efficiency
+in parameter utilization and computational performance. Each
+EfficientNet variant is constructed using a combination of
+depthwise separable convolutions and squeeze-and-excitation
+blocks, allowing for enhanced feature extraction while main-
+taining low computational costs.
+We integrate the CBAM modules at various points in the
+EfficientNet architecture to enhance the focus on the most
+relevant features. The output from the final layer is then
+passed through a Global Average Pooling (GAP) layer, which
+reduces the dimensionality while preserving important spatial
+information:
+FGAP = GAP(F ′
+s)
+Finally, the output from the GAP layer is fed into fully
+connected layers for classification tasks, ensuring that the
+model captures both local and global features effectively.
+This combined approach of CBAM and EfficientNet lever-
+ages both channel and spatial attention mechanisms, providing
+a robust framework for the classification of breast histopathol-
+ogy images while maintaining computational efficiency.
+C. Datasets
+For our experiments, we utilized the BreakHis dataset,
+which consists of 9,109 breast histopathology images sourced
+from 82 patients. The dataset contains images at four magni-
+fication levels: 40X, 100X, 200X, and 400X, categorized into
+benign and malignant classes. To enhance model generalizabil-
+ity, we also employed additional datasets such as ICIAR 2018
+and the PCam dataset for pre-training. The ICIAR 2018 dataset
+includes a variety of histopathology images labeled for benign
+and malignant conditions, while the PCam dataset provides a
+substantial number of whole-slide images with binary labels
+indicating metastatic tissues.
+D. Data Preprocessing
+To address the challenges posed by histopathology im-
+ages, we implemented a comprehensive hybrid preprocessing
+pipeline. The following steps were undertaken:
+• Zero Padding: We applied zero padding to handle edge
+pixels effectively, ensuring that convolutional operations
+do not lose critical information at the borders of images.
+This technique adds additional rows and columns around
+the image, extending beyond its boundary.
+• Median Filtering: To reduce additive noise while pre-
+serving the structural integrity of the tissue, we employed
+a median filter. This non-linear filter replaces each pixel
+value with the median of its neighborhood values, effec-
+tively removing noise without blurring edges, which are
+vital for accurate feature extraction.
+• Contrast Limited Adaptive Histogram Equalization
+(CLAHE): Given the uneven staining in histopathology
+images, CLAHE was utilized to enhance local contrast
+and improve weak boundary detection. By dividing the
+image into small tiles and applying histogram equaliza-
+tion to each, we improve the visibility of critical features
+within the images.
+• Normalization: Image pixel values were normalized to
+the range [0, 1] to enhance model convergence during
+training. This ensures uniformity in the input data dis-
+tribution, which is crucial for the performance of deep
+learning models.
+• Data Augmentation: To mitigate the challenges of lim-
+ited sample sizes, extensive data augmentation was per-
+formed on the BreakHis dataset. Techniques such as
+rotation, flipping, zooming, and brightness adjustment
+were employed to artificially increase the dataset size
+and introduce variability, thereby reducing the risk of
+overfitting.
+E. Training and Hyperparameter Tuning
+The training of the models was conducted using PyTorch on
+an NVIDIA RTX 4060 GPU, enabling efficient computation.
+We utilized an initial learning rate of 0.001 and employed both
+the Adam and SGD optimizers to determine which provided
+better convergence and generalization.
+Key hyperparameters were carefully tuned:
+• Dense Layers: Experiments were conducted with two and
+three dense layers to identify the optimal configuration for
+the final classifier.
+• Activation Functions: Both ReLU and tanh activation
+functions were tested at the last classification layer to
+evaluate their impact on the model’s performance.
+• Kernel Initializers: We experimented with different kernel
+initializers, including the normal initializer and He initial-
+ization, to determine their effects on the convergence rate
+during training.
+IEEE TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS, VOL. X, NO. X, XXXX 2024
+5
+• Dropout Regularization: Dropout was incorporated in the
+fully connected layers to prevent overfitting, particularly
+given the limited availability of labeled data in medical
+imaging tasks.
+• Batch Size and Epochs: We tested various batch sizes (16,
+32, and 64) and trained the models for a maximum of 100
+epochs, applying early stopping based on validation loss
+to prevent overfitting.
+F. Modality-Specific Transfer Learning Strategy
+Given the inherent limitations of training deep learning
+models with small datasets, we employed a modality-specific
+transfer learning approach. This strategy leverages pre-trained
+models on large, similar datasets to enhance feature extraction
+capabilities for our specific task.
+We fine-tuned the EfficientNet models, initially pre-trained
+on diverse cancer datasets (PCam, ICIAR 2018, and others)
+rather than the ImageNet dataset, to reduce the domain gap
+inherent in medical imaging tasks. By tailoring the transfer
+learning process to domain-specific data, we aimed to improve
+model robustness and classification accuracy on the BreakHis
+dataset.
+G. Evaluation Metrics
+The performance of our proposed models was assessed
+using a suite of evaluation metrics: accuracy, precision, recall,
+and F1-score. These metrics are crucial in medical applications
+where both false negatives and false positives can have severe
+implications for patient care. Moreover, the performance was
+evaluated across different magnification levels (40X, 100X,
+200X, and 400X) to analyze how well the models generalize
+to various scales of tissue detail.
+By employing this detailed methodology, we aim to advance
+the field of breast cancer histopathology classification and
+contribute to the development of more reliable and efficient
+diagnostic tools.
+IV. EXPERIMENTAL RESULTS AND DISCUSSIONS
+A. Experimental Platform
+The experiments were conducted using PyTorch as the deep
+learning framework backend. The models were trained and
+tested on an NVIDIA RTX 4060 GPU, providing substantial
+computational power for the deep learning tasks involved. The
+system was equipped with 16GB of RAM to efficiently handle
+the large dataset and facilitate faster processing.
+B. Hyperparameter Optimization
+Hyperparameters are critical variables that govern the train-
+ing process of convolutional neural networks (CNNs). While
+the networks learn the relationships between inputs and out-
+puts, optimizing hyperparameters is essential to enhance model
+performance. We performed extensive experiments to identify
+the optimal hyperparameters for our final training.
+We evaluated two different optimizers: Adam (Adaptive
+Moment Estimation) and SGD (Stochastic Gradient Descent),
+with three distinct learning rates (0.01, 0.001, and 0.0001).
+TABLE I: Performance of Various Models Across Magnifica-
+tion Scales
+Model
+Scale Accuracy (%)
+F1 Score (%)
+Precision
+Hybrid EfficientNet WideSEB4
++ CBAM
+40X
+96.237
+95.781
+0.963
+100X
+97.115
+96.863
+0.971
+200X
+97.865
+97.672
+0.979
+400X
+98.423
+97.951
+0.985
+Hybrid EfficientNet B8 +
+CBAM
+40X
+95.564
+95.323
+0.957
+100X
+97.391
+96.911
+0.973
+200X
+98.091
+97.723
+0.980
+400X
+98.303
+97.834
+0.988
+Hybrid EfficientNet WideSEB4
++ Self-Attention
+40X
+94.506
+94.234
+0.947
+100X
+96.804
+96.453
+0.968
+200X
+97.305
+96.983
+0.973
+400X
+97.856
+97.582
+0.979
+Hybrid EfficientNet B8 +
+Self-Attention
+40X
+93.806
+93.531
+0.939
+100X
+96.402
+96.023
+0.964
+200X
+97.108
+96.645
+0.971
+400X
+97.657
+97.321
+0.978
+EfficientNet-B4-WideSE without
+CBAM
+40X
+84.754
+84.476
+0.843
+100X
+85.852
+85.539
+0.856
+200X
+86.902
+86.774
+0.868
+400X
+87.503
+87.434
+0.874
+EfficientNet-B8 without CBAM
+40X
+84.603
+84.153
+0.841
+100X
+85.901
+86.225
+0.865
+200X
+87.204
+87.411
+0.875
+400X
+87.901
+87.673
+0.878
+EfficientNet-B4 with
+Deformable Attention
+40X
+95.204
+95.124
+0.952
+100X
+95.901
+95.916
+0.962
+200X
+96.301
+96.268
+0.965
+400X
+96.604
+96.534
+0.968
+EfficientNet-B8 with
+Deformable Attention
+40X
+95.404
+95.372
+0.959
+100X
+96.002
+96.115
+0.963
+200X
+96.402
+96.442
+0.967
+400X
+96.705
+96.653
+0.969
+The SoftMax classifier was employed for all classification
+experiments, providing probability scores for each class label.
+Binary cross-entropy was used as the loss function due to
+the binary nature of our classification problem, represented
+mathematically as follows:
+Binary Cross-Entropy = −(yi·log(p(yi))+(1−yi)·log(1−p(yi)))
+The fully connected layer incorporated a ReLU activation
+function and consisted of 256 hidden neurons, followed by a
+dropout layer with a probability of 0.4 to mitigate overfitting.
+C. Results
+We employed a modality-specific transfer learning strategy
+for the classification task and compared it with various state-
+of-the-art CNN architectures, as shown in Table II. Multiple
+experiments were conducted to evaluate the binary classifi-
+cation of breast cancer histopathology images across various
+magnification factors (40X, 100X, 200X, and 400X).
+To demonstrate the efficacy of our proposed approach, we
+compared the performance of several models and provided
+a detailed comparative analysis. Initially, we conducted ex-
+periments on two different models without transfer learning,
+as presented in Table 1. Subsequently, we evaluated state-
+of-the-art models pre-trained on ImageNet, as summarized.
+IEEE TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS, VOL. X, NO. X, XXXX 2024
+6
+The performance of our proposed modality-specific strategy,
+incorporating transfer learning.
+As shown in Table 2, our proposed Hybrid EfficientNet
+WideSEB4 + CBAM significantly outperformed various es-
+tablished models, including DenseNet201, and Deep CNNs.
+Notably, at higher magnification levels, our hybrid model
+achieved an accuracy of 98.42% at 400X magnification.
+1) Comparison of Hybrid EfficientNet vs VGG16 + VGG19:
+The Hybrid EfficientNet WideSEB4 + CBAM demonstrated
+significant performance improvements over the VGG16 +
+VGG19 combination across all magnifications. While the
+VGG-based model performed well in terms of accuracy, its
+computational requirements were substantially higher. In our
+experiments, the VGG16 + VGG19 model required the use of
+a Tesla K80 GPU, which provides substantial computational
+resources and a larger memory capacity of 24GB VRAM, es-
+sential for handling the large parameter count of the combined
+models.
+In contrast, the Hybrid EfficientNet WideSEB4 + CBAM
+was trained on an NVIDIA RTX 4060 GPU, which has
+only 8GB of VRAM—considerably less than the Tesla K80.
+Despite the significantly lower memory, the EfficientNet-
+based architecture demonstrated exceptional computational
+efficiency, primarily due to its utilization of depthwise sep-
+arable convolutions, squeeze-and-excitation (SE) blocks, and
+the Convolutional Block Attention Module (CBAM). With a
+lower parameter count and memory requirements, EfficientNet
+maintained superior accuracy, particularly at higher magnifi-
+cations.
+2) Parameter Efficiency and Memory Consumption: Effi-
+cientNet leverages a compound scaling method to optimize
+model depth, width, and input resolution, allowing it to achieve
+high accuracy with fewer parameters compared to VGG mod-
+els. Specifically:
+• The combined VGG16 + VGG19 model consists of
+approximately 40 million parameters, necessitating sub-
+stantial memory resources and extended training times.
+• In contrast, the Hybrid EfficientNet WideSEB4 +
+CBAM model, even with the inclusion of the CBAM
+module, contains fewer than 30 million parameters,
+leading to significantly lower memory consumption and
+faster computation. This reduction in parameter count
+allowed for the training of the EfficientNet model on
+an RTX 4060 GPU, despite its more limited memory
+capacity of 8GB. Furthermore, EfficientNet’s superior
+optimization led to faster convergence and improved
+accuracy, making it a more feasible choice for large-
+scale applications where computational resources are
+constrained.
+3) Best
+Model
+Performance:
+Hybrid
+EfficientNet
+WideSEB4 + CBAM achieved the 2nd highest accuracy
+of 98.42% at 400X magnification, highlighting the model’s
+capability in extracting detailed and relevant features from
+breast cancer histopathology images. In comparison with other
+state-of-the-art models, the proposed architecture not only
+surpassed accuracy benchmarks but also offered substantial
+advantages in terms of computational efficiency and memory
+TABLE II: Comparison of Accuracy Across Models and
+Magnification Factors
+Method
+Model
+MG Factor
+Accuracy (%)
+Erfankhan Hamed, et al
+LBP
+40X
+88.30
+100X
+88.30
+200X
+87.10
+400X
+83.40
+Daniel Lichtblau, et al
+AlexNet
+40X
+81.61
+100X
+84.47
+200X
+86.67
+400X
+83.15
+Yun Gu, et al
+DCMM
+40X
+95.62
+100X
+95.03
+200X
+97.04
+400X
+96.31
+Nahid, et al
+Deep CNN
+40X
+90.00
+100X
+91.00
+200X
+91.00
+400X
+90.00
+Togacar Mesut, et al
+Deep CNN
+40X
+97.99
+100X
+97.84
+200X
+98.51
+400X
+95.88
+Yan Hao, et al
+DenseNet 201
+40X
+96.75
+100X
+95.21
+200X
+96.57
+400X
+93.15
+Pin Wang, et al
+FE-BkCapsNet
+40X
+92.71
+100X
+94.52
+200X
+94.03
+400X
+93.54
+VGG16 + VGG19
+Hameed et al
+40X
+94.44
+100X
+97.61
+200X
+98.70
+400X
+98.96
+Proposed Hybrid
+2024
+40X
+97.11
+(EfficientNet WideSEB4 + CBAM)
+100X
+98.04
+200X
+98.25
+400X
+98.42
+requirements, underscoring its potential for deployment in
+real-time clinical settings.
+V. CONCLUSION
+This study presents a comprehensive approach for breast
+cancer histopathology classification using Hybrid Efficient-
+Net models integrated with CBAM, Self-Attention, and De-
+formable Attention mechanisms. The proposed model achieved
+superior accuracy and computational efficiency across multiple
+magnification levels, with peak performance at 400X magnifi-
+cation. By leveraging attention mechanisms to focus on critical
+regions, our approach effectively addresses the complexity
+of histopathological images. These results demonstrate the
+potential of our model for integration into real-time diagnostic
+workflows, offering enhanced diagnostic accuracy and effi-
+ciency. Future work could explore further model adaptations to
+other histopathology datasets and expand clinical applicability.
+IEEE TRANSACTIONS ON NEURAL NETWORKS AND LEARNING SYSTEMS, VOL. X, NO. X, XXXX 2024
+7
+REFERENCES
+[1] M. F. Akay, “Support vector machines combined with feature selection
+for breast cancer diagnosis,” Exp. Syst. Appl., vol. 36, no. 2, pp. 3240-
+3247, 2009.
+[2] E. G. Fischer, “Nuclear morphology and the biology of cancer cells,”
+Acta Cytologica, vol. 64, no. 6, pp. 511-519, 2020.
+[3] F. Bray, J. Ferlay, I. Soerjomataram, R. L. Siegel, L. A. Torre and
+A. Jemal, “Global cancer statistics 2018: GLOBOCAN estimates of
+incidence and mortality worldwide for 36 cancers in 185 countries,”
+CA Cancer J. Clin., vol. 68, no. 6, pp. 394-424, 2018.
+[4] F. A. Spanhol, L. S. Oliveira, P. R. Cavalin, C. Petitjean and L. Heutte,
+“Deep features for breast cancer histopathological image classification,”
+in Proc. IEEE Int. Conf. Syst. Man Cybern. (SMC), pp. 1868-1873, Oct.
+2017.
+[5] S. R. Lakhani, WHO classification of Tumours of the breast, 2012,
+[online] Available: https://espace.library.uq.edu.au/view/UQ:8984059.
+[6] A. Sikandar, “Histopathology: An old yet important technique in mod-
+ern science,” in Histopathology—An Update, London, U.K:IntechOpen,
+2018.
+[7] M. N. Gurcan, L. E. Boucheron, A. Can, A. Madabhushi, N. M. Rajpoot
+and B. Yener, “Histopathological image analysis: A review,” IEEE Rev.
+Biomed. Eng., vol. 2, pp. 147-171, 2009.
+[8] Z. Hameed, S. Zahia, B. Garcia-Zapirain, J. J. Aguirre and A. M.
+Vanegas, “Breast cancer histopathology image classification using an
+ensemble of deep learning models,” Sensors, vol. 20, no. 16, pp. 4373,
+Aug. 2020.
+[9] R. Rubin and D. S. E. Strayer, Rubin’s Pathology: Clinicopathologic
+Foundations of Medicine, Philadelphia, PA, USA:Lippincott Williams
+& Wilkins, 2008.
+[10] L. Duan, D. Xu and I. Tsang, “Learning with augmented features for
+heterogeneous domain adaptation,” arXiv:1206.4660, 2012.
+[11] B. Kulis, K. Saenko and T. Darrell, “What you saw is not what you
+get: Domain adaptation using asymmetric kernel transforms,” in Proc.
+CVPR, pp. 1785-1792, Jun. 2011.
+[12] C. Wang and S. Mahadevan, “Heterogeneous domain adaptation us-
+ing manifold alignment,” in Proc. 22nd Int. Joint Conf. Artif. Intell.,
+pp. 1541-1546, 2011, [online] Available: https://dl.acm.org/doi/10.5555/
+2283516.2283652.
+[13] S. Pan and Q. Yang, “A survey on transfer learning,” IEEE Trans. Knowl.
+Data Eng., vol. 22, no. 10, pp. 1345-1359, Oct. 2010.
+[14] E. Baykal, “Transfer learning with pre-trained deep convolutional neural
+networks for serous cell classification,” Multimedia Tools Appl., vol. 79,
+pp. 15593-15611, Jun. 2020.
+[15] M. Raghu, C. Zhang, J. Kleinberg and S. Bengio, “Transfusion: Un-
+derstanding transfer learning for medical imaging,” arXiv:1902.07208,
+2019.
+[16] W. Zhang, L. Deng, L. Zhang and D. Wu, “A survey on negative
+transfer,” arXiv:2009.00909, 2020.
+[17] N. F. Boyd, “Mammographic densities and breast cancer risk,” Cancer
+Epidemiol. Prevention Biomakers, vol. 7, no. 12, pp. 1133-1144, 1998.
+[18] P. A. Carney, C. J. Kasales, A. N. A. Tosteson, J. E. Weiss, M. E.
+Goodrich, S. P. Poplack, et al., “Likelihood of additional work-up among
+women undergoing routine screening mammography: The impact of age
+breast density and hormone therapy use,” Preventive Med., vol. 39, no.
+1, pp. 48-55, Jul. 2004.
+[19] T. A. Huisman, “Fetal magnetic resonance imaging of the brain: Is
+ventriculomegaly the tip of the syndromal iceberg?” in Seminars in
+Ultrasound CT and MRI, Amsterdam, The Netherlands:Elsevier, 2011.
+[20] N. Maroof, A. Khan, S. A. Qureshi, A. U. Rehman, R. K. Khalil and
+S.-O. Shim, “Mitosis detection in breast cancer histopathology images
+using hybrid feature space,” Photodiagnosis Photodynamic Therapy, vol.
+31, Sep. 2020.
+[21] L. Alzubaidi, O. Al-Shamma, M. A. Fadhel, L. Farhan, J. Zhang and
+Y. Duan, “Optimizing the performance of breast cancer classification
+by employing the same domain transfer learning from hybrid deep
+convolutional neural network model,” Electronics, vol. 9, no. 3, pp. 445,
+Mar. 2020.
+[22] C. Zhu, F. Song, Y. Wang, H. Dong, Y. Guo and J. Liu, “Breast
+cancer histopathology image classification through assembling multiple
+compact CNNs,” BMC Med. Informat. Decis. Making, vol. 19, no. 1,
+pp. 1-17, Dec. 2019.
+[23] M. Togac¸ar, K. B, B. Ergen and Z. C¨omert, “BreastNet: A novel
+convolutional neural network model through histopathological images
+for the diagnosis of breast cancer,” Phys. A Stat. Mech. Appl., vol. 545,
+May 2020.
+[24] E. M. Nejad, L. S. Affendey, R. B. Latip and I. B. Ishak, “Classification
+of histopathology images of breast into benign and malignant using a
+single-layer convolutional neural network,” in Proc. Int. Conf. Imag.
+Signal Process. Commun., pp. 50-53, Jul. 2017.
+[25] A.-A. Nahid, M. A. Mehrabi and Y. Kong, “Histopathological breast
+cancer image classification by deep neural network techniques guided
+by local clustering,” BioMed Res. Int., vol. 2018, pp. 1-20, Mar. 2018.
+[26] R. Yan, F. Ren, Z. Wang, L. Wang, T. Zhang, Y. Liu, et al., “Breast
+cancer histopathological image classification using a hybrid deep neural
+network,” Methods, vol. 173, pp. 52-60, Feb. 2019.

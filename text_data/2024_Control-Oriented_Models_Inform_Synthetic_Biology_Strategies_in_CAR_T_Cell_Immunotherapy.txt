@@ -1,0 +1,828 @@
+Control-Oriented Models Inform Synthetic Biology Strategies in
+CAR T Cell Immunotherapy
+Raffaele Romagnoli
+Abstract— Chimeric antigen receptor (CAR) T cell ther-
+apy is revolutionizing the treatment of blood cancers.
+Mathematical models that can predict the effectiveness of
+immunotherapies such as CAR T are of increasing interest
+due to their ability to reduce the number of experiments
+performed and to guide the theoretical development of
+new therapeutic strategies. Following this rationale, we
+propose the use of control-oriented models to guide the
+augmentation of CAR T therapy with synthetic gene
+circuitry. Here we present an initial investigation where we
+adapt a previously developed CAR T model for control-
+oriented purposes. We then explore the impact of realistic
+alternative activation methods as control inputs to ensure
+effective tumor clearance.
+I. INTRODUCTION
+Chimeric antigen receptor (CAR) T cells have shown
+remarkable therapeutic potential in the treatment of
+hematological cancers such as B cell leukemias [1]
+and lymphomas [2], [3]. CAR T cells are genetically
+engineered to interact with high specificity to tumor anti-
+gens [4]. Binding of the CAR to tumor target antigens
+leads to activation and proliferation of CAR T cells and
+tumor cell lysis [2]. Yet, CAR T therapies have encoun-
+tered an array of different issues such as insufficient
+numbers of CAR T cells, immunosuppressive signaling,
+[5], and outgrowth of target antigen-negative or low
+tumor cells [6], [7]. A promising strategy to overcome
+these challenges is through augmentation of CAR T
+cells with additional synthetic gene circuitry [8]–[10].
+Current synthetic biology control strategies are focused
+on achieving more specific activation of CAR T cells in
+presence of the tumor, as well as controlling therapeutic
+timing, location, and strength. [11].
+The concept of control in CAR T immunotherapy
+is still removed from the classical control theory, the
+incorporation of which may provide important insights
+and tools to design more effective therapies, and this
+manuscript aims to bridge this theoretical gap. Two
+major classes of models have been previously devel-
+oped to investigate CAR T cell behaviors: agent-based
+models (ABMs) and models using partial differential
+equations/ordinary differential equations (PDEs/ODEs).
+ABMs are computational methods that simulate the
+R. Romagnoli is with the School of Science and Engineering,
+Duquesne University, 5000 Forbes Ave, Pittsburgh, PA 15213, USA:
+romagnolir@duq.edu
+spatial and temporal behavior of every single agent/cell
+that interacts with the environment following specific
+rules [12]. This kind of model is based on simulations
+to capture a specific behavior of the system which can
+be difficult to describe with mathematical tools [13]. In
+contrast mathematical models based on PDEs and ODEs
+allow analyses that are impossible to make with ABMs
+or solve problems such as optimization and control.
+ODEs have been used in the framework of CAR T cells
+to describe the behavior of single cells [14], however,
+ODEs can also be applied to additional mechanistic
+levels in the study of CAR T cells. For instance, a
+specific CAR-T design at the cellular level will have
+effects on the entire system/population of CAR T cells
+and will act on a population of tumor cells. A previously
+developed model that provides a high-level behavior of
+tumor cell and CAR T cell populations for non-solid
+tumors is called CARTmath [15]. This model introduces
+three ODEs that describe dynamics and the interactions
+between the population of active CAR T cells, memory
+(non-active) CAR T cells, and tumor cells. This model
+mimics a predator-prey-like model where from the the-
+oretical viewpoint tumor clearance cannot be achieved,
+which conflicts with real-world outcomes. Additionally,
+this model correctly demonstrates that the therapeutic
+success is highly dependent on input CAR T cell num-
+ber. Since this model reduces all the effects of possible
+synthetic biology strategies in the design of the CAR
+T cells into a set of parameters, it is difficult to make
+a direct connection between the effectiveness of the
+therapy and potential synthetic gene circuitry designs. In
+this paper, we tackle the challenge of achieving tumor
+clearance from a control perspective. We demonstrate
+the potential effectiveness of an alternative CAR T cell
+activation strategy by modeling it as an external control
+input. This additional input complements the traditional
+activation mechanism driven by the presence of tumor
+cells. Our approach builds upon the model introduced
+in [15]. We propose a novel model and a backstepping
+analysis [16] to describe the effects of this control input
+on tumor clearance in terms of asymptotic stability.
+Additionally, we describe novel activation strategies for
+CAR T cells that are aligned with our model.
+arXiv:2411.07927v1  [eess.SY]  12 Nov 2024
+II. CAR T CELL DESCRIPTION
+CAR T cells contain synthetic receptors created by
+fusing multiple proteins together in a specific orien-
+tation. Generally, CARs consist of an antigen binding
+domain, usually a single chain variable fragment (scFv)
+and T cell signaling domains such as CD28, 4-1BB,
+and CD3ζ [8]. The therapy is manufactured typically by
+removing a patient’s T cells, genetically engineering the
+cells, and infusing them back into the patient [17] The
+cells act as a living therapeutic capable of specifically
+targeting the patient’s immune system to fight cancer.
+Binding of CAR T cells to tumor antigens causes T cell
+activation through the signaling domains with endoge-
+nous downstream mechanisms, functionally rewiring T
+cell activation to user-defined antigen recognition [2] .
+Tumor cell
+tumor
+antigen
+CAR T cell
+antigen
+binding
+domain
+T cell
+signaling
+domain
+T cell activation:
+cell proliferation,
+target cell lysis
+Fig. 1: Schematic of a CAR T cell recognizing a tumor
+cell.
+III. ORDINARY DIFFERENTIAL EQUATION (ODE)
+MODEL
+CAR T cells are genetically modified to recognize
+and eliminate tumor cells, and a mathematical model to
+predict their therapeutic activity has been developed in
+[15]. This model provides ordinary differential equations
+based on the scheme of Fig. 2. The active CAR T
+cells have a cytotoxic effect on tumor cells. These cells
+proliferate, differentiate into non-active CAR T cells,
+and die naturally or are impaired by tumor-induced im-
+munosuppressive mechanisms. Non-active CAR T cells
+also die naturally, and they activate when stimulated by
+the tumor-associated antigen turning into active CAR T
+cells. Finally, the tumor cells grow based on the available
+resources and are killed by effector CAR T cells. In Fig.
+2 the solid and dashed arrows represent positive and
+negative effects due to interactions between the three
+different kinds of cells. For example, the non-active pool
+formation represents the situation where active CAR T
+cells become non-active, this phenomenon has a positive
+effect on non-active CAR T and a negative effect on
+active CAR T cells. Finally, the variables x1, x2, and
+Tumor
+x1
+Active CAR T
+x2
+Non-Active CAR T
+x3
+Net growth
+Proliferation
+Immunosuppression
+Cytotoxicity
+Natural
+death
+Natural
+death
+Non-active pooll
+formation
+Activation upon
+antigen stimulation
+Positive effect
+Negative effect
+Fig. 2: Interaction scheme between non-active CAR T
+cells x3, active CAR T cells x2, and tumor cells x1. This
+scheme is adapted from [15].
+x3 represent the tumor cells, the active and non-active
+CAR T cells respectively. Since these variables represent
+the number of cells, they are all positive. Moreover, all
+the model parameters that will be defined in the next
+subsections are also non-negative.
+A.
+Tumor cells
+The tumor cells dynamics are
+˙x1 = rx1(1 −bx1) −γx2x1
+(1)
+where
+• r: maximum growth rate of tumor cells ([day−1]).
+• b: inverse of the tumor carrying capacity ([cells−1]).
+• γ: Cytotoxic coefficient induced by effector CAR
+T cells ([(cell · day)−1]).
+The dynamical equation (1) considers the tumor cells
+to be bounded in their growth, and the population is
+reduced by the active CAR T cells γx2x1.
+B. Active CAR T cells
+The dynamics of active CAR T cells are given by
+˙x2 = (ϕ −ρ)x2 + θx3x1 −αx2x1
+(2)
+where the parameters are
+• ϕ: proliferation rate of the active CAR T cells
+([day−1]).
+• ρ: reduction rate of the active CAR T cells due to
+the natural death and differentiation into non-active
+CAR T cells([day−1]).
+• θ: conversion coefficient of non-active CAR T into
+active CAR T cells due to the interaction with the
+tumor cells ([(cell · day)−1]).
+• α: Inhibition/expansion coefficient of active CAR
+T cells due to the interaction with the tumor cells
+([(cell · day)−1]).
+Based on equation (2), the number of active CAR T cells
+decays to zero in the absence of tumor cells if ϕ < ρ. The
+2
+term θx3x1 represents the activation rate of non-active
+CAR T cells due to the interaction with the tumor, and
+the term αx2x1 describes the effects of stimulatory and
+inhibitory signals on active CAR T cells modulated by
+the tumor.
+C. Non-active CAR T cells
+The dynamics of non-active CAR T cells are
+˙x3 = ϵx2 −θx3x1 −µx3
+(3)
+where
+• ϵ: effective conversion rate of active CAR T into
+non-active CAR T cells ([day−1]).
+• µ: death rate of non-active CAR T cells (day−1).
+If ϕ > ρ −ϵ the active CAR T cells proliferate and
+become non-active CAR T cells. In this case, the term
+θx3x1, which also appears in (2), has a negative effect
+on the non-active CAR T cell population.
+D. Model Analysis
+The above system can be rewritten as
+˙x = f(x)
+where x = [x1, x2, x3]T and
+f(x) =
+
+rx1(1 −bx1) −γx2x1
+(ϕ −ρ)x2 + θx3x1 −αx2x1
+−µx3 + ϵx2 −θx3x1
+.
+This model has four equilibrium points [15] that can be
+admissible or not based on the value of the model’s pa-
+rameters. We compute the Jacobian matrix as a function
+of the equilibrium point xe:
+"∂f
+∂x
+#
+=
+
+r(1 −2bx1)
+γx2
+0
+θx3 −αx2
+(ϕ −ρ)x2 −αx1
+θx1
+−θx3
+ϵ
+−µ −θx1
+
+(4)
+Considering x0
+e = [0, 0, 0]T, the above matrix turns into
+"∂f
+∂x
+#
+x=x0e
+=
+
+r
+0
+0
+0
+ϕ −ρ
+0
+0
+ϵ
+−µ
+
+x=x0e
+which has a positive eigenvalue, hence x0
+e is struc-
+turally unstable. In fact, the possible perturbation in
+parameters does not affect the stability property of x0
+e
+that remains unstable. The presence of tumor cells makes
+this equilibrium point unstable, and if there are no CAR
+T cells, it can grow until reaching a maximum bound.
+This point corresponds to a second equilibrium point
+given by x1
+e = [1/b, 0, 0]T. By computing the Jacobian
+matrix
+"∂f
+∂x
+#
+x=x1e
+
+−r
+0
+0
+0
+ϕ −ρ −α/b
+θ/b
+0
+ϵ
+−µ −θ/b
+
+x=x1e
+,
+it is possible to observe that variation in the model’s
+parameters can make x1
+e asymptotically stable or unsta-
+ble. The other two equilibrium points x2
+e and x3
+e are less
+intuitive w.r.t the first two, and they can be calculated by
+following several steps that are shown in [15]. Due to the
+presence of bifurcations, x2
+e and x3
+e may not be feasible,
+e.g. their components may have negative values, or can
+be stable or unstable. Since x0
+e is always unstable, the
+effectiveness of CAR-T therapy can be achieved if x1
+e
+is unstable and one of the other admissible equilibrium
+points is asymptotically stable. If in this situation x1
+e is
+also asymptotically stable then there is a condition of bi-
+stability, and the initial conditions are crucial to avoid
+the system converging to x1
+e. The feasible equilibrium
+points x2
+e and x3
+e describe the situation where tumor and
+CAR T cells coexist, and a small quantity of tumor cells
+is needed to make the active CAR T cells proliferate and
+keep the number of tumor cells bounded.
+E. Problem Statement
+The model developed in [15] can provide useful
+information about the dosing strategies to obtain specific
+initial conditions of the CAR T cells. In fact, despite
+theory predicting the impossibility of tumor clearance,
+it can be achieved in practice if the system can start
+from specific initial conditions of the tumor and CAR
+T cells. The experiments referenced in [15] show that
+using specific initial conditions can lead to low values
+of tumor cells as predicted by the model, and this result
+represents the practical situation where the tumor is
+eliminated. However, the therapy is highly sensitive to
+these initial conditions and many arbitrary initial con-
+ditions for tumor additional tumor growth and disease
+relapse. In this paper, we illustrate the beneficial impact
+of an alternative strategy for CAR T cell activation
+on tumor clearance. We introduce an enhanced model
+incorporating an additional control input for CAR T cell
+activation, which can be represented as a feedforward
+input. Through a backstepping approach analysis, we
+demonstrate that this supplementary input ensures reli-
+able tumor clearance by achieving asymptotic stability
+at the point x1 = 0.
+IV. CONTROL ORIENTED MODEL FOR NON-SOLID
+TUMORS
+Here we take the previous model as a baseline and
+propose a new control-oriented model to determine the
+conditions where the tumor clearance condition x1 = 0
+is asymptotically stable and the number of active and
+non-active CAR T cells converge to bounded values ¯x2
+and ¯x3 respectively.
+A. Proposed Model
+To develop a control-oriented model we first identify
+the controllable inputs of the system. From the dynamic
+3
+equations
+
+˙x1 = rx1(1 −bx1) −γx1x2
+˙x2 = (ϕ −ρ)x2 −αx2x1 + θx3x1
+˙x3 = −µx3 −θx3x1 + ϵx2
+(5)
+the system can be seen as the cascade connection
+between non-active and active CAR T cells and active
+CAR T and tumor cells. In our analysis, we concentrate
+on the initial two equations of (5). Here, the non-active
+CAR T cells x3 are regarded as an input u influencing
+the dynamics of the active CAR T cells. Additionally, we
+introduce a distinct mechanism for activating the CAR T
+cells, which is represented by a positive supplementary
+input, denoted as τ.
+( ˙x1 = rx1(1 −bx1) −γx1x2
+˙x2 = (ϕ −ρ)x2 −αx2x1 + θx1u + τ
+(6)
+Fig. 3 shows the modified interaction scheme between
+tumor, active and non active CAR T cells.
+Tumor
+x1
+Active CAR T
+x2
+Non-Active CAR T
+x3
+Net growth
+Proliferation
+Immunosuppression
+Cytotoxicity
+Natural
+death
+Natural
+death
+τ
+Non-active pool
+formation
+Activation upon
+antigen stimulation
+Positive effect
+Negative effect
+Fig. 3: The modified model incorporates an additional
+input, denoted as τ, which governs the activation of the
+CAR T cells.
+The control input u represents the non-active CAR T
+cells to be activated by the presence of the tumor, and
+instead τ is a control input generated by an alternative
+mechanism of activation of the CAR T cells. The
+blue arrows signify positive and negative effects on the
+growth of the active CAR T cells, which also has a
+negative effect on the population of non-active CAR T
+cells.
+B. Asymptotic Stability using the Backstepping Ap-
+proach
+The aim is to illustrate the beneficial impact of
+the additional input τ on tumor clearance. Specifically,
+focusing on the tumor dynamics outlined in the first
+equation of (6), we interpret the effects of the active
+CAR T cells x2 as a control input u1. To achieve tumor
+clearance, the control input u1 must ensure asymptotic
+stability. Thus, we assume that u1 acts as the following
+state feedback controller:
+u1 = κ(x1) = r
+γ (a −bx1)
+(7)
+which transforms dynamics of the tumor cells into
+˙x1 = rx1 −rbx2
+1 −arx1 + rbx2
+1 = r(1 −a)x1
+which is a linear ODE with x1 = 0 asymptotically stable
+for any a > 1. Our objective is to utilize backstepping
+control analysis to derive conditions under which the
+active CAR T cells exhibit behavior consistent with a
+specified state feedback controller u1, aimed at driving
+the number of tumor cells to zero. To do so, we backstep
+this variable by defining
+z2 ≜x2 −κ(x1) = x2 −r
+γ
+
+a −bx1
+
+.
+(8)
+The goal is to show that z2 asymptotically converges
+to zero, hence x2 converges to κ(x1). After a change of
+variables, the first equation of (6) becomes
+˙x1 = r(1 −a)x1 −γx1z2.
+Instead the l.h.s of the second equation of (6) is
+˙x2 = ˙z2 −ˆb˙x1 = ˙z2 −ˆb
+
+r(1 −a)x1 −γx1z2
+
+where ˆb = rb/γ. The r.h.s is
+
+ϕ −ρ −αx1
+ 
+z2 + r
+γ(a −bx1)
+!
++ θx1u + τ.
+Hence,
+˙z2
+=
+
+ϕ −ρ −αx1
+ 
+z2 + r
+γ(a −bx1)
+!
++ ˆbr(1 −a)x1
+−ˆbγx1z2 + θx1u + τ
+=
+(ϕ −ρ)z2 + (ϕ −ρ) r
+γa + τ+
+
+ˆbr(1 −a) −ˆbγz2
++θu −ˆb(ϕ −ρ) −αz2 + α r
+γ (bx1 −a)
+#
+x1
+(9)
+We examine the following Lyapunov function candi-
+date, as expressed in Equation (10):
+V(x1, z2) = 1
+2
+
+ξx2
+1 + z2
+2
+
+,
+(10)
+where ξ > 0 represents a positive real scalar value. The
+time derivative of (10) is given by (11) reported in Fig.
+(4). We assume now that
+τ = −(ϕ −ρ) r
+γa,
+(12)
+which cancels out the term (ϕ −ρ)(r/γ)az2 in ˙V(x1, x2).
+Consequently, by defining two positive scalars as ˆℓ≜
+|r(1 −a)| and ˆm ≜|ϕ −ρ|, we can make the following
+assumption in a neighborhood of x1 = z2 = 0 on the
+4
+˙V(x1, z2)
+=
+ξx1 ˙x1 + z2˙z2
+=
+ξr(1 −a)x2
+1 + (ϕ −ρ)z2
+2 +
+ 
+(ϕ −ρ) r
+γa + τ
+!
+z2
++
+"
+ˆbr(1 −a) −ˆbγz2 + θu −ˆb(ϕ −ρ) −αz2 + α r
+γ(bx1 −a) −γξx1
+#
+x1z2
+(11)
+Fig. 4: Derivation of ˙V(x1, z2).
+term of (11) that multiplies x1z2:
+−ˆbˆℓ−ˆbγz2 + θu −γξx1 + ˆb ˆm −αz2
++α r
+γ(bx1 −a) −γξx1 ≤2k (13)
+taking into account that a > 1, ϕ −ρ < 0, and for the
+moment that u is bounded. Therefore, we can bound
+˙V(x1, z2) as follows:
+˙V(x1, z2)
+≤
+−ξˆℓx2
+1 −ˆmz2
+2 + 2k|x1||z2|
+=
+−
+" |x1|
+|z2|
+#T "
+ξˆℓ
+−k
+−k
+ˆm
+# " |x1|
+|z2|
+#
+(14)
+For this quadratic form to be positive definite, we require
+[16]:
+ξˆℓˆm −k2 > 0 →k <
+q
+ξˆℓˆm
+An appropriate value of ξ can be determined based
+on the bound k > 0. Consequently, (10) becomes a
+valid Lyapunov function, establishing x1 = z2 = 0 as
+an asymptotically stable equilibrium point. The input
+u corresponds to the variable x3, representing the non-
+active CAR T cells. Consider the CAR T subsystem
+˙x2 = (ϕ −ρ)x2 −αx2x1 + θx3x1 + τ
+˙x3 = −µx3 −θx3x1 + ϵx2 −τ
+(15)
+with τ = 0 and x1 = 0 the equilibrium point x2 = x3 = 0
+is asymptotically stable [15] hence if τ is bounded then
+the behavior of x2 and x3 remains bounded. From (15),
+the equilibrium point for x1 = 0 is given by
+xe
+n =
+h
+0
+¯x2
+¯x3
+iT ,
+(16)
+with
+¯x2 = −
+τ
+(ϕ −ρ);
+¯x3 = −τ(ρ −ϕ −ϵ)
+(ϕ −ρ)µ
+,
+where ¯x2, ¯x3 are positive real numbers. Examining the
+first equation of (6), it becomes apparent that there
+exists a value of x1 and a constant value of x2 that
+render the equation asymptotically stable. Consequently,
+if x1 is decreasing, then (15) exhibits bounded dynamics,
+ensuring the existence of a bound k > 0 for (13). In
+summary, to establish x1 = 0 as an attractive point while
+ensuring the boundedness of x2 and x3 for a given initial
+condition of tumor cells x1(0) , 0, it is imperative to
+evaluate the initial conditions of the non-active CAR
+T cells x3(0). This guides the system’s behavior in a
+vicinity of x1 = 0, which serves as a point of attraction
+due to the external input τ calculated in (12). Choosing
+τ to nullify a term in (11) may prove challenging
+in practical implementation. However, the backstepping
+analysis relies on a generic a > 1, ensuring asymptotic
+stability for the variable x1 for any τ > (ρ−ϕ)·r
+γ
+.
+C. Connection with existing works
+The new model introduced in Figure 3 incorporates
+an additional activation mechanism τ (12), and the entire
+analysis is developed around it. The question arises
+whether τ can be implemented using synthetic gene
+circuitry. Recent studies by Chang et al. [5] and Allen
+et al. [18] align with our research, as they explore
+innovative methods to enhance CAR-T cell functionality
+beyond traditional antigen recognition.
+Chang et al. [5] demonstrate the potential of utilizing
+CARs to recognize soluble ligands, a distinct class of
+biomarkers, thereby expanding their utility in disease
+treatment. Their study illustrates the engineering of CAR
+T cells to robustly respond to various soluble ligands,
+including the CD19 ectodomain, GFP variants, and
+transforming growth factor beta (TGF-b). They reveal
+that CAR signaling triggered by soluble ligands depends
+on ligand-mediated CAR dimerization and can be finely
+regulated by adjusting the mechanical coupling between
+the CAR’s ligand-binding and signaling domains. These
+findings suggest a role for mechanotransduction in CAR
+signaling and propose a systematic approach to engi-
+neering immune-cell responses to soluble extracellular
+ligands.
+In contrast, Allen et al. [18] discuss the challenges
+facing chimeric antigen receptor (CAR) T cells in com-
+bating solid tumors within immunosuppressive microen-
+vironments. To address this, they engineer circuits utiliz-
+ing tumor-specific synNotch receptors to locally induce
+production of the cytokine IL-2. These circuits signif-
+icantly enhance CAR T cell infiltration and clearance
+of immune-excluded tumors, without causing systemic
+toxicity. The most effective IL-2 induction circuit oper-
+ates in an autocrine and T cell receptor (TCR) or CAR-
+independent manner, effectively bypassing suppression
+5
+mechanisms such as IL-2 consumption or inhibition of
+TCR signaling. Their work demonstrates the feasibility
+of reconstructing synthetic T cell circuits capable of ac-
+tivating the necessary outputs for an antitumor response
+while evading critical points of tumor suppression.
+V. SIMULATION RESULTS
+For simulations, we consider the parameters reported
+in Table 2, HDLM-2 + CAR-T 123 of [15] and the
+experiments reported in Section 3.1 a, where at day
+42 CAR T cells are injected. In Fig. 5 we report
+the behavior of the model [15] with initial conditions
+x(0) = [0, 0, 2 × 106]. At day 42, a population of
+inactive CAR T cells x3 = 0.6 × 106 is injected. The
+results show that despite an immediate activation, the
+initial number of non-active CAR T cells is not enough
+to clear the tumor which starts growing again after
+approximately 80 days. The only equilibrium point with
+0
+50
+100
+150
+200
+10 0
+10 2
+10 4
+10 6
+10 8
+Fig. 5: Model results starting with arbitrary initial con-
+ditions without the control input τ.
+x1 = 0 is denoted as x0
+e, and it is inherently unstable.
+This implies that relying solely on the initial conditions
+of non-active CAR T cells, represented by x3(0), is not a
+robust solution in the presence of uncertainties. Instead,
+by taking into account the constant input τ computed in
+(12), the original equilibrium point x0
+e becomes a new
+equilibrium point, xe
+n, as defined in (16). As illustrated
+in Fig. 6, we observe that the same initial conditions
+as those used in the simulation depicted in Fig. 5 can
+guide the system into the region of attraction centered
+around x1 = 0. The introduction of τ effectively drives
+the tumor cell population towards asymptotic clearance,
+ensuring tumor elimination. Based on our simulations
+and the steady-state values ¯x2 and ¯x3, we can select
+a suitable value for the parameter k = 6 (13). This
+choice results in ξ = 1.6946e + 03, demonstrating that
+(10) is indeed a decreasing function. It is important to
+emphasize that the level of tumor clearance achieved by
+the new scheme, as illustrated in Fig. 7, is equivalent to
+0
+50
+100
+150
+200
+10 -20
+10 -15
+10 -10
+10 -5
+10 0
+10 5
+10 10
+Fig. 6: Model results with τ equal to (12) with a > 1.
+that attained through uncontrolled CAR T cell activation,
+as shown in Fig. 7. However, in the uncontrolled case
+(Fig. 7), these cell populations exhibit indefinite growth,
+which can have detrimental consequences for the entire
+system, potentially leading to fatal toxicity in patients.
+0
+50
+100
+150
+200
+10 -15
+10 -10
+10 -5
+10 0
+10 5
+10 10
+Fig. 7: Model behavior with uncontrolled CAR T cell
+activation.
+VI. CONCLUSIONS
+Control theory holds significant promise in shaping
+the development of synthetic biological gene circuits
+and systems. In this context, our attention was directed
+towards a prominent player in synthetic biology therapy
+for cancer CAR T therapy. We harnessed control the-
+ory principles to analyze an established mathematical
+model, seeking novel avenues to enhance its therapeutic
+efficacy. Our findings demonstrated that by effectively
+aligning the initial conditions of non-active CAR T cells
+with a therapy designed to bolster CAR T cell activation,
+we can guarantee tumor clearance. The work suggests
+key therapeutic features with practical design potential.
+Such features include building in gene circuitry to
+mediate external activation and expansion of CAR T
+cells separate from tumor antigen-mediated activation,
+6
+to accomplish feedforward CAR T cell activation, and
+to dampen CAR T cell activation. This work demon-
+strates the utility of applying control theory concepts to
+guide synthetic gene circuit design toward non-intuitive
+functions.
+VII. ACKNOWLEDGEMENT
+The author would like to thank Dr. Jason Lohmueller
+and Victor So from the Department of Surgery at the
+University of Pittsburgh, UPMC Hillman Cancer Center,
+for their valuable discussions and support for this work.
+REFERENCES
+[1] J. H. Park, I. Rivi`ere, M. Gonen, X. Wang, B. S´en´echal, K. J.
+Curran, C. Sauter, Y. Wang, B. Santomasso, E. Mead et al.,
+“Long-term follow-up of cd19 car therapy in acute lymphoblastic
+leukemia,” New England Journal of Medicine, vol. 378, no. 5,
+pp. 449–459, 2018.
+[2] C. H. June and M. Sadelain, “Chimeric antigen receptor therapy,”
+New England Journal of Medicine, vol. 379, no. 1, pp. 64–73,
+2018.
+[3] M. Roschewski, D. L. Longo, and W. H. Wilson, “Car t-cell
+therapy for large b-cell lymphoma—who, when, and how?” pp.
+692–696, 2022.
+[4] G.
+Gross,
+T.
+Waks,
+and
+Z.
+Eshhar,
+“Expression
+of
+immunoglobulin-t-cell receptor chimeric molecules as functional
+receptors with antibody-type specificity.” Proceedings of the
+National Academy of Sciences, vol. 86, no. 24, pp. 10 024–
+10 028, 1989.
+[5] Z. L. Chang, M. H. Lorenzini, X. Chen, U. Tran, N. J. Bangayan,
+and Y. Y. Chen, “Rewiring t-cell responses to soluble factors with
+chimeric antigen receptors,” Nature chemical biology, vol. 14,
+no. 3, pp. 317–324, 2018.
+[6] J. H. Cho, J. J. Collins, and W. W. Wong, “Universal chimeric
+antigen receptors for multiplexed and logical control of t cell
+responses,” Cell, vol. 173, no. 6, pp. 1426–1438, 2018.
+[7] E. Zah, M.-Y. Lin, A. Silva-Benedict, M. C. Jensen, and Y. Y.
+Chen, “T cells expressing cd19/cd20 bispecific chimeric antigen
+receptors prevent antigen escape by malignant b cellsbispecific
+t cells prevent b-cell antigen escape,” Cancer immunology re-
+search, vol. 4, no. 6, pp. 498–508, 2016.
+[8] L. Labanieh and C. L. Mackall, “Car immune cells: design
+principles, resistance and the next generation,” Nature, vol. 614,
+no. 7949, pp. 635–648, 2023.
+[9] K. T. Roybal, L. J. Rupp, L. Morsut, W. J. Walker, K. A.
+McNally, J. S. Park, and W. A. Lim, “Precision tumor recognition
+by t cells with combinatorial antigen-sensing circuits,” Cell, vol.
+164, no. 4, pp. 770–779, 2016.
+[10] M. Chmielewski and H. Abken, “Trucks: the fourth generation
+of cars,” Expert opinion on biological therapy, vol. 15, no. 8,
+pp. 1145–1154, 2015.
+[11] L. J. Brandt, M. B. Barnkob, Y. S. Michaels, J. Heiselberg, and
+T. Barington, “Emerging approaches for regulation and control
+of car t cells: a mini review,” Frontiers in Immunology, vol. 11,
+p. 326, 2020.
+[12] A. N. Prybutok, S. Y. Jessica, J. N. Leonard, and N. Bagheri,
+“Mapping car t-cell design space using agent-based models,”
+Frontiers in Molecular Biosciences, vol. 9, 2022.
+[13] G. An, B. Fitzpatrick, S. Christley, P. Federico, A. Kanarek,
+R. M. Neilan, M. Oremland, R. Salinas, R. Laubenbacher, and
+S. Lenhart, “Optimization and control of agent-based models in
+biology: a perspective,” Bulletin of mathematical biology, vol. 79,
+pp. 63–87, 2017.
+[14] T. Qi, K. McGrath, R. Ranganathan, G. Dotti, and Y. Cao,
+“Cellular kinetics: A clinical and computational review of car-t
+cell pharmacology,” Advanced drug delivery reviews, p. 114421,
+2022.
+[15] L. R. Barros, E. A. Paix˜ao, A. M. Valli, G. T. Naozuka, A. C.
+Fassoni, and R. C. Almeida, “Cart math—a mathematical model
+of car-t immunotherapy in preclinical studies of hematological
+cancers,” Cancers, vol. 13, no. 12, p. 2941, 2021.
+[16] H. K. Khalil, Nonlinear systems; 3rd ed.
+Upper Saddle River,
+NJ: Prentice-Hall, 2002.
+[17] J. N. Brudno and J. N. Kochenderfer, “Chimeric antigen receptor
+t-cell therapies for lymphoma,” Nature reviews Clinical oncol-
+ogy, vol. 15, no. 1, pp. 31–46, 2018.
+[18] G. M. Allen, N. W. Frankel, N. R. Reddy, H. K. Bhargava,
+M. A. Yoshida, S. R. Stark, M. Purl, J. Lee, J. L. Yee, W. Yu
+et al., “Synthetic cytokine circuits that drive t cells into immune-
+excluded tumors,” Science, vol. 378, no. 6625, p. eaba1624,
+2022.
+7

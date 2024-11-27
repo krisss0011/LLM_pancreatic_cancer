@@ -1,0 +1,1317 @@
+Abstract 
+ 
+Automatic melanoma segmentation is essential for early 
+skin cancer detection, yet challenges arise from the 
+heterogeneity of melanoma, as well as interfering factors 
+like blurred boundaries, low contrast, and imaging 
+artifacts. While numerous algorithms have been developed 
+to address these issues, previous approaches have often 
+overlooked the need to jointly capture spatial and 
+sequential features within dermatological images. This 
+limitation hampers segmentation accuracy, especially in 
+cases with indistinct borders or structurally similar lesions. 
+Additionally, previous models lacked both a global 
+receptive field and high computational efficiency. In this 
+work, we present the XLSTM-VMUNet Model, which 
+jointly capture spatial and sequential features within 
+derma-tological images successfully. XLSTM-VMUNet 
+can not only specialize in extracting spatial features from 
+images, focusing on the structural characteristics of skin 
+lesions, but also enhance contextual understanding, 
+allowing more effective handling of complex medical 
+image structures. Experiment results on the ISIC2018 
+dataset demonstrate that XLSTM-VMUNet outperforms 
+VMUNet by 1.25% on DSC and 2.07% on IoU, with faster 
+convergence and consistently high segmentation perfor-
+mance. Our code of XLSTM-VMUNet is available at 
+https://github.com/FangZhuoyi/XLSTM-VMUNet. 
+1. Introduction 
+As the largest organ in the human body, the skin acts as 
+the primary barrier against ultraviolet radiation, safe-
+guarding the body from its detrimental effects [1]. The 
+2023 global cancer statistics indicate that malignant skin 
+lesions account for tens of thousands of deaths each year  
+[2]. Notably, melanoma, a highly aggressive type of skin 
+cancer, is rapidly becoming one of the fastest-increasing 
+cancers around the world [3,4,5,6,7]. Segmentation plays a 
+vital and challenging role in the workflow for automated 
+skin lesion analysis [8]. In recent years, a large number of 
+computer-assisted segmentation techniques have been 
+developed for medical images. However, segmenting 
+medical image automatically and accuratelly is a literally 
+challenging task because these images are inherently 
+complex and rarely contain simple linear features [9]. Over 
+the past decade, numerous studies have focused on the 
+develop-ment of efficient and robust segmentation 
+methods for medical imaging. Among these contributions, 
+U-Net [10,11,12] stands out as a seminal work that first 
+illustrated the efficacy of encoder-decoder convolutional 
+networks with skip connections for medical image 
+segmentation, and it has also yielded promising outcomes 
+in various image translation tasks. Since the inception of 
+U-Net [16], a number of significant modifications have 
+emerged [13,14,15], particularly within the domain of 
+medical imaging, including variants such as U-Net++ [17], 
+3D U-Net [18], V-Net [19], and Ynet [20]. Additionally, 
+UneXt  [21], Rolling-UNet [22], HEA-Net [23] and U-
+MLP [24] incorporate hybrid methodologies that combine 
+convolu-tional operations with multi-layer perceptrons 
+(MLP) to enhance the performance of segmentation 
+networks, thereby facilitating their application in resource-
+limited point-of-care settings. Recently, a variety of 
+networks leveraging Convolutional Neural Networks 
+(CNN) [25,26,27,28,29] and Vision Transformers (ViT)  
+[30] have been employed to augment the U-Net archi-
+tecture for medical image segmentation. These networks 
+have proven effective in addressing global context and 
+long-range dependencies within the segmentation tasks. In 
+comparison to CNN, ViT typically exhibits enhanced 
+learning capabi-lities on large-scale medical image seg-
+mentation datasets [31], attributed to its incorporation of 
+the self-attention mechanism [32,33,34]. However, the 
+quadratic complexity associated with the self-attention 
+mechanism, coupled with the substantial number of tokens, 
+results in significant computational overhead when applied 
+to large-scale skin lesion image segmentation tasks that 
+involve high spatial resolutions [35,36,37,38]. The unre-
+solved trade-off bet-ween achieving a global receptive 
+field and maintaining high computational efficiency drives 
+the need for a novel architecture tailored for large-scale 
+skin lesion image segmentation, which aims to retain the 
+intrinsic benefits of the standard self-attention mechanism, 
+including global receptive fields and dynamic weighting 
+parameters. 
+State Space Models (SSM) [39,40,41,42] have attracted 
+significant interest owing to their computational efficiency  
+Mamba [43], a novel SSM within the realm of natural 
+ 
+When Mamba Meets xLSTM: An Efficient and Precise Method with the XLSTM-
+VMUNet Model for Skin lesion Segmentation 
+ 
+ 
+Zhuoyi Fang        Kexuan Shi        Qiang Han 
+ 
+Yangzhou University 
+ 
+language processing (NLP) [44,45], has emerged as a 
+highly promising method for modeling long sequences 
+with linear complexity [46]. Due to its advantages over 
+conventional foundational architectures, Mamba holds 
+significant potential as a visual foundational architecture 
+[47,48]. It has been actively utilized across various 
+computer vision tasks [49], contributing notably to the field 
+of medical image segmentation [50]. Inspired by Mamba, 
+Vision Mamba [51] and Visual Mamba [52] were the 
+pioneering implementations of this model in the visual 
+domain, achieving very impressive results. Furthermore, 
+several researchers have adapted it for medical image 
+segmentation, resulting in innovations such as VM-Unet 
+[53], U-Mamba [54], H-vmunet [55], Swin-Umamba [56], 
+nnMamba [57], Mamba-UNet [58], LightM-Unet [59] and 
+UltraLight-VM-UNet [60]. Particularly, SkinMamba [61] 
+facilitates expert knowledge exchange across different 
+levels in a global state and achieves high-frequency 
+restoration and boundary prior guidance. 
+However, the challenges remaining in skin lesion 
+segmentation have not been solved completely. For 
+instance, existing models exhibit limitations in simul-
+taneously capturing spatial and sequential features, which 
+hampers their ability to comprehensively understand the 
+information within skin lesion images. Additionally, these 
+models lack contextual understanding, making it 
+challenging to establish long-range dependencies when 
+processing skin lesion images. Previous methods also 
+struggle to achieve precise segmentation in the presence of 
+ambiguous boundaries or similar structures, resulting in 
+inadequate extraction of detailed spatial features, par-
+ticularly in addressing subtle structures and lesion 
+boundaries. Furthermore, these methods find it difficult to 
+balance global receptive fields with high computational 
+efficiency. 
+Recently, the Extended Long Short-Term Memory 
+(xLSTM) [62] architecture represents a significant advan-
+cement in language modeling, demonstrating potential to 
+compete with Transformer and State SSM. By optimizing 
+the performance of Long Short-Term Memory (LSTM) 
+[63,64,65,66,67], xLSTM effectively manages long-range 
+dependencies while maintaining linear com-putational and 
+memory efficiency [68,69]. Similar to models such as ViT 
+in the field of computer vision, xLSTM offers a powerful 
+alternative in the evolving landscape of medical image 
+segmentation [70,71,72]. Vision-LSTM [73] employed a 
+generic computer vision backbone that uses xLSTM blocks 
+as its core components. xLSTM-UNet [74] proposed the 
+xLSTM-enabled U-Net image segmentation network that 
+can perform both 2D and 3D medical image segmentation 
+tasks and achieves state-of-theart (SOTA) results. 
+In this paper, we propose the XLSTM-VMUNet model, 
+which combines Mamba with xLSTM for efficient skin 
+lesion segmentation. Through a carefully designed archi-
+tecture, our model excels in feature extraction, memory 
+retention, adaptability, and nonlinear modeling. First, we 
+leverage Mamba for deep spatial feature extraction using a 
+multi-layer convolutional and pooling network to pro-
+gressively capture essential features from skin lesion 
+images. The integration of residual connections enhances 
+feature transfer efficiency and improves processing 
+capability for complex lesion patterns, establishing a 
+robust basis for xLSTM. Following feature extraction, we 
+input spatial features into xLSTM to utilize its long-term 
+and short-term memory mechanisms. xLSTM processes 
+sequential data while preserving crucial contextual infor-
+mation via a detailed state update mechanism. Specifically, 
+we designed gating mechanisms that allow the model to 
+selectively retain key features during skin lesion pro-
+cessing, maintaining segmentation performance across 
+varying lesion types. To boost adaptability, we incor-
+porated structured input processing in xLSTM, including a 
+BlockDiagonal structure, to address diverse skin lesion 
+types. This dynamic feature adjustment enables the model 
+to adapt flexibly to the varying characteristics and 
+distributions of different lesion categories, a crucial 
+capability given the diverse morphology and sizes found in 
+skin lesions. Finally, for feature fusion, we implemented a 
+multi-level feature integration mechanism, combining 
+Mamba-extracted features with xLSTM’s output through 
+concatenation and weighted fusion. This strategy enhances 
+segmentation accuracy and improves pattern recognition. 
+We employed cross-validation during validation to ensure 
+stability and reliability across different skin lesion datasets. 
+In summary, the following are the major contributions 
+of our work: 
+ 
+◆ 
+We introduce the XLSTM-VMUNet model, which is 
+designed to efficiently extract and integrate both 
+spatial features and temporal information within skin 
+lesion images. By leveraging the strengths of xLSTM 
+in modeling long-range dependencies and temporal 
+dynamics, our XLSTM-VMUNet model significant-
+ly improves the accuracy and robustness of the se-
+gmentation process. 
+◆ 
+We propose a multi-level feature integration me-
+chanism to effectively combine the features extracted 
+by Mamba with the processing results of xLSTM. 
+The feature linking and weighted fusion ensures that 
+feature information at different levels can be fully 
+integrated, which significantly improves the accuracy 
+of the model for skin lesion seg-mentation and 
+enhances the ability of the model to capture complex 
+patterns. 
+◆ 
+We conduct extensive experiments conducted on the 
+ISIC2018 skin lesion segmentation dataset, demon-
+strating that XLSTM-VMUNet outperforms SOTA 
+(state-of-the-art) methods across Dice and IoU 
+metrics, with faster convergence and consistently 
+high segmentation perfor-mance. 
+2. Related Work 
+2.1. Medical image segmentation 
+Medical images play a pivotal role in aiding healthcare 
+providers in diagnosis and treatment decisions [75,76]. 
+Interpretation relies on radiologists' expertise, which is 
+time-intensive and subjective, influenced by experience 
+and training [77]. Therefore, integrating computer-aided 
+systems has become crucial to ensure efficient, objective, 
+and consistent analysis of medical images [94,95,96]. 
+Image segmentation, a key process in medical physics, is 
+essential for identifying tumors or lesions by partitioning 
+an image into homogeneous regions for extracting 
+diagnostic information [97,98,99]. Advanced techniques 
+have been developed to address the limitations of 
+traditional methods, significantly improving both accuracy 
+and efficiency in medical image analysis [80,81,82,100]. 
+Since the introduction of U-Net, several variants have 
+been proposed to enhance its performance. U-Net++ [17] 
+replaces traditional cropping and concatenation with dense 
+convolutions, improving feature fusion and reducing 
+information loss. Attention-U-Net [102] integrates atten-
+tion mechanisms to focus on relevant regions and suppress 
+irrelevant information. Res-U-Net [101] introduces resi-
+dual blocks to stabilize feature transfer and improve deep 
+network training. Dense-U-Net [103,104] employs Dense-
+blocks for efficient feature reuse and better multi-scale 
+information capture. U-Netv2 [105] uses an innovative 
+skip connection mechanism to refine feature fusion and 
+improve integration across scales. 
+2.2. Mamba 
+Mamba, based on the SSM [39], provides a more 
+efficient alternative to transformers in medical image 
+analysis [40]. With linear time complexity, it processes 
+longer sequences faster, reduces memory usage, and excels  
+in multimodal data integration, enhancing diagnostic 
+accuracy and patient outcomes [41,42].  
+Vim (Zhu et al., 2024a) [51] is a Mamba-based archi-
+tecture that processes image patch sequences, using 
+position embeddings and a class token. The sequence is 
+then passed through Vim blocks with both forward and 
+backward SSM paths. VMamba (Liu et al., 2024g) [52] 
+enhances Mamba’s 1D scanning by introducing the Cross-
+Scan Module (CSM), which scans image patches in four  
+directions and applies selective SSMs to capture cross-
+directional dependencies. The sequences are merged back 
+into the original 2D layout. It uses stacked VSS blocks with 
+down-sampling, where the vanilla VSS block replaces 1D 
+convolution with 2D depthwise convolution and incor-
+porates SS2D with layer normalization. PlainMamba 
+(Yang et al., 2024a) [83] is a non-hierarchical architecture  
+optimized for multi-scale fusion, multi-modal integration, 
+and hardware efficiency. It processes 2D patches with 
+depthwise convolutions and adapted selective scanning 
+using zigzag and direction-aware updates.  
+LocalMamba (Huang et al., 2024e) [106] resolves local 
+token dependency issues by dividing the image into local 
+windows for directional selective scanning (SSM), while 
+maintaining global SSM. It also uses spatial and channel 
+attention before patch merging and optimizes scan 
+directions for each layer to improve efficiency. Efficient-
+VMamba (Pei et al., 2024) [107] combines Efficient 2D 
+Scanning (ES2D) with atrous sampling and a convolutional 
+branch for global and local feature extraction, processed by 
+a Squeeze-and-Excitation (SE) block [108]. The output 
+forms the EVSS block, with EVSS in early stages and 
+Inverted Residual blocks in later stages. 
+2.3. xLSTM 
+The xLSTM [62] model marks a significant break-
+through in the field of sequence modeling, offering a 
+powerful alternative to established architectures like 
+Transformer and SSM, which have dominated machine 
+learning applications in natural language processing and 
+computer vision. Building upon traditional Long Short-
+Term Memory (LSTM) networks [63,64,65,66,67], 
+xLSTM introduces key innovations that enable efficient 
+capture of long-range dependencies, all while maintaining 
+linear computational complexity and memory efficiency. 
+This makes xLSTM particularly well-suited for scenarios 
+involving large-scale datasets and high-dimensional inputs, 
+where conventional RNN models often encounter scal-
+ability and performance limitations.  
+xLSTM presents a promising alternative to traditional 
+convolutional methods in medical image segmentation, a 
+field that demands high precision and effective multi-scale 
+feature integration. The Vision-LSTM model [73] exem-
+plifies this approach by embedding xLSTM blocks into a 
+general-purpose computer vision architecture, improving 
+the model's ability to capture both spatial and temporal 
+dependencies within medical images. This integration 
+enhances feature representation, enabling more accurate 
+differentiation of subtle patterns, such as tumor structures 
+and organ boundaries. 
+Furthermore, the xLSTM-UNet architecture [74], which 
+integrates xLSTM units with the U-Net framework, has 
+demonstrated outstanding performance in both 2D and 3D 
+medical image segmentation tasks. By harnessing 
+xLSTM's ability to model long-range dependencies, 
+xLSTM-UNet enhances the network's capacity to capture 
+global contextual information, thereby improving seg-
+mentation accuracy, particularly in complex cases with 
+intricate anatomical structures or heterogeneous tissue 
+types. 
+ 
+ 
+Figure 1. The Architecture Overview of XLSTM-VMUNet. 
+3. Method 
+Firstly, we introduce selective state space models (S6). 
+Then, we describe the VSS block and the xLSTM block. 
+Finally, we ascensively elaborate on the core structure: the 
+XLSTM-VMUNet Model. 
+3.1. SSM 
+SSM is a core class of framework in deep learning for 
+processing sequential data. These models aim to map an 
+input sequence, denoted as 𝑥(𝑡), from a real vector space 
+𝑅𝐿 to an output sequence 𝑦(𝑡) within the same space, 
+while leveraging an intermediate latent state ℎ(𝑡)  also 
+within 𝑅𝑁. The system dynamics are governed b a series of 
+linear transformations, as outlined in the corresponding set 
+of equations: 
+{ℎ′(𝑡) = 𝐴ℎ(𝑡) + 𝐵𝑥(𝑡)
+𝑦(𝑡) = 𝐶ℎ(𝑡)
+,
+(1) 
+where 𝐴, 𝐵, and 𝐶 are system matrices of suitable 
+dimensions that govern the state transition dynamics, the 
+influence of the input, and the mapping to the output, 
+respectively. These matrices are defined as 𝐴∈ℝ𝑁×𝑁, 𝐵∈
+ℝ𝑁×1, and 𝐶∈ℝ𝑁×1. 
+For practical implementation, the continuous-time 
+model is discretized using a zero-order hold approximation, 
+converting the system matrices 𝐴 and 𝐵 into their discrete 
+counterparts over a sampling period ∆. The discretized 
+system is represented as: 
+{𝐴= 𝑒∆𝐴
+𝐵= (∆𝐴)−1(𝑒∆𝐴−𝐼) ∙∆𝐵.
+(2) 
+The resulting equations for the discrete model are given 
+by: 
+{ℎ𝑡= 𝐴ℎ𝑡−1 + 𝐵𝑥𝑡
+𝑦𝑡= 𝐶ℎ𝑡
+.
+(3) 
+To improve efficiency, the entire sequence output can be 
+computed simultaneously using a global convolution, 
+boosting both scalability and speed. This is formulated as: 
+{
+𝑦= 𝑥⨂𝐾
+𝐾= (𝐶𝐵, 𝐶𝐴𝐵, … , 𝐶𝐴
+𝐿−1𝐵),
+(4) 
+where ⨂ denotes the convolution operation, 𝐿 represents 
+the sequence length, and 𝐾 is the kernel derived from the 
+SSM, 
+specifically 
+tailored 
+for 
+efficient 
+sequence 
+processing. 
+3.2. Selective State Space Models (S6) 
+The linear time-invariant state-space model treats all 
+tokens equally, neglecting dynamic content importance. 
+Prioritizing more relevant tokens and adjusting attention 
+accordingly is more effective for complex inputs. 
+Mamba integrates a selectivity mechanism into the state-
+space model, creating Selective State Space Models (S6). 
+It applies the SSM independently across each channel of an 
+input sequence with batch size 𝐵, length 𝐿, and 𝐷 channels. 
+In Mamba, the matrices 𝐵, 𝐶, and ∆ are input-dependent, 
+allowing adaptive behavior. The discretization process 
+with the selectivity mechanism is as follows: 
+{
+𝐵= 𝑠𝐵(𝑥)
+𝐶= 𝑠𝐶(𝑥)
+∆= 𝜏𝐴(∆+ 𝑠𝐴(𝑥))
+,
+(5) 
+where 𝐵∈ℝ𝐵×𝐿×𝑁, 𝐶∈ℝ𝐵×𝐿×𝑁 and ∆ ∈ℝ𝐵×𝐿×𝐷. 𝑠𝐵(𝑥) 
+and 𝑠𝐶(𝑥) are linear functions that project the input 𝑥 into 
+a N-dimensional space, while 𝑠𝐴(𝑥) projects the hidden 
+state dimension 𝐷 linearly into the desired dimension, 
+connected to the RNN gating mechanism. These compu-
+tations transform ∆, 𝐵, and 𝐶 into input-dependent func-
+tions of length 𝐿, converting the time-invariant model into 
+a time-varying one and enabling selectivity. 
+  The parameter ∆ is expanded to (𝐵, 𝐿, 𝐷), giving each 
+token in a batch a unique input-dependent control. A larger 
+step size for ∆ prioritizes the input, while a smaller one 
+emphasizes the stored state. Parameters 𝐵 and 𝐶 become 
+input-dependent, refining the control between input 𝑥, state 
+ℎ, and output 𝑦. While 𝐴 remains independent, its rele-
+vance to the input is introduced via ∆'s data dependency. 
+With dimension 𝑁, 𝐴 adapts across SSM dimensions, 
+enabling precise generalization. 
+3.3. VSS Block 
+The VSS Block, derived from VMamba, is central to 
+XLSTM-VMUNet. After Layer Normalization, the input 
+splits into two branches: one applies a linear layer, the 
+other adds depthwise separable convolution and uses the 
+2D-Selective-Scan (SS2D) module. The branches are fused, 
+normalized, and merged with a residual connection, using 
+SiLU as the activation. 
+SS2D unfolds the input in four directions, processes it in 
+the S6 block, and merges it back, enhancing selectivity by 
+adjusting parameters to capture key features and reduce 
+noise. Figure 2 reveals the scan expanding operation and 
+the scan merging operation in SS2D. 
+ 
+ 
+Figure 2. (a) The scan expanding operation in SS2D. (b) 
+The scan merging operation in SS2D.  
+3.4. xLSTM Block 
+3.4.1. sLSTM Block 
+The sLSTM Block extends the traditional LSTM archi-
+tecture by introducing exponential gating and norma-
+lization states to enhance the control over information 
+storage and flow.  
+⚫ Memory Cell and State Update 
+The memory cell is updated as follows: 
+{𝑐𝑡= 𝑓𝑡𝑐𝑡−1 + 𝑖𝑡𝑧𝑡
+𝑧𝑡= 𝑡𝑎𝑛ℎ(𝑊𝑧𝑥𝑡+ 𝑅𝑧ℎ𝑡−1),
+(6) 
+where 𝑐𝑡 is the memory cell at time step 𝑡, 𝑓𝑡 and 𝑖𝑡 are the 
+forget and input gates respectively, 𝑧𝑡 is the candidate 
+memory, controlled by 𝑊𝑧 and 𝑅𝑧. 
+Normalization state update: 
+𝑛𝑡= 𝑓𝑡𝑛𝑡−1 + 𝑖𝑡,
+(7) 
+where 𝑛𝑡 is the normalization state that balances the 
+contribution of the forget and input gates. 
+The hidden state is computed as: 
+{ℎ𝑡= 𝑜𝑡𝑐𝑡
+𝑛𝑡
+𝑜𝑡= 𝜎(𝑊𝑜𝑥𝑡+ 𝑅𝑜ℎ𝑡−1)
+,
+(8) 
+where 𝑜𝑡 is the output gate, controlling the final output ℎ𝑡. 
+Normalizing 𝑐𝑡 by 𝑛𝑡 ensures numerical stability. 
+⚫ Projection and Residual Connection 
+The hidden state is further processed through up-
+projection, non-linear transformation, and down-projection: 
+{  
+  𝑦𝑙𝑒𝑓𝑡= 𝑊𝑢𝑝−𝑙𝑒𝑓𝑡ℎ𝑡
+𝑦𝑟𝑖𝑔ℎ𝑡= 𝑊𝑢𝑝−𝑟𝑖𝑔ℎ𝑡ℎ𝑡
+𝑦𝑔𝑎𝑡𝑒𝑑= 𝐺𝐸𝐿𝑈(𝑦𝑟𝑖𝑔ℎ𝑡)
+𝑦𝑜𝑢𝑡= 𝑊𝑑𝑜𝑤𝑛(𝑦𝑙𝑒𝑓𝑡∙𝑦𝑔𝑎𝑡𝑒𝑑)
+.
+(9) 
+The final output includes a residual connection: 
+𝐹= 𝑦𝑜𝑢𝑡+ 𝑥,
+(10) 
+where 𝐹 represents the final output. 
+3.4.2. mLSTM Block 
+The mLSTM Block augments memory capacity by 
+extending the memory cell from a scalar to a matrix, 
+thereby enabling more complex storage and representation.  
+⚫ Matrix Memory and Key-Value Storage 
+The memory cell is updated in matrix form: 
+{
+ 
+ 𝐶𝑡= 𝑓𝑡𝐶𝑡−1 + 𝑖𝑡𝑣𝑡𝑘𝑡
+𝑇
+𝑘𝑡= 1
+√𝑑
+𝑊𝑘𝑥𝑡+ 𝑏𝑘
+𝑣𝑡= 𝑊𝑣𝑥𝑡+ 𝑏𝑣
+,
+(11) 
+where 𝐶𝑡 is the memory matrix, 𝑣𝑡 and 𝑘𝑡 are the value and 
+key vectors respectively, 𝑊𝑘, 𝑊𝑣 are the weights for 
+generating key and value vectors, 𝑏𝑘, 𝑏𝑣 are the biases. 
+⚫ Memory Retrieval and Normalization 
+To retrieve information from the matrix memory, 
+mLSTMBlock uses a query vector 𝑞𝑡: 
+{
+ 
+ ℎ𝑡= 𝑜𝑡⨀
+𝐶𝑡𝑞𝑡
+𝑚𝑎𝑥(|𝑛𝑡
+𝑇𝑞𝑡, 1|)
+𝑞𝑡= 𝑊𝑞𝑥𝑡+ 𝑏𝑞
+𝑛𝑡= 𝑓𝑡𝑛𝑡−1 + 𝑖𝑡𝑘𝑡
+,
+(12) 
+where 𝑞𝑡 is the query vector and 𝑛𝑡 is the normalization 
+state. 
+The matrix-based memory update and the retrieval 
+mechanism significantly enhance the model’s ability to 
+capture complex temporal relationships. By effectively 
+managing and retaining information across time steps, it 
+preserves long-term dependencies. This dynamic memory 
+adjustment improves the model's capacity to model 
+intricate temporal patterns, which is crucial for tasks 
+involving sequential data, where understanding complex 
+dependencies is essential for accurate modeling. 
+3.5. XLSTM-VMUNet 
+3.5.1. VSSM Feature Extraction 
+The architecture integrates the VSSM with the xLSTM 
+component through the XLSTM-VMUNet framework.  
+The Visual Structured State Model (VSSM) is respon-
+sible for extracting deep spatial features from the input 
+image. Given an input image 𝑥∈ℝ𝐻×𝑊×𝐶, VSSM utilizes 
+multiple convolution and pooling layers to progressively 
+extract essential features. 
+For a given layer 𝑙, let 𝐹(𝑙) denote the feature map after 
+convolution. The convolution operation in VSSM is 
+defined as: 
+𝐹(𝑙) = 𝜎(𝑊(𝑙)⨂𝐹(𝑙−1) + 𝑏(𝑙)),
+(13) 
+where 𝑊(𝑙) represents the weight matrix of layer 𝑙, 𝑏(𝑙) is 
+the bias term for layer 𝑙, ⨂ denotes the convolution 
+operation, 𝜎 is the activation function (e.g., ReLU), and 𝑥 
+is the input image. 
+Through these layered convolutions, VSSM produces a 
+set of multi-scale spatial features, denoted as {𝐹𝑉𝑆𝑆𝑀
+(1) ,
+𝐹𝑉𝑆𝑆𝑀
+(2) , … , 𝐹𝑉𝑆𝑆𝑀
+(𝐿) }, where each 𝐹𝑉𝑆𝑆𝑀
+(𝑙)
+ spatial information at 
+different scales, providing rich representations for subse-
+quent sequence modeling. 
+3.5.2. Sequence Modeling with xLSTM 
+Following spatial feature extraction, the xLSTM net-
+work is employed to model long short-term dependencies. 
+Let the spatial features from VSSM be 𝐹𝑉𝑆𝑆𝑀=
+{𝐹𝑉𝑆𝑆𝑀
+(1) , … , 𝐹𝑉𝑆𝑆𝑀
+(𝐿) }, where each 𝐹𝑉𝑆𝑆𝑀
+(𝑙)
+ represents a timestep 
+in the sequence. 
+The xLSTM state update equations are: 
+{
+ 
+ 
+ 
+ 𝑖𝑡= 𝜎(𝑊𝑖∙𝐹𝑉𝑆𝑆𝑀
+(𝑡)
++ 𝑈𝑖∙ℎ𝑡−1 + 𝑏𝑖)
+𝑓𝑡= 𝜎(𝑊𝑓∙𝐹𝑉𝑆𝑆𝑀
+(𝑡)
++ 𝑈𝑖∙ℎ𝑡−1 + 𝑏𝑓)
+𝑜𝑡= 𝜎(𝑊𝑜∙𝐹𝑉𝑆𝑆𝑀
+(𝑡)
++ 𝑈𝑜∙ℎ𝑡−1 + 𝑏𝑜)
+𝑔𝑡= 𝑡𝑎𝑛ℎ(𝑊𝑔∙𝐹𝑉𝑆𝑆𝑀
+(𝑡)
++ 𝑈𝑔∙ℎ𝑡−1 + 𝑏𝑔)
+,
+(14) 
+where 𝑖𝑡, 𝑓𝑡 and 𝑜𝑡 denote the input gate, forget gate, and 
+output gate at timestep 𝑡 respectively, 𝑔𝑡 represents the 
+candidate state, 𝑊𝑖, 𝑊𝑓, 𝑊𝑜, 𝑊𝑔 are weight matrices for the 
+gates, 𝑈𝑖, 𝑈𝑓, 𝑈𝑜, 𝑈𝑔 are weight matrices associated with 
+the hidden state ℎ𝑡−1 from the previous timestep, 𝑏𝑖, 𝑏𝑓, 𝑏𝑜, 
+𝑏𝑔 are bias vectors, 𝜎 is the sigmoid activation function. 
+The cell state 𝑐𝑡 and hidden state ℎ𝑡 are updated as 
+follows: 
+{𝑐𝑡= 𝑓𝑡⨀𝑐𝑡−1 + 𝑖𝑡⨀𝑔𝑡
+ℎ𝑡= 𝑜𝑡⨀𝑡𝑎𝑛ℎ(𝑐𝑡)
+,
+(15) 
+where 𝑐𝑡 is the cell state at timestep 𝑡, ℎ𝑡 represents the 
+hidden state at timestep 𝑡, ⨀ denotes the element-wise 
+multiplication, 𝑡𝑎𝑛ℎ is the hyperbolic tangent activation 
+function. 
+This gating mechanism enables xLSTM to selectively 
+retain or forget spatial features, which is critical for 
+preserving long-term dependencies and contextual infor-
+mation across sequential image data. 
+3.5.3. Multi-level Feature Fusion 
+The model employs a multi-level feature fusion 
+mechanism to combine the spatial features from VSSM and 
+temporal features from xLSTM, resulting in a compre-
+hensive representation. Let 𝐹𝑉𝑆𝑆𝑀 be the spatial feature 
+map from VSSM, and 𝐻𝑥𝐿𝑆𝑇𝑀 be the hidden state output 
+from xLSTM. The fused feature map 𝐹𝑓𝑢𝑠𝑖𝑜𝑛 is given by: 
+𝐹𝑓𝑢𝑠𝑖𝑜𝑛= 𝛼∙𝐹𝑉𝑆𝑆𝑀+ 𝛽∙𝐻𝑥𝐿𝑆𝑇𝑀,
+(16) 
+where 𝐹𝑓𝑢𝑠𝑖𝑜𝑛 represents the fused feature map that 
+combines spatial and temporal information, 𝛼 and 𝛽 are 
+fusion weights, determining the contributions of 𝐹𝑉𝑆𝑆𝑀 and 
+𝐻𝑥𝐿𝑆𝑇𝑀 to the fused feature, 𝐹𝑉𝑆𝑆𝑀 captures spatial 
+structure, and 𝐻𝑥𝐿𝑆𝑇𝑀 captures sequential and memory-
+dependent features. 
+This fusion strategy enables the model to capture 
+complex patterns across both spatial and temporal domains, 
+enhancing segmentation performance on challenging data. 
+3.5.4. Loss function 
+The introduction of XLSTM-VMUNet is designed to 
+evaluate the potential benefits of combining Mamba with 
+xLSTM for more efficient skin lesion segmentation. In this 
+context, we focus solely on the most fundamental loss 
+functions, namely Binary Cross-Entropy and Dice loss 
+(denoted as BceDice loss), for the skin lesion segmentation 
+task. These loss functions are formally represented in 
+Equations 17. 
+𝐿𝐵𝑐𝑒𝐷𝑖𝑐𝑒= 𝜆1𝐿𝐵𝑐𝑒+ 𝜆2𝐿𝐷𝑖𝑐𝑒,
+(17) 
+{
+  
+  𝐿𝐵𝑐𝑒= −1
+𝑁∑[𝑦𝑖𝑙𝑜𝑔(𝑦̂𝑖) + (1 −𝑦𝑖)𝑙𝑜𝑔(1 −𝑦̂𝑖)]
+𝑁
+𝑖=1
+𝐿𝐷𝑖𝑐𝑒= 1 −2|𝑋∩𝑌|
+|𝑋| + |𝑌|
+, (18) 
+where 𝑁 denotes the total number of samples, 𝑦𝑖, 𝑦̂𝑖 
+respectively signify the true label and prediction. |𝑋| and 
+|𝑌| represent the ground truth and prediction, respectively. 
+𝜆1, 𝜆2 refer to the weights of loss functions, which are both 
+set to 1 by default. 
+4. Experiments 
+4.1. Dataset   
+The dermoscopic images utilized for both training and 
+evaluation were derived from the ISIC 2018 Machine 
+Learning Challenge (ISIC 2018: Skin Lesion Analysis for 
+Melanoma Detection) [109,110,111]. The training dataset 
+consists of 8,010 samples, which are categorized into seven 
+distinct disease classes. For the evaluation phase, a subset 
+of 161 samples was selected from the original training set 
+[112,113,114]. The lesion images were sourced from the 
+HAM10000 dataset, which is publicly accessible via both 
+the archive gallery and standardized API endpoints. 
+Throughout the ISIC 2018 challenge, image data, along 
+with corresponding diagnostic information and ground-
+truth labels, were made available for download. The 
+competition is organized around three separate tasks, each 
+addressing different facets of skin lesion analysis, 
+providing a comprehensive evaluation of model perfor-
+mance in melanoma detection: 
+- Task 1: Lesion Segmentation,  
+- Task 2: Lesion Attribute Detection, 
+- Task 3: Disease Classification. 
+In this study, we focus on Task 1 of the ISIC 2018: Skin 
+Lesion Analysis for Melanoma Detection grand challenge. 
+4.2. Implementation Details   
+The images from the ISIC2018 dataset are preprocessed 
+to a resolution of 256 × 256 pixels before being fed into 
+the model. Training is conducted with a batch size of 8, 
+utilizing the AdamW optimizer [92] with an initial learning 
+rate of 1 × 10−3. In order to facilitate dynamic learning 
+rate adjustments throughout the training process, a Cosine- 
+AnnealingLR scheduler [93] is employed. All experiments 
+are conducted on a single NVIDIA TESLA A100-PCIE-
+40GB GPU for 150 epochs, providing the computational 
+power necessary for efficient training and evaluation. 
+ 
+ 
+Figure 3. The diagram of the training process of our 
+XLSTM-VMUNet Model. 
+ 
+Table 1. Comparison with state-of-the-art methods, 5-fold 
+cross-validation. (Bold indicates the best.) 
+Model 
+DSC 
+IoU 
+R2U-Net [84] 
+0.6790 
+0.5810 
+Attention R2U-Net [89] 
+0.7260 
+0.5920 
+Attention-U-Net [102] 
+0.8205 
+0.7346 
+U-Net [16] 
+0.8403 
+0.7455 
+U-Net++ [17] 
+0.8496 
+0.7512 
+Swin-U-Net [85] 
+0.8523 
+0.7528 
+Res-U-Net [100] 
+0.8560 
+0.7562 
+CaraNet [86] 
+0.8702 
+0.7822 
+FANet [90] 
+0.8731 
+0.8023 
+PraNet [87] 
+0.8754 
+0.7874 
+VM-UNetv2 [88] 
+0.8796 
+0.7851 
+UltraLight VM-UNet [60] 
+0.8820 
+0.7890 
+TransUNet [91] 
+0.8891 
+0.8051 
+VM-UNet [53] 
+0.8975 
+0.8142 
+SkinMamba [61] 
+0.8976 
+0.8143 
+UNeXt [21] 
+0.9030 
+0.8261 
+XLSTM-VMUNet 
+0.9100 
+0.8349 
+4.3. Results 
+Segmentation performamnce. In order to demonstrate the 
+effective of our proposed approach, we conducted a 
+comparative analysis of XLSTM-VMUNet against other 
+state-of-the-art methodologies. Specifically, they include 
+R2U-Net [84], Attention R2U-Net [89], Attention-U-Net 
+[102], U-Net [16], U-Net++[17], Swin-U-Net [85], Res-U-
+Net [101][, CaraNet [86], FANet [90], PraNet [87], VM-
+UNetv2 [88], UltraLight VM-Unet [60], TransUNet [91], 
+VM-UNet [53], SkinMamba  [61] and UNeXt [21]. 
+Table 1 provides a comparative analysis of the results on 
+the ISIC2018 dataset, demonstrating that the proposed 
+XLSTM-VMUNet outperforms other models, particularly 
+in terms of the Dice Similarity Coefficient (DSC) and 
+Intersection over Union (IoU). The model training process 
+is illustrated in Figure 3, while Figure 4 presents a visual 
+comparison of the segmentation results. 
+ 
+ 
+Figure 4. Visualized segmentation results of the proposed 
+XLSTM-VMUNet against other state-of-the-arts over the 
+ISIC2018 dataset 
+ 
+From the Figure 4, it is evident that the proposed 
+XLSTM-VMUNet model exhibits a markedly improved 
+sensitivity to fine lesion details compared to conventional 
+methods. By effectively capturing multi-scale contextual 
+information and leveraging temporal dependencies, 
+XLSTM-VMUNet is able to detect subtle variations in 
+lesion characteristics, thereby improving the accuracy and 
+precision of lesion delineation. This capability is 
+particularly critical in medical image analysis, where 
+accurate segmentation of lesions is essential for reliable 
+diagnosis and treatment planning. 
+Ablation study. We conducted an ablation study on the 
+ISIC2018 dataset to examine the effectiveness of our 
+modules under various configurations as summarized in 
+Table 2. The trend plot of the four versions of our XLSTM-
+VMUNet Model is shown in Figure 5. Comparison of Dice 
+and IoU values across XLSTM-VMUNet versions is 
+shown in Figure 6. 
+ 
+Table 2. Ablation experiments: impact of individual 
+contributions on segmentation performance of XLSTM-
+VMUNet. (Bold indicates the best.) 
+Ver. 
+sLSTM 
+mLSTM 
+DSC 
+IoU 
+Ver 1 
+ 
+ 
+0.8975 
+0.8142 
+Ver 2 
+✓ 
+ 
+0.9013 
+0.8238 
+Ver 3 
+ 
+✓ 
+0.9098 
+0.8345 
+Ver 4 
+✓ 
+✓ 
+0.9100 
+0.8349 
+ 
+ 
+Figure 5. The trend plot of the four versions of our 
+XLSTM-VMUNet Model. 
+ 
+ 
+Figure 6. Comparison of Dice and IoU values across 
+XLSTM-VMUNet versions. 
+ 
+From Figure 5 and Figure 6, we can indicate that 
+combining VM-UNet with xLSTM shows outstanding 
+performance in converging quickly and maintaining 
+optimal segmentation performance among the four 
+versions of our XLSTM-VMUNet Model. 
+5. Conclusion 
+In this study, we propose the XLSTM-VMUNet model 
+and demonstrate the benefits of effectively combining 
+Mamba with xLSTM: XLSTM-VMUNet can not only 
+focus on extracting spatial features from images, especially 
+the structure and characteristics of skin lesions, but also 
+enhance the model’s contextual understanding, allowing it 
+to better handle complex structures in medical images. This 
+dual integration significantly improves the accuracy of skin 
+lesion segmentation and enhances the model’s compu-
+tational efficiency. Experimental results indicate that on 
+the ISIC2018 dataset, XLSTM-VMUNet outperforms 
+UNeXt with a 0.70% improvement in the DSC metric and 
+a 0.88% improvement in the IoU metric. Compared to the 
+baseline model, VM-UNet, XLSTM-VMUNet shows a 
+1.25% increase in the DSC metric and a 2.07% increase in 
+the IoU metric.  
+ 
+References 
+[1] Ibrahim Abdulrab Ahmed, Bakri Awaji, Fekry Olayah, and 
+Ebrahim Mohammed Senan. AI techniques of dermoscopy 
+image analysis for the early detection of skin lesions based 
+on combined CNN features[J]. Diagnostics, 2023, 13(7): 
+1314. 
+[2] Erin Clancy. ACS Report Shows Prostate Cancer on the Rise, 
+Cervical Cancer on the Decline[J]. Renal & Urology News, 
+2023: NA-NA. 
+[3] Xianghua Xie, and Feng Zhao. An overview of interactive 
+medical image segmentation[J]. Annals of the BMVA, 2013, 
+2013(7): 1-22. 
+[4] Heang-Ping Chan,  Lubomir M. Hadjiiski, and Ravi K. 
+Samala. Computer‐aided diagnosis in the era of deep 
+learning[J]. Medical physics, 2020, 47(5): e218-e227. 
+[5] Samuel G Armato 3rd, Kenny Cha, Kenny Cha, Quan Chen, 
+Karen Drukker, Lubomir Hadjiiski, Henkjan Huisman, 
+Zhimin Huo, Richard Mazurchuk, Janne J Näppi, et al. 
+AAPM task group report 273: recommendations on best 
+practices for AI and machine learning for computer‐aided 
+diagnosis in medical imaging[J]. Medical Physics, 2023, 
+50(2): e1-e24. 
+[6] Esther E Bron, Rose Bruffaerts, Randy L Gollub, Juan 
+Eugenio Iglesias, Hyungsoon Im, Matthew J Leming, and 
+Yangming Ou.Challenges of implementing computer-aided 
+diagnostic models for neuroimages in a clinical setting[J]. 
+NPJ Digital Medicine, 2023, 6(1): 129. 
+[7] Junkai Ji, Cheng Tang, and Yajiao Tang. A novel machine 
+learning 
+technique 
+for 
+computer-aided 
+diagnosis[J]. 
+Engineering Applications of Artificial Intelligence, 2020, 92: 
+103627. 
+[8] Kumar Abhishek, Sandra Avila, Catarina Barata, Alceu 
+Bissoto, M Emre Celebi, Ghassan Hamarneh, Zahra 
+Mirikharaji, and Eduardo ValleA. survey on deep learning 
+for skin lesion segmentation[J]. Medical Image Analysis, 
+2023, 88: 102863. 
+[9] Lalit M Aggarwal, and Neeraj Sharma. Automated medical 
+image segmentation techniques[J]. Journal of medical 
+physics, 2010, 35(1): 3-14. 
+[10] M. Krithika alias AnbuDevi, and K. Suganthi. Review of 
+semantic segmentation of medical images using modified 
+architectures of UNET[J]. Diagnostics, 2022, 12(12): 3064. 
+[11] Xu Cao, Xueli Chen, Getao Du, Jimin Liang, and Y. Zhan. 
+Medical Image Segmentation based on U-Net: A Review[J]. 
+Journal of Imaging Science & Technology, 2020, 64(2). 
+[12] Jianhong Cheng, Liangliang Liu, Quan Quan, Jianxin Wang, 
+Yuping Wang, and Fangxiang Wu. A survey on U-shaped 
+networks in medical image segmentations[J]. Neuro-
+computing, 2020, 409: 244-258. 
+[13] Vijay Devabhaktuni, Colin P. Elkin, Nahian Siddique, and 
+Sidike Paheding. U-net and its variants for medical image 
+segmentation: A review of theory and applications[J]. IEEE 
+access, 2021, 9: 82031-82057. 
+[14] Ehsan Khodapanah Aghdam, Atlas Haddadi Avval, Reza 
+Azad, Afshin Bozorgpour, Yiwei Jia, and Amelie Rauland. 
+Medical image segmentation review: The success of u-net[J]. 
+IEEE Transactions on Pattern Analysis and Machine 
+Intelligence, 2024. 
+[15] M. Krithika alias AnbuDevi, and K. Suganthi. "Review of 
+semantic segmentation of medical images using modified 
+architectures of UNET." Diagnostics 12.12 (2022): 3064. 
+[16] Thomas Brox, Philipp Fischer, and Olaf Ronneberger. U-net: 
+Convolutional networks for biomedical image seg-
+mentation[C]//Medical image computing and computer-
+assisted intervention–MICCAI 2015: 18th international 
+conference, Munich, Germany, October 5-9, 2015, 
+proceedings, part III 18. Springer International Publishing, 
+2015: 234-241. 
+[17] Jianming Liang, Md Mahfuzur Rahman Siddiquee, Nima 
+Tajbakhsh, and Zongwei Zhou. Unet++: A nested u-net 
+architecture for medical image segmentation[C]//Deep 
+Learning in Medical Image Analysis and Multimodal 
+Learning for Clinical Decision Support: 4th International 
+Workshop, DLMIA 2018, and 8th International Workshop, 
+ML-CDS 2018, Held in Conjunction with MICCAI 2018, 
+Granada, Spain, September 20, 2018, Proceedings 4. 
+Springer International Publishing, 2018: 3-11. 
+[18] Ahmed Abdulkadir, Thomas Brox, Özgün Çiçek, Soeren S. 
+Lienkamp, and Olaf Ronneberger. 3D U-Net: learning dense 
+volumetric segmentation from sparse annotation[C]//Medi-
+cal Image Computing and Computer-Assisted Intervention–
+MICCAI 2016: 19th International Conference, Athens, 
+Greece, October 17-21, 2016, Proceedings, Part II 19. 
+Springer International Publishing, 2016: 424-432. 
+[19] Seyed-Ahmad Ahmadi, Fausto Milletari, and Nassir Navab. 
+V-net: Fully convolutional neural networks for volumetric 
+medical image segmentation[C]//2016 fourth international 
+conference on 3D vision (3DV). Ieee, 2016: 565-571. 
+[20] Azade Farshad, Peter Gehlbach, Nassir Navab, and Yousef 
+Yegane. Y-net: A spatiospectral dual-encoder network for 
+medical image segmentation[C]//International Conference 
+on Medical Image Computing and Computer-Assisted 
+Intervention. Cham: Springer Nature Switzerland, 2022: 
+582-592. 
+[21] Vishal M. Patel, and Jeya Maria Jose Valanarasu. Unext: 
+Mlp-based rapid medical image segmentation net-
+work[C]//International conference on medical image 
+computing and computer-assisted intervention. Cham: 
+Springer Nature Switzerland, 2022: 23-33. 
+[22] Zihan Chen, Jie Gao, Mengting Liu, Yutong Liu, Huaiyuan 
+Yu, and Haijiang Zhu. Rolling-Unet: Revitalizing MLP’s 
+Ability to Efficiently Extract Long-Distance Dependencies 
+for Medical Image Segmentation[C]//Proceedings of the 
+AAAI Conference on Artificial Intelligence. 2024, 38(4): 
+3819-3827. 
+[23] Lijing An, Yongming Li, and Liejun Wang. HEA-Net: 
+attention and MLP hybrid encoder architecture for medical 
+image segmentation[J]. Sensors, 2022, 22(18): 7024. 
+[24] Shuo Gao, Airong Qian, Menglei Xu, Wenhui Yang, Hong 
+Yu, Hao Zhang, and Wenjuan Zhang. U-MLP: MLP-based 
+ultralight refinement network for medical image segmen-
+tation[J]. Computers in Biology and Medicine, 2023, 165: 
+107460. 
+[25] Jianfei Cai, Tsuhan Chen, Jiuxiang Gu, Jason Kuen, Ting 
+Liu, Lianyang Ma, Amir Shahroudy, Bing Shuai, Gang 
+Wang, Xingxing Wang, et al. Recent advances in 
+convolutional neural networks[J]. Pattern recognition, 2018, 
+77: 354-377. 
+[26] Fan Liu, Zewen Li, Shouheng Peng, Wenjie Yang, and Jun 
+Zhou. A survey of convolutional neural networks: analysis, 
+applications, and prospects[J]. IEEE transactions on neural 
+networks and learning systems, 2021, 33(12): 6999-7019. 
+[27] Ryan Nash, and Keiron O'Shea. An introduction to 
+convolutional neural networks[J]. arXiv preprint arXiv:15-
+11.08458, 2015. 
+[28] Richard Kinh Gian Do, Mizuho Nishio, Kaori Togashi , and 
+Rikiya Yamashita. Convolutional neural networks: an 
+overview and application in radiology[J]. Insights into 
+imaging, 2018, 9: 611-629. 
+[29] Jianxin Wu. Introduction to convolutional neural net-
+works[J]. National Key Lab for Novel Software Technology. 
+Nanjing University. China, 2017, 5(23): 495. 
+[30] Munawar Hayat, Fahad Shahbaz Khan, Salman Khan, Mu-
+zammal Naseer, Mubarak Shah, and Syed Waqas Zamir. 
+Transformers in vision: A survey[J]. ACM computing 
+surveys (CSUR), 2022, 54(10s): 1-41. 
+[31] Lucas Beyer, Mostafa Dehghani, Alex Dosovitskiy, Sylvain 
+Gelly, Georg Heigold, Neil Houlsby, Alexander Kolesnikov, 
+Matthias Minderer, Thomas Unterthiner, Jakob Uszkoreit, et 
+al. An image is worth 16x16 words: Transformers for image 
+recognition at scale[J]. arXiv preprint arXiv:2010.11929, 
+2020. 
+[32] Aidan N. Gomez, Lukasz Kaiser, Niki Parmar, Illia 
+Polosukhin, Noam Shazeer, Jakob Uszkoreit, and Ashish 
+Vaswani. Attention is all you need[J]. Advances in Neural 
+Information Processing Systems, 2017. 
+[33] Yuchen Jiang, Guanyi Li,  Pengfei Yan, Minglei Li, Xiang 
+Li,  Hao Luo, and Shen Yin . Deep learning attention mecha-
+nism in medical image analysis: Basics and beyonds[J]. 
+International Journal of Network Dynamics and Intelligence, 
+2023: 93-116. 
+[34] Nikolaos Dikaios, Jiahao Huang, Giorgos Papanastasiou, 
+Chengjia Wang, and Guang Yang. Is attention all you need 
+in medical image analysis? A review[J]. IEEE Journal of 
+Biomedical and Health Informatics, 2023. 
+[35] Kumar Abhishek, Sandra Avila, Catarina Barata,  Alceu 
+Bissoto, M Emre Celebi, Ghassan Hamarneh, Zahra 
+Mirikharaji, and Eduardo Valle. A survey on deep learning 
+for skin lesion segmentation[J]. Medical Image Analysis, 
+2023, 88: 102863. 
+[36] Md. Asif Ahamad, Md. Kamrul Hasan, Guang Yang, and 
+Choon Hwai Yap.A survey, review, and future trends of skin 
+lesion segmentation and classification[J]. Computers in 
+Biology and Medicine, 2023, 155: 106624. 
+[37] Jack Burdick, Borko Furht, Oge Marques, and Janet 
+Weinthal. Rethinking skin lesion segmentation in a 
+convolutional classifier[J]. Journal of digital imaging, 2018, 
+31: 435-440. 
+[38] Doaa Elshoura, Khalid M. Hosny, Ehab R. Mohamed, 
+George A. Papakostas, and Eleni Vrochidou. Deep learning 
+and optimization-based methods for skin lesions segmen-
+tation: a review[J]. IEEE Access, 2023, 11: 85467-85488. 
+[39] Hao Chen, Bo Du, Yihui Wang, Rui Xu, and Shu Yang. A 
+survey on vision mamba: Models, applications and 
+challenges[J]. arXiv preprint arXiv:2404.18861, 2024. 
+[40] Tri Dao, Daniel Y. Fu, Christopher Ré, Atri Rudra, Khaled 
+K. Saab, and Armin W. Thomas. Hungry hungry hippos: 
+Towards language modeling with state space models[J]. 
+arXiv preprint arXiv:2212.14052, 2022. 
+[41] Jonathan Berant, Albert Gu, and Ankit Gupta. Diagonal state 
+spaces are as effective as structured state spaces[J]. Advan-
+ces in Neural Information Processing Systems, 2022, 35: 
+22982-22994. 
+[42] R. E. Kalman. A new approach to linear filtering and 
+prediction problems[J]. 1960. 
+[43] Tri Dao, and Albert Gu. Mamba: Linear-time sequence 
+modeling with selective state spaces[J]. arXiv preprint 
+arXiv:2312.00752, 2023. 
+[44] Ashok Cutkosky, Ankit Gupta, Harsh Mehta, and Behnam 
+Neyshabur. Long range language modeling via gated state 
+spaces[J]. arXiv preprint arXiv:2206.13947, 2022. 
+[45] Linda Liu, Mohamed Omar, Jue Wang, Pichao Wang, Xiang 
+Yu, and Wentao Zhu. Selective structured state-spaces for 
+long-form video understanding[C]//Pro-ceedings of the 
+IEEE/CVF Conference on Computer Vision and Pattern 
+Recognition. 2023: 6387-6397. 
+[46] Rui An, Tyler Derr, Wenqi Fan, Qing Li, Hui Liu, Liangbo 
+Ning,  Haohao Qu,  and Xin Xu. A survey of mamba[J]. 
+arXiv preprint arXiv:2408.01129, 2024. 
+[47] Xiao Liu, Chenxu Zhang, and Lei Zhang. Vision mamba: A 
+comprehensive survey and taxonomy[J]. arXiv preprint 
+arXiv:2405.04404, 2024. 
+[48] Tracy Hammond, Soon Ki Jung, Lamyanba Laishram, 
+Ankur Nath, Md Maklachur Rahman, and Abdullah Aman 
+Tutul. Mamba in Vision: A Comprehensive Survey of 
+Techniques and Applications[J]. arXiv preprint arX-
+iv:2410.03105, 2024. 
+[49] Tianxiang Chen, Dan Wang, Ziyan Wang, Zi Ye, Hanwei 
+Zhang, Lijun Zhang, and Ying Zhu. A survey on visual 
+mamba[J]. Applied Sciences, 2024, 14(13): 5683. 
+[50] Sreeharish A, Shubhi Bansal, Gaurav Duggal, Madhava 
+Prasath 
+J, 
+Nagendra 
+Kumar, 
+Sreekanth 
+Madisetty, 
+Chandravardhan Singh Raghaw,  Mohammad Zia Ur 
+Rehman, and Manikandan S. A Comprehensive Survey of 
+Mamba Architectures for Medical Image Analysis: 
+Classification, Segmentation, Restoration and Beyond[J]. 
+arXiv preprint arXiv:2410.02362, 2024. 
+[51] Bencheng Liao, Wenyu Liu, Xinggang Wang, Xinlong 
+Wang, Qian Zhang, and Lianghui Zhu. Vision mamba: 
+Efficient visual representation learning with bidirectional 
+state space model[J]. arXiv preprint arXiv:2401.09417, 2024. 
+[52] Yue Liu, Yunfan Liu, Yunjie Tian, Yaowei Wang, Lingxi 
+Xie, Qixiang Ye, Hongtian Yu, and Yuzhong Zhao. 
+Vmamba: Visual state space model. arXiv preprint 
+arXiv:2401.10166 (2024). 
+[53] Jincheng Li, Jiacheng Ruan,  and Suncheng Xiang. Vm-unet: 
+Vision mamba unet for medical image segmentation[J]. 
+arXiv preprint arXiv:2402.02491, 2024. 
+[54] Feifei Li, Jun Ma,  and Bo Wang. U-mamba: Enhancing 
+long-range dependency for biomedical image segmen-
+tation[J]. arXiv preprint arXiv:2401.04722, 2024. 
+[55] Qing Chang, Pengchen Liang, Yinghao Liu, and Renkai Wu. 
+H-vmunet: High-order vision mamba unet for medical image 
+segmentation[J]. arXiv preprint arXiv:2403.13642, 2024. 
+[56] Yong Liang, Jiarun Liu,  Guangming Shi, Shanshan Wang,  
+Yan Xi,  Hao Yang,  Lequan Yu, Yizhou Yu, Shao-ting 
+Zhang, and Hairong Zheng. Swin-umamba: Mamba-based 
+unet with imagenet-based pretraining[C]//In-ternational 
+Conference on Medical Image Computing and Computer-
+Assisted Intervention. Cham: Springer Nature Switzerland, 
+2024: 615-625. 
+[57] Haifan Gong,  Luoyao Kang,  Haofeng Li, Xiang Wen, and 
+Yitao Wang. nnmamba: 3d biomedical image segmentation, 
+classification and landmark detection with state space 
+model[J]. arXiv preprint arXiv:2402.03526, 2024. 
+[58] Ge Cui, Lei Li, Ziyang Wang, Yichi Zhang, and Jianqing 
+Zheng. Mamba-unet: Unet-like pure visual mamba for 
+medical image segmentation[J]. arXiv preprint arX-
+iv:2402.05079, 2024. 
+[59] Weibin Liao, Liantao Ma, Chengwei Pan, Yasha Wang, 
+Xinyuan Wang, amd Yinghao Zhu. Lightm-unet: Mamba 
+assists in lightweight unet for medical image segmen-
+tation[J]. arXiv preprint arXiv:2403.05246, 2024. 
+[60] Qing Chang, Pengchen Liang, Yinghao Liu, and Renkai Wu. 
+Ultralight vm-unet: Parallel vision mamba significantly 
+reduces parameters for skin lesion segmentation[J]. arXiv 
+preprint arXiv:2403.20035, 2024. 
+[61] Bingjian Fan, Mingya Zhang, Zhengyi Zhou, Shun Zou, and 
+Xinguo Zou. SkinMamba: A Precision Skin Lesion 
+Segmentation Architecture with Cross-Scale Global State 
+Modeling and Frequency Boundary Guidance[J]. arXiv 
+preprint arXiv:2409.10890, 2024. 
+[62] Andreas Auer, Maximilian Beck, Johannes Brand-stetter, 
+Sepp Hochreiter, Michael Kopp, Korbinian Pöp-pel, 
+Oleksandra Prudnikova, Markus Spanring,  and Günter 
+Klambauer. 
+"xLSTM: 
+Extended 
+Long 
+Short-Term 
+Memory." arXiv preprint arXiv:2405.04517 (2024). 
+[63] Sepp Hochreiter, and Jürgen Schmidhuber. "Long Short-
+term Memory." Neural Computation MIT-Press (1997). 
+[64] Changhua Hu, Xiaosheng Si, Yong Yu, and Jianxun Zhang. 
+"A review of recurrent neural networks: LSTM cells and 
+network architectures." Neural computation 31.7 (2019): 
+1235-1270. 
+[65] Alex Sherstinsky. "Fundamentals of recurrent neural net-
+work (RNN) and long short-term memory (LSTM) netw-
+ork." Physica D: Nonlinear Phenomena 404 (2020): 132306. 
+[66] Eric Rothstein Morris, and Ralf C. Staudemeyer. "Under-
+standing LSTM--a tutorial into long short-term memory 
+recurrent neural networks." arXiv preprint arXiv:19-
+09.09586 (2019). 
+[67] Greff, Klaus, Jan Koutník, Jürgen Schmidhuber, Rupesh K. 
+Srivastava, and Bas R. Steunebrink. "LSTM: A search space 
+odyssey." IEEE transactions on neural networks and 
+learning systems 28.10 (2016): 2222-2232. 
+[68] Aaron Adcock, Vaibhav Aggarwal, Kalyan Vasudev Alwala, 
+Quentin Duval, Haoqi Fan, and Mannat Singh. "The 
+effectiveness of MAE pre-pretraining for billion-scale 
+pretraining." Proceedings of the IEEE/CVF International 
+Conference on Computer Vision. 2023. 
+[69] Laura Gustafson, Alexander Kirillov, Hanzi Mao, Eric 
+Mintun, Nikhila Ravi, and Chloe Rolland. "Segment 
+anything." Proceedings of the IEEE/CVF International 
+Conference on Computer Vision. 2023. 
+[70] Mahmoud Assran, Nicolas Ballas, Piotr Bojanowski, 
+Timothée Darcet, Alaaeldin El-Nouby, Pierre Fernandez, 
+Daniel Haziza,  Po-Yao Huang, Hervé Jegou,  Armand 
+Joulin, et al. "Dinov2: Learning robust visual features with-
+out supervision." arXiv preprint arXiv:2304.07193 (2023). 
+[71] William Peebles, and Saining Xie. "Scalable diffusion 
+models with transformers." Proceedings of the IEEE/CVF 
+International Conference on Computer Vision. 2023. 
+[72] Benedikt Alkin, Johannes Brandstetter, Sepp Hochreiter, 
+and Lukas Miklautz. "Mim-refiner: A contrastive learning 
+boost from intermediate pre-trained representations." arXiv 
+preprint arXiv:2402.10093 (2024). 
+[73] Benedikt Alkin, Maximilian Beck, Johannes Brandstetter, 
+Sepp Hochreiter, and Korbinian Pöppel. "Vision-LSTM: 
+xLSTM as Generic Vision Backbone." arXiv preprint 
+arXiv:2406.04303 (2024). 
+[74] Tianrun Chen, Chaotao Ding, Deyi Ji, Zejian Li, Yan Wang, 
+Tao Xu,  Ying Zang, and Lanyun Zhu. "xLSTM-UNet can 
+be an Effective 2D\& 3D Medical Image Segmentation 
+Backbone with Vision-LSTM (ViL) better than its Mamba 
+Counterpart." arXiv preprint arX-iv:2407.01530 (2024). 
+[75] Sonal G. Deore and D. Patil. "Medical image segmentation: 
+a review." International Journal of Computer Science and 
+Mobile Computing 2.1 (2013): 22-27. 
+[76] Debabrata Datta, Kiran Kumar Guthikonda, and K. K. D. R-
+amesh." EAI Endorsed Transactions on Pervasive Health 
+and Technology 7.27 (2021): e6-e6. 
+[77] S.M. Sajibul Islam, Jamin Rahman Jim, Md Mohsim Kabir, 
+M.F. Mridha, Sadia Islam Niha, and Md. Eshmam Rayed. 
+"Deep learning for medical image segmentation: State-of-
+the-art advancements and challenges." Informatics in 
+Medicine Unlocked (2024): 101504. 
+[78] Lalit M. Aggarwal, and Neeraj Sharma. "Automated med-
+ical image segmentation techniques." Journal of medical 
+physics 35.1 (2010): 3-14. 
+[79] Ahmed Elnakib, Ayman EI-Baz, Georgy Gimel’farb, and 
+Jasjit S. Suri. "Medical image segmentation: a brief sur-vey. 
+" Multi Modality State-of-the-Art Medical Image Segmen-
+tation and Registration Methodologies: Volume II (2011): 1-
+39. 
+[80] Ruixia Cui, Tao Lei, Hongying Meng, Asoke K. Nandi, Ri-
+sheng Wang, and Bingtao Zhang. "Medical image seg-
+mentation using deep learning: A survey. " IET image 
+processing 16.5 (2022): 1243-1267. 
+[81] Shuai Liu, Xiangbin Liu, Liping Song, and Yudong Zhang. 
+"A review of deep-learning-based medical image seg-
+mentation methods." Sustainability 13.3 (2021): 1224. 
+[82] Wenjing Jia, Paul Kennedy, Xiangjian He, and Mohammad 
+Hesam Hesamian. "Deep learning techniques for medical 
+image segmentation: achievements and challenges." Journal 
+of digital imaging 32 (2019): 582-596. 
+[83] Zehui Chen, Elliot J. Crowley, Linus Ericsson, Miguel 
+Espinosa, Jiaming LiuZhenyu Wang, and Chenhongyi Yang. 
+"Plainmamba: Improving non-hierarchical mamba in visual 
+recognition." arXiv preprint arXiv:2403.17695 (2024). 
+[84] Md Zahangir Alom, Vijayan K. Asari, Mahmudul Hasan,  
+Tarek M. Taha, and Chris Yakopcic. "Recurrent residual 
+convolutional neural network based on u-net (r2u-net) for 
+medical image segmentation." arXiv preprint arXiv:18-
+02.06955 (2018). 
+[85] Hu Cao, Joy Chen, Dongsheng Jiang, Qi Tian, Manning 
+Wang, Yueyue Wang, and Xiaopeng Zhang. "Swin-unet: 
+Unet-like pure transformer for medical image seg-
+mentation." European conference on computer vision. Cham: 
+Springer Nature Switzerland, 2022. 
+[86] Shuyue Guan, Hanseok Ko, Murray Loew, Ange Lou. 
+"CaraNet: context axial reverse attention network for 
+segmentation of small medical objects." Medical Imaging 
+2022: Image Processing. Vol. 12032. SPIE, 2022. 
+[87] Geng Chen, Huazhu Fu, Deng-Ping Fan, Ge-Peng Ji, Ling 
+Shao, Jianbing Shen, Tao Zhou. "Pranet: Parallel reverse 
+attention network for polyp segmentation." International 
+conference on medical image computing and computer-
+assisted intervention. Cham: Springer International Publi-
+shing, 2020. 
+[88] Limei Gu, Sun Jin, Tingsheng Ling, Xianping Tao, Yue Yu, 
+and Mingya Zhang. "VM-UNET-V2: rethinking vision 
+mamba UNet for medical image segmentation." In-
+ternational Symposium on Bioinformatics Research and 
+Applications. Singapore: Springer Nature Singapore, 2024. 
+[89] Songyu Chen, Zhifang Wang, and Qiang Zuo. "R2AU‐Net: 
+attention recurrent residual convolutional neural network for 
+multimodal medical image segmentation." Security and 
+Communication Networks 2021.1 (2021): 6625688. 
+[90] Sharib Ali, Debesh Jha, Dag Johansen, Håvard D. Johansen, 
+Michael A. Riegler, Jens Rittscher, and Nikhil Kumar To-
+mar. "Fanet: A feedback attention network for improved 
+biomedical image segmentation." IEEE Transactions on 
+Neural Networks and Learning Systems 34.11 (2022): 9375-
+9388. 
+[91] Ehsan Adeli, Jieneng Chen, Le Lu, Yongyi Lu, Xiangde Luo, 
+Qihang Yu, Yan Wang, and Alan L. Yullieuyin Zhou. 
+"Transunet: Transformers make strong encoders for 
+medical image segmentation." arXiv preprint arXiv:21-
+02.04306 (2021). 
+[92] Frank Hutter, and Ilya Loshchilov. "Decoupled weight dec-
+ay regularization." arXiv preprint arXiv:1711.05101 (2017). 
+[93] Frank Hutter, and Ilya Loshchilov. "Sgdr: Stochastic gradi-
+ent descent with warm restarts." arXiv preprint arX-
+iv:1608.03983 (2016). 
+[94] Ling Chi, Hang Cui and Liang Hu. "Advances in computer-
+aided medical image processing." Applied Scien-ces 13.12 
+(2023): 7079. 
+[95] Spyretta Golemati, Stavroula G. Mougiakakou, Alexan-dra 
+Nikita, Konstantina S. Nikita, John Stoitsis, and Ioan-nis 
+Valavanis. "Computer aided diagnosis based on medical 
+image processing and artificial intelligence meth-ods." 
+Nuclear Instruments and Methods in Physics Research 
+Section A: Accelerators, Spectrometers, Detectors and 
+Associated Equipment 569.2 (2006): 591-595. 
+[96] Bhagirathi Halalli, and Aziz Makandar. "Computer aided 
+diagnosis-medical image analysis techniques." Breast 
+imaging 85.85 (2018): 109. 
+[97] Lalit M. Aggarwal, and Neeraj Sharma. "Automated medical 
+image segmentation techniques." Journal of medical physics 
+35.1 (2010): 3-14. 
+[98] Lei Gu, Xiaopeng Wang, and Zhongyi Wang. "Retracted: 
+Computer Medical Image Segmentation Based on Neural 
+Network." IEEE Access 8 (2020): 158778-158786. 
+[99] Kunio Doi. "Computer-aided diagnosis in medical imaging: 
+historical review, current status and future poten-tial." 
+Computerized medical imaging and graphics 31.4-5 (2007): 
+198-211. 
+[100] Shagun Malik, Jyotika Pruthi, Surbhi Sehgal, and Priyan-
+jana Sharma. "Computer aided diagnosis based on medical 
+image processing and artificial intelligence methods." 
+International Journal of Information and Computation 
+Technology 3.9 (2013): 887-892. 
+[101] Peter Caccetta, Foivos I. Diakogiannis, François Waldner, 
+and Chen Wu. "ResUNet-a: A deep learning framework for 
+semantic segmentation of remotely sensed data." ISPRS 
+Journal of Photogrammetry and Remote Sensing 162 (2020): 
+94-114. 
+[102] Zuo, Qiang, Songyu Chen, and Zhifang Wang. "R2AU‐Net: 
+attention recurrent residual convolutional neural network for 
+multimodal medical image segmentation." Security and 
+Communication Networks 2021.1 (2021): 6625688. 
+[103] Qiongqiong Ren, Chang Wang, Yongtao Xu, Yi Yu, and 
+Zongya Zhao. "Dense U-net based on patch-based learning 
+for retinal vessel segmentation." Entropy 21.2 (2019): 168. 
+[104] Liangcai Cao, Guofan Jin, Shangzhong Jin, Jiachen Wu, 
+and Yufeng Wu. "Dense-U-net: dense encoder–decoder 
+network for holographic imaging of 3D particle fields." 
+Optics Communications 493 (2021): 126970. 
+[105] Danny Z. Chen, Yaopeng Peng, and Milan Sonka. "U-Net 
+v2: Rethinking the skip connections of U-Net for medical 
+image segmentation." arXiv preprint arXiv:2311.17-791 
+(2023). 
+[106] Tao Huang, Xiaohuan Pei, Chen Qian, Fei Wang, Chang Xu, 
+and Shan You. "Localmamba: Visual state space model with 
+windowed selective scan." arXiv preprint arXiv:2403.09338 
+(2024). 
+[107] Tao Huang, Xiaohuan Pei,  and Chang Xu. "Efficient-
+vmamba: Atrous selective scan for light weight visual 
+mamba." arXiv preprint arXiv:2403.09977 (2024). 
+[108] Jie Hu, Li Shen, and Gang Sun. "Squeeze-and-excitation 
+networks." Proceedings of the IEEE conference on computer 
+vision and pattern recognition. 2018. 
+[109] Md Ashraful Alam Milton. "Automated skin lesion classi-
+fication using ensemble of deep neural networks in isic 2018: 
+Skin lesion analysis towards melanoma detection chal-
+lenge." arXiv preprint arXiv:1901.10802 (2019). 
+[110] Andrzej Brodzicki, Bill Cassidy, Joanna Jaworek-Korjako-
+wska, Connah Kendrick, and Moi Hoon Yap. "Ana-lysis of 
+the ISIC image datasets: Usage, benchmarks and recom-
+mendations." Medical image analysis 75 (2022): 102305. 
+[111] M. Emre Celebi, Noel Codella, Stephen Dusza, David 
+Gutman, Allan Halpern, Brian Helba, Aadi Kalloo, Harald 
+Kittler, Konstantinos Liopyris, Michael Marchetti, Veronica 
+Rotemberg, and Philipp Tschandl. "Skin lesion analysis 
+toward melanoma detection 2018: A challenge hosted by the 
+international skin imaging collaboration (isic)." arXiv 
+preprint arXiv:1902.03368 (2019). 
+[112] Mohamed M. Fouad, Khalid M. Hosny, and Mohame-d A. 
+Kassem. "Skin lesions classification into eight classes for 
+ISIC 2019 using deep convolutional neural network and 
+transfer learning." IEEE Access 8 (2020): 114822-114832. 
+[113] M. Emre Celebi, Noel C. F. Codella, Stephen W. Dusza, 
+David Gutman, Brian Helba, and Michael A. Marchetti. "S-
+kin lesion analysis toward melanoma detection: A chall-enge 
+at the 2017 international symposium on biomedical imaging 
+(isbi), hosted by the international skin imaging collaboration 
+(isic)." 2018 IEEE 15th international sym-posium on 
+biomedical imaging (ISBI 2018). IEEE, 2018. 
+[114] Redha Ali, Russell C. Hardie, Temesguen Messay Kebede, 
+and Manawaduge Supun De Silva. "Skin lesion segmen-
+tation and classification for ISIC 2018 by combining deep 
+CNN and handcrafted features." arXiv preprint arXiv:19-
+08.05730 (2019). 
+ 

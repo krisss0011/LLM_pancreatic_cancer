@@ -1,0 +1,376 @@
+Quantifying Cancer Likeness: A Statistical
+Approach for Pathological Image Diagnosis
+Toshiki Kindo1[0000−0003−0457−3706]
+Kanazawa Institute of Technology
+toshiki.kindo@neptune.kanazawa-it.ac.jp
+Abstract. In this paper, we present a new statistical approach to au-
+tomatically identify cancer regions in pathological images. The proposed
+method is built from statistical theory in line with evidence-based medicine.
+The two core technologies are the classification information of image fea-
+tures, which was introduced based on information theory and which can-
+cer features take positive values, normal features take negative values,
+and the calculation technique for determining their spatial distribution.
+This method then estimates areas where the classification information
+content shows a positive value as cancer areas in the pathological im-
+age. The method achieves AUCs of 0.95 or higher in cancer classification
+tasks. In addition, the proposed method has the practical advantage of
+not requiring a precise demarcation line between cancer and normal.
+This frees pathologists from the monotonous and tedious work of build-
+ing consensus with other pathologists.
+Keywords: statistics · information content · local image feature
+1
+Introduction
+Active research is underway in the application of artificial intelligence to the
+diagnosis of pathological images, exemplified by events such as the 2016 interna-
+tional competition, CAMELYON16. The findings from CAMELYON16 suggest
+that the diagnostic capability of artificial intelligence equals or surpasses that of
+medical professionals. However, amidst the growing societal anticipation for AI-
+assisted pathological diagnosis, commonly referred to as "AI doctors," concerns
+have been raised regarding the lack of diagnostic basis[1].
+In the domain of explainable AI research, efforts to empower AI doctors
+with the capacity to elucidate diagnoses, as demonstrated by methodologies
+like Grad-CAM[2], are gaining prominence. Within explainable AI, aligning the
+human gaze point with the areas of focus identified by artificial intelligence is
+deemed valuable. However, given the profound implications of medical diagnosis
+on individuals’ health and even life and death, mere coincidences in gaze points
+cannot be deemed adequate explanations. We believe that diagnostic evidence
+provided by artificial intelligence should, at the very least, be supported by
+statistical analysis or its equivalent.
+arXiv:2410.01391v1  [cs.CV]  2 Oct 2024
+2
+T.KINDO
+In this paper, a novel pathological image diagnosis method, whose outline is
+proposed at [3], is introduced, aiming to statistically estimate cancerous regions.
+This method is developed by refining classical statistical processing techniques,
+incorporating a framework capable of identifying covariant shifts[4], along with
+a partial solution for their mitigation.
+2
+Statistical theory of Useful Image Features
+2.1
+Kullback-Leibler Divergence of Feature Distribution on
+Classification Space
+The proposed method’s theoretical feature involves defining a classification space
+composed of binary values indicating cancerous and normal regions. It also en-
+tails examining the distribution of local image features f within a pathological
+image in this classification space. The distribution of local image features, de-
+noted as ρp(f) and ρn(f), respectively representing cancer and normality, con-
+forms to the equation:
+ρp(f) + ρn(f) = 1
+(1)
+where p and n indicate cancer and normality respectively.
+Here, given that the probabilities in the population, denoted as ρp(f) and
+ρn(f), are established as prior knowledge, we will delve into the theory under-
+pinning the proposed statistical method.
+First, the feature f, which appears with equal probability in cancerous and
+normal regions, ρp(f) ∼ρn(f) ∼1
+2.does not serve as a clue when distinguishing
+between cancer and normal. The features that are useful for the above identifi-
+cation are those that have a biased probability distribution in the classification
+space as follows
+ρp(f) ≫1
+2
+or
+ρp(f) ≪1
+2
+(2)
+The former refers to an image feature that is frequently present in cancerous
+areas and seldom found in normal areas. Therefore, this feature, representing
+cancerousness, is termed a positive feature and is denoted as f p. The latter,
+representing normality, is termed a negative feature and is denoted as f n. Addi-
+tionally, image features that do not contribute significantly to the classification
+are denoted as f 0 whose probability is ρp(f 0) = 1
+2.
+The usefulness of image features can be quantified using Kullback-Leibler
+divergence, a well-known measure of information content in the statistics and
+the infromation theory, as follows:
+DKL(ρp(f)||ρp(f 0)) = ρp(f) log ρp(f)
+ρp(f 0) + (1 −ρp(f)) log 1 −ρp(f)
+1 −ρp(f 0).
+(3)
+Kullback-Leibler divergence has the following properties,
+DKL(ρp(f p)||ρp(f 0)) ≫0
+for positive feature f p
+(4)
+DKL(ρp(f 0)||ρp(f 0)) = 0
+for neutral feature f 0
+(5)
+DKL(ρp(f n)||ρp(f 0)) ≫0
+for negative feature f n
+(6)
+Statistical Approach for Pathological Image Diagnosis
+3
+Therefore, it serves as a useful index for distinguishing between useful image
+features, positive features, and negative features, as opposed to those that are
+not useful. However, it does not differentiate between positive features f p and
+negative features f n.
+2.2
+Spatial Distribution of Classification Information Content
+The concern raised regarding Kullback-Leibler divergence in the preceding sub-
+section can be addressed by incorporating the classification information content
+proposed in Ref. [5] as a tool for natural language processing. This information
+content, represented by CKL(ρp(f)||ρp(f 0)), is given by:
+CKL(ρp(f)||ρp(f 0)) = ρp(f) log ρp(f)
+ρp(f 0) −(1 −ρp(f)) log 1 −ρp(f)
+1 −ρp(f 0)
+(7)
+= ρp(f) log 2ρp(f) −(1 −ρp(f)) log 2(1 −ρp(f))
+(8)
+This expression essentially corresponds to the second term of Kullback-Leibler
+divergence, with its sign reversed. The classification information content has the
+following properties,
+CKL(ρp(f p)||ρp(f 0)) ≫0
+for positive feature f p
+(9)
+CKL(ρp(f 0)||ρp(f 0)) = 0
+for neutral feature f 0
+(10)
+CKL(ρp(f n)||ρp(f 0)) ≪0
+for negative feature f n
+(11)
+To facilitate pathological image diagnosis, besides incorporating the classifi-
+cation information content CKL(ρp(f)||ρp(f 0)) obtained from prior knowledge,
+it is imperative to consider the spatial distribution of each image feature f within
+the pathological image under examination. Hereinafter, CKL(ρp(f)||ρp(f 0)) will
+be abbreviated as CKL(ρp(f)) in this paper.
+We define the spatial distribution of the image feature f in the pathological
+image I to be diagnosed as φ(f, x, y|I), where (x, y) represents the coordinate
+position on the pathological image.
+As a result, the spatial distribution of classification information content in
+the pathological image I under diagnosis is expressed by the following formula:
+CKL(x, y|I) =
+Z
+dfCKL(ρp(f))φ(f, x, y|I)
+(12)
+Figure 1 provides a visual representation of this concept of Equation (12). The
+upward arrow indicates the integration of CKL(ρp(f))φ(f, x, y|I) with respect
+to the image feature f, fixing the point of image (x, y). Then, the cancer region
+in the pathological image I is specified by
+CKL(x, y|I) > 0,
+(13)
+which represents an area where the information content indicating "This place
+is cancerous" exceeds the information content indicating "This place is normal."
+From a statistical and information theory perspective, this forms the basis for
+diagnosis.
+4
+T.KINDO
+Fig. 1. A schematic figure shows the outline of the method proposed. The classification
+information content CKL(ρp(f)||ρp(f 0)) is simply represented as CKL(ρp(f)).
+3
+Experiments using CAMELYON16 data
+When applying the above theory to actual pathological image diagnosis, it is
+essential to address two key challenges: 1) estimating the appearance probability
+of each image feature, denoted as ρp(f), 2) determining the spatial distribution
+of image features within the diagnostic target, represented as φ(f, x, y|I).
+In this section, we will offer a practical demonstration of the proposed method
+using data sourced from CAMELYON16, which targets the automatic detection
+of lymph node metastasis from breast cancer[1]. We utilize SIFT with default
+parameters from OpenCV as the image feature[6]. The parameters that we de-
+termined empirically are summarized in Table 1. The experimental results below
+are not sensitive to these parameters.
+The original image utilized here is the highest resolution image from CAME-
+LYON16. The pathological image measures approximately 100,000×200,000 pix-
+els, with a real-world resolution of 0.226 or 0.243 µm/pixel[1]. Our discussion will
+progress using this pathological image, segmented into 191×432 image patches
+(512×512 pixels) {TXY (I)}, where the index XY denotes the coordinates indi-
+cating the position of the two-dimensionally arranged image patches.
+The spatial distribution of image features in the pathological image I to be
+diagnosed, φ(f, x, y|I), is substituted by N(f|f ∈TXY (I)), representing the
+number of occurrences of image features equal to f in an image patch TXY (I).
+Statistical Approach for Pathological Image Diagnosis
+5
+Table 1. Experimental parameters determined empirically
+Parameters
+Value remarks
+Image feature
+SIFT[6] OpenCV default parameters are used.
+When distance between two SIFT
+Matching threshold
+325
+descriptors is less than 325,
+they are considered equal.
+Evidence acceptance criteria
+2
+ρp(f) > 2ρn(f) or ρp(f) < 2ρn(f)
+Lower limit of number
+Features that appear less often than
+of occurrences
+10
+the lower limit are ignored.
+Threshold of number of
+It’s introduced to skip image patches
+descriptors in an image patch
+3000
+including small number of cells.
+to neglect it
+The equivalence between two image features is determined by the matching
+threshold outlined in Table 1.
+Consequently, Equation (12) can be reformulated as an equation for comput-
+ing the classification information content of an image patch as follows:
+CKL(X, Y |I) =
+X
+i
+CKL(ρp(fi)||ρp(f 0))N(f|f ∈TXY (I)).
+(14)
+3.1
+Probability Estimation within the Classification Space
+In general the probability ρp(f) on the classification space can be estimated
+straightforwardly as:
+ρp(f) ∼ρp(f, Ip, In)
+(15)
+=
+N(f|f ∈Ip)
+N(f|f ∈Ip) + N(f|f ∈In).
+(16)
+Here N(f|f ∈Ip) and N(f|f ∈Ip) represent the frequencies of the appearance
+of image feature f in the partial images Ip labeled as cancer and In labeled as
+normal, respectively.
+The bottom line is that the problem at hand is essentially about selecting
+the appropriate partial images Ip and In, which are sets of image patches:
+{Ip, In} = {{T p(1), T p(2), · · · , T p(k)}, {T n(1), T n(2), · · · , T n(k)}}
+(17)
+where T p(·) and T n(·) denote patches extracted from the cancer region and
+normal region, respectively.
+From the selected image patches, we choose image features that can serve
+as evidence according to the criteria for evidence acceptance shown in Table 1.
+At this point, the number of positive evidence features, np, selected from the
+cancer region, and the number of negative evidence features, nn, selected from
+6
+T.KINDO
+Fig. 2. The image on the far left displays the annotation image of tumor_011 in the
+CAMELYON16 dataset. The subsequent figure shows a total of 20 cancer patches
+outlined in blue and 20 normal patches outlined in red, all of which were selected from
+tumor_011 in the CAMELYON16 dataset. The next image is the classification results
+for tumor_011 are depicted, with cancerous areas marked in blue and normal areas
+in red. Moving on, the outcome of classifying another tumor, tumor_009-004, using
+patches selected from tumor_011 is presented with its annotation image.
+the normal region, differ. The current normalization method for differences in
+the number of two types of evidence features is as follows:
+CKL(X, Y |I) = (1 −α)
+np
+X
+i=1
+CKL(ρp(f p
+i ))N(f p
+i |f p
+i ∈T p
+XY (I))
++α
+nn
+X
+j=1
+CKL(ρp(f n
+j ))N(f n
+j |f n
+j ∈T n
+XY (I))
+(18)
+where α = np/(np + nn), f p and f n represent positive and negative evidence
+features respectively.
+3.2
+Rapid Learning Algorithm and Results
+We present a supervised learning algorithm that utilizes pathological images
+annotated with cancer regions. In conclusion, it’s possible to detect cancerous
+regions by simply selecting 20 image patches from both cancerous and normal
+regions, as shown in Figure 2.
+If we consider selecting image patches purely from a statistical perspective,
+the first criterion would be to choose patches with a high density of features
+(high-density selection criterion). Once we have this initial selection, we can fur-
+ther refine it by focusing on patches with the highest negative classification in-
+Statistical Approach for Pathological Image Diagnosis
+7
+Fig. 3. A histogram showing the number of image patches(blue-cancer and red-normal),
+with the classification information content of the image patches on the horizontal axis.
+The vertical red line indicates the position where the classification information content
+is zero.
+formation content, even if they come from cancerous regions (worst selection cri-
+terion). Additionally, there’s a deterioration selection criterion, where we choose
+patches whose classification information content has worsened due to learning
+with the worst-case selection criteria. By selecting patches with deteriorated
+classification information content, we aim to correct any excessive deformations
+caused by worst-case learning. Our current set-up is as follows: one set consisted
+of learning in the order of high-density selection criteria - worst selection criteria
+- worse selection criteria, and after repeating this set learning three times, only
+learning using the worst selection criteria.
+We now present typical results of our method in Figure 2. In this figure, we
+display a total of 20 cancer patches outlined in blue and 20 normal patches
+outlined in red, all of which were selected from tumor_011 in the CAME-
+LYON16 dataset using our algorithm, as well as the source pathological image
+’tumor_011’ and an unrelated image ’tumor_009-004.’ The blue-gray areas rep-
+resent detected cancerous regions. While there is an issue with detecting cancer
+in a portion of the ’tumor_009-004’ image (highlighted in blue circle), overall,
+the results are promising considering we only used a total of 40 image patches.
+As described above, we not only demonstrate the capability of the proposed
+method to detect cancerous regions but also emphasize its additional advantage:
+the ability to observe the distribution of the classification information content
+of image patches. Figure 3 shows the histograms of the four images. The results
+shown in Figure 2 correspond to the left two histograms outlined by the dashed
+line. Some of the histograms with frames are from the images used for train-
+ing, and the histograms to the right are from other images. By looking at this
+diagram, we can statistically examine the degree to which cancer and normal
+8
+T.KINDO
+are separated along the classification information content. This is one of the
+strengths of the proposed method.
+Additionally, based on the ROC curve displayed in Figure 3 , the proposed
+method achieved AUC of 0.95 or higher, excluding ’tomur_001’ and ’tomur_009-
+004’, when extracting only 40 image patches from a single pathological image.
+The issue of ’tomur_009-004’ is believed to stem from what’s known as covariant
+shift[4], signifying the inability to fully encompass the distribution within the
+feature space using only 40 image patches from a single pathological image.
+Indeed, this issue can be readily addressed by focusing on ’tumor_009-004’ and
+modifying the density criterion in the aforementioned algorithm to select image
+patches with a classification information content of 0 (no information selection
+criterion).
+4
+Short Discussion
+Although the experimental results utilizing SIFT are presented above, the pro-
+posed method remains applicable to deep learning models employing feature
+acquisition functions. In a deep learning model, the output of a neuron in the
+pooling layer signifies the presence or absence of a specific feature within the re-
+ceptive field of that neuron. Hence, the presence or absence of SIFT features in
+the classical method mentioned above can be substituted with this output. Con-
+sequently, by assessing the bias in the classification space of the neuron output
+from the pooling layer along the proposed method, it becomes feasible to deter-
+mine the classification information content of the pathological image undergoing
+processing by the deep learning model.
+Finally, I would like to emphasize that the proposed method has the practical
+advantage of not requiring a precise dividing line between cancer and normal.
+This frees pathologists from monotonous, tedious work that is difficult to reach
+consensus with other pathologists.
+5
+Concluding Remark
+We have proposed a statistical method for evaluating cancer likeness in patho-
+logical image diagnosis.
+The proposed method represents a robust solution, embodied in a straightfor-
+ward process: tallying occurrences of image features, converting them into prob-
+abilities, calculating classification information content, and aggregating them
+for each image patch within the pathological image. Despite its simplicity, this
+method offers several advantages: strong theoretical foundations in line with
+evidence-based medicine, good performance capable of achieving Areas Under
+the Curve (AUCs) of 0.90 or higher, streamlined result analysis, and liberation
+of pathologists from the burdensome task of annotating image creation.
+Statistical Approach for Pathological Image Diagnosis
+9
+References
+1. Ehteshami Bejnordi B, Veta M, Johannes van Diest P, van Ginneken B, Karsse-
+meijer N, Litjens G, van der Laak JAWM, and the CAMELYON16 Consortium.
+Diagnostic Assessment of Deep Learning Algorithms for Detection of Lymph Node
+Metastases in Women With Breast Cancer. JAMA. 2017;318(22), pp. 2199–2210.
+doi:10.1001/jama.2017.14585 (2017).
+2. Ramprasaath R. Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedan-
+tam, Devi Parikh, Dhruv Batra; Grad-CAM: Visual Explanations From Deep Net-
+works via Gradient-Based Localization,Proceedings of the IEEE International Con-
+ference on Computer Vision (ICCV), pp. 618–626, (2017) .
+3. Toshiki KINDO, Shunya MUTSUDA, Sohsuke YAMADA; Information Density
+Method to Evaluate the Cancer-Likeness and Normality-Likeness of Pathological
+Images with the Amount of Information, MEDICAL IMAGING TECHNOLOGY
+40(5), pp. 218-225, (2022) in Japanese.
+4. Hidetoshi Shimodaira, Improving predictive inference under covariate shift by
+weighting the log-likelihood function, Journal of Statistical Planning and Inference,
+90,(2), pp 227-244, https://doi.org/10.1016/S0378-3758(00)00115-4,(2000).
+5. Toshiki Kindo, Hideyuki Yoshida, Tetsuro Morimoto, Taisuke Watanabe, Adaptive
+Information Filtering System that organizes personal profiles automatically, Pro-
+ceedings of Joint Conference on Artificial Intelligence, 716-721, (1997).
+6. D. G. Lowe, "Object recognition from local scale-invariant features," Proceedings of
+the Seventh IEEE International Conference on Computer Vision, Kerkyra, Greece,
+pp. 1150-1157 vol.2, doi: 10.1109/ICCV.1999.790410, (1999).

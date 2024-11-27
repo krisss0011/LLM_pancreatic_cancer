@@ -1,0 +1,2122 @@
+Nonlinear dynamics of CAR-T cell therapy
+Artur C. Fassonia,b,∗, Denis C. Bragaa
+aInstituto de Matem´atica e Computa¸c˜ao, Universidade Federal de Itajub´a, Itajub´a, Brazil
+bInstitute for Medical Informatics and Biometry, Technische Universit¨at Dresden, Dresden, Germany
+Abstract
+Chimeric antigen receptor T-cell (CAR-T) therapy is considered a promising cancer treat-
+ment. The dynamic response to this therapy can be broadly divided into a short-term phase,
+ranging from weeks to months, and a long-term phase, ranging from months to years. While
+the short-term response, encompassing the multiphasic kinetics of CAR-T cells, is better un-
+derstood, the mechanisms underlying the outcomes of the long-term response, characterized
+by sustained remission, relapse, or disease progression, remain less understood due to limited
+clinical data. Here, we analyze the long-term dynamics of a previously validated mathemat-
+ical model of CAR-T cell therapy. We perform a comprehensive stability and bifurcation
+analysis, examining model equilibria and their dynamics over the entire parameter space.
+Our results show that therapy failure results from a combination of insufficient CAR-T cell
+proliferation and increased tumor immunosuppression. By combining different techniques
+of nonlinear dynamics, we identify Hopf and Bogdanov-Takens bifurcations, which allow to
+elucidate the mechanisms behind oscillatory remissions and transitions to tumor escape. In
+particular, rapid expansion of CAR-T cells leads to oscillatory tumor control, while increased
+tumor immunosuppression destabilizes these oscillations, resulting in transient remissions fol-
+lowed by relapse. Our study highlights different mathematical tools to study nonlinear models
+and provides critical insights into the nonlinear dynamics of CAR-T therapy arising from the
+complex interplay between CAR-T cells and tumor cells.
+Keywords:
+Nonlinear phenomena, Differential equations, Hopf bifurcation,
+Bogdanov-Takens bifurcation, Mathematical Oncology, Immunotherapy
+1. Introduction
+Chimeric antigen receptor T-cell (CAR-T) therapy represents a significant advance in
+cancer treatment, particularly for hematological malignancies such as acute leukemia and
+lymphomas.
+This approach involves extracting T cells from patients’ blood, genetically
+modifying them to express chimeric antigen receptors (CARs), and reintroducing them into
+the patient’s body. Engineered to target specific antigens expressed by tumor cells, CAR-T
+cells offer the potential to improve outcomes where conventional therapies have failed [1].
+The dynamical response of CAR-T therapy can be conceptually divided into two dis-
+tinct stages: the short-term response, lasting approximately one or a few months, and the
+long-term treatment outcome spanning several months to years. The short-term response is
+∗fassoni@unifei.edu.br
+arXiv:2410.08034v1  [q-bio.PE]  10 Oct 2024
+CD
+CT
+CM
+CE
+CD+CT+CM+CE
+T
+0
+5
+10
+15
+20
+25
+30
+105
+106
+107
+108
+109
+1010
+1011
+1012
+time
+CAR-T cells
+Patient B11
+0
+5
+10
+15
+20
+25
+30
+103
+104
+105
+106
+107
+108
+109
+time
+tumor cells
+Patient B2
+Figure 1: Fits of model (1) to time courses of two patients illustrating the multiphasic dynamics of CAR-T
+cells and the different tumor responses: remission (patient B11) and stable disease (patient B2). CAR-T
+cells are shown in green, tumor cells in red, and the total CAR-T cell population in black. Patient data are
+shown as blue dots. Data and parameter values obtained from [4].
+characterized by multiphasic kinetics of CAR-T cells (Figure 1), arising from the interplay
+between different phenotypes and encompassing four phases [2, 3, 4]: a distribution phase
+marked by the decay of injected CAR-T cells and their migration to the tumor site; an
+expansion phase with significant proliferation of CAR-T cells triggered by antigen recogni-
+tion; a contraction phase where CAR-T cell levels decline due to reduced tumor load; and
+a persistence phase dominated by memory CAR-T cells with slower decline attributed to
+their extended lifespan. Clinical documentation of this response is typically facilitated by
+regular blood sampling, often conducted during inpatient observation periods. Typically, the
+persistence phase commences one or a few months after CAR-T injection.
+Conversely, the long-term response unfolds over an extended timeframe and lacks detailed
+time courses due to reduced blood sampling. This phase is characterized by sustained remis-
+sion, molecular relapse detected through routine examinations, or disease progression marked
+by the return of symptoms, the latter two indicative of therapy failure. Common reasons for
+relapse include suboptimal CAR-T cytotoxic efficiency or expansion, tumor-mediated inhibi-
+tion of CAR-T and immune cells, and the emergence of resistant tumor cells, notably those
+lacking target antigens [5, 6].
+A previous publication by one of us presented the development of a differential equa-
+tion model that effectively captures the multiphasic kinetics in the short-term response and
+provides mechanistic insights into how it emerges through the phenotypic differentiation of
+CAR-T cells [4]. Regarding the long-term response, model simulations with patient-specific
+parameter fits reproduced both treatment tumor control and escape (Figure 1), and also pre-
+sented sustained oscillations in CAR-T cell-tumor kinetics, suggesting the existence of limit
+cycles. However, this previous work primarily focused on elucidating the short-term dynam-
+ics of CAR-T therapy, leaving the comprehensive understanding of the model’s long-term
+behavior unresolved.
+In this manuscript, we aim to dissect the long-term behavior of this previous CAR-T
+2
+cell therapy model. While the original model comprises a nonautonomous system of five
+differential equations, the model behavior in the long-term is described by a reduced three-
+dimensional autonomous subsystem. Therefore, disregarding the transient terms, we conduct
+a comprehensive stability and bifurcation analysis of the three-dimensional permanent system
+to uncover the underlying mechanisms governing the long-term therapeutic response. Our
+study includes a complete examination of the model equilibria and their dynamics across the
+entire parameter space. This investigation provides a profound understanding of how the
+model parameters characterizing tumor and CAR-T cell attributes determine the long-term
+therapy response. Specifically, we demonstrate that therapy failure does not stem from a
+singular factor but rather from a confluence of inadequate CAR-T cell proliferation coupled
+with elevated tumor immunosuppression. Furthermore, we rigorously establish the existence
+of Hopf and Bogdanov-Takens bifurcations. Such a mathematical analysis translates into the
+therapeutic context and shows that oscillatory remissions occur when CAR-T cell expansion
+is rapid. Moreover, by increasing tumor immunosuppression, which leads to the collapse
+of a limit cycle with a homoclinic loop, these oscillations can be destabilized, leading to a
+state of transient or false remission followed by tumor escape. In summary, by exploring
+the consequences and ramifications of the model’s nonlinear dynamics, we provide valuable
+insights into the determinants of treatment efficacy.
+This manuscript is organized as follows. In Section 2, we present the original model and
+its reduction to the permanent system. Then we outline our mathematical results in an
+intuitive, non-formal manner, illustrated with two-dimensional bifurcation diagrams, phase
+portraits, and numerical simulations accompanied by biological interpretation. The findings
+are presented with precise statements and rigorous proofs in Section 3. Finally, we provide
+the context of previous work in this area and discuss our results in Section 4.
+2. Results
+2.1. Model for CAR-T cell therapy and reduction to permanent system
+Our previous model for the multiphasic kinetics of CAR-T cell therapy comprises four
+compartments representing CAR-T cell phenotypes, namely distributed, effector, memory,
+and exhausted CAR-T cells, denoted as CD, CT, CM, and CE, respectively, along with one
+compartment of antigen-expressing tumor cells, denoted as T. The model is given by the
+following system of differential equations:
+dCD
+dt
+= −βCD −ηCD ,
+(1a)
+dCT
+dt
+= ηCD +
+
+rmin +
+p1
+1 + p2tp3
+
+T
+A + T CT −(ξ + ϵ + Λ)CT + θTCM −αTCT,
+(1b)
+dCM
+dt
+= ϵCT −θTCM −µCM ,
+(1c)
+dCE
+dt
+= ΛCT −δCE ,
+(1d)
+dT
+dt = rT(1 −bT) −γ
+(CD + CT)T
+a + CD + CT + dT .
+(1e)
+3
+The model assumes that initially injected CAR-T cells exhibit the distributed phenotype,
+transitioning thereafter to the effector phenotype at a rate η. Upon antigen recognition,
+effector cells expand with a time-dependent rate that commences at its maximum value,
+rmin + p1, decreasing to the basal expansion rate, rmin. Effector cells also transition to the
+memory phenotype at a rate ϵ, and become exhausted at a rate Λ.
+In the presence of
+tumor cells, memory cells revert to effector at a rate θ. Distributed, effector, memory and
+exhausted CAR-T cells have death rates β, ξ, µ, and δ, respectively. Tumor cells present
+a logistic growth with rate r and carrying capacity b−1, and exert an immunosuppressive
+effect on effector CAR-T cells, modeled by the mass-action law with a constant α. Both
+distributed and effector CAR-T cells impose cytotoxic effects on tumor cells at a rate γ, with
+the Holling-type-II-like functional response given in (1e), inspired by previous models by De
+Boer and De Pillis [7, 8].
+Figure 1 presents examples fits of model (1) obtained in [4], to time courses of two patients
+showing different responses: remission (Patient B11) and stable disease (Patient B2). Such
+outcomes suggest the existence of different attractors for the solutions of (1) and show that
+even an initial expansion of CAR-T cells and decrease in the tumor load may be followed by
+tumor regrowth or persistence. Therefore, a deeper understanding of the outcomes of CAR-T
+therapy as described by system (1) depends on characterizing its attractors and bifurcation
+diagrams.
+This task can be achieved by analyzing the reduced autonomous system which describes
+the permanent behavior of solutions of (1). Such reduction is based on the following remarks.
+First, since the solution of (1a) is CD(t) = CD(0)e−(β+η)t, we have CD →0 for t →∞.
+Second, the nonautonomous expansion rate in (1b) converges to rmin as t →∞. Finally,
+equation (1d) is decoupled and may be disregarded. Thus, the long-term behavior of solutions
+of system (1) is equivalent to solutions of the reduced system given by
+dCT
+dt
+= rmin
+T
+A + T CT −(ξ + ϵ + Λ)CT + θTCM −αTCT,
+(2a)
+dCM
+dt
+= ϵCT −θTCM −µCM,
+(2b)
+dT
+dt = rT(1 −bT) −γ
+CT
+a + CT + dT T.
+(2c)
+We refer to this three-dimensional autonomous system as the permanent system since it
+portrays the asymptotic behavior of the five-dimensional nonautonomous system (1).
+2.2. Summary of nonlinear dynamics
+Our main results are given by Theorems 1, 3 and 5 presented in Section 3. In the following,
+we present their contents in a informal way in order to provide a straightforward description
+of our results with their biological implications.
+To simplify the mathematical notation, we analyzed the dimensionless form of system (2)
+4
+given by
+dx
+dτ = p xz
+k + z −wx + qzy −uzx,
+(3a)
+dy
+dτ = sx −qzy −mqy,
+(3b)
+dz
+dτ = z(1 −z) −v
+xz
+c + x + z,
+(3c)
+where x = (b/d)CT, y = (b/d)CM, and z = bT represent densities of effector CAR-T,
+memory CAR-T and tumor cells, respectively, and
+τ = rt, p = rmin
+r , u = α
+rb, v = γ
+r , w = ξ + ϵ + Λ
+r
+, m = µb
+θ , k = bA, q = θ
+rb, s = ϵ
+r, c = ab
+d .
+(4)
+All parameters are assumed to be positive.
+We also assume that v > 1, otherwise the
+maximum tumor kill rate γ would be less than the tumor growth rate r, leading to an
+ineffective treatment. Since w > s, the parameter space is defined as
+Λ = {σ = (p, u, v, w, m, k, q, s, c) ∈R9 | p, u, m, k, q, s, c > 0, w > s, v > 1}.
+In Theorem 1, we show that system (3) has the following equilibria with the following
+stability properties:
+1. The trivial equilibrium E0 = (0, 0, 0), which is always a saddle point, with a two-
+dimensional stable manifold given by the plane z = 0.
+2. The tumor escape equilibrium ET = (0, 0, 1), which may be either a stable node or a
+saddle with a two-dimensional stable manifold.
+3. Two nontrivial equilibrium points, given by EC = (x2, y2, z2) and ES = (x3, y3, z3),
+satisfying 0 < z2 < z3 < 1 whenever both are positive (i.e., xi, yi, zi > 0). Since z2 is
+small, EC is denoted as the tumor control equilibrium point, while ES is denoted as
+the separation point (see below). If EC (ES) is positive, the Jacobian matrix of (3)
+evaluated at EC (ES) has at least one real negative (positive) eigenvalue.
+Moreover, considering p (expansion rate of CAR-T cells) and u (tumor immunosuppressive
+effect) as bifurcation parameters, in Theorem 1 we identify three regions in the parameter
+space where the equilibria present different existence and stability properties. These regions
+are separated by two curves, denoted as u = uTC(p) and u = uSN(p) (see Figure 2, expressions
+provided in Section 3). The parameter regions are
+R0 = {σ ∈Λ | p < p∗, u > uTC} ∪{σ ∈Λ | p > p∗, u > uSN},
+R1 = {σ ∈Λ | u < uTC},
+R2 = {σ ∈Λ | p > p∗, uTC < u < uSN}.
+(5)
+Within this context, the results of Theorem 1 are summarized as follows:
+• If σ ∈R0, then the tumor escape equilibrium ET is a stable node and there are no
+positive nontrivial equilibria.
+5
+a
+c
+d
+b
+u = uTC(p)
+u = uSN(p)
+p (CAR-T cell expansion)
+u (tumor toxicity)
+R0
+R1
+R2
+b
+c
+d
+Figure 2: a The curves u = uT C and u = uSN divide the parameter space p × u in regions R0, R1 and R2
+where system (3) have different equilibria configuration. These curves were plotted using their parametric
+expressions given in Section 3. For each region, a representative parameter pair (black dots) is chosen and
+the corresponding phase portrait is plotted. The trajectories represent numerical solutions starting from
+initial conditions marked by black dots. Parameter values are given in Table 1. b In region R0, the tumor
+equilibrium ET is a stable node, while the nontrivial equilibria do not exist. Tumor escape is the only possible
+long-term outcome. c In region R1, the tumor equilibrium ET is a saddle-point, while the tumor control
+equilibrium EC is the only positive nontrivial equilibrium, and it may be stable, as shown here. Tumor
+control is the only possible long-term outcome. d In region R2, the tumor equilibrium ET is a stable node,
+the two nontrivial equilibria EC and ES are positive; in the case showed here, EC is stable and ES is a saddle
+with a two-dimensional stable manifold which is separatrix between the basins of attraction of ET and EC.
+The long-term outcome (tumor escape or control) depends on where the initial condition is located.
+6
+• If σ ∈R1, then the tumor escape equilibrium ET is a saddle-point, the tumor control
+equilibrium EC is the only positive nontrivial equilibrium and it may be a stable or
+unstable.
+• If σ ∈R2 then the tumor escape equilibrium ET is a stable node, both nontrival
+equilibria EC and EC are positive, ES is not stable while the tumor control equilibrium
+EC may be a stable or unstable.
+The division of the parameter plane p × u into regions R0, R1 and R2 is shown in Figure
+2. One can interpret R0 as a region of high immunosuppression and limited CAR-T cell
+expansion, where tumor escape is inevitable (ET is the only attractor); R1 as a region of
+high CAR-T cell expansion and limited immunosuppression, where the tumor is likely to be
+under control (EC may be the only attractor), and R2 as a region of relative balance between
+CAR-T cell expansion and immunosuppression, where the outcome (tumor escape or control)
+depends on the initial condition (ET and EC may be the only attractors). While the union
+R0 ∪R1 ∪R2 does not cover the entire parameter space, it is dense in Λ. The remaining
+parts correspond to the curves u = uTC, where the tumor escape equilibrium ET undergo a
+transcritical with one of the nontrivial equilibria, and u = uSN where the nontrivial equilibria
+undergo a saddle-node bifurcation (see Section 3; the intersection uTC = uSN is a fold point).
+Figure 2 also shows representative phase portraits for parameter pairs (p, u) in R0, R1
+and R2, in the particular cases where EC is stable in R1 and R2 and ES is a saddle in R2,
+having a two-dimensional stable manifold. These stability properties hold for some parameter
+values, but not always. Thus, while the existence of the nontrivial equilibria is completely
+determined by the location of the parameter pair (p, u), their stability cannot be completely
+determined in regions R1 and R2, as we show below. In Lemma 1 we give sufficient conditions
+involving other parameters under which these properties seen in Figure 2 hold.
+Figure
+Region
+p
+u
+(x0, y0, z0)
+(x0, y0, z0)
+2b, 5a
+R0
+0.25
+0.2
+(0.3, 0.001, 0.6)
+2c, 5b
+Rs
+1
+0.43
+0.2
+(0.05, 0.001, 0.6)
+2d, 5c,d
+Rs
+2
+0.43
+0.3
+(0.05, 0.001, 0.6)
+(0.05, 0.001, 0.01)
+3b, 6a
+Rs
+2
+0.66
+0.7
+(0.02, 0.001, 0.35)
+(0.03, 0.03, 0.3)
+3c, 6b
+Ru
+2
+0.76
+0.7
+(0.02, 0.001, 0.35)
+(0.03, 0.001, 0.3)
+3d
+Ru
+1
+0.76
+0.4
+(0.02, 0.001, 0.35)
+4b
+Ru,o
+2
+1.6568
+2.36
+(0.02, 0.001, 0.35)
+(0.03, 0.001, 0.3)
+4c, 6c
+L
+1.6568
+2.7991
+(0.02, 0.001, 0.35)
+(0.03, 0.001, 0.3)
+4d, 6d
+Ru,e
+2
+1.6568
+3.24
+(0.02, 0.001, 0.35)
+(0.019, 0.06, 0.16)
+Table 1: The different values for p, u and (x0, y0, z0), used in Figures 2-6, are indicated here, while the other
+parameters were always set to v = 289/20, w = 1/2, m = k = c = 3/20, q = s = 9/20.
+In particular, the statement that the tumor control equilibrium EC may be stable or
+unstable suggests that it undergoes a Hopf bifurcation. Investigating this issue we rigorously
+proved in Theorem 3 that there exists a Hopf curve H characterized by the Jacobian of (3)
+evaluated at EC having a pair of complex eigenvalues with zero real part. We showed that
+the Hopf curve H divides the regions R1 and R2 into two subregions, denoted as Rs
+i and
+7
+a
+d
+c
+b
+u = uTC(p)
+u = uSN(p)
+ℋ
+p (CAR-T cell expansion)
+u (tumor toxicity)
+R0
+R1
+s
+R2
+s
+R2
+u
+R1
+u
+b
+c
+d
+Figure 3: a The curve H divides regions R1 and R2 in regions Rs
+i (where EC is stable) and Ru
+i (where
+EC is unstable, encircled by a small limit cycle for parameters close to H). This curve was plotted using
+the parametric expression given in Section 3. For each region, a representative parameter pair (black dots)
+is chosen and the corresponding phase portrait is plotted. The trajectories represent numerical solutions
+starting from initial conditions marked by black dots. Parameter values are given in Table 1. b In region
+Rs
+2, the tumor equilibrium ET is a stable node, ES is a saddle-point with a two-dimensional stable manifold,
+and the tumor control equilibrium EC is a stable focus in the case showed here. c Increasing p leads to a
+Hopf bifurcation when the parameter pair (p, u) crosses H from Rs
+2 to Ru
+2, where EC is now an unstable
+focus encircled by a stable limit cycle OC (blue trajectory). Tumor control is now achieved with sustained
+oscillation around a low tumor burden. d Decreasing u leads to a transcritical bifurcation between ES and
+ET when u crosses u = uT C(p) from Ru
+2 to Ru
+1, where now ET is a saddle and EC is still an unstable focus
+encircled by a stable limit cycle OC (blue trajectory).
+8
+Ru
+i (i = 1, 2), where the superscripts s and u stand for stable and unstable, respectively
+(see Figure 3). We prove that EC is stable for σ ∈Rs
+i and that when σ crosses H from Rs
+i
+to Ru
+i , EC undergoes a Hopf bifurcation and becomes an unstable focus. Moreover, there
+exists a small limit cycle around EC, denoted by OC, for parameter values close to the curve
+H, in one side Rs
+i or Ru
+i . In all of our numerical results, the Hopf bifurcation was always
+supercriticial, meaning that OC is stable and arises in Ru
+i ; these results were later confirmed
+by Theorem 5 (see Section 3). Figure 3 presents representative phase portraits of each case.
+Roughly speaking, we see that H defines, for each u fixed, a threshold pH for the CAR-T cell
+expansion rate p, with respect the stability of EC: if p < pH then σ ∈Rs
+i and EC is stable,
+whereas if p > pH then σ ∈Ru
+i and EC is unstable and encircled by a limit cycle, leading to
+sustained oscillations of small amplitude around the tumor control equilibrium.
+In Figure 3 we note that the Hopf curve H may intersect the saddle-node curve u =
+uSN. At the intersection point, the Jacobian matrix of (3) evaluated at the tumor control
+equilibrium point EC has a pair of purely imaginary eigenvalues that collapse to a double
+zero eigenvalue. This indicates the presence of a Bogdanov-Takens bifurcation. We have
+investigated this aspect from a rigorous mathematical point of view and proved in Theorem
+5 that indeed such an intersection exists and is a Bogdanov-Takens point where EC undergoes
+such a bifurcation. We give a full analytical proof, which was possible by imposing simplifying
+conditions on the model parameters.
+Figure 4 shows the corresponding two-dimensional
+bifurcation diagram.
+The occurrence of a Bogdanov-Takens bifurcation implies the existence of a curve L of
+homoclinic loops in the parameter space (red curve in Figure 4), i.e., a curve along which there
+is a homoclinic connection at the saddle-point ES. We see that L divides the region Ru
+1 into
+two subregions, denoted Ru,o
+1
+and Ru,e
+1 , where the superscripts o and e stand for oscillation
+and escape, respectively. In the region Ru,o
+1
+we have the same behavior as previously described
+for Ru
+1: the tumor escape equilibrium is stable, the tumor control equilibrium is an unstable
+focus surrounded by a stable limit cycle OC, and ES is a saddle with a two-dimensional
+stable manifold separating the basins of attraction of ET and OC. As the parameter pair
+(p, u) approaches the bifurcation curve L, the limit cycle approaches the saddle point ES,
+leading to a global bifurcation at (p, u) ∈L, when a homoclinic loop C is formed. When
+passing to Ru,e
+2 , the homoclinic loop disappears and there is no more attractor (either a cycle
+or an equilibrium) corresponding to tumor control. Solutions passing or starting near the
+tumor control equilibrium point EC spiral along it but then escape such region, converging
+to the tumor escape equilibrium ET. This means that, although there is a tumor control
+equilibrium EC in region Ru,e
+2 , it cannot prevent tumor escape, but only delays it when the
+solutions travel through the region of EC.
+2.3. Therapeutic implications
+The above results have important implications for the therapeutic response to CAR-T
+cell treatment. We illustrate these consequences by discussing the time courses shown in
+Figures 5 and 6, which correspond to the different trajectories shown in Figures 2, 3 and 4.
+Region R0 is characterized by having the tumor escape as the only attractor, and repre-
+sents a region of treatment failure due to the fact that tumor cells exert a strong immuno-
+suppressive effect on CAR-T cells (u > max{uTC, uSN}). As shown in Figure 5a, a high dose
+9
+a
+b
+c
+d
+u = uTC(p)
+u = uSN(p)
+ℋ
+ℒ
+p (CAR-T cell expansion)
+u (tumor toxicity)
+R0
+R1
+s
+R2
+s
+R2
+u, o
+R2
+u, e
+R1
+u
+b
+c
+d
+Figure 4: a The curve L divides the region Ru
+2 into the regions Ru,o
+2
+and Ru,e
+2 , where o and e stand for
+oscillation and escape, respectively. This curve was obtained numerically using MATCONT. For each region,
+a representative parameter pair (black dots) is chosen and the corresponding phase portrait is plotted. The
+trajectories represent numerical solutions starting from initial conditions marked by black dots. Parameter
+values are given in Table 1. b In region Ru,o
+2 , the tumor equilibrium ET is a stable node, ES is a saddle
+with a two-dimensional stable manifold, and the tumor control equilibrium EC is an unstable focus encircled
+by a stable limit cycle OC (blue curve). The long term results are either tumor escape or tumor control
+with small amplitude oscillations. c Increasing the tumor toxicity u leads to a global bifurcation where the
+limit cycle OC collapses with the saddle point ES, forming a homoclinic loop C (pink curve). Solutions that
+appear to converge to the homoclinic loop escape the tumor control region and converge to the tumor escape
+equilibrium point ET . Tumor escape is the only possible long-term outcome, which may be delayed when
+the solutions pass through the region of the unstable tumor control equilibrium. d Increasing u leads to
+the disappearance of the homoclinic loop C. Solutions passing near the tumor control equilibrium point EC
+escape with fewer oscillations around it and converge to the tumor escape equilibrium point ET .
+10
+x
+y
+z
+a
+b
+0
+20
+40
+60
+80
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+time
+densities
+(p,u) ∈R0, Fig. 2b
+0
+10
+20
+30
+40
+50
+60
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+time
+densities
+(p,u) ∈R1
+s, Fig. 2c
+c
+d
+0
+5
+10
+15
+20
+25
+30
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+time
+densities
+(p,u) ∈R2
+s, (x0,y0,z0) ∈(ET), Fig. 2d
+0
+10
+20
+30
+40
+50
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+time
+densities
+(p,u) ∈R2
+s, (x0,y0,z0) ∈(Ec), Fig. 2d
+Figure 5: Time-courses of numerical solutions shown in Figure 2 representing the different dynamics in
+the different parameter regions. Effector CAR-T cells are shown in green (x), memory CAR-T cells are
+shown in blue (y), and tumor cells are shown in red (z). Parameter values are given in Table 1. a With
+high immunosuppression and low CAR-T cell expansion ((p, u) ∈R0), tumor escape is expected for all
+initial conditions, even after an initial good response. b For limited immunosuppression and CAR-T cell
+expansion ((p, u) ∈Rs
+1) tumor control with an equilibrium is expected for all initial conditions. c,d For
+intermediate immunosuppression and CAR-T cell expansion ((p, u) ∈Rs
+2), either tumor escape (c) or control
+with equilibrium (d) can occur, depending on which of the basins of attraction (denoted as A(E)) the initial
+conditions are. Importantly, higher values of initial tumor burden seem to better stimulate the CAR-T cell
+expansion as required for tumor control.
+11
+x
+y
+z
+a
+b
+0
+20
+40
+60
+80
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+time
+densities
+(p,u) ∈R2
+s, (x0,y0,z0) ∈(Ec), Fig. 3b
+0
+20
+40
+60
+80
+100
+120
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+time
+densities
+(p,u) ∈R2
+u,o, (x0,y0,z0) ∈(Oc), Fig. 3c
+c
+d
+0
+20
+40
+60
+80
+100
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+time
+densities
+(p,u) ∈ℒ, Fig. 4c
+0
+20
+40
+60
+80
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+time
+densities
+(p,u) ∈R2
+u,e, Fig. 4d
+Figure 6: Time-courses of numerical solutions shown in Figures 3 and 4 representing the different dynamics
+in the different parameter regions.
+Effector CAR-T cells are shown in green (x), memory CAR-T cells
+are shown in blue (y), and tumor cells are shown in red (z). Parameter values are given in Table 1. a,b
+The stable tumor control equilibrium (a) can be desestabilized by increased CAR-T cell expansion, leading
+to tumor control with sustained oscillations (b).
+c,d An even more desestabilizing effect is achieved by
+increasing immunosuppression, leading to a homoclinic bifurcation (c) where amplifying oscillations lead to
+tumor escape; this effect is stronger at higher immunosuppression (d).
+12
+of CAR-T cells can eventually reduce the tumor burden to very low levels, but this remission
+is only transient before the tumor escapes.
+On the contrary, the region Rs
+1 represents the ideal setting, since the tumor control equi-
+librium EC is the only attractor. This region requires a limited immunosuppressive effect of
+tumor cells (u < uTC), but also a controlled expansion of CAR-T cells (p < pH). In this case,
+even a small initial number of CAR-T cells is able to expand and suppress tumor growth,
+keeping a small but positive number of tumor cells under control, as shown in Figure 5b.
+Region Rs
+2 is characterized by bistability between tumor escape (ET) and control (EC).
+This configuration results from the relative limitation on the immunosuppressive effect of
+tumor cells and the expansion of CAR-T cells (uTC < u < uSN, p < pH). In this bistable
+regime, it is important to note that the configuration of the basins of attraction may play an
+important and nontrivial role in the therapeutic outcome. Indeed, it seems that not all initial
+conditions consisting of small tumor loads lead to tumor control, even with higher CAR-T cell
+doses, but on the contrary, high tumor loads seem to be required. These claims are illustrated
+by the two solutions shown in the phase portrait in Figure 5d and their corresponding time
+courses in Figure 2c,d: while the initial condition (x0, y0, z0) = (0.05, 0.001, 0.01) leads to
+tumor escape (Figure 2c), the same initial condition with z0 = 0.6 leads to tumor control
+(Figure 2d). This complex configuration of the basins of attraction suggests that a high tumor
+burden may be required to activate CAR-T cells in order to achieve sufficient expansion that
+later leads to tumor control.
+The occurrence of Hopf bifurcation within regions R1 and R2 also have important conse-
+quences for therapeutic implications, and is intrinsically related with the expansion rate of
+CAR-T cells. While tumor control consisting of exponential decay (Figure 5d) or damped os-
+cillations (Figure 6a) is achieved when the CAR-T cell expansion is limited (p < pH, σ ∈Rs
+i,
+EC is a stable node or focus), a high expansion rate (p > pH, σ ∈Ru
+i ), leads to an sustained
+oscillations of the residual tumor cells (the attractor is the limit cycle OC around EC, Figure
+6b). The results indicate that the high expansion rate of CAR-T cells leads to a stronger
+response against tumor cells, which then decline to very low levels. However, the stimulation
+of CAR-T cell expansion is then decreased, allowing tumor regrowth until the cycle repeats.
+Finaly, the ocurrence of Bogdanov-Takens bifurcation suggests that a increased immuno-
+suppressive effect u of tumor cells may desestabilize tumor control by CAR-T cells, leading
+to transient control which only delays tumor escape. Indeed, we see in Figure 6c that, at
+the bifurcation curve L, the collapse of the limit cycle OC in a homoclinic loop leads to
+amplifying oscillations of tumor cells until they reach a level where they are able to escape
+and suppress CAR-T cells. As the immunossuppressive effect increases (region Ru,e
+2 ), this is
+effect becomes stronger, with less oscilations before escape (Figure 6d).
+In summary, our analysis revealed the complex nonlinear dynamics of CAR-T cell therapy
+as described by the permanent system (3) and translated into important insights into long-
+term therapeutic outcome. In particular, we mention the nontrivial dependence on the initial
+tumor load required to achieve tumor control in the bistable regime; the role of increased
+CAR-T cell expansion in driving oscillating instead of damped tumor control, through a
+Hopf bifurcation; and the role of the immunosuppressive effect of tumor cells in transforming
+a scenario of oscillating tumor control into transient control followed by escape, through a
+Bogdanov-Takens bifurcation.
+13
+3. Mathematical Analysis
+In this section, we provide the formal statements, proofs and details for all results pre-
+sented before.
+3.1. Stability of equilibria
+The following theorem summarizes the the existence and stability analysis of equilibria.
+Theorem 1. Consider system (3) with the parameter vector denoted by σ = (p, u, ˆσ) ∈Λ,
+ˆσ = (v, w, m, k, q, s, c) fixed and consider p and u as bifurcation parameters. There exists
+p∗> 0 and continuous increasing functions (denoted as bifurcation curves)
+p 7→u = uTC(p), p > 0
+and
+p 7→u = uSN(p), p ⩾p∗
+(6)
+satisfying uTC(p∗) = uSN(p∗), u′
+TC(p∗) = u′
+SN(p∗) and uSN(p) > uTC(p) for p ⩾p∗, and such
+that the following positivity and stability conditions for the equilibria of system (3) hold:
+1. The trivial equilibrium E0 = (0, 0, 0) is a saddle; its two-dimensional stable manifold is
+the plane z = 0, and its one-dimensional unstable manifold is the segment 0 < z < 1
+along the z-axis.
+2. The tumor escape equilibrium ET = (0, 0, 1) is always positive; it is a stable node if
+u > uTC, and it is a saddle with a two-dimensional stable manifold if u < uTC.
+3. There are up to two positive nontrivial equilibrium points, denoted by EC = (x2, y2, z2)
+and ES = (x3, y3, z3), which satisfy 0 < z2 < z3 < 1 whenever both are positive. If
+u < uTC only EC is positive; if p > p∗and uTC < u < uSN, EC and ES are positive;
+if p > p∗and u > uSN, or if p < p∗and u > uTC, there are no positive nontrivial
+equilibria.
+4. If JS and JC denote the Jacobian matrix of system (3) evaluated at ES and EC respec-
+tively, then JS has at least one positive eigenvalue when ES is positive, and JC has at
+least one real negative eigenvalue when EC is positive.
+The proof of Theorem 1 is established below, where each paragraph concerns to one
+statement. The existence of uTC(p), p∗and uSN(p) is established along the proof, and their
+expressions are given in (8), (17) and (22) respectively.
+Invariance of R3
++. As a remark, it is straightforward to note that the first octant R3
++ is
+invariant with respect the flow of (3). Therefore all trajectories with non-negative initial
+conditions remain with non-negative values.
+Equilibrium points. The equilibria of system (3) are easily obtained by setting the derivatives
+in (3) to zero. They are given by the trivial equilibrium E0 = (0, 0, 0), the tumor escape
+equilibrium ET = (0, 0, 1), and up to two nontrivial equilibria, which are shown below.
+14
+Trivial equilibrium. The stability of the trivial equilibrium E0 is determined by the eigenval-
+ues of the Jacobian matrix of (3) evaluated at E0, which is
+J0 =
+
+
+−w
+0
+0
+s
+−mq
+0
+0
+0
+1
+
+.
+The eigenvalues are −w, −mq, and 1. Therefore, E0 is a saddle, with a two-dimensional
+stable manifold. This stable manifold is the invariant plane z = 0, since (0, 0) is globally
+asymptotically stable for subsystem (3a-b) with z = 0 (this can be shown by solving dx/dτ =
+−wx and substituting the solution in dy/dτ = sx−mqy). In a similar way, setting x = y = 0
+in (3), we see that the unstable manifold of E0 in R3
++ is the segment 0 < z < 1 along the
+z-axis. This proves item 1 of Theorem 1.
+Tumor escape equilibrium. The stability of the tumor escape equilibrium ET is determined
+by the eigenvalues of
+JT =
+
+
+p
+1+k −u −w
+q
+0
+s
+−q −mq
+0
+−v
+1+c
+0
+−1
+
+.
+Denoting these eigenvalues by λ(T)
+i
+, i = 1, 2, 3, we have λ(T)
+3
+= −1 < 0, while λ(T)
+1
+and λ(T)
+2
+are the eigenvalues of
+ˆJT =
+
+p
+1+k −u −w
+q
+s
+−q(1 + m)
+
+.
+The characteristic polynomial of ˆJT is ˆP(λ) = λ2 + b1λ + b0, with coefficients
+b0 = q(1 + m) (u −uTC)
+and
+b1 = (u −uTC) + (1 + m)q +
+s
+m + 1,
+(7)
+where
+uTC =
+p
+k + 1 +
+s
+m + 1 −w.
+(8)
+Further, the discriminant of ˆP(λ) is
+b2
+1 −4b0 = (u −uTC −(1 + m)q)2 + 2s ((u −uTC) + (1 + m)q)
+m + 1
++
+s2
+(m + 1)2.
+(9)
+From (7), (8) and (9), we conclude the following. If u < uTC, then b0 < 0 and λ(T)
+1
+and λ(T)
+2
+are real with opposite signs; since λ(T)
+3
+< 0, in this case, ET is a saddle with a two-dimensional
+stable manifold. If u > uTC, then b0 > 0, b1 > 0 and b2
+1 −4b0 > 0; thus λ(T)
+1
+and λ(T)
+2
+are real
+and negative, and ET is a stable node. This proves item 2 of Theorem 1.
+Nontrivial equilibria. To find the nontrivial equilibria with x, y, z > 0, we solve dz/dτ = 0
+for x, obtaining
+x = xC(z) = (1 −z)(c + z)
+z + v −1
+.
+(10)
+15
+Solving dy/dτ = 0 for y, we obtain
+y = yC(z) =
+sxC(z)
+q(z + m).
+(11)
+Substituting y = yC(z) in dx/dτ = 0 with x ̸= 0, we obtain
+ϕ(z) = 0,
+where
+ϕ(z) =
+p
+k + z +
+s
+m + z −w
+z −u.
+(12)
+We conclude that the nontrivial equilibria have the form (xi, yi, zi) with
+xi = xC(zi) and yi = yC(zi),
+where zi is a real root of (12). A nontrivial equilibrium has biological meaning only when it
+is positive, i.e., if xi, yi, zi > 0. Since v > 1, we have xi, yi, zi > 0 if and only if the root zi
+satisfies
+0 < zi < 1,
+(13)
+which we denote as feasibility conditions or feasibility interval.
+Equation (12) is equivalent to the third-degree polynomial equation
+Γ(z) = 0,
+where Γ(z) = c3z3 + c2z2 + c1z + c0,
+(14)
+with coefficients
+c3 = u, c2 = w + mu + ku −s −p, c1 = mku + kw + mw −ks −mp, c0 = kmw.
+(15)
+Note that c3 > 0 implies Γ(−∞) = −∞. Since Γ(0) = c0 > 0, the Intermediary Value
+Theorem (IVT) guarantees that Γ has a real negative root z1 < 0. Thus, Γ(z) admits at
+most two positive roots, which we denote by z2 and z3.
+When both roots are positive,
+we denote then in the order z2 < z3. Therefore, there are up to two nontrivial equilibria,
+EC = (x2, y2, z2) and ES = (x3, y3, z3).
+We analyze the existence of these roots assuming u as bifurcation parameter. Note that
+Γ(1) = (k + 1)(m + 1) (u −uTC) .
+(16)
+Therefore, if 0 < u < uTC, then Γ(0) > 0 > Γ(1) and Γ(1) < 0 < Γ(∞) = ∞. Thus, by
+the IVT, Γ(z) has a root z2 ∈(0, 1) and another root z3 > 1. By (13), we conclude that if
+u ∈(0, uTC) there is a unique positive nontrivial equilibrium, which is EC.
+Note that ∂Γ/∂u = kmz + (k + m)z2 + z3 > 0 for z > 0. Therefore, as u increases, the
+values of Γ(z) also increase, for all z > 0. Therefore, the roots z2 < 1 and z3 > 1 move to
+right and left respectively. When u reaches uTC, one of these roots z˜i reaches z = 1 because
+Γ(1) = 0 if u = uTC. Note that this means a transcritical bifurcation between some of the
+Ei (i = C, S) and ET at u = uTC, since zi = 1 implies Ei = (0, 0, 1) = ET. Note that, since
+Γ is a third-degree polynomial with three real roots z1 < 0 < z2 < z3 and leading coefficient
+c3 > 0, we necessarily have Γ′(z1) > 0, Γ′(z2) < 0 and Γ′(z3) > 0. Therefore, to decide which
+root z2 or z3 first crosses z = 1 as u reaches uTC, we analyze the sign of the derivative of
+Γ(z) at z = 1 when the crossing occurs, i.e., the sign of ρ∗= Γ′(1) calculated with u = uTC.
+16
+If ρ∗< 0, we have z2 = 1 when u = uTC; if ρ∗> 0, we have z3 = 1 when u = uTC. The
+formula for ρ∗is
+ρ∗= (m + 1)
+k + 1
+(p −p∗) ,
+where
+p∗= (k + 1)2
+
+w −
+s
+(m + 1)2
+
+.
+(17)
+Note that p∗> 0, because w > s (see (4)).
+First, we assume p < p∗. If u ∈(0, uTC), we have a single root z2 ∈(0, 1) and a single
+positive nontrivial equilibrium EC; when u = uTC, EC collides with ET; for u > uTC the root
+z2 leaves the feasibility interval (13) and there are no positive nontrivial equilibria.
+Now, assuming p > p∗, we have the following. If u ∈(0, uTC), we have a root z2 ∈(0, 1)
+and other root z3 ∈(1, ∞), thus there is a single positive nontrivial equilibrium EC. For
+u = uTC, we have z3 = 1 and ES coincides with ET. For u slightly greater than uTC, we
+have 0 < z3 < 1 and the ES is now also positive. As u increases, the two positive roots
+z2 < z3 persist until colliding when u reaches a critical threshold uSN > uTC, i.e., EC and
+ES collapse to a saddle-node point at uSN (see below). For u > uSN, there is no positive
+nontrivial equilibria. This proves item 3 of Theorem 1.
+The bifurcation curves. The threshold uSN and the collision point where z2 = z3 are the
+solutions (u, z) of the system of equations
+
+
+
+Γ(z) = 0,
+Γ′(z) = 0,
+0 < z < 1.
+Solving this system for p and u, we obtain a parameterization z 7→(pSN(z), uSN(z)) in the
+plane p × u of a curve along which Γ(z) has a double real root satisfying the feasibility
+conditions. The parametrized curve is given by
+
+
+
+
+
+
+
+
+
+
+
+
+
+p = pSN(z) = (k + z)2
+ w
+z2 −
+s
+(m + z)2
+
+,
+u = uSN(z) = (m −k)s
+(m + z)2 + kw
+z2 ,
+0 < z < 1.
+(18)
+We now prove some properties. First, note that pSN(z) > 0 since w > s and
+1
+z2 −
+1
+(m + z)2 > 0.
+Further, from (18), uSN(z) can also be written as
+uSN(z) = k pSN(z)
+(k + z)2 +
+ms
+(m + z)2.
+(19)
+17
+Therefore, uSN(z) > 0. Further, we have
+lim
+z→0+(pSN(z), uSN(z)) = (+∞, +∞),
+and
+lim
+z→1−(pSN(z), uSN(z)) = (p∗, uTC(p∗)).
+Thus, the saddle-node curve belongs to the first quadrant of the plane p × u, and connects a
+point at infinity to the point in the curve u = uTC(p) with p = p∗. Note also that
+p′
+SN(z) = −(k + z)
+
+2ks
+ 1
+z3 −
+1
+(m + z)3
+
++ 2k(w −s)
+z3
++
+2ms
+(m + z)3
+
+< 0,
+(20)
+since w > s and
+1
+z3 −
+1
+(m + z)3 > 0.
+Therefore, pSN(z) is a strictly decreasing function in the interval z ∈(0, 1) whose image is
+(p∗, ∞). By the Inverse Function Theorem, pSN(z) admits an inverse function p 7→zSN(p),
+defined for p ∈(p∗, ∞) and whose image is (0, 1), with derivative satisfying
+z′
+SN(p) =
+1
+p′
+SN(z) < 0.
+(21)
+Substituting z = zSN(p) in (19) gives the expression of uSN as function of p only,
+uSN(p) =
+kp
+(k + zSN(p))2 +
+ms
+(m + zSN(p))2.
+(22)
+Differentiation shows that uSN(p) is a strictly increasing function, since z′
+SN(p) < 0 and
+u′
+SN(p) = −z′
+SN(p)
+
+2kp
+(k + zSN(p))3 +
+2ms
+(m + zSN(p))3
+
++
+k
+(k + zSN(p))2 > 0.
+(23)
+We note that uSN(p) and uTC(p) not only intersect at p = p∗but are also tangent. Indeed,
+making p →p∗in (23) we have zSN(p) →1 and then using (21), we have
+u′
+SN(p∗) = −
+1
+p′
+SN(1)
+
+2kp∗
+(k + 1)3 +
+2ms
+(m + 1)3
+
++
+k
+(k + 1)2.
+Substituting (20) with z →1 in the above expression leads to the conclusion that
+u′
+SN(p∗) =
+1
+k + 1 = u′
+TC(p∗).
+Finally, we show that uSN(p) > uTC(p) for all p > p∗. Since z 7→pSN(z) in (18) is a one-
+to-one map from (0, 1] to [p∗, ∞) (the extension to z = 1 follows from the limits above), we
+see that writing p = pSN(z) in (8) gives a parameterization of u = uTC(p) in terms of z,
+z 7→(pSN(z), uTC(pSN(z))). Since
+uSN(z)−uTC(pSN(z)) = (z −1)2 (k(m + 1)m2w + z2(k(mw + w −s) + ms) + 2k(m + 1)mwz)
+(k + 1)(m + 1)z2(m + z)2
+,
+and w > s, we have uSN(z) > uTC(pSN(z)) for all z ∈(0, 1) and thus uSN(p) > uTC(p) for
+all p > p∗.
+The above results prove the statements in Theorem 1 about properties of the bifurcation
+curves p 7→uTC(p) and p 7→uSN(p).
+18
+Stability of nontrivial equilibria. We now analyze the stability of the nontrivial equilibrium
+Ei, i = C, S under the assumption that they are positive, giving a proof for item 4 of Theorem
+1. We denote the Jacobian matrix of system (3) at Ei as Ji, i = C, S. Using the fact that zi
+satisfies (12) and yi satisfies (11), we simplify the entries j11, j13 and j23, obtaining
+Ji =
+
+
+−
+szi
+m + zi
+qzi
+j13
+s
+−q(m + zi)
+−
+sxi
+m + zi
+j31
+0
+j33
+
+,
+(24)
+where
+j13 = xi
+w
+zi
+−
+kpzi
+(k + zi)2
+
+,
+j31 = −vzi(c + zi)
+(c + xi + zi)2,
+j33 = 1 −2zi −
+vxi(c + xi)
+(c + xi + zi)2.
+(25)
+The characteristical polynomial of Ji is given by
+PE(λ) = λ3 + d2λ2 + d1λ + d0,
+(26)
+where
+d2 =
+szi
+(m + zi) + q(m + zi) −j33,
+d1 = −j13j31 −j33
+
+q(m + zi) +
+szi
+m + zi
+
+,
+d0 = j31q
+ sxizi
+m + zi
+−j13(m + zi)
+
+.
+(27)
+We analyze the sign of d0. Comparing the expression of j13 with the derivative of ϕ(z) in
+(12), we can write
+j13 = xizi
+
+s
+(m + zi)2 + ϕ′(zi)
+
+.
+Substituting this and j31 in d0, we obtain
+d0 = qvxiz2
+i (c + zi)(m + zi)
+(c + xi + zi)2
+ϕ′(zi).
+(28)
+From the results on the existence of the nontrivial equilibria, we note that z2 and z3 are the
+unique positive roots of ϕ(z) = 0. Since 0 < z2 < z3 and (see (12))
+lim
+z→0+ ϕ(z) = −∞and
+lim
+z→∞ϕ(z) = −u,
+we conclude from the differentiability of ϕ that ϕ′(z2) > 0 > ϕ′(z3) (otherwise, ϕ would have
+other roots). This implies that d0 > 0 for i = C (zi = z2) and d0 < 0 for i = S (zi = z3). Since
+d0 = −λ1λ2λ3, where λj are the eigenvalues of Ji, we conclude that at least one eigenvalue
+of JC is real negative when EC is positive and at least one eigenvalue of JS is real positive
+when ES is positive. This concludes the proof of Theorem 1.
+19
+Sufficient conditions for d2 > 0. While the above results (d0 < 0 for JS) implies that ES
+is not stable because JS has at least one positive eigenvalue, it does not establish that the
+remaining two eigenvalues have real negative parts, i.e., that ES is a saddle with a two-
+dimensional stable manifold. Note, however, that the condition d2 > 0 implies this property,
+since d2 = −(λ1 + λ2 + λ3).
+On the other hand, the above results also do not guarantee that EC is stable. To prove
+this, the Routh-Hurwitz conditions
+d0 > 0,
+d2 > 0 and d2d1 −d0 > 0,
+must be checked for JC. While d0 > 0 is always satisfied, the remaining conditions require
+additional hypotheses on the parameters. This implies that EC may be stable but not always,
+suggesting a Hopf bifurcation when d2d1 −d0 = 0.
+In light of these remarks, we now give conditions which imply d2 > 0 for JS and JC. We
+will also use these conditions in Theorem 3 to show that EC undergoes a Hopf bifurcation.
+To express d2 in terms of zi and the model parameters, we replace xi = xC(zi) from (10)
+in j33 in (25) and then in d2 in (27), obtaining
+d2 =
+szi
+m + zi
++ q(m + zi) + zi(zi −1)2
+v(c + zi) + zi(c + 2zi −1)
+(c + zi)
+.
+(29)
+The first three terms in (29) are positive. Note that the roots zi depend only on p, k, s, m, w
+and u (see (12)). Therefore, once these parameters are given and determine zi, if c > 1 −2zi
+we have d2 > 0. If this is not true, then we see that there are thresholds for q and v so that
+d2 > 0. These conclusions are summarized in the following Lemma.
+Lemma 1. Given p, k, s, m, w, u, and z2 and z3 the two possible real and positive roots of
+(12), if one of the following conditions holds, then the coefficient d2 of the characteristic
+polynomials of JS and JC is positive:
+1. c > 1 −2zi,
+2. q >
+1
+(m + zi)
+zi(1 −c −2zi)
+(c + zi)
+−
+szi
+m + zi
+−zi(zi −1)2
+v(c + zi)
+
+,
+3. 1
+v >
+(c + zi)
+zi(zi −1)2
+zi(1 −c −2zi)
+(c + zi)
+−
+szi
+m + zi
+−q(m + zi)
+
+,
+4. q and 1/v are large enough so that q(m + zi) + 1
+v
+zi(zi−1)2
+c+zi
+> zi(1−c−2zi)
+(c+zi)
+−
+szi
+m+zi.
+In addition to the conditions of Lemma 1, if one also admits that the third Routh-Hurwitz
+condition holds for JC, then we have the scenario shown in Figure 2 and given in the following
+Corollary.
+Corollary 1. Under the conditions of Lemma 1, ES is a saddle with a two-dimensional stable
+manifold, while EC is stable if d2d1 −d0 > 0 also holds.
+20
+3.2. Hopf bifurcation
+As shown above, it is not always the case that EC is stable, and our previous results
+suggest that it can become unstable via a Hopf bifurcation. We now briefly recall some
+aspects of Hopf bifurcation theory and present a simple criterion by Liu that gives sufficient
+and necessary conditions for a simple Hopf bifurcation. We then use this approach to prove
+that the tumor control equilibrium EC undergoes such a bifurcation.
+A Hopf bifurcation is a local bifurcation in which an equilibrium of a dynamical system
+loses stability because a pair of complex conjugate eigenvalues of the Jacobian matrix crosses
+the imaginary axis [9, 10, 11, 12]. More specifically, consider system
+x′ = f(x, ζ),
+(30)
+where x = (x, y, z) ∈U ⊂R3, f is of class C∞on the open set U, and ζ ∈R is a bifurcation
+parameter, while the other parameters are fixed. Suppose it has an equilibrium x0 = x0(ζ)
+that is a function of ζ for ζ near certain ζH. Denote the Jacobian matrix of (30) by J(x, ζ).
+If at ζ = ζH, J(x0, ζH) has a simple pair of purely imaginary eigenvalues ±λ (ζH) and no
+other eigenvalues with zero real parts and if
+d
+dζ Re λ(ζ)
+
+ζ=ζH
+̸= 0, then a small-amplitude
+periodic solution surrounding x0 emerges as ζ < ζH or ζ > ζH, for ζ is close to ζH. The
+particular case where all other eigenvalues (one, in the third-dimensional case) of J(x0, ζH)
+have negative real parts is called simple Hopf bifurcation [13, 14, 15].
+Typically, the criteria for a Hopf bifurcation of codimension 1 involve calculating the
+eigenvalues of the Jacobian and the normal form of the system around the equilibrium. The
+computation of the Lyapunov coefficient, which determines whether the bifurcation is subcrit-
+ical, supercritical, or degenerate, is even more complex, requiring the computation of second
+and third order coefficients around equilibrium. This task is challenging for high-dimensional
+systems, and even for low-dimensional systems where the equilibria depend on roots of higher-
+degree polynomials. In such cases, theoretical analysis with symbolic computations becomes
+difficult, if not impossible.
+An alternative and simpler approach to guarantee the existence of a Hopf bifurcation was
+proposed by Liu in 1994 [13] and has been applied in various modeling contexts [14, 15, 16,
+17, 18]. This criterion is based on the degeneracy of one of the Routh-Hurwitz conditions and
+relies solely on the coefficients of the characteristic polynomial of the Jacobian. Although it
+only guarantees the existence of a simple Hopf bifurcation and does not provide information
+about its nature (subcritical, supercritical, or degenerate), it is very useful for identifying the
+locus (manifold) in the parameter space where the equilibrium has a pair of purely imaginary
+eigenvalues.
+For simplicity, we state Liu’s theorem as recently presented by Shih [15], restricting
+ourselves to the dimension n = 3. For a comprehensive description of this approach, refer to
+[14].
+Theorem 2. [15] Consider system (30) and denote the characteristic polynomial of J(x, ζ)
+by
+PE(x, ζ, λ) = λ3 + d2(x, ζ)λ2 + d1(x, ζ)λ + d0(x, ζ).
+(31)
+21
+A simple Hopf bifurcation occurs at x = x0 = x0 (ζH) and ζ = ζH if and only if
+d0 (x0, ζH) > 0,
+d2 (x0, ζH) > 0,
+d2 (x0, ζH) d1 (x0, ζH) −d0 (x0, ζH) = 0,
+d
+dζ [d2 (x0, ζ) d1 (x0, ζ) −d0 (x0, ζ)]
+
+ζ=ζH
+̸= 0.
+(32)
+We apply Theorem 2 to system (3) and the tumor control equilibrium EC. The Jacobian
+matrix evaluated at x0 = EC = (x3, y3, z3), and the coefficients of the characteristic polyno-
+mial PE(λ) are given in (24) and (27). We proved that d0 > 0, and, under the conditions of
+Lemma 1, we have d2 > 0. According to Theorem 2, the Hopf locus, i.e., the manifold in the
+parameter space where a Hopf bifurcation occurs, is given by
+ψ := d2d1 −d0 = 0.
+To obtain a characterization of the Hopf locus in the parameter plane p × u, we proceed
+in the same way as before for the saddle-node bifurcation, obtaining a parameterization z 7→
+(pH(z), uH(z)) of the curve ψ = 0, keeping the other parameters fixed. This parameterization
+is the solution (p, u) of the system of equations
+ Γ(p, u, z) = 0,
+ψ(p, u, z) = 0.
+(33)
+Indeed, for each z, the solution of this system correspond a parameter pair (pH(z), uH(z))
+for which z is a root of Γ(z) = 0 (equation (14)) and ψ = 0. To solve (33) for p and u in
+terms of z, we note the following. First, from (27), we have
+ψ = j13j31q(m+z)−j31qsxz
+m + z +
+
+j33 −q(m + z) −
+sz
+m + z
+ 
+j13j31 + j33
+
+q(m + z) +
+sz
+m + z
+
+.
+Checking the expressions of j13, j31 and j33 in (25), we see that none of them depend on u,
+and only j13 depends on p, being a degree one polynomial in p. Therefore, ψ is also a degree
+one polynomial in p. Replacing xi by (10) with z = zi, we can write
+ψ = Aψ(z) + Bψ(z)p,
+where
+Aψ(z) = j31(1−z)(c+z)(j33w(m+z)−sz(qz+w))
+z(m+z)(v+z−1)
++ j33
+ q(m + z) +
+sz
+m+z
+  j33 −q(m + z) −
+sz
+m+z
+
+,
+Bψ(z) = j31(1−z)z(c+z)
+(k+z)2(v+z−1)
+  sz
+m+z −j33
+
+.
+With this, the second equation of (33) is easily solvable for p, while the first is then solved
+for u (see (12)). Thus, the Hopf locus is parametrized by
+
+
+
+
+
+
+
+
+
+p = pH(z) = −Aψ(z)
+Bψ(z),
+u = uH(z) = pH(z)
+k + z +
+s
+m + z −w
+z ,
+(34)
+22
+which is defined for Bψ(z) ̸= 0. Since j31 < 0 and (1 −z)/(v + z −1) > 0 (see (10)), we
+conclude that Bψ(z) = 0 if and only if sz/(m + z) = j33, which is equivalent to the third
+degree polynomial equation
+pB(z) = m
+ v(c + 2z −1) + (z −1)2
++ cv(s + z) + z
+ v(s + 2z −1) + (z −1)2
+= 0.
+(35)
+Excluding the possible roots of (35), (34) is well-defined for z ∈IH = {z ∈(0, 1); pB(z) ̸= 0}.
+If we fix u and adopt ζ = p as the bifurcation parameter of Theorem (2), this also guarantees
+the last condition in (32), since dψ/dp = Bψ ̸= 0. To guarantee that that pH(z) and uH(z)
+do not become negative, we conclude that IH needs to be restricted to
+IH = {z ∈(0, 1); pB(z) ̸= 0, −Aψ(z)
+Bψ(z) > (k + z)
+w
+z −
+s
+m + z
+
+},
+since uH(z) > 0 if and only if
+pH(z) > (k + z)
+w
+z −
+s
+m + z
+
+> 0.
+Finally, we note that the Hopf locus is contained in the image of (34), but is not necessarily
+equal to it. This is because (34) gives all parameter pairs for which ψ = d2d1 −d0 = 0, and
+this condition may also include a neutral saddle. Indeed, if a polynomial c0 + c1λ + c2λ2 + λ3
+has real roots l1, l2, l3 with l2 = −l1, then c2c1−c0 = 0, with c2c0 < 0. Thus, ψ = d2d1−d0 = 0
+is a condition also for a neutral saddle. To differ between the two cases, we note that in a
+Hopf point, the coefficients satisfy d2d0 > 0. Since d2 > 0 under the hypothesis of Lemma 1,
+the interval for z which gives the Hopf locus is {z ∈IH; d0 > 0}. A boundary point for this
+is z∗such that d0 = 0, which implies, from (28), in ϕ(z) = 0, corresponding to the a point
+at the saddle-node curve. In summary, if the curve (34) intersects the saddle-node curve,
+only one part of it corresponds to the Hopf locus for EC, while the other corresponds to
+locus of neutral saddle for ES. The possibility of such intersection also suggests the existence
+of a Bogdanov-Takens bifurcation, as we shall see below. For the parameter values used in
+Figures 3 and 4, the interval IH is (0.15, 0.172041), with the left boundary corresponding to
+d0 = 0 and the right to uH = 0.
+With the above results, we have proved the following.
+Theorem 3. Assume the conditions of Lemma 1 hold, denote by λ1 the real negative eigen-
+value of JC given by Theorem 1, and by λ2 and λ3 the other two eigenvalues of JC. Then,
+there exists an open interval IH and a curve CH parameterized by
+z 7→(pH(z), uH(z)) ∈CH, z ∈IH,
+given in (34), such that λ2 and λ3 form a pair of complex eigenvalues with zero real part if
+and only if (p, u) = (pH(z), uH(z)) for some z ∈IH. Moreover, CH divides each of regions
+R1 and R2 into two subregions Rs
+i and Ru
+i , i = 1, 2, such that λ2 and λ3 have negative real
+part in Rs
+i and positive real part in Ru
+i . For (p, u) close to (pH(z), uH(z)) in one of the sides
+Rs
+i or Ru
+i , there exists a small-amplitude periodic solution OC near EC.
+23
+The criterion by Liu does not inform whether the Hopf bifurcation is subcritical, super-
+critical or degenerate. Thus, we cannot infer the stability of the periodic solution OC and
+whether it lies in Rs
+i or Ru
+i . In all of our simulations, we found that it is always exists in
+Ru
+i and is stable, implying that the bifurcation is supercritical, so that the attractor changes
+from the equilibrium point EC to the limit cycle OC as (p, u) goes from Rs
+i to Ru
+i . We shall
+see that these findings are valid under the assumptions of Theorem 4, which guarantees the
+existence of a Boganov-Takens bifurcation, which in turn allows us to infer the exact type of
+the Hopf bifurcation.
+3.3. Bogdanov-Takens Bifurcation
+The possibility that the Hopf curve H intersects the saddle-node curve u = uSN suggests
+the existence of a Bogdanov-Takens point at the intersection point, where the Jacobian matrix
+has a pair of purely imaginary eigenvalues and a zero eigenvalue.
+In order to provide an analytical proof, we first establish some simplifying relations be-
+tween the model parameters, which allow us to easily calculate the quantities necessary to
+prove the existence of a Bogdanov-Takens bifurcation. We start by noting that setting m = k
+allows to obtain simple expressions for the roots of Γ(z). Indeed, for m = k, the negative
+root of Γ(z) is z1 = −k (see (14)), while the other two are
+z2,3 = p + s −w −ku ±
+p
+(−ku + p + s −w)2 −4kuw
+2u
+.
+This also simplifies the expression for uSN, obtained by setting the discriminant in the last
+equation to zero,
+uSN(p) = p + s + w −2
+p
+w(p + s)
+k
+.
+To eliminate the square root, we set p + s = 4w, leading to p = 4w −s and then u = w/k
+along the saddle-node curve, while the roots become
+z2,3 = k.
+With these choices, and substituting xi = xC(zi), the Jacobian matrix (24) along the saddle-
+node curve becomes
+Ji =
+
+
+
+
+−s
+2
+kq
+−(k−1)s(c+k)
+4k(k+v−1)
+s
+−2kq
+(k−1)s(c+k)
+2k(k+v−1)
+−k(k+v−1)2
+v(c+k)
+0
+−
+k(v(c+2k−1)+(k−1)2)
+v(c+k)
+
+
+
+
+The Jacobian can be further simplified by setting q = s and k = c, leading to
+Ji =
+
+
+
+−s
+2
+cs
+−
+(c−1)s
+2(c+v−1)
+s
+−2cs
+(c−1)s
+c+v−1
+−(c+v−1)2
+2v
+0
+−c(c+3v−2)+v−1
+2v
+
+
+
+One can easily see that d0 = det(Ji) = 0, confirming that we’re along the saddle-node
+curve. A Bogdanov-Takens point along the saddle-node curve is further characterized by
+24
+d2d0 −d1 = 0, which implies d1 = 0. Calculating d1 as the sum of the second-order principal
+minors of Ji we obtain
+d1 = cs(2c(c + 3v −2) −v + 2)
+2v
+.
+Solving d1 = 0 for v we obtain
+v = 2(c −1)2
+1 −6c
+In summary, with the above choices for m, p, u, k, q and v we obtain a Bogdanov-Takens
+point.
+In order to formalize our findings and provide a rigorous result, we now recall some aspects
+of the Bogdanov-Takens bifurcation theory, which can be found in [12] and [19] and in the
+references therein.
+Consider system (30) where now ζ = (κ, χ) ∈V is a vector with two bifurcation param-
+eters. Denote the characteristic polynomial of J(x, ζ) as in (31). A Bogdanov-Takens point
+of (30) is a pair (x0, ζ0) ∈U × V that satisfies
+f(x0, ζ0) = 0,
+d0(x0, ζ0) = 0,
+d1(x0, ζ0) = 0,
+d2(x0, ζ0) ̸= 0.
+Equivalently, a Bogdanov-Takens point is an equilibrium point x0 ∈U of (30) such that for
+ζ0 ∈V , the matrix J(x0, ζ0) is similar to the matrix
+
+
+
+0
+1
+0
+0
+0
+0
+0
+0
+λ3
+
+
+,
+with λ3 ̸= 0.
+A Bogdanov-Takens point (x0, ζ0) ∈U × V of (30) is transversal if the map
+(x0, ζ0) 7−→(f(x, ζ), d1(x, ζ), d0(x, ζ))
+is regular at the point (x0, ζ0), that is, the regularity condition R(x0, ζ0) ̸= 0, where
+R(x0, ζ0) = det
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+∂
+∂xf1(x0, ζ0) ∂
+∂yf1(x0, ζ0) ∂
+∂zf1(x0, ζ0) ∂
+∂κf1(x0, ζ0) ∂
+∂χf1(x0, ζ0)
+∂
+∂xf2(x0, ζ0) ∂
+∂yf2(x0, ζ0) ∂
+∂zf2(x0, ζ0) ∂
+∂κf2(x0, ζ0) ∂
+∂χf2(x0, ζ0)
+∂
+∂xf3(x0, ζ0) ∂
+∂yf3(x0, ζ0) ∂
+∂zf3(x0, ζ0) ∂
+∂κf3(x0, ζ0) ∂
+∂χf3(x0, ζ0)
+∂
+∂xd0(x0, ζ0) ∂
+∂yd0(x0, ζ0) ∂
+∂zd0(x0, ζ0) ∂
+∂κd0(x0, ζ0) ∂
+∂χd0(x0, ζ0)
+∂
+∂xd1(x0, ζ0) ∂
+∂yd1(x0, ζ0) ∂
+∂zd1(x0, ζ0) ∂
+∂κd1(x0, ζ0) ∂
+∂χd1(x0, ζ0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.
+Since (x0, ζ0) is a Bogdanov-Takens point, there are eigenvectors Q0, P1 ∈R3 associated
+with the zero eigenvalues of M = J(x0, ζ0) and satisfying MQ0 = 0 and M TP1 = 0, where M T
+25
+stands for the transpose of the matrix M. There are also generalized eigenvectors Q1, P0 ∈R3
+such that MQ1 = Q0 and M TP0 = P1. These eigenvectors can always be chosen satisfying
+the conditions
+⟨Q0, P1⟩= ⟨Q1, P0⟩= 0,
+⟨Q0, P0⟩= ⟨Q1, P1⟩= 1,
+(36)
+where ⟨·, ·⟩is the usual inner product in Rn.
+Using the translation ¯x = x −x0 and for ζ = ζ0 define the function F by F (x) =
+f (x + x0, ζ0) omitting the bar. The function F has Taylor series expansion around x = 0 up
+to terms of order 2 of the form
+F(x) = Mx + 1
+2B(x, x) + O(∥x∥3),
+with M = J(x0, ζ0) as before, O (∥x∥3) a function with Taylor series expansion starting with
+at least cubic terms and
+B(y, z) =
+∂2
+∂ϑ1∂ϑ2
+F (ϑ1y + ϑ2z)
+
+(ϑ1,ϑ2)=(0,0)
+,
+where y = (y1, y2, y3) e z = (z1, z2, z3). The symmetric multilinear function B has components
+Bi(y, z) =
+3
+X
+j,k=1
+∂2
+∂ωj∂ωk
+F (ω)
+
+ω=0
+yjzk,
+i = 1, 2, 3,
+(37)
+where ω = (ω1, ω2, ω3).
+Based on the above notations and definitions, we can state the Bogdanov-Takens Bifur-
+cation Theorem [12, 19].
+Theorem 4. Consider system (30) and let (x0, ζ0) ∈U × V be a point satisfying:
+a. (x0, ζ0) is a transversal Bogdanov-Takens point, where ζ0 = (κ0, χ0);
+b. aBT = 1
+2 ⟨P1, B (Q0, Q0)⟩̸= 0;
+c. bBT = ⟨P0, B (Q0, Q0)⟩+ ⟨P1, B (Q0, Q1)⟩̸= 0.
+Then system (30) undergoes a Bogdanov-Takens bifurcation at (x0, ζ0). The dynamics of
+(30) restricted to the two-dimensional central manifold is locally topologically equivalent to
+the dynamics of the normal form
+(
+x′ = y,
+y′ = β1 + β2x + aBTx2 + bBTxy,
+where β1 and β2 are unfolding parameters of κ −κ0 and χ −χ0, respectively, and x, y ∈R.
+The next result is an application of Theorem 4 to system (3).
+26
+Theorem 5. Consider the following choice of parameters
+w > 0,
+0 < c < 1
+6,
+m = k = c,
+0 < s < 1
+2,
+s ̸=
+1
+2(4c + 1),
+q = s,
+v = 2(c −1)2
+1 −6c . (38)
+Then system (3) undergoes a Bogdanov-Takens bifurcation at (x0, y0, z0, p0, u0) with
+x0 = 2(1 −6c)c
+4c + 1
+,
+y0 = 1 −6c
+4c + 1,
+z0 = c,
+p0 = 4w −s,
+u0 = w
+c ,
+where x0, y0 and z0 are the coordinates of the equilibrium point and (p0, u0) is the bifurcation
+parameter vector.
+Proof. Keeping the notation used in (30), consider the vector field f = f(x, ζ) associated
+with system (3) and given by
+f(x, ζ) = (f1(x, ζ), f2(x, ζ), f3(x, ζ))
+=
+
+p xz
+k + z −wx + qzy −uzx, sx −qzy −mqy, z(1 −z) −v
+xz
+c + x + z
+
+,
+(39)
+where the parameters w, c, m, k, s, q and v are chosen as in (38) and ζ = (p, u) is the
+parameter vector.
+When ζ = ζ0 = (p0, u0), where p0 = 4w −s and u0 = w/c, system (3) has three equilibrium
+points
+x0 = Ec =
+2(1 −6c)c
+4c + 1
+, 1 −6c
+4c + 1, c
+
+,
+x1 = E0 = (0, 0, 0),
+x2 = ET = (0, 0, 1).
+The Jacobian matrix of (39) evaluated at the equilibrium point of interest x0, namely,
+J(x0, ζ0) =
+
+
+
+
+
+
+
+
+−s
+2
+cs
+s −6cs
+8c + 2
+s
+−2cs
+(6c −1)s
+4c + 1
+(4c + 1)2
+24c −4
+0
+1
+4
+
+
+
+
+
+
+
+
+,
+has a double zero eigenvalue λ1 = λ2 = 0 and an additional eigenvalue
+λ3 = −1
+4(1 −2(4c + 1)s).
+(40)
+Therefore (x0, ζ0) is a transversal Bogdanov-Takens point of system (3) since the regularity
+condition is equivalent to
+R(x0, ζ0) = c4(4c + 1)2(c(16c + 3) + 1)s3
+16(c −1)
+and the inequalities for c and s in (38) imply that both λ3 and R(x0, ζ0) are nonzero.
+27
+The eigenvectors Q0, Q1, P0, P1 ∈R3 associated with the double zero eigenvalue satisfying
+MQ0 = 0, MQ1 = Q0, M TP1 = 0 and M TP0 = P1 and also the conditions (36) are given by
+Q0 =
+ 1 −6c
+(4c + 1)2, 2(6c −1)
+(4c + 1)2 , 1
+
+,
+Q1 =
+
+8(6c −1)s
+(4c + 1)(2(4c + 1)s −1), (6c −1)(4(4c + 1)(s −1)s + 1)
+c(4c + 1)2s(2(4c + 1)s −1)
+, −
+4
+2(4c + 1)s −1
+
+,
+P0 =
+
+(4c + 1)2
+(6c −1)(2(4c + 1)s −1), 0,
+1
+2(4c + 1)s −1 + 1
+
+,
+P1 =
+
+2c(4c + 1)2s
+(6c −1)(2(4c + 1)s −1),
+c(4c + 1)2s
+(6c −1)(2(4c + 1)s −1), 0
+
+.
+From (39) and (37) we obtain
+B(y, z) = (B1(y, z), B2(y, z), B3(y, z)) ,
+where
+B1(y, z) = −2(6c −1)y3z3(s −4w) + (4c + 1)sz3(4cy2 −y1) + (4c + 1)sy3(4cz2 −z1)
+4c(4c + 1)
+,
+B2(y, z) = −s(y2z3 + y3z2),
+B3(y, z) =
+n3(y, z)
+8(c −1)c(6c −1),
+with
+n3(y, z) = (4c+1)2y1(4cz1+(7c−2)z3+z1)+(7c−2)(4c+1)2y3z1+(2c(4c(12c+7)−15)+3)y3z3.
+It follows that the coefficients
+aBT =
+2(4c + 1)sw
+2(4c + 1)s −1,
+bBT = 128c4s2 + 8c3s(7s −2) + c2 (14s2 + s(16w −3) −8w) + c(2s −1)(s −6w) + (2 −4s)w
+(c −1)c(2(4c + 1)s −1)2
+,
+calculated as in Theorem 4 are nonzero with the parameter choices (38). In fact, the claim is
+easily verified for the coefficient aBT. However, for the coefficient bBT there is only one value
+of w, namely,
+wc = c (16c2 + 3c + 1) s(8cs + 2s −1)
+2(1 −c)(4c + 1)(2s −1)
+(41)
+which makes it zero. But for 0 < c < 1/6, on the one hand 0 < wc < s if 0 < s < 1/(2(4c+1))
+contrary to the condition w > s and on the other hand wc < 0 if 1/(2(4c + 1)) < s < 1/2.
+So the theorem is proved.
+28
+Figure 4 shows the bifurcation diagram of (3) for the numerical choice of parameters
+v = 289/20, w = 1/2, m = k = c = 3/20, q = s = 9/20, which satisfies (38). In this case a
+Bogdanov-Takens bifurcation occurs when ζ0 = (p0, ζ0) = (31/20, 10/3) and the coordinates
+of the equilibrium point under these conditions are x0 = 3/160, y0 = 1/16 and z0 = 3/20.
+In particular, Theorem 5 implies that, in the vicinity of the bifurcation parameters, the
+Hopf bifurcation found by Theorem 3 is supercritical, providing an analytical proof for the
+numerical results showing stable limit cycles around the tumor control equilibrium.
+The parameter choices made in (38) for the occurrence of a Bogdanov-Takens bifurcation
+in the CAR-T model (3) are by no means the most general ones. However, these choices avoid
+a numerical analysis and show that degenerate cases can occur in this model. For example,
+there is a value s > 0 for which λ3 given in (40) is zero, possibly giving rise to a triple zero
+eigenvalue bifurcation. There are also choices for the positive parameters c and s that make
+wc given in (41) greater than s, and therefore the coefficient b can change sign at w = wc
+providing either a new bifurcation diagram when w ̸= wc or a degenerate Bogdanov-Takens
+bifurcation when w = wc. However, these aforementioned cases will not be studied here nor
+will other bifurcations such as Bautin (or degenerate Hopf bifurcation), cusp and zero-Hopf
+bifurcation, which seem to exist based on numerical evidence.
+4. Discussion
+The relatively recent advent of CAR-T cell therapy has opened new avenues for math-
+ematical modeling.
+The need to better understand the underlying mechanisms, quantify
+clinical and pharmacokinetic variables, and the availability of robust data has spurred the
+development of various models capturing several aspects of CAR-T cell therapy [2, 3, 4, 5,
+20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]. Some studies have developed approaches to
+predict long-term therapy outcomes based on short-term responses, but this remains chal-
+lenging [4, 23, 26, 33, 34, 35, 36]. Few studies have conducted a deep qualitative analysis
+of the nonlinear dynamics in CAR-T cell therapy, which can provide insights into long-term
+outcomes [29, 30, 31]. However, these studies often focused on simplified models or lacked in-
+tegration with clinical data. This study addresses this gap by rigorously analyzing a complex
+model that describes real patient data over both short and long-term responses. While the
+short-term behavior of our model was studied in [4], providing insights into the multiphasic
+kinetics observed in the first weeks after CAR-T cell injection, here we explore the long-
+term behavior by examining the various bifurcations that occur in the permanent system
+associated with our model.
+Our findings on this nonlinear dynamics that unfold in CAR-T cell therapy provide im-
+portant biological insights and suggest that complex tumor-immune interactions can lead
+to nonintuitive outcomes. Namely, the nontrivial dependence on the initial tumor burden
+required for tumor control in the bistable regime, the role of increased CAR-T cell expansion
+in driving oscillatory rather than damped tumor control via a Hopf bifurcation, and the in-
+fluence of tumor-induced immunosuppression in transforming oscillatory tumor control into
+transient control followed by escape via a Bogdanov-Takens bifurcation. Similar phenomena
+have been reported in earlier work on tumor-immune interactions. For example, tumor escape
+for a small initial number of tumor cells, described by Kuznetsov as the ”sneaking through”
+phenomenon [37], where small numbers of tumor cells evade immune response while larger
+29
+numbers are eliminated. Delayed tumor escape, where the trajectory initially approaches the
+unstable tumor control equilibrium before escaping, was also described by Delgado et al. [38]
+in their bifurcation analysis of the minimal model of immunoediting by DeLisi and Rescigno
+[39].
+Our model contains two nonlinear terms that appear to be responsible for most of its
+complex dynamics, namely the expansion of CAR-T cells and the killing of tumor cells.
+To better understand their role, it is instructive to compare this model with the three-
+dimensional ODE model for CAR-T cell therapy in preclinical studies analyzed by one of us
+in [29]. There are two primary structural differences between that model and model (2). Using
+the notation of (2), the first difference is in the expansion of effector CAR-T cells. In [29],
+this is described by an exponential growth term rminCT. In contrast, our model incorporates
+the tumor cell presence by describing expansion as rminCTT/(A + T), meaning CAR-T cells
+must bind to antigen-expressing tumor cells to expand. This nonlinear response aligns with
+classical T cell biology [40] and established models of T cell expansion dependent on antigen
+recognition [41, 42, 7]. The second difference lies in the tumor cell killing mechanism. While
+[29] uses a mass action term −γCTT, our model uses −γCTT/(a + CT + dT), a modified
+Holling type II functional response with an additional CT term, also known as a Beddington-
+DeAngelis response [43]. This modification accounts for the saturation of tumor cell killing
+due to the limited number of receptors on the surface of CAR T cells and the resulting
+competition among CAR T cells to bind to tumor cells. Therefore, the model in [29] can be
+seen as a linearization or limit case of our system (2). It is worth to note that the bifurcation
+diagram in [29] is structurally similar to the simplest case here (Figure 2), featuring regions of
+tumor escape, control, and bistability, but no limit cycles. Thus, we conclude that the refined
+formulation of these terms is system (2) leads to the more complex nonlinear dynamics with
+Hopf and Bogdanov-Takens bifurcations, as shown in Figures 3 and 4.
+This complexity comes at the cost of interesting mathematical challenges. The third-
+degree polynomial equation for the nontrivial equilibria presents a challenge for analyzing
+their existence and stability. We addressed this by parameterizing the bifurcation curves
+and manipulating the coefficients of the Jacobian matrix. To explore the loss of stability
+at the tumor control equilibrium point and potential Hopf bifurcation, we used Liu’s cri-
+terion to characterize the Hopf bifurcation manifold. By parameterizing it through solving
+a two-dimensional algebraic system, we derived an analytical expression for the Hopf lo-
+cus. Additionally, by imposing conditions on model parameters and eliminating parameters
+m, k, q, v, we simplified expressions to provide an analytical proof of the Bogdanov-Takens
+bifurcation. This combination of techniques enabled a balance between a general description
+of the parameter space and a detailed analysis of specific subsets. Indeed, while Liu’s ap-
+proach applied to the full parameter space without simplifications but did not indicate the
+nature of the Hopf bifurcation, the Bogdanov-Takens bifurcation analysis under simplified
+conditions inferred that the Hopf bifurcation is supercritical.
+In summary, this work provides critical insights into the understanding of CAR-T cell
+therapy by dissecting the nonlinear dynamics of a validated model arising from the complex
+interplay between CAR-T cells and tumor cells. It also illustrates how combining different
+mathematical approaches can effectively address nonlinear systems.
+30
+5. Acknowledgments
+A. C. Fassoni was supported by Alexander von Humboldt Foundation and Coordena¸c˜ao
+de Aperfei¸coamento de Pessoal de N´ıvel Superior - Brasil (CAPES) - Finance Code 001, and
+partially supported by FAPEMIG RED-00133-21. D. C. Braga was partially supported by
+FAPEMIG APQ-01158-17 and RED-00133-21.
+References
+[1] Stephan A Grupp, Michael Kalos, David Barrett, Richard Aplenc, David L Porter,
+Susan R Rheingold, David T Teachey, Anne Chew, Bernd Hauck, J Fraser Wright, et al.
+Chimeric antigen receptor–modified t cells for acute lymphoid leukemia. New England
+Journal of Medicine, 368(16):1509–1518, 2013.
+[2] Andrew M Stein, Stephan A Grupp, John E Levine, Theodore W Laetsch, Michael A
+Pulsipher, Michael W Boyer, Keith J August, Bruce L Levine, Lori Tomassian, Sweta
+Shah, et al. Tisagenlecleucel model-based cellular kinetic analysis of chimeric antigen
+receptor–t cells. CPT: pharmacometrics & systems pharmacology, 8(5):285–295, 2019.
+[3] Can Liu, Vivaswath S Ayyar, Xirong Zheng, Wenbo Chen, Songmao Zheng, Hardik
+Mody, Weirong Wang, Donald Heald, Aman P Singh, and Yanguang Cao.
+Model-
+based cellular kinetic analysis of chimeric antigen receptor-t cells in humans. Clinical
+Pharmacology & Therapeutics, 109(3):716–727, 2021.
+[4] Emanuelle A Paix˜ao, Luciana RC Barros, Artur C Fassoni, and Regina C Almeida.
+Modeling patient-specific car-t cell dynamics: Multiphasic kinetics via phenotypic dif-
+ferentiation. Cancers, 14(22):5576, 2022.
+[5] Daniela Silva Santurio, Emanuelle A Paix˜ao, Luciana RC Barros, Regina C Almeida,
+and Artur C Fassoni. Mechanisms of resistance to car-t cell immunotherapy: Insights
+from a mathematical model. Applied Mathematical Modelling, 125:1–15, 2024.
+[6] Nirali N Shah and Terry J Fry. Mechanisms of resistance to car t cell therapy. Nature
+reviews Clinical oncology, 16(6):372–385, 2019.
+[7] Rob J De Boer and Alan S Perelson. Quantifying t lymphocyte turnover. Journal of
+theoretical biology, 327:45–87, 2013.
+[8] Lisette G de Pillis, Ami E Radunskaya, and Charles L Wiseman. A validated math-
+ematical model of cell-mediated immune response to tumor growth. Cancer research,
+65(17):7950–7958, 2005.
+[9] Brian D Hassard, Nicholas D Kazarinoff, and Yieh-Hei Wan. Theory and applications
+of Hopf bifurcation, volume 41. CUP Archive, 1981.
+[10] John Guckenheimer. Dynamical systems, and bifurcatins of vector fields. Appl. Math.
+Sci. Series, 42, 1986.
+31
+[11] Lawrence Perko.
+Differential equations and dynamical systems, volume 7.
+Springer
+Science & Business Media, 2013.
+[12] Yuri A Kuznetsov, Iu A Kuznetsov, and Y Kuznetsov. Elements of applied bifurcation
+theory, volume 112. Springer, 1998.
+[13] Wei-Min Liu.
+Criterion of hopf bifurcations without using eigenvalues.
+Journal of
+Mathematical Analysis and Applications, 182(1):250–256, 1994.
+[14] Kuan-Wei Chen and Chih-Wen Shih.
+Collective oscillations in coupled-cell systems.
+Bulletin of Mathematical Biology, 83(6):62, 2021.
+[15] Chih-Wen Shih and Chia-Hsin Yang. Hopf bifurcation analysis for models on genetic neg-
+ative feedback loops. Journal of Mathematical Analysis and Applications, 516(2):126537,
+2022.
+[16] Wei-min Liu, Herbert W Hethcote, and Simon A Levin. Dynamical behavior of epi-
+demiological models with nonlinear incidence rates. Journal of mathematical biology,
+25:359–380, 1987.
+[17] Wei-min Liu. Nonlinear oscillations in models of immune responses to persistent viruses.
+Theoretical population biology, 52(3):224–230, 1997.
+[18] Mirela Domijan and Markus Kirkilionis. Bistability and oscillations in chemical reaction
+networks. Journal of Mathematical Biology, 59:467–501, 2009.
+[19] Yu A Kuznetsov. Numerical normalization techniques for all codim 2 bifurcations of
+equilibria in ode’s. SIAM journal on numerical analysis, 36(4):1104–1124, 1999.
+[20] Anwesha Chaudhury, Xu Zhu, Lulu Chu, Ardeshir Goliaei, Carl H June, Jeffrey D
+Kearns, and Andrew M Stein. Chimeric antigen receptor t cell therapies: a review of
+cellular kinetic-pharmacodynamic modeling approaches. The Journal of Clinical Phar-
+macology, 60:S147–S159, 2020.
+[21] Salvador Chuli´an, ´Alvaro Mart´ınez-Rubio, Mar´ıa Rosa, and Victor M P´erez-Garc´ıa.
+Mathematical models of leukaemia and its treatment: a review. SeMA, 79:487–488,
+2022.
+[22] Altrock PM Kimmel GJ, Locke FL.
+The roles of t cell competition and stochastic
+extinction events in chimeric antigen receptor t cell therapy.
+Proceedings. Biological
+sciences, 288:1947, 2021.
+[23] ´Alvaro
+Mart´ınez-Rubio,
+Salvador
+Chuli´an,
+Manuel
+Ram´ırez
+Orellana
+Cristina
+Bl´azquez Go˜ni, Antonio P´erez Mart´ınez, Cristina Ferreras Alfonso Navarro-Zapata, Vic-
+tor M P´erez-Garc´ıa, and Mar´ıa Rosa. A mathematical description of the bone marrow
+dynamics during car t-cell therapy in b-cell childhood acute lymphoblastic leukemia.
+International journal of molecular sciences, 22:6371, 2021.
+32
+[24] A. B. Brummer, A. Xella, R. Woodall, V. Adhikarla, H. Cho, M. Gutova, C. E. Brown,
+and R. C. Rockne. Data driven model discovery and interpretation for car t-cell killing
+using sparse identification and latent variables. Frontiers in immunology, 2023.
+[25] I. Kareva and J. Gevertz. Cytokine storm mitigation for exogenous immune agonists.
+bioRxiv, 2023.
+[26] Anna Mueller-Schoell, Nahum Puebla-Osorio, Robin Michelet, Michael R Green, An-
+nette K¨unkele, Wilhelm Huisinga, Paolo Strati, Beth Chasen, Sattva S Neelapu, Cassian
+Yee, et al. Early survival prediction framework in cd19-specific car-t cell immunotherapy
+using a quantitative systems pharmacology model. Cancers, 13(11):2782, 2021.
+[27] Aman P Singh, Wenbo Chen, Xirong Zheng, Hardik Mody, Thomas J Carpenter, Alice
+Zong, and Donald L Heald. Bench-to-bedside translation of chimeric antigen receptor
+(car) t cells using a multiscale systems pharmacokinetic-pharmacodynamic model: a
+case study with anti-bcma car-t.
+CPT: Pharmacometrics & Systems Pharmacology,
+10(4):362–376, 2021.
+[28] Ahmed M Salem, Ganesh M Mugundu, and Aman P Singh. Development of a multiscale
+mechanistic modeling framework integrating differential cellular kinetics of car t-cell
+subsets and immunophenotypes in cancer patients. CPT: Pharmacometrics & Systems
+Pharmacology, 12(9):1285–1304, 2023.
+[29] Luciana RC Barros, Emanuelle A Paix˜ao, Andrea MP Valli, Gustavo T Naozuka, Ar-
+tur C Fassoni, and Regina C Almeida.
+Cart math—a mathematical model of car-t
+immunotherapy in preclinical studies of hematological cancers. Cancers, 13(12):2941,
+2021.
+[30] Sergio Serrano, Roberto Barrio, ´Alvaro Mart´ınez-Rubio, Juan Belmonte-Beitia, and
+V´ıctor M P´erez-Garc´ıa. Understanding the role of b-cells in car t-cell therapy in leukemia
+through a mathematical mode. arXiv preprint arXiv:2403.00340, 2024.
+[31] V´ıctor M P´erez-Garc´ıa, Odelaisy Le´on-Triana, Mar´ıa Rosa, and Antonio Perez-Martinez.
+Car t cells for t-cell leukemias: Insights from mathematical models. Communications in
+Nonlinear Science and Numerical Simulation, 96:105684, 2021.
+[32] Daniela S Santurio, Luciana RC Barros, Ingmar Glauche, and Artur C Fassoni. Math-
+ematical modeling unveils the timeline of car-t cell therapy and macrophage-mediated
+cytokine release syndrome. bioRxiv, pages 2024–04, 2024.
+[33] Rakesh Awasthi, Lida Pacaud, Edward Waldron, Constantine S Tam, Ulrich J¨ager,
+Peter Borchmann, Samantha Jaglowski, Stephen Ronan Foley, Koen Van Besien, Nina D
+Wagner-Johnston, et al. Tisagenlecleucel cellular kinetics, dose, and immunogenicity in
+relation to clinical factors in relapsed/refractory dlbcl. Blood advances, 4(3):560–572,
+2020.
+[34] Kevin A Hay and Cameron J Turtle. Chimeric antigen receptor (car) t cells: lessons
+learned from targeting of cd19 in b-cell malignancies. Drugs, 77:237–245, 2017.
+33
+[35] Laetitia Vercellino, Roberta Di Blasi, Salim Kanoun, Benoit Tessoulin, Cedric Rossi,
+Maud D’Aveni-Piney, Lucie Ob´eric, Caroline Bodet-Milin, Pierre Bories, Pierre Olivier,
+et al. Predictive factors of early progression after car t-cell therapy in relapsed/refractory
+diffuse large b-cell lymphoma. Blood advances, 4(22):5607–5615, 2020.
+[36] Daniel C Kirouac, Cole Zmurchok, Avisek Deyati, Jordan Sicherman, Chris Bond, and
+Peter W Zandstra. Deconvolution of clinical variance in car-t cell pharmacology and
+response. Nature biotechnology, pages 1–12, 2023.
+[37] Vladimir A Kuznetsov, Iliya A Makalkin, Mark A Taylor, and Alan S Perelson. Nonlinear
+dynamics of immunogenic tumors: parameter estimation and global bifurcation analysis.
+Bulletin of mathematical biology, 56(2):295–321, 1994.
+[38] Joaqu´ın Delgado, Eymard Hern´andez-L´opez, and Luc´ıa Ivonne Hern´andez-Mart´ınez.
+Bautin bifurcation in a minimal model of immunoediting. Discrete & Continuous Dy-
+namical Systems-Series B, 25(4), 2020.
+[39] Charles DeLisi and Aldo Rescigno. Immune surveillance and neoplasia—1 a minimal
+mathematical model. Bulletin of mathematical biology, 39:201–221, 1977.
+[40] Rustom Antia, Vitaly V Ganusov, and Rafi Ahmed. The role of models in understanding
+cd8+ t-cell memory. Nature Reviews Immunology, 5(2):101–111, 2005.
+[41] Rob J De Boer, Mihaela Oprea, Rustom Antia, Kaja Murali-Krishna, Rafi Ahmed, and
+Alan S Perelson. Recruitment times, proliferation, and apoptosis rates during the cd8+
+t-cell response to lymphocytic choriomeningitis virus. Journal of virology, 75(22):10663–
+10669, 2001.
+[42] Rustom Antia, Carl T Bergstrom, Sergei S Pilyugin, Susan M Kaech, and Rafi Ahmed.
+Models of cd8+ responses: 1. what is the antigen-independent proliferation program.
+Journal of theoretical biology, 221(4):585–598, 2003.
+[43] Mainul Haque.
+A detailed study of the beddington–deangelis predator–prey model.
+Mathematical Biosciences, 234(1):1–16, 2011.
+34

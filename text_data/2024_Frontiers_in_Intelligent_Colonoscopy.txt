@@ -1,0 +1,4936 @@
+1
+Frontiers in Intelligent Colonoscopy
+Ge-Peng Ji, Jingyi Liu, Peng Xu, Nick Barnes, Fahad Shahbaz Khan, Salman Khan, Deng-Ping Fan
+Abstract—Colonoscopy is currently one of the most sensitive screening methods for colorectal cancer. This study investigates the
+frontiers of intelligent colonoscopy techniques and their prospective implications for multimodal medical applications. With this goal,
+we begin by assessing the current data-centric and model-centric landscapes through four tasks for colonoscopic scene perception,
+including classification, detection, segmentation, and vision-language understanding. This assessment enables us to identify domain-
+specific challenges and reveals that multimodal research in colonoscopy remains open for further exploration. To embrace the coming
+multimodal era, we establish three foundational initiatives: a large-scale multimodal instruction tuning dataset ColonINST, a colonoscopy-
+designed multimodal language model ColonGPT, and a multimodal benchmark. To facilitate ongoing monitoring of this rapidly evolving
+field, we provide a public website for the latest updates: https://github.com/ai4colonoscopy/IntelliScope.
+Index Terms—Colonoscopy, Survey, Vision-language, Multimodal Language Model, Medical Image, Abdomen, Healthcare AI.
+✦
+1
+INTRODUCTION
+D
+ESPITE declining colorectal cancer (CRC) rates in high-
+income countries, it remains the third most diagnosed
+cancer worldwide and is increasing in developing countries
+[1]. Colonoscopy, as an efficient method for CRC screening,
+utilises a flexible camera-equipped tube to visually examine
+the colon’s interior. As illustrated in Fig. (1-a), this clinical
+procedure also facilitates intervention with specialised in-
+struments such as snares, forceps, and cautery devices to
+remove precancerous growths, such as serrated and adeno-
+matous polyps. A recent study [2] indicates that incorpo-
+rating artificial intelligence (AI) into colonoscopy reduces
+the miss rate of colorectal neoplasia by approximately 50%
+compared to traditional methods. This success motivates us
+to investigate the frontiers in intelligent colonoscopy.
+Colonoscopy, an endoscopic optical imaging technique,
+usually presents visual patterns (e.g., non-uniform illumina-
+tion, homogeneity) that differ from those of general-purpose
+imaging data, e.g., ImageNet [3], due to the complex and
+folded anatomy of the colon. This suggests that special
+methods are needed to interpret the colonoscopic data.
+In response, we begin with an investigation of the latest
+intelligent techniques for colonoscopy, assessing the current
+landscape to sort out domain-unique challenges and un-
+derexplored areas. Our analysis reveals that multimodal re-
+search in colonoscopy remains largely untapped. To bridge
+this gap, we contribute three efforts to the community, as
+illustrated in Fig. (1-b).
+Contribution. (a) We investigate the latest research progress
+in four colonoscopic scene perception tasks (refer to Fig. 2)
+•
+Corresponding author: Deng-Ping Fan (dengpfan@gmail.com).
+•
+Deng-Ping Fan is with the Nankai Institute of Advanced Research
+(SHENZHEN-FUTIAN), Guangdong, China, and also with the College
+of Computer Science & VCIP, Nankai University, Tianjin, China.
+•
+Ge-Peng Ji and Nick Barnes are with the School of Computing, Australian
+National University, Canberra, Australia.
+•
+Jingyi Liu is with the Graduate School of Science and Technology, Keio
+University, Yokohama, Japan.
+•
+Peng Xu is with the Department of Electronic Engineering, Tsinghua
+University, Beijing, China.
+•
+Fahad Shahbaz Khan and Salman Khan are with Mohamed bin Zayed
+University of Artificial Intelligence, Abu Dhabi, UAE.
+Transverse colon
+Descending 
+colon
+Sigmoid 
+colon
+Cecum
+Ascending 
+colon
+Rectum
+Treatment procedures 
+(polypectomy)
+Flexible 
+tube
+Polyp removal
+Lens
+Irrigation
+Light
+Instrument port
+Colonoscope
+ü Four colonoscopy tasks
+ü
+ü
+ü Domain challenges
+ü 62 child categories
+ü 300K+ medical images
+ü 128K+ medical captions
+ü 450K+ conversation pairs
+ü Visual dialogue
+ü Token-efficient design
+ü Better generalisability
+ü Broader versatility
+Instruction tuning dataset 
+(ColonINST)
+Literature investigation
+(ColonSurvey)
+Multimodal language model 
+(ColonGPT)
+Query
+Feedback
+INTELLIGENT COLONOSCOPY
+Anus
+63 colonoscopy datasets
+137 related models
+(a) Illustration of a colonoscope inside large intestine (colon)
+(b) Highlights of this study
+Fig. 1. Introductory diagram. We depict (a) the anatomy of the large
+intestine (colon) within the digestive tract, the polypectomy procedure
+during colonoscopy examination, and the components of a colonoscope.
+The bottom figure (b) summarises three highlights of this study.
+from both data-centric and model-centric perspectives. Our
+investigation summarises key features of 63datasets and 137
+representative deep techniques published since 2015. Ad-
+ditionally, we highlight emerging trends and opportunities
+for future study. (b) We introduce ColonINST, a pioneering
+instruction tuning dataset tailored for multimodal research,
+aimed at instructing models to execute user-driven tasks
+interactively. Assembled from 19 publicly available sources,
+the ColonINST dataset contains 303,001 colonoscopy im-
+ages across 62 sub-categories, reflecting diverse scenarios
+encountered in colonoscopy procedures. We expand these
+visual samples in two aspects. First, we leverage the multi-
+modal AI chatbot, GPT-4V [4], to generate 128,620 medical
+captions. Second, we restructure 450,724 human-machine
+conversations for multimodal adaptation. (c) Leveraging the
+instruction tuning data, we build a multimodal language
+model, ColonGPT to assist endoscopists through interactive
+arXiv:2410.17241v1  [eess.IV]  22 Oct 2024
+2
+(a) Classification
+(d) Multimodal applications
+Intelligent 
+chatbot
+Describe symptoms 
+or requirements
+Services for patients
+• Medication management
+• Personalized health advice
+• Remote consultations
+• Automated triage
+Screening
+Services for endoscopists
+• Endoscopic scene analysis
+• Anomaly detection and finding alerts
+• Decision-making & recommendations
+• Automated medical reporting
+Intelligent 
+chatbot
+Provide professional 
+instructions
+snare
+(c) Segmentation
+polyp
+accessory tools
+polyp
+resection margin
+blood (fresh)
+(b) Detection
+bowel 
+clamp
+polyp
+Fig. 2. Colonscopic scene perception from visual to multimodal perspectives. In clinical practice, purely visual tasks, including (a) classification,
+(b) detection, and (c) segmentation, are applied to identify targets of interest such as polyps and instruments. (d) Multimodal applications improve
+colonoscopy procedures by performing interactive, user-driven tasks aligned with clinical needs. The chatbot provides personalised advice,
+automated reporting, and streamline procedural workflows.
+dialogues. To ensure reproducibility for average community
+users, we implement ColonGPT in a resource-friendly way,
+using a 0.4B-parameter visual encoder SigLIP-SO [5] and
+a 1.3B-parameter lightweight language model Phi1.5 [6].
+Unlike previous vision-language (VL) linking methods [7]–
+[9] that employ multilayer perceptrons to handle equally all
+tokens from the visual encoder, we propose a multigranular-
+ity adapter to selectively sample visual tokens according to
+their significance. This strategy reduces the visual tokens
+to ∼34% of the original number without compromising
+performance, securing the top spot in our newly-created
+multimodal benchmark across three tasks. Importantly, our
+ColonGPT can be trained within five hours on four A100-
+40GB GPUs, facilitating rapid proof-of-concept develop-
+ment for subsequent research.
+Scope. This study differs from previous works in several
+aspects. Earlier surveys on traditional [10] and deep learn-
+ing [11]–[14] methods conducted before 2020 are now out
+of date. Although a recent study [15] explores various
+applications of colonoscopy, such as quality analysis and
+abnormality detection, it lacks numerical validation. Other
+benchmarks [16]–[18] are limited to specific narrow research
+subfields. By contrast, we delve into four tasks for colono-
+scopic scene perception and evaluate their current state to
+sort out key challenges and under-researched areas. Impor-
+tantly, our vision goes beyond by laying the foundations
+for the coming era, a multimodal world. To embrace this
+era, we further undertake three initiatives: a multimodal
+instruction tuning dataset, a multimodal language model,
+and a multimodal benchmark for the community.
+Organisation. The remaining sections are structured as
+such: §2 provides a historical background and discusses the
+domain-unique challenges. §3 investigates 63 colonoscopy
+related datasets, followed by a survey of 137 deep models
+in §4. In §5, we introduce three initiatives towards the multi-
+modal era: the creation of ColonINST, the technical details of
+ColonGPT, and a comparative multimodal benchmark along
+with ablative analyses. Finally, this paper is concluded in §6.
+2
+BACKGROUND
+2.1
+Origin and evolution
+The history of colonoscopy has two key milestones. In 1968,
+gastrointestinal surgeons Hiromi Shinya and William Wolff
+found a link between colonic polyps and intestinal tumours,
+but they lacked equipment to examine them. In 1969, they
+discovered Corning Incorporated’s optical fibres and collab-
+orated with Olympus to create the fiberoptic colonoscope, a
+groundbreaking device to examine the colon and remove
+polyps using wire loops. The second milestone came in
+1983 with the introduction of the electronic colonoscope
+[79], which allows visualisation of the colon on a screen
+and polyp removal using a polypectomy snare, enhancing
+detection rates and reducing bleeding. The 21st century
+brings the AI era, where computer-aided diagnosis systems
+provide greater precision and reliability in procedures [80].
+This study explores the transformative impact of intelligent
+techniques for colonoscopy, which is a type of endoscopy
+[81], while other related techniques such as laparoscopy [82]
+are summarised in our appendix.
+2.2
+Intrinsic traits and domain-unique challenges
+We summarise five unique challenges associated with
+colonoscopic vision tasks, primarily caused by procedural
+aspects and imaging conditions during a colonoscopy. (a)
+Non-linear camera ego-motion. Procedural constraints force
+the camera (i.e., colonoscope) to actively move in a non-
+linear and unpredictable manner, challenging ego-motion
+compensation [83] and causing motion blur [62]. (b) Presence
+of medical instruments. The colonoscopy procedure often in-
+cludes instruments such as scopes, guidewires, and snares,
+which should be distinguished properly from anatomical
+structures [84] for efficient analysis. (c) Limited observable
+field. The intricate folds and blind spots within the colon
+restrict the visible area in colonoscopy data. This requires
+algorithms capable of extracting relevant information from
+limited visual landscapes [85]. (d) Non-uniform illumination.
+The mucosal surface of the colon, prone to wetness and
+sheen, results in highly variable and diffuse illumination
+with complex reflections such as non-Lambertian reflections
+and interreflections. Traditional lighting-based algorithms
+struggle under these conditions [86]. (e) Variability in tissue
+appearance. Mucosal textures and colours vary considerably
+due to constant movement, disease states, anatomical differ-
+ences, and instrument effects. Furthermore, benign polyps
+or lesions usually have weak or homogeneous boundaries
+[87], making them blend into surrounding tissues and diffi-
+cult to detect. These issues require a robust response from AI
+models to inherent morphological and colour fluctuations.
+3
+TABLE 1
+Data statistics for colonoscopy datasets. The columns include: number of images (#IMG) and videos (#VID), classification tag (Cls), bounding
+box (Bbx), segmentation mask (Seg), text (Tx). The categories not related to colonoscopy, such as stomach and esophagitis, are marked in grey.
+Dataset
+Publication
+#IMG#VIDClsBbxSegTxNumber of categories (#C) →Category names
+URL
+CVC-ColonDB [19]
+PR’12
+300
+15
+✓
+#C1 →polyp
+Link
+ETIS-Larib [20]
+CARS’14
+196
+-
+✓
+#C2 →polyp, non-polyp
+Link
+CVC-ClinicDB [21]
+CMIG’15
+612
+31
+✓
+#C1 →polyp
+Link
+ASU-Mayo [22]
+TMI’15
+36,458
+38 ✓
+✓
+#C2 →polyp, non-polyp
+Link
+Ye et al. [23]
+MedIA’16
+7,894
+10 ✓✓
+#C2 →polyp, non-instance
+Link
+Deeba et al. [24]
+IJCNN’16
+100
+- ✓
+#C2 →bleeding, non-bleeding
+-
+CU-ColonDB [25]
+JBHI’16
+1,930
+- ✓
+#C3 →hyperplasia polyps, adenomatous polyps, non-polyp
+-
+ColonoscopicDS [26]
+TMI’16
+-
+76 ✓
+#C3 →serrated adenomas, hyperplastic lesions, adenoma
+Link
+CVC-ClinicVideoDB [27]MICCAIw’17
+10,924
+18 ✓✓✓
+#C2 →polyp, non-polyp
+Link
+Kvasir [28]
+MMSys’17
+8,000
+- ✓
+#C8 →cecum, polyps, ulcerative colitis, dyed and lifted polyp, dyed resection margins, Z-line, pylorus, esophagitisLink
+Nerthus [29]
+MMSys’17
+5,525
+21 ✓
+#C4 →BBPS (Boston-Bowel-Preparation-Scale) 0/1/2/3
+Link
+EndoSceneStill [30]
+JHE’17
+912
+44
+✓
+#C1 →polyp
+Link
+KID1 [31]
+EIO’17
+137
+- ✓
+#C10 →angiectasias, ulcers, stenoses, villous edema, nodular lymphangiectasias, chylous cysts, polyps, aphthae,
+normal/no pathology, intraluminal hemorrhage
+Link
+KID2 [31]
+EIO’17
+2,371
+47 ✓
+✓
+#C4 →vascular anomalies, polypoid anomalies, inflammatory anomalies, normal images
+Link
+NBIPolyp-UCdb [32]
+BSPC’19
+86
+11
+✓
+#C2 →adenomas, hyperplastic
+Link
+WLPolyp-UCdb [33]
+EIO’19
+3,040
+42 ✓
+✓
+#C2 →polyp, normal mucosa
+Link
+ASEI [34]
+MM’19
+4,470
+- ✓✓
+#C4 →dyed-lifted-polyps, dyed-resection-margins, instruments, polyp
+Link
+Cho et al. [35]
+PeerJ’19
+328,927
+112 ✓
+#C1 →cecum
+Link
+EAD2019 [36]
+arXiv’ 19
+2,342
+-
+✓✓
+#C7 →imaging artefacts, contrast, specularity, instrument, bubbles, motion blur, saturation
+Link
+Liu et al. [37]
+ISBI’20
+14,317
+18 ✓
+#C2 →polyp, non-polyp
+-
+Kvasir-SEG [38]
+MMM’20
+1,000
+-
+✓✓
+#C1 →polyp
+Link
+PICCOLO [39]
+ApplSci’20
+3,433
+39 ✓
+✓
+#C17 →Paris classification (protruded lesions: 0-Ip/0-Ips/0-Is, elevated lesions: 0-IIa/0-IIa+c, flat lesions: 0-IIb),
+NICE classification (type 1/2/3), Diagnosis (adenocarcinoma/adenoma/hyperplasia), Histological stratification
+(high grade dysplasia/hyperplasia/invasive adenocarcinoma/low grade dysplasia/no dysplasia)
+Link
+EDD2020 [40]
+arXiv’20
+386
+- ✓✓✓
+#C5 →suspicious area, high-grade dysplasia, adenocarcinoma, polyp, normal dysplastic Barrett’s oesophagus
+Link
+CAD-CAP [41]
+EIO’20
+25,124 1,686 ✓
+✓
+#C4 →vascular lesions, fresh blood, ulcero-inflammatory lesions, normal images
+-
+ACP-ColonDB530 [42]
+NPJDM’20
+221,976
+- ✓✓
+#C13 →adenomatous polyp, hyperplastic polyp, other polyp, bleeding, IC valve, instrument, artefact, normal
+colon structure, bubble, inside colon background, stool, lumen, outside colon background
+-
+HyperKvasir [43]
+SData’20
+110,079
+374 ✓✓✓
+#C23 →cecum, retroflex rectum, BBPS 0-1/2-3, ulcerative colitis grade 1/2/3/0-1/1-2/2-3, polyps, dyed lifted
+polyps, dyed resection margins, hemorrhoids, Barrett’s, terminal ileum, Z-line, esophagitis grade A, esophagitis
+grade B-D, pylorus, retroflex stomach, Barrett’s (short-segment), impacted stool
+Link
+WCE-Polyp [44]
+TMI’20
+541
+-
+✓
+#C1 →polyp
+Link
+EAD2020 [45]
+MedIA’21
+2,531
+-
+✓✓
+#C8 →specularity, bubbles, saturation, contrast, blood, instrument, blur, imaging artefacts
+Link
+BKAI-Small [46]
+ISVC’21
+1,200
+-
+✓
+#C3 →non-neoplastic polyp, neoplastic polyp, background
+Link
+BKAI-Large [46]
+ISVC’21
+7,466
+-
+✓
+#C4 →non-neoplastic polyp, neoplastic polyp, undefined polyp, background
+Link
+CPC-Paired [47]
+MICCAI’21
+681
+- ✓✓
+#C2 →hyperplastic polyp, adenoma
+Link
+LDPolyVideo [48]
+MICCAI’21
+901,666
+263 ✓✓
+#C2 →polyp, non-polyp
+Link
+Celik et al. [49]
+MICCAI’21
+2,224
+- ✓
+✓
+#C2 →polyps, Barrett’s esophagus
+Link
+Kvasir-Instrument [50]
+MMM’21
+590
+-
+✓✓
+#C1 →GI procedure tools (e.g., snares, balloons, and biopsy forceps)
+Link
+CP-CHILD [51]
+BMCMI’21
+9,500
+- ✓
+#C2 →colonic polyp, normal or other pathological images
+Link
+CROHN-IPI [52]
+EIO’21
+3,498
+- ✓
+#C7 →erythema, edema, aphthoid ulceration, ulceration (3–10mm, >10mm), stenosis, non-pathological
+Link
+C-E Crohn’s Disease [53]
+FMOLB’21
+467
+164 ✓
+✓
+#C1 →Crohn’s lesions
+-
+SUN-database [54]
+GIE’21
+159,232
+113 ✓✓
+#C7 →hyperplastic polyp, low grade adenoma, high-grade adenoma, traditional serrated adenoma, invasive
+carcinoma, sessile serrated lesion, negative
+Link
+Kvasir-Sessile [55]
+JBHI’21
+196
+-
+✓
+#C1 →polyp (<10mm)
+Link
+Kvasir-Capsule [56]
+SData’21 4,741,504
+117 ✓✓
+#C14 →polyp, Ileocecal valve, lymphangiectasia, erythema, angiectasia, foreign body, erosion, ulcer, blood (fresh),
+blood (hematin), normal clean mucosa, reduced mucosal view, pylorus, ampulla of Vater
+Link
+KUMC [57]
+PONE’21
+37,899
+155 ✓✓
+#C2 →hyperplastic polyps, adenomatous polyps
+Link
+ERS* [58]
+arXiv’22 1,354,667 1,520 ✓
+✓
+#C27 →ulcerative colitis (active/quiescent), stricture (postoperative/inflammatory/malignant), polyp, melanosis,
+diverticulosis, fistula, crohnsdisease (active/quiescent), lipoma, proctitis, hemorrhoids, submucosal tumor, solitary
+ulcer, bleeding of unknown origin, ileitis, diverticulitis, colitis: ischemic, colorectal cancer, angiodysplasia, rectal
+ulcer, foreign body, polyposis syndrome, postoperative appearance, parasites
+Link
+Tian et al. [59]
+MICCAI’22
+807,069
+253 ✓✓
+#C2 →polyp, non-polyp
+Link
+WCE-CCDD [60]
+BSPC’22
+6,000
+- ✓
+#C4 →ulcer, polyps, normal, esophagitis
+Link
+PolypGen2.0 [61]
+ISBIw’22
+3,446
+46 ✓✓✓
+#C2 →serrated, adenomas
+Link
+SUN-SEG [62]
+MIR’22
+159,232 1,013 ✓✓✓
+#C7 →hyperplastic polyp, low grade adenoma, high-grade adenoma, traditional serrated adenoma, invasive
+carcinoma, sessile serrated lesion, negative
+Link
+SinGAN-Seg [63]
+PONE’22
+10,000
+-
+✓
+#C1 →polyp
+Link
+ENDOTEST [64]
+SJG’22
+253,754
+58 ✓✓
+#C2 →polyp, non-polyp
+Link
+MEDVQA-GI [65]
+CLEF’23
+3,949
+-
+✓✓#C2 →polyp, surgical equipment
+Link
+GastroVision [66]
+ICMLw’23
+8,000
+- ✓
+#C27 →accessory tools, angiectasia, blood in lumen, cecum, colon diverticula, resection margins, colorectal cancer,
+dyed-lifted-polyps, erythema, ulcer, dyed-resection-margins, retroflex rectum, mucosal inflammation large bowel,
+resected polyps, colon polyps, lleocecal valve, normal mucosa and vascular pattern in the large bowel, esophagitis,
+Barrett’s esophagus, duodenal bulb, esophageal varices, gastric polyps, gastroesophageal junction normal z-line,
+normal esophagus, normal stomach, pylorus, small bowel terminal ileum
+Link
+W-Polyp [67]
+CVPR’23
+1,450
+-
+✓
+#C1 →polyp
+Link
+LIMUC [68]
+IBD’23
+11,276
+- ✓
+#C4 →Mayo endoscopic score (MES) 0/1/2/3
+Link
+PS-NBI2K [16]
+JBHI’23
+2,000
+-
+✓
+#C1 →polyp
+Link
+PolypGen [69]
+SData’23
+8,037
+23 ✓✓✓
+#C2 →polyp, negative
+Link
+MedFMC** [70]
+SData’23
+22,349
+- ✓
+#C5 →ulcer, erosion, polyp, tumor, and non-instance
+Link
+GB-WCE Dataset [71]
+MD’23
+226
+- ✓
+#C2 →bleeding or lesions, normal
+Link
+REAL-Colon [72]
+SData’24 2,757,723
+60
+✓
+#C2 →polyp, negative
+Link
+Xu et al. [73]
+TMI’24
+251
+- ✓
+#C4 →Mayo endoscopic score (MES) 0/1/2/3
+Link
+Kvasir-VQA [74]
+MMw’24
+6,500
+- ✓
+✓#C5 →polyps, ulcerative colitis, instrument, normal, esophagitis
+Link
+CapsuleVision2024 [75]
+CVIP’24
+58,124
+- ✓
+#C10 →angioectasia, bleeding, erosion, erythema, foreign body, lymphangiectasia, polyp, ulcer, worms, normal
+Link
+COLON [76]
+arXiv’24∼430,000
+30 ✓✓✓
+#C3 →adenoma, hyperplastic, non-pathological case
+-
+WCEBleedGen [77]
+arXiv’24
+2,618
+- ✓✓✓
+#C2 →bleeding, non-bleeding
+Link
+PolypDB [78]
+arXiv’24
+3,934
+-
+✓✓
+#C1 →polyp (multiple imaging modalities and multiple medical centers)
+Link
+*NOTE – The ERS dataset [58] includes 99 annotated categories in total. For the sake of brevity, we list only 27 colon-related categories within ERS.
+**NOTE – The MedFMC dataset [70] comprises 23,349 medical images across five modalities. This table only enumerates the categories specific to the endoscopic modality.
+3
+REVISITING COLONOSCOPY DATA
+3.1
+Medical data for colonoscopy
+Tab. 1 presents our investigation of 63 datasets with their
+essential statistics for four tasks related to colonoscopic
+scene perception. We search for them using queries such
+as “colonoscopy dataset/benchmark” and “gastrointestinal
+disease dataset”. They consist of images or videos related to
+the human colon. In particular, some datasets also include
+images of other organs, such as the pylorus in [28] or the
+stomach in [66]. Next, we review these selected datasets
+according to their different task objectives.
+• Classification datasets have been widely used for varied
+purposes, such as colon disease classification in images [28],
+[31], [40], [43], [52], [58], [60], [66], [68], [73], [75]/videos
+[54], [56], [62], polyp identification [27], [33], [37], [39], [41],
+[48], [51], fine-grained polyp classification [25], [26], [47],
+bleeding condition [24], [71], [77], anomaly recognition [59],
+4
+cecum recognition [35], and pre-operative assessment [29].
+• Detection datasets provide both categorical and localisa-
+tion labels for targets of interest, such as colonic diseases
+[54], [57], [62], accessory instruments [34], [42], [42], polyps
+[23], [48], [59], [64], [72], endoscopic artefacts [36], [45], and
+gastrointestinal diseases [43], [56]. In addition, the organ-
+isation of competitions has accelerated growth within the
+colonoscopy community by establishing shared platforms
+for data collection and model evaluation, significantly ad-
+vancing research areas such as the detection of intestinal
+disease [40] and polyp [38], [61], [69].
+• Segmentation datasets for colonoscopy research originate
+from two sources. The first source comprises real data,
+mainly utilised for single-target segmentation of entities
+such as polyps [16], [30], [32], [33], [44], [49], Crohn’s disease
+[53], and accessory tools [50]. Some datasets, like BKAI-
+Small/Large [46], provide instance-level masks for neoplas-
+tic and non-neoplastic polyps. Other datasets come from or-
+ganised competitions, such as polyp segmentation datasets
+[19]–[22], [61] and a gastrointestinal diseases segmentation
+dataset [40], or extensions of existing databases, offering
+pixel-wise masks (e.g., for polyps [38], [55], colorectal dis-
+ease [62]) or scribble labels (e.g., for polyps [59], [67]). The
+other source, such as SinGAN-Seg [63], generates synthetic
+images for polyp segmentation.
+• VL datasets remain relatively scarce so far, with two
+known datasets for this specific purpose. MEDVQA-GI [65]
+contributes the first dataset with three VL tasks, includ-
+ing visual question answering, visual question generation,
+and visual location question answering. Kvasir-VQA [74]
+collects 6,500 question-answer pairs from existing datasets
+[43], [50], for gastrointestinal diagnostics, such as image
+captioning, visual question answering.
+3.2
+Discussion
+Based on the 63 revisited datasets, we have several data-
+centric observations that could inspire more future ideas.
+• Data granularity requires improvement to better under-
+stand patient conditions and treatment efficacy. (a) More
+than a quarter of polyp-containing datasets provide fine-
+grained categorisation, often with inadequate detail. For
+example, BKAI-Small/-Large [46] provide two instance an-
+notations of neoplastic and non-neoplastic polyps. Colono-
+scopicDS [26] categorises at the video level into hyperplasic,
+serrated, and adenoma lesions. SUN-database [54] provides
+fine-grained labels, documenting measurements of polyp
+size (height, width) and morphology (pedunculated, sessile,
+flat), along with their anatomical locations (e.g., rectum,
+sigmoid colon). Several data-centric areas remain under-
+explored, such as temporal lesion evolution recording, gran-
+ularity improvement, graded severity tagging, and instance-
+level target annotation. (b) Furthermore, label orthogonality,
+an often overlooked issue, treats labels as isolated entities.
+Current works seldom discuss potential inter-class corre-
+lations, such as the co-occurrence of inflammatory bowel
+disease with erosion symptoms, Crohn’s disease with fis-
+tula complications, or colorectal cancer accompanied by
+bleeding. Future studies should consider causality [88] and
+comorbidity [89] to address these correlations effectively.
+• Data diversity is crucial to developing fair and reliable
+models. Three aspects deserve consideration. (a) Datasets
+for rare colorectal diseases appear to be limited, due to case
+scarcity and expertise requirements. For example, Crohn’s
+disease, which affects an estimated 58 to 241 per 100,000
+adults in the United States [90], has so far been discussed in
+three datasets [52], [53], [58]. Such an unbalanced situation
+leads to data-hungry models performing better in common
+cases than in rarer or novel ones. Thus, increasing attention
+to rare gastrointestinal diseases could potentially improve
+the ability to treat long-tailed [91] or open-vocabulary [92]
+problems. (b) Multimodal research in colonoscopy appears
+to be in its early stages, with limited data [65], [74] for
+analysis. Therefore, collecting varied patient information
+(e.g., age, gender, eating habits) combined with expert in-
+terpretations (e.g., clinical report, medication advice) could
+be advantageous and ultimately facilitate personalised and
+side-effect-minimised colonoscopy practices [93].
+• Data inconsistency in colonoscopy research is due to two
+main factors. (a) Expert interpretations vary due to varying
+experience, expertise, and observed nuances, leading to sub-
+jective judgements and labelling uncertainties. For example,
+ColonoscopicDS [26] provides raw diagnostic labels for
+each sample from multiple experts and beginners, reflecting
+their underlying (dis)agreement. In addition, SUN-SEG [62]
+releases the rejected segmentation masks from their anno-
+tation workflow, highlighting the challenges in reaching
+consistent polyp boundaries. (b) Existing datasets often have
+study-specific targets, leaving others unlabelled or classified
+as background. Nerthus [28], for example, focuses on assess-
+ing the quality of bowel preparation, but ignores diagnostic
+findings such as polyps. Furthermore, multiple categories
+in GastroVision [66] are not mutually exclusive; for ex-
+ample, a case labelled as “accessory tool” could also fall
+into the category “blood in lumen”. Segmentation data like
+Kvasir-Instrument [50] annotates only medical instruments,
+ignoring other targets like polyps, whereas Kvasir-SEG [38]
+provides polyp label, leaving out others like instruments.
+These observations prompt future research into learning
+from partial [94], noisy [95], or missing [96] labels.
+4
+REVISITING COLONOSCOPY MODELS
+In this section, we investigate 137 deep learning models
+for colonoscopic scene perception, sourced from leading
+conferences or journals published since 2015. First, three
+widely recognised topics are described, including 18 clas-
+sification models (§4.1), 24 detection models (§4.2), and 86
+segmentation models (§4.3). Their architectural designs are
+classified into five subtypes as presented in Fig. 3. Lastly, we
+discuss nine VL-related models in §4.4.
+4.1
+Classification models
+• Input phase. Tab. 2 lists the training and testing data
+used for each deep model. We note that many classification
+models [106], [109], [112]–[114], [116], [118] in colonoscopy
+use in-house data for model development, partly resulting
+in the absence of domain-recognised benchmarks. This issue
+stems from the different categorical goals pursued by indi-
+vidual studies, such as identifying polyps from white-light
+and narrow-band imaging pairs [47], [111], images [106],
+or videos [59], evaluating polyp size [116], and recognising
+colonic diseases [112] or landmarks [119].
+5
+TABLE 2
+Summary of classification models in colonoscopy. Dataset: CU=CU-ColonDB [25], CDS=ColonoscopicDS [26], Private=private data, HK=
+HyperKvasir [43], KC=Kvasir-Capsule [56]. Backbone: CaffeNet [97], D-121=DenseNet121 [98], R-12/-18/-50/-101=ResNet12/18/50/101 [99],
+ViT-S16 or ViT-B16 [100], MobV2=MobileNetV2 [101], R50-Att=ResNet50 with attention module [102], C3D [103], Inc-v3=Inceptionv3 [104], I3D
+[105]. “Customised” means a base network modified for the current task or a model independent of the base network choice. Head: classifier
+implemented by the fully connected (FC) and support vector machine (SVM) layers, or using the ℓ2 norm to measure the disparity between the
+input and output. Arch: the architectures shown in Fig. 3. Sup: learning strategies such as fully supervised (FS), semi-supervised (SS),
+unsupervised (US), and weakly supervised (WS). For simplicity, the following tables use consistent abbreviations unless specified otherwise.
+Model
+Publication
+Core design
+Training dataset
+Testing dataset
+Backbone
+Arch
+Head
+Sup
+URL
+Image-based models
+Zhang et al. [25]
+JBHI’16
+domain transfer learning
+CU, CDS
+CU, CDS
+CaffeNet
+BF#1
+SVM
+FS
+-
+RIIS-DenseNet [106]
+MICCAI’18
+rotation-invariant, similarity constrained
+Private
+Private
+D-121
+SF
+FC
+FS
+-
+FSAD-Net [107]
+MICCAI’20
+mutual information maximisation
+Private
+Private
+D-121
+BF#2
+FC
+US
+Link
+Gammulle et al. [108]
+MICCAI’20
+relational mapping
+Kvasir [28], Nerthus [29]
+Kvasir [28], Nerthus [29]
+R-50
+MF#1
+FC
+FS
+-
+ADGAN [37]
+ISBI’20
+dual adversarial learning
+Liu et al. [37]
+Liu et al. [37]
+Customised
+BF#2
+ℓ2
+US
+-
+Carneiro et al. [109]
+MedIA’20
+model uncertainty & calibration
+Private
+Private
+D-121
+SF
+FC
+FS
+-
+SSL-WCE [110]
+MedIA’20
+adaptive aggregated attention
+CAD-CAP [41]
+CAD-CAP [41]
+D-121
+BF#2
+FC
+SS
+Link
+PolypsAlign [47]
+MICCAI’21
+teacher-student alignment
+CPC-Paired [47]
+CPC-Paired [47]
+R-50
+BF#2
+FC
+FS
+Link
+CPC-Trans [111]
+MICCAI’22
+cross-modal representation consistency
+CPC-Paired [47]
+CPC-Paired [47]
+ViT-S16
+BF#2
+FC
+FS
+Link
+FFCNet [112]
+MICCAI’22
+frequency domain learning
+Private
+Private
+R-18
+SF
+FC
+FS
+Link
+DLGNet [113]
+MedIA’23
+Gaussian mixture model
+Private
+Private
+R-18
+BF#2
+FC
+FS
+Link
+Yue et al. [114]
+TIM’23
+class imbalance loss
+Private, HK
+Private, HK
+MobV2
+SF
+FC
+FS
+Link
+DAFON [115]
+ESWA’24
+few-shot open-set learning
+Kvasir-Capsule [56]
+Kvasir-Capsule [56]
+R-12
+BF#2
+FC
+FS
+-
+SSL-CPCD [73]
+TMI’24
+composite pretext-class discrimination
+LIMUC [68]
+Private, LIMUC [68]
+R50-Att
+BF#2
+FC
+FS
+Link
+Video
+BseNet [116]
+MICCAI’18
+unsupervised depth estimation, LSTM [117]
+Private
+Private
+C3D
+SF
+FC
+FS
+-
+Byrne et al. [118]
+Gut’19
+real-time assessment system
+Private
+Private
+Inc-v3
+SF
+FC
+FS
+-
+Tamhane et al. [119]
+MICCAIw’22
+vision transformer based
+Private
+Private
+ViT-B16
+SF
+FC
+FS
+-
+Tian et al. [59]
+MICCAI’22
+multiple instance learning
+WVAD [59]
+WVAD [59]
+I3D
+SF
+FC
+WS
+Link
+E
+D
+Single-stream framework (SF)
+Multi-stream framework (MF#1)
+Multi-stream framework (MF#2)
+Branched framework (BF#1)
+Branched framework (BF#2)
+E
+E
+D
+D
+D
+D
+E
+E
+D
+D
+E
+E
+D
+Data flow
+Input 
+Encoding 
+E
+Decoding 
+D
+Transformation (optional)
+Output 
+Side output 
+Side input 
+Feature interaction (optional)
+Fig. 3. Gallery of deep-based architectures. The single-stream framework (SF) features a single input and output with sequential data flow.
+Multi-stream frameworks predict a single output but involve parallel processing streams, either at the decoding stage (MF#1) or the encoding stage
+(MF#2). Branched frameworks extend multi-stream framework to produce multiple outputs from either a single input (BF#1) or multiple inputs
+(BF#2). These side outputs typically receive supervision from additional supervisory signals, such as boundary cues.
+• Processing phase. We discuss data flow management
+strategies based on two attributes. (a) Backbone: Early mod-
+els [106], [108] typically employ well-trained convolutional
+backbones (e.g., ResNet [99], DenseNet [98]) from ImageNet
+[3], while recent studies explore alternatives such as using
+a vision transformer in [111] and a lightweight network
+in [114]. Another strategy is SSL-CPCD [73], which in-
+volves pre-training a model to generate domain-specific
+representations, followed by its generalisation on various
+downstream perception tasks. (b) Architecture: Classification
+models involve various designs as in Fig. 3. At first, a
+basic idea is of using a single-stream framework (SF) that
+sequentially processes visual features based on confidence
+calibrated [109] or 3D convolutional [59], [116] networks.
+Second, Gammulle et al. [108] proposed a dual decoding
+flow approach for hierarchical feature encoding, typified
+as MF#1. Third, to ensure reliable predictions, branched
+frameworks are adopted for multi-objective learning, such
+as the integration of parallel feature flows [25], interclass
+Gaussian loss [113], and global-to-local consistency [111].
+• Output phase. (a) Prediction head: An early model [25]
+applies two SVM layers to classify polyps into three cat-
+egories. Modern methods usually adopt a fully connected
+layer as the final classifier due to its simplicity and flexibility.
+A special case is ADGAN [37], a generative adversarial
+network that computes the ℓ2 norm differential between
+input and output to identify anomalous images. (b) Super-
+vision strategy: Most methods use fully-supervised learn-
+ing with pre-annotated categories, but some explore data-
+efficient strategies, including semi-supervised [110], weakly-
+supervised [59], and unsupervised [37], [107] learning.
+• Remarks. We observe three aspects of the above classifica-
+tion models. (a) Novel visual backbones, like the state space
+model [149], remain underexplored. Furthermore, reformu-
+lating the classification paradigm within VL models, e.g.,
+CLIP [150], can yield unexpected results. (b) Benchmarks
+for multicategory classification remain underexplored. The
+Kvasir series [28], [43], [56] offers valuable sources for
+further study. We will explore these public data on their
+potential synergy in §5.1. (c) Several new task settings
+have emerged in colonoscopy. For example, Tian et al. [59]
+recognise abnormal frames from colonoscopy videos from
+an out-of-distribution view. DAFON [115] solve an open-set
+classification problem within a few-shot framework.
+4.2
+Detection models
+• Input phase. Detection models classify targets and locate
+them using boxes, assisting surgical intervention and plan-
+ning. The goals of interest are diverse, such as identifying
+the polyp(s) in images [126]–[128], [130]–[134], [136]/videos
+[22], [137]–[139], [141]–[148], or locating multiple findings
+[42] like bleeding, polyps, and accessory tools.
+• Processing phase. This has three key configurations for the
+analysis. (a) Backbone: There are two general strategies for
+network initialisation. The first group [42], [126]–[128], [131],
+[132], [134], [136], [143], [146]–[148] leverages the ResNet se-
+ries [99] pre-trained on the ImageNet [3] dataset. The second
+group relies on well-trained object detectors, such as [130],
+[142] using DarkNet series [120], [121] and [133] employing
+EfficientDet-D0 [122]. (b) Workflow: Detection models are
+often built on general-purpose architectures. In the “WF”
+column of Tab. 3, we categorise the models according to
+6
+TABLE 3
+Summary of detection models in colonoscopy. Dataset: C6=CVC-ClinicDB [21], ETIS=ETIS-Larib [20], ASEI [34], C3=CVC-ColonDB [19],
+KUMC [57], LDPV=LDPolyVideo [48], SUN=SUN-database [54], PL=PICCOLO [39], KID=KID1&2 [31], CDS [26], KSe=Kvasir-Sessile [55], ASU
+=ASU-Mayo [22], CDB=CVC-ClinicVideoDB [27], ES=EndoSceneStill [30], CU [25], ACP=ACP-ColonDB530 [42]. Backbone: R-34/-50/-101 [99],
+CDN-53=CSPDarkNet53 [120], DN-53=DarkNet-53 [121], EffDet-D0=EfficientDet-D0 [122], AlexNet [123], V-16=VGG16 [124], R-50v2=
+ResNet50V2 [125]. WF: one-stage (OS) or two-stage (TS) workflows. NMS: non-maximum suppression. EC: edge-sensitive cues.
+Model Publication
+Core design
+Training dataset
+Testing dataset
+Backbone
+WF Arch NMS EC
+Sup
+URL
+Image-based models
+Yang et al. [126]
+TIM’20
+parallel detection & segmentation
+Private, C6, ETIS
+Private, C6, ETIS
+R-50
+TS BF#1
+FS
+-
+ConsolidatedPolypDA [127]
+MedIA’21
+Gaussian Fourier domain adaptation
+C6
+ETIS, ASEI
+R-101
+TS BF#2
+US
+Link
+MDeNetplus [128]
+MedIA’21
+2D Gaussian shapes prediction
+C6
+C3, ETIS
+R-34
+OS MF#1
+✓
+FS
+-
+FedInI [129] MICCAI’22
+federated learning, structural causal model
+KUMC
+KUMC
+R-101
+TS BF#2
+✓
+FS
+Link
+Pacal et al. [130]
+CIBM’22
+improved YOLOv3 [121]/v4 [120]
+SUN, PL
+SUN, PL, ETIS
+CDN-53/DN-53 OS BF#1
+✓
+FS
+Link
+SMPT++ [131]
+TMI’22
+source-free domain adaptation
+Private, C6,
+ETIS, ASEI, KID
+Private, C6,
+ETIS, ASEI, KID
+R-101
+OS BF#1
+✓
+US
+Link
+FRCNN-AA-CIF [132]
+CIBM’23 attention module & context information fusion
+Private
+Private
+R-101
+TS BF#1
+✓
+FS
+-
+Haugland et al. [133]
+MI’23
+modality translation
+Private, PL, CDS
+PL, KUMC
+EffDet-D0
+OS BF#2
+✓
+FS
+-
+SCAN++ [134]
+TMM’23
+enhanced semantic conditioned adaptation
+C6, ASEI
+C6, ASEI
+R-101
+OS BF#2
+FS, US Link
+TFCNet [135]
+CIBM’24
+fine-grained feature compensation
+C6, KUMC, LDPV C6, KUMC, LDPV, KSe
+CDN-53
+OS BF#1
+FS
+-
+DUT [136]
+TNNLS’24
+decoupled unbiased teacher
+C6, ASEI, Private
+ASEI, Private
+R-101
+OS BF#2
+US
+Link
+Video-based models
+Tajbakhsh et al. [137]
+IPMI’15
+patch descriptor & edge classification
+Private
+Private
+AlexNet
+TS BF#1
+✓
+FS
+-
+Tajbakhsh et al. [22]
+TMI’15
+extension on [137]
+C3
+C3, ASU
+AlexNet
+TS BF#1
+✓
+FS
+-
+Yu et al. [138]
+JBHI’16
+online and offline integration
+ASU
+ASU
+Customised
+OS MF#2
+FS
+-
+Mo et al. [139]
+ICPR’18
+building upon Faster R-CNN [140]
+CDB
+C6, C3, CDB, ES
+V-16
+TS BF#1
+✓
+FS
+-
+Qadir et al. [141]
+JBHI’19
+temporal dependency
+ASU, C6
+ASU, CDB
+V-16
+TS BF#1
+✓
+FS
+-
+AIPDT [142] MICCAI’20
+parallel detection and tracking
+Private, CDB
+CDB
+DN-53, AlexNet OS BF#2
+FS
+-
+AI-doscopist [42]
+NPJDM’20
+spatial-temporal fusion
+C6, ETIS, C3,
+ASU, CU, ACP
+C6, ETIS, C3,
+ASU, CU, ACP
+R-50
+OS BF#2
+✓
+FS
+-
+STFT [143] MICCAI’21
+spatial-temporal feature transformation
+ASU, CDB
+ASU, CDB
+R-50
+OS BF#2
+FS
+Link
+Yu et al. [144]
+AIM’22
+instance tracking head (plug-and-play)
+Private, C6, CDB
+Private, CDB, ETIS
+V-16
+OS BF#2
+✓
+FS
+-
+EMSEN [145]
+TII’22
+explainable multitask Shapley explanation
+CDS
+CDS
+Customised
+OS BF#2
+FS
+-
+YONA [146] MICCAI’23
+feature alignment & contrastive learning
+SUN, CDB, LDPV
+SUN, CDB, LDPV
+R-50
+TS BF#2
+✓
+FS
+Link
+Intrator et al. [147] MICCAI’23
+self-supervised polyp re-identification
+Private
+Private
+R-50v2
+OS MF#2
+US
+-
+V2I-DETR [148]
+arXiv’24
+video-to-image knowledge distillation
+SUN
+SUN
+R-50
+OS BF#2
+FS
+-
+their processing stages. The two-stage workflow decouples
+detection into the region proposal and classification phases,
+like models [127], [132], [139], [141] based on Faster R-
+CNN [140]. One-stage models prioritise speed and sim-
+plicity, operating in a single forward. For example, some
+studies [42], [130], [142] are based on the YOLO framework
+[120], [121], and Yu et al. [144] uses the SSD framework
+[151]. (c) Architecture: Detection models predict target cat-
+egories and spatial coordinates, typically implemented in
+branched frameworks (BF#1/BF#2) as shown in Fig. 3. Two
+special cases [128], [138] adapt the design of multistream
+framework to first pop out pixel-wise attention regions, then
+convert them to bounding boxes.
+• Output phase. (a) Post-processing techniques are employed
+to eliminate duplicate predictions and select the most rel-
+evant targets, with non-maximum suppression (NMS) be-
+ing a widely-adopted method [42], [130]–[133], [139], [141],
+[144], [146]. (b) Auxiliary information can improve prediction
+reliability, such as edge cues suggested to provide geo-
+metric patterns for object detection in [22], [128], [137]. (c)
+Supervision strategy is currently dominated by fully super-
+vised learning, such as using region-level labels [126], [130],
+[132], [133], [139], [141]–[145], [148] and pixel-wise [22],
+[128], [137], [138] labels, and introducing the box-assisted
+contrastive learning [146]. Other models [127], [131], [134],
+[136] explore unsupervised domain adaptation techniques
+to detect polyps across colonoscopy devices.
+• Remarks. We emphasise a few observations for the
+above review. (a) Most models focus on detecting polyp(s),
+while other colonoscopic findings receive less attention.
+We encourage exploring public multitarget [34] or multi-
+centre [78] data. (b) Learning strategies are underexplored.
+General-purpose detection models like using weak super-
+vision [255] provide valuable references, being potentially
+more feasible and cost-effective since they require less de-
+tailed annotations from medical experts. (c) Beyond well-
+established convolution-based detection frameworks, recent
+methods like transformer-based DETR [256] and diffusion-
+based DiffusionDet [257], open exciting opportunities for
+this field. Moreover, exploring cross-task synergy is promis-
+ing, as three video-based models [142], [144], [147] demon-
+strated effectiveness in unifying polyp detection and track-
+ing frameworks. (d) Although some datasets such as the
+SUN-database [54] (>158K samples) and LDPolyVideo [48]
+(>900K samples) are relatively large, this field still lacks a
+standardised evaluation benchmark.
+4.3
+Segmentation models
+Compared to the above two topics, the segmentation re-
+search appears to be well established. This is evidenced by
+the extensive amount of research documented in Tab. 4.
+• Input phase. Most segmentation models focus on a single
+target (i.e., polyp), typically adopting as binary segmen-
+tation paradigm. These models usually follow the well-
+established testbed of PraNet [175] for their development
+and comparison. An exception case, AFP-Mask [196], pro-
+vides an anchor-free framework for segmenting polyp in-
+stances. Recent works [208], [217], [230] have also focused
+on segmenting surgical tools during procedures.
+• Processing phase. (a) Backbone: The visual encoders for
+the segmentation task have been extensively explored. A
+common option is to use a general backbone pre-trained on
+ImageNet [3], such as using CNN [175], [214], vision Trans-
+former [205], [215], hybrid CNN-Transformer network [186],
+[193], [223], multilayer perceptron [199], state space model
+[220], [238], [239], [253], receptance weighted key value
+(RWKV) [224], and Kolmogorov-Arnold network [224]. An
+alternative is to use well-trained perception models such
+as Point DETR [162] used in [209], DeepLab series [157],
+[167] applied in [189], [233], [234]. Recently, there has been
+a shift towards promptable architectures. The first way is to
+exploit the foundation models, for example, by fine-tuning
+the segment anything modal (SAM) [165] with location
+prompts [232], adapting SAM during the test time [217],
+exploiting the hybrid CNN-Transformer network [219], or
+incorporating trainable adapter layers into the SAM2’s en-
+coder [240]. Another way aims to adapt the model to unseen
+7
+TABLE 4
+Summary of segmentation models in colonoscopy. Dataset: C6 [21], ES [30], KS=Kvasir-SEG [38], C3 [19], ETIS [20], HK [43], ASU [22], CDB
+[27], BKAI=BKAI-Small [46], KSe [55], GI=GIANA [152], SUN-S [62], PG=PolypGen [69], K-I=Kvasir-Instrument [50]. Backbone: ResUNet [153],
+R-18/-34/-50/-101 [99], R-50v2 [125], R2-50=Res2Net-50 [154], V-16 [124], DeiT [155], Eff-B4= EfficientNet-B4 [156], DLV3+=DeepLab V3+ [157],
+PB2/3/5=PVTv2-B2/-B3/-B5 [158], CvT [159], MiT-B2 [160], CMLP=CycleMLP [161], P-DETR=Point DETR [162], D-121=DenseNet121 [98], MN=
+MSCAN [163], Swin-T [164], SAM [165], SAM2 [166], ViT-B16 [100], DLV2=DeepLabV2 [167], HR-W48=HRNet-W48 [168], CN-T=ConvNeXt-Tiny
+[169], SFB3=SegFormer-B3 [160], M2Former=Mask2Former [170]. Edge-sensitive analysis by explicitly (EX) using edge map as supervision or
+input and implicitly exploring edge-aware representation (IM#1) or edge-aware uncertainty (IM#2).
+Model Publication
+Core design
+Training dataset
+Testing dataset
+Backbone
+Arch
+Edge
+Sup
+URL
+Image-based models
+Yuan et al. [171]
+JBHI’17
+weak bottom-up & strong top-down saliency
+Private
+C6
+Customised
+BF#1
+-
+US
+-
+SFA [172] MICCAI’19
+area & boundary constraints
+ES
+ES
+Customised
+BF#1
+EX
+FS
+Link
+ResUNet++ [173]
+ISM’19
+enhanced deep residual UNet [153]
+C6, KS
+C6, KS
+ResUNet
+MF#1
+-
+FS
+Link
+ACSNet [174] MICCAI’20
+adaptive context selection
+ES, KS
+ES, KS
+R-34
+BF#1
+-
+FS
+Link
+PraNet [175] MICCAI’20
+reverse attention, parallel partial decoder
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+BF#1 EX, IM#1
+FS
+Link
+UI-CNN [176]
+MedIA’20
+Monte Carlo guided back-propagation
+ES
+ES
+V-16
+MF#1
+IM#2
+FS
+Link
+ThresholdNet [44]
+TMI’20
+confidence-guided manifold mixup
+ES
+ES, WCE-Polyp [44]
+R-101
+BF#2 EX, IM#1
+FS
+Link
+SCR-Net [177]
+AAAI’21
+semantic calibration & refinement
+KS
+KS
+Customised
+MF#1
+-
+FS
+Link
+BI-GCN [178]
+BMVC’21
+boundary-aware graph convolution
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+BF#1
+EX
+FS
+Link
+FDSemi [179]
+ICCV’21
+collaborative & adversarial learning
+C6, KS
+C6, KS
+Customised
+BF#2
+IM#1
+SS
+Link
+CCBANet [180] MICCAI’21
+cascading context & balancing attention
+C6, ES, KS
+C6, ES, KS
+R-34
+BF#1
+IM#1
+FS
+Link
+CCD [181] MICCAI’21
+constrained contrastive distribution learning
+HK, Liu et al. [37]
+HK, Liu et al. [37]
+R-18
+BF#2
+-
+US
+Link
+HRENet [182] MICCAI’21
+hard region enhancement
+C6, KS
+C6, KS, C3
+R-34
+BF#1
+EX
+FS
+Link
+LOD-Net [183] MICCAI’21
+learnable oriented derivatives
+C6, KS
+C6, ES, KS, C3, ETIS
+R-50
+MF#2
+EX
+FS
+Link
+MSNet [184] MICCAI’21
+multiscale subtraction network
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+MF#1EX, IM#1
+FS
+Link
+SANet [185] MICCAI’21
+colour exchange & probability correction
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+MF#2
+-
+FS
+Link
+Transfuse [186] MICCAI’21
+fusing transformers and CNNs
+C6, KS
+C6, ES, KS, C3, ETIS
+R-50v2, ViT-B16 BF#2
+EX
+FS
+Link
+EndoUDA [49] MICCAI’21 domain adaptation, variational autoencoder training
+Celik et al. [49]
+Celik et al. [49]
+Eff-B4
+BF#2
+EX
+FS, US
+Link
+UACANet [187]
+MM’21
+uncertainty augmented context attention
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+BF#1 EX, IM#2
+FS
+Link
+Jha et al. [55]
+JBHI’21
+ResUNet++ [173] with conditional
+random field & test-time augmentation
+C6, C3, ETIS,
+KS, ASU, CDB
+C6, C3, ETIS,
+KS, ASU, CDB
+ResUNet
+MF#1
+-
+FS
+Link
+MPA-DA [188]
+JBHI’21
+mutual-prototype adaptation network
+ES, KS
+ETIS
+R-101
+BF#2
+IM#2
+FS, US
+Link
+DW-HieraSeg [189]
+MedIA’21
+hierarchical segmentation, dynamic-weighting
+ES
+ES
+DLV3+
+BF#1
+-
+FS
+Link
+ICGNet [190]
+IJCAI’22
+context-based reverse-contour guidance
+ES, KS
+ES, C3, KS
+R-34
+BF#1
+EX
+FS
+-
+BoxPolyp [191] MICCAI’22
+segmentation with extra box labels
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50, PB2
+BF#1
+-
+WS
+Link
+LDNet [192] MICCAI’22
+dynamic kernel generation & update
+Private, C6, KS
+Private, C6, KS, C3, ETIS
+R2-50
+BF#1
+-
+FS
+Link
+PPFormer [193] MICCAI’22
+polyp-guided self-attention, local-to-global method
+C6, KS
+C6, ES, KS, C3, ETIS
+V-16, CvT
+BF#1
+EX
+FS
+-
+SSFormer [194] MICCAI’22
+stepwise local & global feature aggregation
+C6, KS
+C6, C3, ETIS, KS
+MiT-B2
+MF#1
+-
+FS
+Link
+TRFR-Net [195] MICCAI’22
+task-relevant feature replenishment
+C3, ETIS, KS
+C3, ETIS, KS
+R-34
+BF#2
+-
+FS, US
+Link
+AFP-Mask [196]
+JBHI’22
+anchor-free instance segmentation
+Private, GI
+Private, C6, ETIS
+Customised
+BF#1
+-
+FS
+-
+BCNet [197]
+JBHI’22 cross-layer integration, bilateral boundary extraction
+KS
+C6, ES, KS
+R2-50
+BF#1
+EX
+FS
+-
+BSCA-Net [198]
+PR’22
+bit slice context attention
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+BF#1
+EX
+FS
+Link
+Polyp-Mixer [199]
+TCSVT’22
+context-aware MLP-based network
+C6, KS
+C6, KS, C3, ETIS
+CMLP
+BF#1
+-
+FS
+Link
+ACL-Net [200]
+AAAI’23
+affinity contrastive learning
+C6, KS
+C6, ES, KS, C3, ETIS
+R-50
+BF#2
+-
+SS
+Link
+WS-DefSegNet [67] CVPRw’23
+deformable transformer, sparse foreground loss
+W-Polyp [67]
+C6, KS, C3, ETIS, ES
+R2-50
+BF#1
+-
+WS, SS
+Link
+WeakPolyp [201] MICCAI’23
+mask-to-box transformation, scale consistency
+SUN-S, Private
+SUN-S, Private
+PB2
+BF#2
+-
+WS
+Link
+PETNet [202] MICCAI’23
+Gaussian-probabilistic guided semantic fusion
+C6, KS
+C6, ES, KS, C3, ETIS
+PB2
+BF#1
+-
+FS
+Link
+S2ME [203] MICCAI’23
+spatial-spectral mutual teaching, ensemble learning
+SUN-S
+C6, KS, SUN-S, PG
+Customised
+BF#1
+-
+WS
+Link
+Su et al. [204] MICCAI’23
+feature propagation & aggregation
+C6, KS
+C6, ES, KS, C3, ETIS
+PB2
+BF#1
+EX
+FS
+-
+Polyp-PVT [205]
+AIR’23
+Improved pyramid vision transformer
+C6, KS
+C6, ES, KS, C3, ETIS
+PB2
+BF#1
+EX
+FS
+Link
+RPANet [206]
+IPMI’23
+coarse-to-fine self-supervision
+Private
+C6, ETIS, KS
+R-101
+BF#2
+-
+FS, US
+-
+FEGNet [207]
+JBHI’23
+feedback enhancement gate network
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+BF#1
+EX
+FS
+-
+BS-Loss [208]
+JBHI’23
+boundary-sensitive loss with location constraint
+K-I
+K-I
+Customised
+MF#1
+EX
+FS
+Link
+Point SEGTR [209]
+MedIA’23
+multi-point and symmetric consistency
+C6, ETIS
+C6, ETIS
+P-DETR
+BF#2
+-
+FS, WS, SS
+-
+DGNet [210]
+MIR’23
+deep gradient learning
+C6, KS
+C3, ETIS
+Eff-B4
+BF#1
+EX
+FS
+Link
+CFA-Net [211]
+PR’23
+cross-level feature fusion, boundary aggregation
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+BF#1
+EX
+FS
+Link
+ColnNet [212]
+TMI’23 statistical attention, anomaly boundary approximation
+C6, KS
+C6, ES, KS, C3, ETIS
+D-121
+BF#1
+EX
+FS
+-
+FANet [213] TNNLS’23
+feedback attention, run-length encoding
+C6, KS
+C6, KS
+Customised
+MF#2
+-
+FS
+Link
+MCANet [214]
+arXiv’23
+multi-scale cross-axis attention
+C6, KS
+C6, ES, KS, C3, ETIS
+MN
+MF#1
+-
+FS
+Link
+Polyper [215]
+AAAI’24
+boundary sensitive attention
+C6, KS
+C6, KS, C3, ETIS, ES
+Swin-T
+MF#1
+IM#1
+FS
+Link
+EMCAD [216]
+CVPR’24 efficient multi-scale convolutional attention decoding C6, C3, ETIS, KS, BKAI
+C6, C3, ETIS, KS, BKAI
+PB2
+BF#1
+-
+FS
+Link
+Sch¨on et al. [217]
+CVPR’24
+SAM [165], test-time adaptation
+K-I, CDB, KS
+K-I, CDB, KS
+SAM
+BF#2
+EX
+WS
+-
+MH-pFLID [218]
+ICML’24
+federated learning, injection-distillation paradigm
+Private
+Private
+Customised
+BF#2
+-
+FS
+Link
+ASPS [219] MICCAI’24
+SAM [165], uncertainty-guided regularisation
+C6, KS
+C6, ES, KS, C3, ETIS
+SAM, MN
+BF#2
+IM#2
+FS
+Link
+Polyp-Mamba [220] MICCAI’24 vision state space model, semantic relationship mining
+C6, KS
+C6, ES, KS, C3, ETIS
+VMamba [221] MF#1
+EX
+FS
+-
+QueryNet [222] MICCAI’24
+unified framework of segmentation & detection
+C6, KS
+C6, ES, KS, C3, ETIS
+M2Former
+MF#2
+-
+FS
+Link
+LSSNet [223] MICCAI’24
+local & shallow feature supplementation
+C6, KS
+C6, ES, KS, C3, ETIS
+PB2
+BF#1
+EX
+FS
+Link
+BSBP-RWKV [224]
+MM’24
+Perona-Malik diffusion, RWKV [225]
+KS
+KS
+Customised
+BF#1
+EX
+FS
+-
+CFATransUnet [226]
+CIBM’24
+channel-wise cross fusion attention and transformer
+C6, KS
+C6, KS
+PB3
+BF#1
+-
+FS
+Link
+PolypMixNet [227]
+CIBM’24
+consistency regularisation, soft pseudo labeling
+C3, C6, KS, ETIS
+C3, C6, KS, ETIS
+R-34
+BF#2
+-
+SS
+Link
+RGIAug [228]
+JBHI’24
+randomised global illumination augmentation
+C3, C6, ETIS, KS
+C3, C6, ETIS, KS
+Customised
+BF#2
+-
+FS
+Link
+EMTS-Net [229]
+JBHI’24
+multi-task synergetic network
+C6, KS
+C6, ES, KS, C3, ETIS
+R2-50
+BF#1
+-
+FS
+-
+MSDE-Net [230]
+JBHI’24
+multi-scale dual-encoding network
+K-I
+K-I
+R-34, DeiT
+MF#2
+-
+FS
+-
+Polyp-OOD [231]
+MIR’24 out-of-distribution modelling, latent standardisation
+SUN-S
+SUN-S, C6, C3, ETIS, KS
+ViT-B16
+MF#2
+-
+US
+Link
+MedSAM [232] NComs’24
+SAM [165], cross-organ/modality tuning
+Hybrid datasets
+Hybrid datasets
+SAM
+MF#2
+-
+WS
+Link
+FoBS [233]
+TCSVT’24
+multi-level boundary-enhanced framework
+KS, ES
+KS, ES, ETIS, C3
+DLV3+
+BF#2 EX, IM#1
+FS
+Link
+DCL-PS [234]
+TMI’24 domain-interactive contrastive learning, self-training
+ETIS, HK, ES, KS
+ES, KS
+DLV2
+BF#2
+-
+FS, US
+Link
+Gao et al. [235]
+TMI’24
+in-context learning, dual similarity checkup
+C3
+C3
+SAM
+BF#2
+-
+WS
+U-KAN [236]
+arXiv’24
+U-shaped Kolmogorov-Arnold network [237]
+C6
+C6
+Customised
+MF#1
+-
+FS
+Link
+SliceMamba [238]
+arXiv’24
+vision state space model, bidirectional slice scan
+C6, KS
+C6, KS
+Customised
+MF#1
+-
+FS
+-
+ProMamba [239]
+arXiv’24
+vision state space model, promptable segmentation
+C6, KS
+C6, KS, C3, ETIS, ES, BKAI
+Vim [149]
+MF#2
+-
+WS
+-
+SAM2-UNet [240]
+arXiv’24
+SAM2 [166], adapter-based tuning
+C6, KS
+C6, ES, KS, C3, ETIS
+SAM2
+BF#1
+EX
+FS
+Link
+Video-based models
+Puyal et al. [241] MICCAI’20
+temporal correlation via hybrid 2D/3D CNNs
+Private, KS
+Private
+R-101
+MF#2
+-
+FS
+-
+PNS-Net [242] MICCAI’21
+normalised self-attention, progressive learning
+C6, C3, ASU, KS
+C6, C3
+R2-50
+BF#2
+-
+FS
+Link
+SSTAN [243] MICCAI’22
+spatial-temporal attention
+LDPolyVideo [48]
+LDPolyVideo [48]
+ResUNet
+BF#2
+-
+SS
+Link
+TCCNet [244]
+IJCAI’22
+temporal consistency, context-free loss
+C6, C3
+C6, C3, ETIS
+R2-50
+BF#2 EX, IM#1
+SS
+Link
+Puyal et al. [245]
+MedIA’22
+extend [241] with optimal setups
+Private, KS
+Private, SUN
+R-101
+BF#2
+-
+FS
+-
+PNS+ [62]
+MIR’22
+extend [242] with global-to-local learning
+SUN-S
+SUN-S
+R2-50
+BF#2
+-
+FS
+Link
+EUVPS [246]
+AAAI’24 cross-scale region linking, cross-wise scale alignment
+SUN-S, C6
+SUN-S, C6
+HR-W48
+BF#2
+-
+FS
+Link
+LGRNet [247] MICCAI’24 cyclic neighbourhood propagate, Hilbert selective scan
+C6, C3, SUN-S
+C6, C3, SUN-S
+R2-50
+BF#2
+-
+FS
+Link
+SALI [248] MICCAI’24
+short-term alignment, long-term interaction module
+SUN-S
+SUN-S
+PB5
+BF#2
+EX
+FS
+Link
+Diff-VPS [249] MICCAI’24
+diffusion model, adversarial temporal reasoning
+SUN-S
+SUN-S
+SFB3
+BF#2
+-
+FS, US
+Link
+FlowICBNet [250]
+CIBM’24
+iterative feedback units, frame filtering & selecting
+SUN-S
+SUN-S
+R2-50
+BF#2
+-
+FS
+Link
+Drag&Drop [251]
+MIR’24
+weakly-supervised temporal annotator
+SUN-S
+SUN-S
+-
+BF#2
+-
+WS
+Link
+SSTFB [252]
+arXiv’24
+self-supervised encoder, sub-branching mechanism
+SUN-S
+SUN-S, CDB
+R2-50
+BF#2
+-
+US, FS
+-
+Vivim [253]
+arXiv’24 video state space model, spatio-temporal selective scan
+KS, ASU, C3, C6
+C3, C6
+Customised
+BF#2
+EX
+FS
+Link
+MAST [254]
+arXiv’24
+Siamese transformer, mixture attention module
+SUN-S
+SUN-S
+PB2
+BF#2
+-
+FS
+Link
+scenarios through in-context learning [235]. (b) Architecture:
+The community favours the encoder-decoder design for its
+superior ability to perceive hierarchical features. Current
+models usually opt for multistream or branched frame-
+works, as in Fig. 3. Various modifications in this area have
+been explored, such as incorporating residual connected
+flows [55], [173], probing cross-task synergy [222], providing
+additional edge cues [210], using the model-ensembling
+strategy [186], [193], [219], calculating latent statistics [231],
+exploring spatio-temporal relationships through 3D con-
+8
+TABLE 5
+Comparison of image polyp segmentation models. They are evaluated using the mean scores (%) of structure measure (S [258]) and Dice
+coefficient (D) on two test sets, with boxplots illustrating the distribution of their consistency and variability across test cases.
+Kvasir-SEG (100 test images) [38]
+CVC-ClinicDB (62 test images) [21]
+Model S [#Rank]
+0.0
+⇀
+0.5
+⇀
+1.0 D [#Rank]
+0.0
+⇀
+0.5
+⇀
+1.0 S [#Rank]
+0.0
+⇀
+0.5
+⇀
+1.0 D [#Rank]
+0.0
+⇀
+0.5
+⇀
+1.0
+Polyp-PVT [205] 92.51 [#1]
+91.74 [#2]
+95.00 [#2]
+93.68 [#1]
+CFA-Net [211] 92.40 [#2]
+91.47 [#4]
+95.07 [#1]
+93.25 [#2]
+MSNet [184] 92.31 [#3]
+90.23 [#7]
+94.68 [#3]
+91.48 [#6]
+BoxPolyp [191] 92.30 [#4]
+91.84 [#1]
+93.70 [#6]
+91.81 [#4]
+SSFormer [194] 92.21 [#5]
+91.71 [#3]
+92.87 [#9]
+90.60 [#7]
+UACANet [187] 91.67 [#6]
+91.21 [#5]
+94.30 [#4]
+92.63 [#3]
+PraNet [175] 91.50 [#7]
+89.82 [#8]
+93.68 [#7]
+89.90 [#9]
+SANet [185] 91.45 [#8]
+90.41 [#6]
+93.98 [#5]
+91.57 [#5]
+DGNet [210] 90.98 [#9]
+89.72 [#9]
+93.39 [#8]
+90.44 [#8]
+MCANet [214] 90.25 [#10]
+89.55 [#10]
+91.79 [#10]
+89.70 [#10]
+Polyper [215] 90.08 [#11]
+89.12 [#11]
+91.29 [#11]
+88.63 [#11]
+UNet++ [259] 86.21 [#12]
+82.08 [#12]
+87.33 [#13]
+79.42 [#13]
+UNet [260] 85.76 [#13]
+81.83 [#13]
+89.00 [#12]
+82.25 [#12]
+SFA [172] 78.14 [#14]
+72.31 [#14]
+79.33 [#14]
+70.06 [#14]
+volutions [241], [245] or self-attention modules [62], [242],
+[248], and approaching with the teacher-student paradigm
+[67], [209]. (c) Edge-sensitive analysis: Geometric patterns are
+beneficial in enhancing the model’s capability to differenti-
+ate foreground objects from the background. The current
+techniques are in two main ways. The first involves the
+explicit use of edge maps derived from image gradients,
+either for direct supervision [172], [182], [210] or as an
+auxiliary input [49]. Moreover, some methods emphasise
+edge-aware calculation within their loss functions, such as
+boundary weighted [193], [240] and customised [183], [208]).
+Second, edge information can be implicitly integrated by
+embedding edge-aware representations (e.g., reverse atten-
+tion [175], morphology operator [215], subtraction opera-
+tor [44]), or by quantifying edge-aware uncertainties [176],
+[187]. Moreover, some methods adopt a hybrid strategy, e.g.,
+both the subtraction operator and the edge-aware loss are
+used in MSNet [184].
+• Output phase. Most models are trained in a fully su-
+pervised way, always incorporating deep supervision at
+various decoding stages, as seen in [175], [205]. Recent mod-
+els have extended beyond with data-efficient approaches,
+for example, weakly supervised mask-to-box transforma-
+tion [201] and unsupervised techniques such as contrastive
+learning [181], out-of-distribution modelling [231], and
+pseudo-label supervision [191], [243]. Hybrid supervised
+strategies are also present in which models [49], [188],
+[195], [206] undergo fully supervised training in the source
+domain, and are then adapted to the target domain in
+an unsupervised way. Point SEGTR [209] exploits three
+types of supervision to enhance the model. Additionally,
+some teacher-student networks receive hybrid supervision
+signals; for example, Ren et al. [67] employs a weakly super-
+vised approach for the teacher while the student undergoes
+semi-supervised training.
+• Remarks. To reflect current field progress, we analyse 14
+open-source image segmentation models on two popular
+test datasets, as shown in Tab. 5. All models are trained on
+the same dataset from Fan et al.’s benchmark [175]. First, we
+observe that current learning strategies are underexplored,
+as evidenced by BoxPolyp, a weakly supervised model ob-
+taining the best D score (91.84%) on Kvasir-SEG. In addition,
+some models achieve better performance, yet exhibit wider
+interquartile ranges in boxplots, indicating their variability
+in predictions. For example, Polyp-PVT, which ranks high-
+est in the S score on Kvasir-SEG, shows a wider interquartile
+range than other models like SSFormer. From these results,
+we suggest several promising opportunities for future study.
+(a) The current gold benchmark [175] comprises less than
+1.5K samples and is focused on one category (polyp). In
+general, scaling up both the data size and diversity could be
+a natural way to improve robustness and generalisability.
+This demand is driving innovations, such as developing
+a semi-auto image annotator [165], [166] to reduce expert
+labour and synthesising high-fidelity content via diffusion
+[261] and autoregressive [262] techniques. (b) Moreover, infi-
+nite data scaling is not sustainable. Developing data-efficient
+strategies [94]–[96] that require fewer or weaker labels is
+more cost-effective for average users in the community.
+(c) Finally, providing procedural support to physicians is
+essential, including anomaly detection, navigation planning,
+risk assessment, and intervention advice. We can adopt
+innovations from similar topics [263].
+4.4
+VL models
+Compared to the above three topics, multimodal research
+has relatively fewer references. Most existing methods are
+discriminative models that aim to learn decision boundaries
+between multimodal inputs. Some studies demonstrate the
+model’s effectiveness in referring segmentation tasks, for
+example, by incorporating textual attention of lesion at-
+tributes (e.g., size and number of polyps) into a U-shaped
+model [264], a diffusion model [265], or a hybrid network
+[266]. Other studies [267], [268] have developd prompt
+engineering pipelines based on well-trained GLIP [269] for
+polyp detection. Moreover, the SAM is capable of operating
+in a VL setting, obtaining location prompts from either the
+image-text activation map [270] or a zero-shot grounding
+detector [271], [272]. In the MEDVQA-GI competition [65],
+most solutions are discriminative-based, approaching VL
+tasks as a classification mapping problem, where predefined
+labels are assigned to image-text pairs. An alternative is
+a generative-based solution [273] that adapts a pretrained
+BLIP-2 model [274] to generate predictions.
+• Remarks. Two possible reasons might explain the lag
+in VL research for colonoscopy. (a) Data-centric issue. The
+lack of well-structured and high-quality image-text pairs
+hinders progress. Future insights can be learnt from existing
+9
+high grade adenoma
+high grade dysplasia
+low grade adenoma
+serrated lesion
+ulcerative colitis
+esophagus
+adenocarcinoma
+invasive carcinoma
+suspicious precancerous lesion
+colorectal cancer
+ulcerative colitis grad 1
+ulcerative colitis grad 2
+ulcerative colitis grad 3
+ulcerative colitis grad 0-1
+ulcerative colitis grad 1-2
+ulcerative colitis grad 2-3
+erosion
+ulcer
+blood (fresh)
+blood (hematin)
+blood in lumen
+angiectasia
+colon diverticula
+erythema
+hemorrhoid
+lymphangiectasia
+inflammatory bowel disease
+cecum
+ileocecal valve
+Barrett’s
+esophagitis
+foreign body
+hyperplastic lesion
+BBPS 0
+no object
+pylorus
+ileum
+duodenal bulb
+ampulla of Vater
+normal Z-line
+short segment Barrett’s
+small bowel-terminal  ileum
+esophageal varix
+impacted stool
+normal stomach
+retroflex stomach
+oesophagitis-a
+oesophagitis-b-d
+gastric polyp
+adenoma
+polyp
+resected polyp
+resection margin
+dyed resection margin
+retroflex rectum
+dyed lifted polyp
+accessory tool
+BBPS 2-3
+BBPS 0-1
+BBPS 3
+BBPS 2
+BBPS 1
+polyp related
+cancer related
+ulcer related
+Pathological 
+finding
+blood vessel
+others
+inflammation
+Anatomical
+structure
+Therapeutic 
+intervention
+post-
+operative
+intra-
+operative
+preoperative
+with object
+4.01%
+36.62%
+2.42%
+1.14%
+0.45%
+1.56%
+0.29%
+0.26%
+0.01%
+3.86%
+34.02%
+0.27%
+0.21%
+bleed
+1.82%
+1.82%
+Negative
+53.69%
+cecum 
+related
+Generating
+Language 
+prompt
+Colonoscopy 
+image
+Our database
+[Custom prompt] You are a specialized caption generator.
+Carefully examine the provided image and generate a
+caption of 3 to 5 sentences with a detailed and professional
+description. The category information of this image is as
+follows: This is a colonoscopy image of [root], a/an [child]
+under the category of [parent]. Additional requirements for
+the generated captions include: 1) Ensure the content is
+factual and specific to the field. 2) The generated captions
+must not be broad and must be meaningful. 
+Category prior 
+[root] pathological finding 
+[parent] polyp related 
+[child] hyperplastic lesion
+[Medical captions] This endoscopic image reveals a hyperplastic
+polyp within the gastrointestinal tract, characterized by its smooth,
+round, and nodular appearance typically seen arising from the
+mucosal layer. The lesion's surface appears intact without evidence
+of erosion or ulceration, which can be distinguishing features of
+benign
+hyperplastic
+polyps
+versus
+malignancy.
+Surrounding
+mucosa appears slightly erythematous, but without significant
+inflammatory changes, suggesting a localized lesion rather than a
+diffuse pathological process. The field of view includes normal
+vascular patterns surrounding the polyp, indicating preserved
+tissue integrity. This lesion is representative of the most common
+type of non-neoplastic polyp found in the colon, often identified
+incidentally during screening colonoscopies.
+ColonINST
+3. Creating instruction tuning data
+(450,724 human-machine dialogues)
+1. Collecting visual data
+(303,001 colonoscopy images)
+2. Generating medical captions
+(128,620 image-caption pairs)
+(a) Data overview
+(b) Data statistic (colonoscopy images)
+(c) Data taxonomy
+(d) Word cloud distribution
+(f) Data statistic (human-machine dialogues)
+(e) Pipeline of caption generation
+Positive
+Negative
+Total
+Train
+74,407
+106,570
+180,977
+Val
+8,929
+17,328
+26,257
+Test
+45,284
+50,483
+95,767
+Total
+128,620
+174,381
+303,001
+CLS
+REG
+REC
+CAP
+Total
+Train
+74,407 54,237 54,237
+74,407 257,288
+Val
+8,929
+4,874
+4,874
+8,929
+27,606
+Test
+45,284 37,631 37,631
+45,284 165,830
+Total 128,620 96,742 96,742 128,620 450,724
+Fig. 4. Details of the established ColonINST. (a) Three sequential steps to create the instruction tuning dataset for multimodal research. (b)
+Numbers of colonoscopy images designated for training, validation, and testing purposes. (c) Data taxonomy of three-level categories. (d) A word
+cloud of the category distribution by name size. (e) Caption generation pipeline using the VL prompting mode of GPT-4V [4]. (f) Numbers of human-
+machine dialogues created for four downstream tasks.
+ideas. First, crawling unlabelled image-text data from social
+media [275] and scientific literature [276] can be used to
+build domain-specific foundation models. Second, language
+models such as GPT-4V [4] can generate diverse profes-
+sional descriptions, offering an economical and scalable way
+to expand the knowledge space of the data. (b) Model-
+centric issue. Current VL techniques in colonoscopy have not
+kept pace, even with recent developments in multimodal
+language models (MLMs) [8], [277] for general domains.
+These techniques opt for a decoder-only strategy that unifies
+multiple tasks (e.g., detection, captioning) into a unified au-
+toregressive framework (i.e., next-token prediction). These
+models are flexibly capable of processing input and output
+texts of varying lengths, without requiring additional task-
+specific prediction heads for different tasks.
+5
+STEPPING INTO THE MULTIMODAL LAND
+Recently, MLMs have demonstrated significant promise in
+leveraging language models to process multimodal signals,
+especially in “perceiving and interpreting” visual signals.
+Instruction tuning [278] is key to instructing the MLMs
+to execute domain-specific tasks aligned with user prefer-
+ences. This section introduces three initiatives to advance
+multimodal research: how we create a large-scale instruc-
+tion tuning dataset, ColonINST (§5.1) and how we train a
+colonoscopy-specific MLM, ColonGPT (§5.2). Finally, as in
+§5.3, we contribute a multimodal benchmark for conver-
+sational colonoscopy tasks, conduct diagnostic studies on
+ColonGPT, and share lessons from empirical observations.
+5.1
+Established instruction tuning dataset: ColonINST
+• Overview. Fig. (4-a) depicts our semi-automated workflow
+to create instruction tuning data in three steps. We begin
+by assembling colonoscopy images from public datasets.
+Following this, we use a category-specific prompt to in-
+teract with a multimodal AI chatbot, GPT-4V [4], yielding
+descriptive medical captions for these positive cases within
+the assembled data. Lastly, we reorganise the instruction
+tuning pairs derived from the data afore-prepared, enabling
+the model to perform four different colonoscopy tasks in an
+interactive, dialogue-based manner.
+• Data collection. As shown in Fig. (4-b), ColonINST con-
+tains 303,001 colonoscopy images, including 128,620 posi-
+tive and 174,381 negative cases collected from 19 different
+data sources. To ensure data integrity and avoid label leak-
+age, we establish a series of management rules to divide
+each dataset. For datasets with predefined divisions, such as
+KUMC [57], PICCOLO [39], WCE-CCDD [60], BKAI-Small
+[46], CP-CHILD [51], Kvasir-Instrument [50], and PS-NBI2K
+[16], we follow their original division rules. When such
+predefined rules are not available, we conform to widely
+recognised benchmarks, such as CVC-ClinicDB [21], CVC-
+ColonDB [19], ETIS-Larib [20], and the polyp category in
+Kvasir [28] according to the benchmark by Fan et al. [175],
+as well as positive samples in SUN-database [54] following
+the benchmark by Ji et al. [62]. For the remaining datasets
+(HyperKvasir [43], Kvasir-Capsule [56], CPC-Paired [47],
+Nerthus [29], GastroVision [66], EDD2020 [40], PolypGen
+[69], negative samples in SUN-database [54], remaining
+categories in Kvasir [28]), we allocate them proportionally
+as 60%/10%/30% for training/validation/testing purposes.
+With the above management rules, our final image di-
+vision for is roughly 59.73%/8.77%/31.61%. As depicted
+in Fig. (4-c), all images are classified into a three-level
+structure, including 4 root/13 parent/62 child categories. In
+detail, the root level contains three positive categories: the
+pathological findings of various colonic diseases (110,970
+cases); the anatomical structure related to the colon (5,511
+cases); and therapeutic interventions related to colonoscopy
+(12,139 cases), covering the pre-operative, intra-operative,
+and post-operative stages. Targets outside our interest (e.g.,
+stomach, oesophagus, normal Z-line, and gastric polyp not
+10
+TABLE 6
+Details of instruction tuning dataset ColonINST. For each task, we provide five templates for human instructions, the data sources used to
+organise human-machine dialogues, and an example of a human-machine conversation.
+Task
+Instruction templates
+Data source
+Human-machine dialogue sample
+CLS
+1. Categorize the object.
+2. Determine the object’s category.
+3. Identify the category of the object.
+4. Classify the object’s category.
+5. Assign the object to its corresponding category.
+19 sources →SUN-database [54], PolypGen [69], CVC-ClinicDB [21],
+ETIS [20], KUMC [57], Kvasir [28], PSNBI2K [16], CVC-ColonDB [19],
+EDD2020 [40], Kvasir-Capsule [56], CP-CHILD [51], BKAI-Small [46],
+PICCOLO [39], WCE-CCDD [60], CPC-Paired [47], HyperKvasir [43],
+Nerthus [29], GastroVision [66], Kvasi-Instrument [50]
+REG
+1. What category does {object coordinates} belong to?
+2. Can you tell me the category of {object coordinates}?
+3. Could you provide the category for {object coordinates}?
+4. Please specify the category of {object coordinates}.
+5. What is the category for {coordinates}?
+11 sources →SUN-database [54], PolypGen [69], CVC-ClinicDB [21],
+ETIS [20], KUMC [57], Kvasir [28], PSNBI2K [16], CVC-ColonDB [19],
+EDD2020 [40], Kvasir-Capsule [56], Kvasi-Instrument [50]
+REC
+1. Where is the location of {object category}?
+2. Could you give the position of {object category}?
+3. Where is {category} located?
+4. Could you specify the location of {object category}?
+5. Please specify the coordinates of {object category}.
+11 sources →SUN-database [54], PolypGen [69], CVC-ClinicDB [21],
+ETIS [20], KUMC [57], Kvasir [28], PSNBI2K [16], CVC-ColonDB [19],
+EDD2020 [40], Kvasir-Capsule [56], Kvasi-Instrument [50]
+CAP
+1. Describe what you see in the image.
+2. Interpret what the image shows.
+3. Detail the visual elements in the image.
+4. Explain the image’s visuals thoroughly.
+5. Offer a thorough explanation of the image.
+19 sources →SUN-database [54], PolypGen [69], CVC-ClinicDB [21],
+ETIS [20], KUMC [57], Kvasir [28], PSNBI2K [16], CVC-ColonDB [19],
+EDD2020 [40], Kvasir-Capsule [56], CP-CHILD [51], BKAI-Small [46],
+PICCOLO [39], WCE-CCDD [60], CPC-Paired [47], HyperKvasir [43],
+Nerthus [29], GastroVision [66], Kvasi-Instrument [50]
+occurred during a colonoscopy) or lack of objects (e.g.,
+normal mucosa, colon background) are classified under the
+negative root category (174,381 cases). We intentionally keep
+these negative samples, as they may be valuable for future
+gastrointestinal research. Fig. (4-d) presents a word cloud
+distribution for all categories names within ColonINST.
+• Caption generation. The behavioural study [279] suggests
+that language affects both higher-level (recognition) and
+lower-level (discrimination) processes of visual perception.
+This encourages us to extend positive cases (i.e., 128,620
+images featuring various colonoscopic findings) with de-
+scriptive captions. For this purpose, a straightforward way
+to create captions is to wrap the category name in a basic
+template, like “a photo of a [category]” as used by Radford
+et al. [150]. However, these simple sentences tend to yield
+suboptimal multimodal alignment, as they are less informa-
+tive. As shown in Fig. (4-e), we introduce a pipeline to gen-
+erate more descriptive captions. We interact with GPT-4V [4]
+using a custom prompt for each colonoscopy image. These
+prompts act as a prior, conditioned by the image’s category.
+Compared to simple sentences, the generated captions ex-
+plain three features. First, our generated captions describe
+the unique patterns of the target, such as “smooth, round,
+and nodular appearance”, providing details of the surface of
+the object. Second, conditioned by category priors, our cap-
+tions can better differentiate between benign hyperplastic
+polyps and malignant lesions, describing lesion as “surface
+appears intact without evidence of erosion or ulceration”.
+Third, our captions cover not only the lesion itself but
+also the surroundings, e.g., “mucosa appears slightly ery-
+thematous, but without significant inflammatory changes”,
+offering a more holistic and accurate interpretation.
+• Organising tuning data. In the final step, we convert
+all positive cases into a one-round conversational format,
+i.e., “image+human instruction→machine response”. As de-
+picted in Fig. (4-f), we reorganise 450,724 human-machine
+dialogue pairs from various image/label/caption sources,
+covering four different tasks. Specifically, the classification
+task (CLS) requires the model to assign a category tag
+to a colonoscopy image. Using the localisation labels, we
+introduce two related tasks: referring expression generation
+(REG), which involves classifying a specified image region,
+and referring expression comprehension (REC), which in-
+Human instruction: 
+“Categorize the object.”
+Colonoscopy image
+AI chatbots
+LLaVA-v1.5 (wrong modality)
+Answer: “The object is a medical image, 
+specifically an ultrasound image, showing a 
+close-up view of a person's stomach.”
+LLaVA-Med-v1.5 (inaccurate category)
+Answer: “The object in the image is a gallstone.”
+GPT-4V (vague descriptions)
+Answer: “The object in the image appears to be a 
+medical endoscopic view of the gastrointestinal 
+tract, likely from a colonoscopy or gastroscopy. 
+The visible area shows tissue and possibly a 
+lesion or abnormality. It is categorized as a 
+medical imaging representation, specifically 
+related to gastrointestinal health.”
+ColonGPT (Ours)
+Answer: “Polyp”
+Fig. 5. Response comparison for colonoscopy image classification.
+We evaluate the zero-shot language responses from three AI chatbots
+against the response from our multimodal model, ColonGPT.
+volves locating an object with the given category. We also
+introduce the image captioning (CAP) task that uses GPT-
+4V-generated captions as machine responses. To enhance
+dialogue diversity, we set up five question templates per
+task, in which we randomly select one to form a human-
+machine instruction pair, explained in Tab. 6.
+5.2
+Proposed multimodal language model: ColonGPT
+• Motivation. As illustrated in Fig. 5, three AI chatbots –
+LLaVA-v1.5 [8], LLaVA-Med-v1.5 [280], and GPT-4V [4] –
+are evaluated for their zero-shot language response capa-
+bilities. They often produce inaccurate or vague responses
+and cannot be readily adaptable to specific colonoscopy
+tasks. This motivates us to develop a colonoscopy-specific
+MLM for the community. As a result, ColonGPT classifies
+the image as “polyp” according to the user instructions,
+allowing for more precise and personalised applications.
+• Overview. We strive to verify the efficacy of language
+models (LMs) in interpreting both visual and textual signals
+within the field of medical optical imaging. We present a
+baseline model, called ColonGPT, to execute colonoscopy
+tasks following human instructions. As shown in the left of
+Fig. 6, we follow the framework of MLM [8], which typically
+involves four basic components. (a) A language tokenizer
+translates a human instruction Xq into a sequence of tokens
+Tq ∈RNq×D, where Nq signifies the length of textual tokens
+and D represents the embedding dimension. (b) A visual
+11
+Zoom in
+<latex
+it sha1_base
+64="lv5/j6sK
+aUXeLNWo4NT7
+HX/QLo=">A
+AB83icbVDLSg
+MxFL1TX7W+qi
+7dBIvgqsxIU
+ZcFNy4r9AWdo
+WTSTBuaZIYkU
+yhDf8ONC0Xc+
+jPu/Bsz7Sy09
+UDgcM693JMTJ
+pxp47rfTmlr
+e2d3r7xfOTg8
+Oj6pnp51dZwq
+Qjsk5rHqh1hT
+ziTtGY47SeK
+YhFy2gunD7nf
+m1GlWSzbZp7Q
+QOCxZBEj2Fj
+J9wU2kzDK2ov
+hbFituXV3CbR
+JvILUoEBrWP3
+yRzFJBZWGcKz
+1wHMTE2RYGUY
+4XVT8VNMEky
+ke04GlEguqg2
+yZeYGurDJCUa
+zskwYt1d8bGR
+Zaz0VoJ/OMet
+3Lxf+8QWqi+y
+BjMkNlWR1KE
+o5MjHKC0Ajp
+igxfG4JorZr
+IhMsMLE2Joqt
+gRv/cubpHtT9
+27rjadGrYmKO
+spwAZdwDR7cQ
+RMeoQUdIJDA
+M7zCm5M6L867
+87EaLTnFzjn8
+gfP5A1Sskcg=
+</latexit>Tv
+<latex
+it sha1_bas
+e64="k+iqO3
+hU9tQy3PyrC
+rZjGkDm/8U=
+">AB83icb
+VDLSgMxFL2p
+r1pfVZdugkV
+wVWakqMuCG5
+cV+oLOUDJp
+g3NZMYkI5Sh
+v+HGhSJu/Rl
+3/o2Zdhbaei
+BwOde7skJE
+sG1cZxvVNrY
+3NreKe9W9vY
+PDo+qxydHa
+eKsg6NRaz6A
+dFMcMk6hvB
++oliJAoE6wX
+Tu9zvPTGleS
+zbZpYwPyJj
+yUNOibGS50X
+ETIwa8+Hj8
+Nqzak7C+B14
+hakBgVaw+qX
+N4pGjFpqCB
+aD1wnMX5GlO
+FUsHnFSzVLC
+J2SMRtYKknE
+tJ8tMs/xhV
+GOIyVfdLghf
+p7IyOR1rMos
+JN5Rr3q5eJ/
+3iA14a2fcZm
+khkm6PBSmAp
+sY5wXgEVeMG
+jGzhFDFbVZM
+J0QRamxNFVu
+Cu/rldK9qr
+vX9cZDo9bER
+R1lOINzuAQX
+bqAJ9CDlB
+I4Ble4Q2l6A
+W9o4/laAkVO
+6fwB+jzB0Y
+kcM=</latex
+it>Tq
+Human
+instruction
+<latex
+it sha1_base
+64="BsayuXUf
+IQ0GZ273cW9
+64UxwxQ=">A
+AB83icbVDLS
+sNAFL2pr1pfV
+ZduBovgqiQi6
+rLgxmUF+4Cm
+lMn0ph06mcSZ
+iVBCf8ONC0Xc
++jPu/BsnbRba
+emDgcM693DM
+nSATXxnW/ndL
+a+sbmVnm7srO
+7t39QPTxq6zh
+VDFsFrHqBl
+Sj4BJbhuB3U
+QhjQKBnWBym/
+udJ1Sax/LBTB
+PsR3QkecgZN
+Vby/YiacRBm3
+dngcVCtuXV3D
+rJKvILUoEBzU
+P3yhzFLI5SG
+Cap1z3MT08+o
+MpwJnFX8VGNC
+2YSOsGepBHq
+fjbPCNnVhm
+SMFb2SUPm6u+
+NjEZaT6PATuY
+Z9bKXi/95vdS
+EN/2MyQ1KNn
+iUJgKYmKSF0
+CGXCEzYmoJZY
+rbrISNqaLM2J
+oqtgRv+curpH
+1R967ql/eXt
+QYp6ijDCZzCO
+XhwDQ24gya0g
+ECz/AKb07qv
+DjvzsditOQU
+O8fwB87nD1M0
+kc=</latexi
+t>Xq
+Language response
+…
+…
+…
+Language model
+Colonoscopy
+image
+<latex
+it sha1_base
+64="Xg+5Ulyr
+cJOCuLaMBFr
+SRw7Pw=">A
+AB83icbVDLS
+sNAFL2pr1pfV
+ZduBovgqiQi6
+rLgxmUF+4Cm
+lMn0ph06mYSZ
+SaGE/oYbF4q4
+9Wfc+TdO2iy0
+9cDA4Zx7uWd
+OkAiujet+O6W
+Nza3tnfJuZW/
+/4PCoenzS1nG
+qGLZYLGLVDa
+hGwSW2DcCu4
+lCGgUCO8HkPv
+c7U1Sax/LJzB
+LsR3QkecgZN
+Vby/YiacRBm3
+flgOqjW3Lq7A
+FknXkFqUKA5q
+H75w5ilEUrD
+BNW657mJ6WdU
+Gc4Ezit+qjGh
+bEJH2LNU0gh1
+P1tknpMLqwx
+JGCv7pCEL9fd
+GRiOtZ1FgJ/O
+MetXLxf+8Xmr
+Cu37GZIalGx
+5KEwFMTHJCy
+BDrpAZMbOEMs
+VtVsLGVFmbE
+0VW4K3+uV10r
+6qezf168frW
+oMUdZThDM7hE
+jy4hQY8QBNaw
+CBZ3iFNyd1X
+px352M5WnK
+nVP4A+fzB1rI
+kcw=</latexi
+t>Xv
+<latex
+it sha1_base
+64="5zmXsLWb
+9p6mB3b8cVjn
+WkYW4KI=">A
+AB83icbVDLS
+gMxFL2pr1pfV
+ZdugkVwVWakq
+MuC4r2Ad0
+hpJM21oJjMk
+mUIZ+htuXCji
+1p9x59+YaWeh
+rQcCh3Pu5Z6
+cIBFcG8f5RqW
+Nza3tnfJuZW/
+/4PCoenzS0XG
+qKGvTWMSqFx
+DNBJesbgRrJ
+coRqJAsG4wuc
+v97pQpzWP5ZG
+YJ8yMykjzkl
+BgreV5EzDgIs
+/v5YDqo1py6s
+wBeJ25BalCgN
+ah+ecOYphGT
+hgqid91EuNn
+RBlOBZtXvFSz
+hNAJGbG+pZJE
+TPvZIvMcX1h
+liMNY2ScNXqi
+/NzISaT2LAju
+Z9SrXi7+5/V
+TE976GZdJapi
+ky0NhKrCJcV
+4AHnLFqBEzSw
+hV3GbFdEwUoc
+bWVLEluKtfXi
+edq7p7XW8N
+mpNXNRhjM4h
+0tw4Qa8Ata
+AOFBJ7hFd5Qi
+l7QO/pYjpZQ
+sXMKf4A+fwA9
+w5G5</latexi
+t>Ev
+Vision encoder
+Language 
+tokenizer
+<latexit sha1_base64="2O3+1QMud3zy0/zUmPNhWeDMDUg=">A
+B8XicbVDLSgMxFL1TX7W+qi7dBIvgqsyIqMuiG5cV7EPbUjJpg3NZIbkjlCG/oUbF4q49W/c+Tdm2lo64HA4Zx7ybnHj6Uw6LrfTmFldW19
+o7hZ2tre2d0r7x80TZRoxhskpFu+9RwKRvoEDJ27HmNPQlb/njm8xvPXFtRKTucRLzXkiHSgSCUbTSYzekOPKD9GHaL1fcqjsDWSZeTiqQo
+94vf3UHEUtCrpBJakzHc2PspVSjYJPS93E8JiyMR3yjqWKhtz0lniKTmxyoAEkbZPIZmpvzdSGhozCX07mSU0i14m/ud1EgyueqlQcYJcsf
+lHQSIJRiQ7nwyE5gzlxBLKtLBZCRtRTRnakq2BG/x5GXSPKt6F9Xzu/NK7TqvowhHcAyn4MEl1OAW6tABgqe4RXeHO8O/Ox3y04OQ7h/AH
+zucP0QyRBg=</latexit>Y
+…
+Multigranularity views
+Global 
+view 
+Pooling 
+layers
+… , … ,
+…
+Reshape
+Pos. Enc.
+& Reshape
+Linear-GELU 
+& Reshape
+<latexit sha
+1_base64="5zmXsLWb9p6mB3
+b8cVjnWkYW4KI=">AB83i
+cbVDLSgMxFL2pr1pfVZdugkV
+wVWakqMuC4r2Ad0hpJM2
+1oJjMkmUIZ+htuXCji1p9x59
++YaWehrQcCh3Pu5Z6cIBFcG
+8f5RqWNza3tnfJuZW/4PCoe
+nzS0XGqKGvTWMSqFxDNBJes
+bgRrJcoRqJAsG4wucv97pQp
+zWP5ZGYJ8yMykjzklBgreV5
+EzDgIs/v5YDqo1py6swBeJ25
+BalCgNah+ecOYphGThgqid
+91EuNnRBlOBZtXvFSzhNAJGb
+G+pZJETPvZIvMcX1hliMNY2
+ScNXqi/NzISaT2LAjuZ9SrX
+i7+5/VTE976GZdJapiky0Nh
+KrCJcV4AHnLFqBEzSwhV3GbF
+dEwUocbWVLEluKtfXiedq7p
+7XW8NmpNXNRhjM4h0tw4Qa
+a8AtaAOFBJ7hFd5Qil7QO/
+pYjpZQsXMKf4A+fwA9w5G5</
+latexit>Ev
+Concatenate 
+& Linear
+<latexit sha
+1_base64="svf0PfBhXz4L2j
+38ehNiNzI9nA=">AB83i
+cbVDLSgMxFL2pr1pfVZdugkV
+wVWakqMuCIC4r2Ad0hpJM2
+1oJjMkmUIZ+htuXCji1p9x59
++YaWehrQcCh3Pu5Z6cIBFcG
+8f5RqWNza3tnfJuZW/4PCoe
+nzS0XGqKGvTWMSqFxDNBJes
+bgRrJcoRqJAsG4wucv97pQp
+zWP5ZGYJ8yMykjzklBgreV5
+EzDgIs/v5YDqo1py6swBeJ25
+BalCgNah+ecOYphGThgqid
+91EuNnRBlOBZtXvFSzhNAJGb
+G+pZJETPvZIvMcX1hliMNY2
+ScNXqi/NzISaT2LAjuZ9SrX
+i7+5/VTE976GZdJapiky0Nh
+KrCJcV4AHnLFqBEzSwhV3GbF
+dEwUocbWVLEluKtfXiedq7p
+7XW8NmpNXNRhjM4h0tw4Qa
+a8AtaAOFBJ7hFd5Qil7QO/
+pYjpZQsXMKf4A+fwA/SpG6</
+latexit>Fv
+<latexit sha1_base64="1ba2PLJShRmpDlAW98X5DjFlxYU=">ACJ3icbV
+DLSgMxFM34rPVdekmWgRXZaYUdaMUFXElVewDOu2QSTNtaCYzJBmhPkbN/6KG0FdOmfmD4W2nog4XDOvdx7jx8zKpVtf1lz8wuLS8uZlezq2vrGZm5ruyajR
+GBSxRGLRMNHkjDKSVRxUgjFgSFPiN1v38x9OsPREga8Xs1iEkrRF1OA4qRMpKXO3O1GyLV8wN9lXpxW/PU3XMpN9I9vVd2tbS4+0idBUNiYSXqZt6mp86afvGy
++Xtgj0CnCXOhOTBUv9+p2IpyEhCvMkJRNx45VSyOhKGYkzbqJDHCfdQlTUM5MhNbenRnCg+M0oFBJMzjCo7U3x0ahVIOQt9UDpeX095Q/M9rJio4aWnK40QR
+jseDgoRBFcFhaLBDBcGKDQxBWFCzK8Q9JBWJtqsCcGZPnmW1IoF56hQui3ly+eTODJgF+yDQ+CAY1AG16ACqgCDR/AM3sC79WS9WB/W57h0zpr07IA/sL5/ACx
+9prc=</latexit>
+{Fn
+p 2Rs2
+n⇥D}N
+n=1
+<latexit sha1_base64="d8+7L6bSiEdTjiO9OqCI/O4hYqs=">ACFXicbVDLSsNAFJ34rPUVdelmtAgupCRS1GVREZdV7AOaWCbTSTt0MgkzE6G
+E/IQbf8WNC0XcCu78GydpFtp6YIbDOfdy7z1exKhUlvVtzM0vLC4tl1bKq2vrG5vm1nZLhrHApIlDFoqOhyRhlJOmoqRTiQICjxG2t7oIvPbD0RIGvI7NY6IG6ABpz7FSGmpZx45AVJDz0+u0l4ySJ09h3L95aKX3Kb3iQ0dRQMi4WXaMytW1coBZ4ldkAo0OiZX04/xHFAuMIMSdm1rUi5CRKYkbSshN
+LEiE8QgPS1ZQjPcdN8qtSeKCVPvRDoR9XMFd/dyQokHIceLoyW1dOe5n4n9eNlX/mJpRHsSIcTwb5MYMqhFlEsE8FwYqNUFYUL0rxEMkEFY6yLIOwZ4+eZa0jqv2SbV2U6vUz4s4SmAX7INDYINTUAfXoAGaAINH8AxewZvxZLwY78bHpHTOKHp2wB8Ynz92/p8A</latexit>
+Fg 2R1⇥D
+<latexit sha1_base64="fFM27YE7qy/mJgdYqeKavXT4H7Q=">A
+ACKHicbVDLSgMxFM34rPVdekmWgRFKDOlqDuLunAlVfoQOnXIpBkNzWSG5E6hDPM5bvwVNyKdOuXmD4Wvi4knJxzLzfn+LHgGmx7aM3Mz
+s0vLOaW8srq2vrhY3Npo4SRVmDRiJStz7RTHDJGsBsNtYMRL6grX83vlIb/WZ0jySdRjErBOSe8kDTgkYyiucuiGBz9I65nXd3dcLs01p
+vz0JrtL97Xn3JUPXdqNQB9q78o8nAPsAg+ZxheZVyjaJXtc+C9wpqCIplXzCq9uN6JyCRQbRuO3YMnZQo4FSwLO8msWE9sg9axsoidnT
+ScdGM7xnmC4OImWOBDxmv0+kJNR6EPqmc+RB/9ZG5H9aO4HgpJNyGSfAJ0sChKBIcKj1HCXK0ZBDAwgVHzV0wfiCIUTLZ5E4Lz2/Jf0Cy
+XnKNS5bpSrJ5N48ihbSL9pGDjlEVXaIaiCKHtEzekPv1pP1Yn1Yw0nrjDWd2UI/yvr8AkYjpXE=</latexit>
+Tv 2R(s2
+1+···+s2
+N+1)⇥D
+Multimodal 
+adapter
+Fig. 6. Details of our multimodal language model, ColonGPT.
+encoder, typically based on a transformer, condenses a
+colonoscopy image Xv ∈RH×W ×3, with height H and width
+W, into a flattend visual embedding Ev ∈R
+HW
+P 2 ×d. Here, P
+denotes the patch size and d refers to the token dimension.
+(c) A multimodal adapter transforms the visual embedding
+Ev into Nv numeric tokens Tv ∈RNv×D, matching the
+language dimension D with Tq. (d) Finally, a language
+model receives the concatenated visual tokens Tv and text
+tokens Tq as input. Using the chain rule of probability, a
+sequence Y of length L is generated in an autoregressive
+way, formulated as p(Y) = QL
+i=1 p(yi | Tv, Tq, Y<i), where
+Y<i = [y1, y2, · · · , yi−1] is the sequence of predicted lan-
+guage tokens indexed before i.
+• Multigranularity multimodal adapter. Previous works
+[7]–[9] generally employ a multilayer perceptron architec-
+ture as a multimodal adapter, typically consisting of triple
+linear layers with intervening GELUs. However, handling
+all visual tokens introduces redundancy because not ev-
+ery token is equally significant, and it also incurs higher
+computational costs given the quadratic complexity in re-
+lation to the number of input tokens. To embrace these
+challenges, we propose a multimodal adapter that incor-
+porates multigranularity pooling layers between two linear
+layers. As illustrated in the right of Fig. 6, we transform
+the embedding Ev ∈R
+HW
+P 2 ×d from d-dim to D-dim using
+a linear layer followed by a GELU, then reshape it into
+the spatial format Fv ∈R
+H
+P × W
+P ×D. To reduce the number
+of visual tokens while avoiding performance drops, we
+roll out three modifications for the pooling phase, each
+validated in §5.3.2. (a) Multigranularity views. We add a set
+of adaptive average pooling operations with N kernel sizes
+{s1, . . . , sN} to obtain multigranularity features. In particu-
+lar, this adaptive operator accommodates input sequences
+of varying lengths, i.e., the pooled feature for the kernel size
+sn is shaped as Rsn×sn×D. (b) Positional encoding. Inspired
+by [281], we enhance the spatial information within each
+pooled feature by applying a 2D convolutional layer with
+the appropriate zero-padding setting. By default, a zero-
+pixel boundary is added around the input feature. (c) Global
+view. We also use a global average pooling layer with kernel
+size 1 on the feature Fv to obtain a global view with the
+shape of R1×1×D. Lastly, we reshape each pooled feature
+into flattened vectors: {Fn
+p ∈Rs2
+n×D}N
+n=1 and Fg ∈R1×D. We
+concatenate these vectors and process the resulting vector
+through the second linear layer to produce the final visual
+tokens Tv ∈RNv×D, where Nv = (s2
+1 + · · · + s2
+N + 1) denotes
+the length of the visual tokens.
+• Implementation. Our model can be integrated with mod-
+ern off-the-shelf visual encoders and LMs. To improve re-
+producibility for average users, we implement ColonGPTin
+an resource-friendly way. First, we employ SigLIP-SO (0.4B
+parameters) [5] as the visual encoder, with an input resolu-
+tion of H = W = 384, a patch size of P = 14, and a visual
+embedding dimension of d=1152. This configuration yields
+a visual embedding Ev with a shape R729×1152, where the
+number of visual tokens is 729 = ⌊384
+14 ⌋2. In addition, Phi-
+1.5 (1.3B parameters) [6] serves as the language tokenizer
+and language model, with a embedding size of D=2048. To
+reduce computational cost, the size of pooling kernels is set
+to {s1, s2}={14, 7}, significantly reducing the visual tokens
+Nv from 729 to 246, a reduction of 66.26%. This design
+allows us to complete training in five hours, facilitating
+rapid proof-of-concept development.
+• Training recipe. We implement our model using PyTorch
+library, accelerated by four NVIDIA A100-40GB GPUs. The
+AdamW optimiser is used with an initial learning rate of
+2e-3 and a cosine learning rate scheduler. Our ColonGPT
+is trained on the combination of training and validation
+dialogues from ColonINST. The complete training runs for
+three epochs, with a batch size of 16 per GPU and a gradient
+accumulation every 2 steps. During training, the visual
+encoder is frozen, focusing on the trainable multimodal
+adapter and the LM. For efficiency, we utilise the low-rank
+adaptation (LoRA [282]) strategy for LM, with a rank of
+r=128 and a scaling factor of α=256.
+5.3
+Experiments
+5.3.1
+Multimodal benchmark
+• Model competitors. To establish a widely accepted multi-
+modal benchmark for the community, we select eight pop-
+ular MLMs as competitors, including six general-purpose
+and two medically tailored models. As shown in Tab. 7, each
+competitor has two training setups depending on whether
+it uses LoRA [282] or initialises knowledge from additional
+pre-training data. We retrain all competitors using the com-
+bined training and validation dialogues from ColonINST, as
+used in our ColonGPT.
+• Evaluation protocols. We quantitatively evaluate three
+conversational tasks for the multimodal benchmark. For
+the two classification-based tasks, namely CLS and REG,
+we adopt the accuracy metric (A) to calculate the ratio
+of correctly predicted categories to the total number of
+predictions. For the REC task, we use the intersection over
+union (IoU) metric to measure the localisation precision.
+Furthermore, due to the subjective nature of language in
+the CAP task, we qualitatively analyse the medical accuracy
+of the responses by verifying the correct identification of
+the anatomical structures and category names visible in the
+images, or relevant clinical information descriptions.
+• Learning ability. We begin by conducting an open-book
+test for each model to quantitatively measure how effec-
+tively each model has internalised the visual and linguistic
+patterns from the training phase. Specifically, we evaluate
+each model on the samples they have seen during training,
+i.e., 27,606 validation dialogues. The “seen” columns in Tab.
+12
+TABLE 7
+Multimodal benchmark for three conversational tasks. “LoRA” refers to fine-tuning using low-rank adaptation [282]. “EXT” indicates the use of
+pre-trained weights on extra data. We compare the results on the seen samples from the validation set and the unseen samples from the testing
+set of ColonINST. The symbol ↑signifies that a higher score reflects better performance.
+Visual encoder
+Language model
+CLS task (A ↑)
+REG task (A ↑)
+REC task (IoU ↑)
+Model
+(input shape/URL)
+(model size/URL)
+No.
+LoRA
+EXT
+seen
+unseen
+seen
+unseen
+seen
+unseen
+MiniGPT-v2 [7]
+EVA-G/14 (448px/link)
+LLaMA2 (7B/link)
+#A1
+#A2
+✓
+✓
+✓
+91.49%
+90.00%
+77.93%
+76.82%
+94.69%
+87.65%
+72.05%
+70.23%
+23.45%
+27.97%
+15.36%
+31.13%
+LLaVA-v1 [277]
+CLIP-L/14 (224px/link)
+Vicuna-v1.3 (7B/link)
+#B1
+#B2
+✓
+✓
+✓
+87.86%
+89.61%
+72.08%
+42.17%
+84.55%
+86.87%
+68.11%
+46.85%
+20.05%
+21.81%
+12.72%
+3.24%
+LLaVA-v1.5 [8]
+CLIP-L/14 (336px/link)
+Vicuna-v1.5 (7B/link)
+#C1
+#C2
+✓
+✓
+✓
+92.97%
+93.33%
+79.10%
+80.89%
+98.58%
+99.32%
+70.38%
+72.88%
+55.72%
+61.97%
+34.32%
+42.31%
+Bunny-v1.0-3B [9]
+SigLIP-SO (384px/link)
+Phi2 (2.7B/link)
+#D1
+#D2
+✓
+✓
+✓
+91.16%
+92.47%
+75.50%
+79.50%
+96.61%
+96.02%
+69.45%
+75.08%
+46.24%
+54.00%
+31.24%
+41.48%
+MGM-2B [283]
+CLIP-L/14 (336px/link) &
+ConvNeXt-L (768px/link)
+Gemma (2B/link)
+#E1
+#E2
+✓
+92.97%
+93.24%
+78.99%
+78.69%
+98.17%
+98.75%
+69.81%
+74.30%
+39.78%
+57.25%
+16.00%
+25.23%
+MobileVLM-1.7B [284]
+CLIP-L/14 (336px/link)
+MobileLLaMA (1.4B/link)
+#F1
+#F2
+✓
+✓
+✓
+93.02%
+93.64%
+78.75%
+80.44%
+97.78%
+97.87%
+73.14%
+78.03%
+47.30%
+51.36%
+31.46%
+34.80%
+LLaVA-Med-v1.0 [280]
+CLIP-L/14 (224px/link)
+LLaMA1 (7B/link)
+#G1
+#G2
+✓
+93.52%
+93.84%
+78.04%
+77.38%
+97.74%
+97.35%
+75.07%
+75.25%
+41.60%
+39.43%
+24.89%
+20.85%
+LLaVA-Med-v1.5 [280]
+CLIP-L/14 (224px/link)
+Mistral-v0.2 (7B/link)
+#H1
+#H2
+✓
+✓
+✓
+93.62%
+87.22%
+79.24%
+66.51%
+99.30%
+90.40%
+73.05%
+70.00%
+64.69%
+13.39%
+41.97%
+12.95%
+ColonGPT (Ours)
+SigLIP-SO (384px/link)
+Phi1.5 (1.3B/link)
+-
+✓
+94.02%
+85.81%
+99.02%
+83.42%
+65.89%
+45.77%
+“This image depicts an endoscopic view of a gastrointestinal tract with a focus on 
+a polypoid lesion. (lesion identification) The polyp appears to be a pedunculated 
+growth, characterized by its stalk-like attachment to the mucosal surface. (lesion 
+morphology) The surrounding mucosa is smooth and normal in appearance, 
+suggesting a localized lesion. (contextual information) The polyp is being 
+examined using a snare, a tool typically used for polypectomy, a procedure to 
+remove polyps during a colonoscopy. (surgical procedure) The date and time 
+stamp indicate that this is a recorded procedure, and the patient's ID and other 
+anonymized information have been redacted for privacy. (medical record details)”
+Human instruction: 
+“Please specify the coordinates 
+of  high grade adenoma.”
+ColonGPT’s response:
+Human instruction: 
+“Where is the location of 
+low grade adenoma?”
+Human instruction: 
+“Identify the category of the object.”
+ColonGPT’s response:
+“high grade dysplasia”
+Human instruction: 
+“Determine the object's category.”
+ColonGPT’s response:
+“adenoma”
+Image classification (CLS) 
+IoU=98.71%
+IoU=97.80%
+Human instruction: 
+“Could you provide the category for 
+{<126><2><466><397>}?”
+ColonGPT’s response:
+“adenocarcinoma”
+Human instruction: 
+“Can you tell me the category of 
+{<459><787><944><1079>}?”
+ColonGPT’s response:
+“invasive carcinoma”
+Referring expression generation (REG) 
+Referring expression comprehension (REC) 
+ColonGPT’s response:
+ColonGPT’s response:
+Image captioning (CAP) 
+Human instruction: 
+“Offer a thorough explanation of the image.”
+ColonGPT’s response:
+“This endoscopic image reveals a solitary pedunculated polyp located within the 
+colonic lumen. (lesion identification) The polyp's stalk is attached to the mucosal 
+surface, and its surface appears smooth, which is characteristic of a benign 
+adenomatous polyp. (lesion morphology) The surrounding mucosa shows normal 
+vascular pattern and coloration, suggesting that the polyp is likely an isolated 
+finding. (contextual information) Given its appearance, this polyp may be 
+amenable to endoscopic removal, typically through polypectomy, to prevent 
+potential progression to colorectal cancer. (treatment recommendation) The 
+image serves as a valuable diagnostic tool for gastroenterologists to identify and 
+manage colorectal polyps. (clinical relevance)”
+Human instruction: 
+“Could you give the position of 
+hyperplastic lesion?”
+IoU=96.41%
+ColonGPT’s response:
+Human instruction: 
+“Detail the visual elements in the image.”
+Fig. 7. Illustration of ColonGPT’s multimodal capabilities. Our model can execute various multimodal colonoscopy tasks through conversational
+interactions, including comprehension (CLS, REG), localisation (REC), and captioning (CAP) based.
+7 show that we achieve the highest scores in the CLS
+(A = 94.02%) and REC (IoU = 65.89%) tasks. This implies
+that ColonGPT has a better learning ability, which allows
+it to classify images and understand reference expressions
+related to specific visual regions. Furthermore, we achieve
+an accuracy of 99.02%, below 99.32% achieved by LLaVA-
+v1.5 (#C2). This gap (∆=0.3%) is due to a 7B-level LM used
+in LLaVA-v1.5, which has also been pretrained on additional
+data and thus gained more knowledge.
+• Generalisation ability. We further conduct a closed-book
+test to examine each model’s ability to generalise knowl-
+edge to unseen conditions, i.e., 165,830 testing samples of
+ColonINST. The “unseen” columns in Tab. 7 consistently
+reveal our superior performance in unseen samples in all
+three tasks. Recall that our model performs worse than
+LLaVA-v1.5 in the REG task for seen scenarios. However,
+this gap is overtaken when exposed to unseen scenarios,
+where we achieve an accuracy of 83.42%, even exceeding
+the 7B-level LLaVA-v1.5 (#C2) by 10.54%. Compared to
+the runner-up model, LLaVA-Med-v1.5 (#H1), our model
+surpasses it by 1.2% in the seen scenarios for the REC task,
+and this gap is further widened by 3.8% in the unseen
+scenarios. These results show the potential of ColonGPT as a
+conversational assistant for multimodal colonoscopy tasks,
+especially in generalising to unseen data.
+• Qualitative analysis. Fig. 7 illustrates our model’s three
+multimodal abilities across four conversational tasks. (a)
+Comprehension ability: In the CLS task, we identify subtle
+visual features, distinguishing “high grade dysplasia” from
+“adenoma” in visually similar images. In the REG task, we
+correctly translate complex visual features from the given
+coordinates into precise medical terminology. (b) Localisa-
+tion ability: This entails ColonGPT understanding language
+query and localising visual target within a complex colon
+environment. The outputs of the REC task showcase Co-
+lonGPT’s precision in localising specified expressions using
+bounding boxes. (c) Captioning ability: This requires the syn-
+thesis of visual information into coherent, clinically relevant
+text. Our model provides descriptions of a pedunculated
+polyp, detailing its morphology, contextual characteristics,
+13
+TABLE 8
+Diagnostic studies of three core components in ColonGPT. “∗”: interpolate the position embeddings for higher resolution, specifically from
+224px to 384px. Our default configurations are shaded with a gray background.
+(a) Different presentations from visual encoder
+Visual encoder input/URL
+CLS
+REG
+REC
+ConvNeXtV2-L 384px/link 82.95% 78.63% 33.74%
+ViT-L 384px/link 82.16% 77.04% 40.78%
+MAE-L* 384px/link 80.85% 75.87% 38.53%
+MAE-L 224px/link 81.95% 77.62% 43.25%
+DINOv2-L* 384px/link 35.03% 22.91%
+6.79%
+DINOv2-L 224px/link 21.22%
+7.96%
+2.69%
+CLIP-L 336px/link 83.99% 78.67% 41.54%
+SigLIP-SO 384px/link 85.81% 83.42% 45.77%
+(b) Multigranuarity multimodal adapter
+token (ratio)
+CLS
+REG
+REC
+MLP baseline 729 (100.00%) 83.53% 81.80% 43.70%
+{16, 8, 1}
+321 (44.03%) 84.39% 80.90% 46.37%
+{14, 7, 1}
+246 (33.74%) 85.81% 83.42% 45.77%
+{14, 7}
+245 (33.61%) 85.01% 82.49% 43.62%
+{12, 6, 1}
+181 (24.83%) 83.74% 81.60% 45.94%
+{10, 5, 1}
+126 (17.28%) 84.28% 82.01% 46.46%
+{8, 4, 1}
+81 (11.11%) 84.70% 81.36% 45.30%
+w/o Pos. Enc.
+246 (33.74%) 84.50% 82.91% 40.09%
+(c) Fine-tuning strategy
+Strategy
+r
+α
+CLS
+REG
+REC
+full-tuning
+-
+- 78.06% 73.79% 50.20%
+LoRA
+4
+8 85.43% 82.75% 45.02%
+LoRA
+8
+16 84.45% 80.78% 44.98%
+LoRA
+16
+32 84.39% 80.81% 45.90%
+LoRA
+32
+64 84.91% 82.73% 45.56%
+LoRA
+64 128 83.84% 81.19% 43.57%
+LoRA 128 256 85.81% 83.42% 45.77%
+LoRA 256 512 82.93% 79.96% 48.27%
+and potential clinical relevance. Additionally, ColonGPT can
+describe the treatment procedure when an instrument is
+present, e.g., “The polyp is being examined using a snare.”
+5.3.2
+Diagnostic studies
+• Visual encoder. Our diagnostic experiment begins with
+an inquiry – What types of visual representations are appropriate
+for multimodal colonoscopy data? We prepare four sets of rep-
+resentations from various large-scale pre-training strategies:
+supervised learning (ConvNeXtV2 [285], ViT [100]), recon-
+structive learning (MAE [286]), and contrastive learning us-
+ing vision-only data (DINOv2 [287]) or VL data (CLIP [288],
+SigLIP [5]). As shown in Tab. (8-a), all encoders use pre-
+trained weights from Huggingface. To ensure consistency,
+we manually interpolate the smaller position embedding for
+MAE and DINOv2 from 224px to 384px (marked with ∗),
+while leaving the default input of the remaining models un-
+changed. Our observation reveals that contrastive learning
+encoders using VL data outperform other strategies. This
+suggests that visual representations pre-aligned with weak
+texts during their pre-training facilitate us to transform
+visual embeddings into the language space. Regarding the
+other unimodal encoders, both supervised learning methods
+(ConvNeXtV2, ViT) and the reconstructive approach (MAE)
+give satisfactory feedback. However, the vision-only con-
+trastive learning model (DINOv2) struggles, especially in
+the REC and REG tasks. Multiple efforts to optimise DI-
+NOv2 with various hyperparameters, including input size,
+model size, and learning rate, did not produce acceptable
+results for multimodal colonoscopy tasks.
+• Multigranularity multimodal adapter. It serves as a key
+component in linking vision and language modalities, re-
+ducing visual tokens to mitigate computational overhead.
+As detailed in Tab. (8-b), we analyse its effectiveness from
+three perspectives. (a) How to configure the pooling kernels?
+As a reference, we initialise a baseline variant of ColonGPT
+with a multimodal adapter used in [7], [8], which employs
+a pure MLP architecture to process all input tokens equally.
+We then gradually decrease the size of the pooling kernels
+across five variants: {16, 8, 1}, {14, 7, 1}, {12, 6, 1}, {10, 5, 1},
+and {8, 4, 1}. Concerning the performance-cost trade-offs,
+our setup {14, 7, 1} is optimal. It decreases the visual tokens
+from 100% (729 tokens) to 33.74% (246 tokens) while main-
+taining impressive results across three conversational tasks.
+To illustrate, we observe performance gains of 2.28%, 1.62%,
+and 2.07% in the CLS, REG, and REC tasks, respectively.
+(b) Is global context necessary? We remove the global view
+from our default setup {14, 7, 1} for the multigranularity
+adapter, producing a controlled variant with setup {14, 7}.
+The performance then declines, indicating the necessity of
+capturing the global context within visual embeddings for
+improved outcomes. (c) Is positional encoding important? As
+shown in the last row of Tab. (8-b), our setup without
+positional encoding shows a significant performance drop
+in REC task, from 45.77% to 40.09%. This suggests that
+the relative position information for the visual sequence is
+crucial for the localisation task.
+• Fine-tuning strategy. Lastly, we investigate how to effec-
+tively tune our model on multimodal colonoscopy data. As shown
+in Tab. (8-c), we initiate a set of variants to tune the language
+model, Phi1.5. It includes seven variants with different se-
+tups for LoRA and a full-tuning variant as a reference point.
+The best performance was observed in the LoRA variant
+with configuration r/α = 128/256, achieving 85.81% and
+83.42% in the CLS and REG tasks, respectively. In addition,
+the other two variants achieve outstanding scores in the
+REC task, with the full-tuning variant achieving 50.20%
+and the LoRA with configuration r/α = 256/512 reaching
+48.27%. This implies that more tunable parameters for the
+language model could allow ColonGPT to capture more
+complex patterns in the spatial planes. Therefore, we believe
+that there remains room to improve the localisation ability
+of ColonGPT in the REC task, such as increasing the rank
+factor r and finding a matched scaling factor α. For training
+efficiency, we finally choose r/α = 128/256 as our default
+configuration, as it allows us to reduce the training time
+from eight to roughly five hours.
+5.3.3
+Empirical takeaways
+This study represents a preliminary exploration of mul-
+timodal instruction tuning techniques in colonoscopy. We
+unify the multimodal and multitask paradigms in a causal
+language model, which features two insights: interpreting
+visual content within the linguistic space and tackling var-
+ious visual tasks under a next-token prediction framework.
+We finally derive lessons from experiments that may guide
+future advances in multimodal research.
+• Embracing data scarcity. In general, MLMs [8], [277]
+opt for a two-stage strategy trained on massive data, e.g.,
+∼558K samples for multimodal alignment, followed by
+∼665K instruction tuning samples to ensure human com-
+pliance. Alternatively, we adopt a single-stage strategy to
+directly fine-tune ColonGPT on comparatively smaller train-
+ing data with ∼285K instructions. This strategy appears
+to be effective in colonoscopy, a data-limited scenario. We
+suggest two feasible ways to compensate for this data-
+centric issue. (a) Scaling up data size is a straightforward
+way to improve the domain-specific representation ability.
+A cost-efficient way is to consider synthesised data once
+the public data sources are used up [289]. (b) Diversifying
+14
+the human-machine dialogue can efficiently train an AI
+specialist for colonoscopy applications. This involves ex-
+panding question-answer pairs with advanced AI chatbots
+and organising more executable tasks, such as converting
+masks into polygons for segmentation [290] or modelling
+multiframe correlations for video analysis [291].
+• Efficiency drives progress. As discussed above, we take
+less data to obtain greater performance than other model ri-
+vals. This success benefits from the way we build ColonGPT.
+(a) Colonoscopy data inherently contains redundant infor-
+mation, such as the fact that most mucosal surfaces are
+similar, as well as camouflaged patterns between benign
+lesions and their surroundings, as discussed in §2.2. To
+reduce redundancy, we propose a multigranularity mul-
+timodal adapter that selectively samples tokens without
+compromising performance. For future improvement, we
+can draw on the wisdom of previous token reduction tech-
+niques [292]. (b) As shown in Tab. 7, the Phi1.5 model
+[6], although lightweight, shows surprising efficiency, even
+outperforming other 7B-level competitors. This indicates
+that larger models appear to require more colonoscopy data.
+Thus, future efforts should prioritise enhancing training
+and inference efficiency, especially for the medical field,
+rather than racing with massive computational resources.
+A promising idea to streamline the MLM framework using
+an encoder-free solution [293] to interpret visual pixels.
+• Improving spatial perception. We observe that the abil-
+ity to accurately locate targets given descriptions remains
+limited. This is evident in the REC results shown in Tab.
+7, where IoU scores fall below 50% in most models when
+tested on unseen samples. To break through this perfor-
+mance bottleneck, we suggest two potential routes. (a) In
+constructing ColonGPT, we leverage a pre-trained visual
+encoder and a language model from the general domain.
+This approach presents challenges of the gaps between
+general and medical optical data, as well as the gap between
+vision and language modalities. As recommended in [294],
+pre-training and pre-aligning the multimodal space before
+instruction tuning would be a promising approach to allevi-
+ate these issues. (b) The next-token prediction framework
+of causal language models may struggle with arithmetic
+tasks due to the snowballing error resulting from the chain
+rule [295]. For example, LMs are not responsible for accu-
+rately predicting coordinates in the REC task. We encourage
+that the vision and language parts of the next-generation
+framework can handle their respective roles, such as a
+parallel framework [296] that predicts segmentation masks
+and generates language captions, simultaneously.
+6
+CONCLUSION
+We investigate the frontiers in intelligent colonoscopy tech-
+niques and their broader implications in the multimodal
+field. Our structure follows two primary threads. First,
+we survey the landscape of four colonoscopic scene per-
+ception tasks and sort out the key challenges and under-
+studied areas. Second, our survey reveals that multimodal
+research in colonoscopy is underexplored. To embrace this,
+we contribute three initiatives to the community: a large-
+scale multimodal instruction tuning dataset ColonINST,
+a colonoscopy-specific multimodal language model Co-
+lonGPT, and a multimodal benchmark. Importantly, mul-
+timodal colonoscopy research is rapidly advancing. Future
+developments can build on recent breakthroughs, such as
+executing role-playing tasks with agents [297].
+ACKNOWLEDGMENTS
+This research was supported by NSFC (NO.62476143). We
+express our sincere gratitude to Yu-Cheng Chou (JHU) and
+Stephen Gould (ANU) for interesting discussions.
+REFERENCES
+[1]
+C. Eng, T. Yoshino, E. Ru´ız-Garc´ıa, N. Mostafa, C. G. Cann,
+B. O’Brian, A. Benny, R. O. Perez, and C. Cremolini, “Colorectal
+cancer,” The Lancet, vol. 394, no. 10207, pp. 1467–1480, 2024.
+[2]
+M. B. Wallace, P. Sharma, P. Bhandari, J. East, G. Antonelli,
+R. Lorenzetti, M. Vieth, I. Speranza, M. Spadaccini, M. Desai
+et al., “Impact of artificial intelligence on miss rate of colorectal
+neoplasia,” Gastro, vol. 163, no. 1, pp. 295–304, 2022.
+[3]
+J. Deng, W. Dong, R. Socher, L.-J. Li, K. Li, and L. Fei-Fei,
+“Imagenet: A large-scale hierarchical image database,” in IEEE
+CVPR, 2009.
+[4]
+J. Achiam, S. Adler, S. Agarwal, L. Ahmad, I. Akkaya, F. L.
+Aleman, D. Almeida, J. Altenschmidt, S. Altman, S. Anadkat
+et al., “Gpt-4 technical report,” arXiv preprint arXiv:2303.08774,
+2023.
+[5]
+X. Zhai, B. Mustafa, A. Kolesnikov, and L. Beyer, “Sigmoid loss
+for language image pre-training,” in IEEE ICCV, 2023.
+[6]
+Y. Li, S. Bubeck, R. Eldan, A. Del Giorno, S. Gunasekar, and Y. T.
+Lee, “Textbooks are all you need ii: phi-1.5 technical report,”
+arXiv preprint arXiv:2309.05463, 2023.
+[7]
+J. Chen, D. Zhu, X. Shen, X. Li, Z. Liu, P. Zhang, R. Krishnamoor-
+thi, V. Chandra, Y. Xiong, and M. Elhoseiny, “Minigpt-v2: large
+language model as a unified interface for vision-language multi-
+task learning,” arXiv preprint arXiv:2310.09478, 2023.
+[8]
+H. Liu, C. Li, Y. Li, and Y. J. Lee, “Improved baselines with visual
+instruction tuning,” in IEEE CVPR, 2024.
+[9]
+M. He, Y. Liu, B. Wu, J. Yuan, Y. Wang, T. Huang, and B. Zhao,
+“Efficient multimodal learning from data-centric perspective,”
+arXiv preprint arXiv:2402.11530, 2024.
+[10]
+V. S. Prasath, “Polyp detection and segmentation from video
+capsule endoscopy: A review,” J. Imaging, vol. 3, no. 1, p. 1, 2016.
+[11]
+B. Taha, N. Werghi, and J. Dias, “Automatic polyp detection in
+endoscopy videos: A survey,” in IEEE IASTED, 2017.
+[12]
+L. F. Sanchez-Peralta, L. Bote-Curiel, A. Picon, F. M. Sanchez-
+Margallo, and J. B. Pagador, “Deep learning to find colorectal
+polyps in colonoscopy: A systematic literature review,” AIIM,
+vol. 108, p. 101923, 2020.
+[13]
+I. Pacal, D. Karaboga, A. Basturk, B. Akay, and U. Nalbantoglu,
+“A comprehensive review of deep learning in colon cancer,”
+CIBM, vol. 126, p. 104003, 2020.
+[14]
+B. M¨unzer, K. Schoeffmann, and L. B¨osz¨ormenyi, “Content-based
+processing and analysis of endoscopic images and videos: A
+survey,” MTAP, vol. 77, pp. 1323–1362, 2018.
+[15]
+M. Taghiakbari, Y. Mori, and D. von Renteln, “Artificial
+intelligence-assisted colonoscopy: A review of current state of
+practice and research,” WJG, vol. 27, no. 47, p. 8103, 2021.
+[16]
+G. Yue, G. Zhuo, S. Li, T. Zhou, J. Du, W. Yan, J. Hou, W. Liu,
+and T. Wang, “Benchmarking polyp segmentation methods in
+narrow-band imaging colonoscopy images,” IEEE JBHI, vol. 27,
+no. 7, pp. 3360–3371, 2023.
+[17]
+Z. Wu, F. Lv, C. Chen, A. Hao, and S. Li, “Colorectal polyp
+segmentation in the deep learning era: A comprehensive survey,”
+arXiv preprint arXiv:2401.11734, 2024.
+[18]
+J. Mei, T. Zhou, K. Huang, Y. Zhang, Y. Zhou, Y. Wu, and H. Fu,
+“A survey on deep learning for polyp segmentation: Techniques,
+challenges and future trends,” arXiv preprint arXiv:2311.18373,
+2023.
+[19]
+J. Bernal, J. S´anchez, and F. Vilarino, “Towards automatic polyp
+detection with a polyp appearance model,” PR, vol. 45, no. 9, pp.
+3166–3182, 2012.
+15
+[20]
+J. Silva, A. Histace, O. Romain, X. Dray, and B. Granado, “Toward
+embedded detection of polyps in wce images for early diagnosis
+of colorectal cancer,” CARS, vol. 9, no. 2, pp. 283–293, 2014.
+[21]
+J.
+Bernal,
+F.
+J.
+S´anchez,
+G.
+Fern´andez-Esparrach,
+D.
+Gil,
+C. Rodr´ıguez, and F. Vilari˜no, “Wm-dova maps for accurate
+polyp highlighting in colonoscopy: Validation vs. saliency maps
+from physicians,” CMIG, vol. 43, pp. 99–111, 2015.
+[22]
+N. Tajbakhsh, S. R. Gurudu, and J. Liang, “Automated polyp
+detection in colonoscopy videos using shape and context infor-
+mation,” IEEE TMI, vol. 35, no. 2, pp. 630–644, 2015.
+[23]
+M. Ye, S. Giannarou, A. Meining, and G.-Z. Yang, “Online
+tracking and retargeting with applications to optical biopsy in
+gastrointestinal endoscopic examinations,” MedIA, vol. 30, pp.
+144–157, 2016.
+[24]
+F. Deeba, F. M. Bui, and K. A. Wahid, “Automated growcut for
+segmentation of endoscopic images,” in IJCNN, 2016.
+[25]
+R. Zhang, Y. Zheng, T. W. C. Mak, R. Yu, S. H. Wong, J. Y. Lau, and
+C. C. Poon, “Automatic detection and classification of colorectal
+polyps by transferring low-level cnn features from nonmedical
+domain,” IEEE JBHI, vol. 21, no. 1, pp. 41–47, 2016.
+[26]
+P. Mesejo, D. Pizarro, A. Abergel, O. Rouquette, S. Beorchia,
+L. Poincloux, and A. Bartoli, “Computer-aided classification
+of gastrointestinal lesions in regular colonoscopy,” IEEE TMI,
+vol. 35, no. 9, pp. 2051–2063, 2016.
+[27]
+Q. Angermann, J. Bernal, C. S´anchez-Montes, M. Hammami,
+G. Fern´andez-Esparrach, X. Dray, O. Romain, F. J. S´anchez, and
+A. Histace, “Towards real-time polyp detection in colonoscopy
+videos: Adapting still frame-based methodologies for video se-
+quences analysis,” in MICCAI-W, 2017.
+[28]
+K. Pogorelov, K. R. Randel, C. Griwodz, S. L. Eskeland,
+T. de Lange, D. Johansen, C. Spampinato, D.-T. Dang-Nguyen,
+M. Lux, P. T. Schmidt et al., “Kvasir: A multi-class image dataset
+for computer aided gastrointestinal disease detection,” in ACM
+MMSys, 2017.
+[29]
+K. Pogorelov, K. R. Randel, T. de Lange, S. L. Eskeland, C. Gri-
+wodz, D. Johansen, C. Spampinato, M. Taschwer, M. Lux, P. T.
+Schmidt et al., “Nerthus: A bowel preparation quality video
+dataset,” in ACM MMSys, 2017.
+[30]
+D. V´azquez, J. Bernal, F. J. S´anchez, G. Fern´andez-Esparrach,
+A. M. L´opez, A. Romero, M. Drozdzal, and A. Courville, “A
+benchmark for endoluminal scene segmentation of colonoscopy
+images,” JHE, vol. 2017, no. 1, p. 4037190, 2017.
+[31]
+A. Koulaouzidis, D. K. Iakovidis, D. E. Yung, E. Rondonotti,
+U. Kopylov, J. N. Plevris, E. Toth, A. Eliakim, G. W. Johansson,
+W. Marlicz et al., “Kid project: an internet-based digital video
+atlas of capsule endoscopy for research purposes,” EIO, vol. 5,
+no. 06, pp. E477–E483, 2017.
+[32]
+I. N. Figueiredo, L. Pinto, P. N. Figueiredo, and R. Tsai, “Unsu-
+pervised segmentation of colonic polyps in narrow-band imaging
+data based on manifold representation of images and wasserstein
+distance,” BSPC, vol. 53, p. 101577, 2019.
+[33]
+P. N. Figueiredo, I. N. Figueiredo, L. Pinto, S. Kumar, Y.-H. R.
+Tsai, and A. V. Mamonov, “Polyp detection with computer-
+aided diagnosis in white light colonoscopy: comparison of three
+different methods,” EIO, vol. 7, no. 02, pp. E209–E215, 2019.
+[34]
+T.-H. Hoang, H.-D. Nguyen, V.-A. Nguyen, T.-A. Nguyen, V.-T.
+Nguyen, and M.-T. Tran, “Enhancing endoscopic image classi-
+fication with symptom localization and data augmentation,” in
+ACM MM, 2019.
+[35]
+M. Cho, J. H. Kim, K. S. Hong, J. S. Kim, H.-J. Kong, and S. Kim,
+“Identification of cecum time-location in a colonoscopy video by
+deep learning analysis of colonoscope movement,” PeerJ, vol. 7,
+p. e7256, 2019.
+[36]
+S. Ali, F. Zhou, C. Daul, B. Braden, A. Bailey, S. Realdon,
+J. East, G. Wagnieres, V. Loschenov, E. Grisan et al., “Endoscopy
+artifact detection (ead 2019) challenge dataset,” arXiv preprint
+arXiv:1905.03209, 2019.
+[37]
+Y. Liu, Y. Tian, G. Maicas, L. Z. C. T. Pu, R. Singh, J. W. Verjans,
+and G. Carneiro, “Photoshopping colonoscopy video frames,” in
+IEEE ISBI, 2020.
+[38]
+D. Jha, P. H. Smedsrud, M. A. Riegler, P. Halvorsen, T. d. Lange,
+D. Johansen, and H. D. Johansen, “Kvasir-seg: A segmented
+polyp dataset,” in MMM, 2020.
+[39]
+L. F. S´anchez-Peralta, J. B. Pagador, A. Pic´on, ´A. J. Calder´on,
+F. Polo, N. Andraka, R. Bilbao, B. Glover, C. L. Saratxaga, and
+F. M. S´anchez-Margallo, “Piccolo white-light and narrow-band
+imaging colonoscopic dataset: a performance comparative of
+models and datasets,” ApplSci, vol. 10, no. 23, p. 8501, 2020.
+[40]
+S. Ali, N. Ghatwary, B. Braden, D. Lamarque, A. Bailey, S. Real-
+don, R. Cannizzaro, J. Rittscher, C. Daul, and J. East, “Endoscopy
+disease detection challenge 2020,” arXiv preprint arXiv:2003.03376,
+2020.
+[41]
+R. Leenhardt, C. Li, J.-P. Le Mouel, G. Rahmi, J. C. Saurin,
+F. Cholet, A. Boureille, X. Amiot, M. Delvaux, C. Duburque et al.,
+“Cad-cap: a 25,000-image database serving the development of
+artificial intelligence for capsule endoscopy,” EIO, vol. 8, no. 03,
+pp. E415–E420, 2020.
+[42]
+C. C. Poon, Y. Jiang, R. Zhang, W. W. Lo, M. S. Cheung, R. Yu,
+Y. Zheng, J. C. Wong, Q. Liu, S. H. Wong et al., “Ai-doscopist:
+a real-time deep-learning-based algorithm for localising polyps
+in colonoscopy videos with edge computing devices,” NPJDM,
+vol. 3, no. 1, p. 73, 2020.
+[43]
+H. Borgli, V. Thambawita, P. H. Smedsrud, S. Hicks, D. Jha,
+S. L. Eskeland, K. R. Randel, K. Pogorelov, M. Lux, D. T. D.
+Nguyen et al., “Hyperkvasir, a comprehensive multi-class image
+and video dataset for gastrointestinal endoscopy,” SData, vol. 7,
+no. 1, p. 283, 2020.
+[44]
+X. Guo, C. Yang, Y. Liu, and Y. Yuan, “Learn to threshold:
+Thresholdnet with confidence-guided manifold mixup for polyp
+segmentation,” IEEE TMI, vol. 40, no. 4, pp. 1134–1146, 2020.
+[45]
+S. Ali, M. Dmitrieva, N. Ghatwary, S. Bano, G. Polat, A. Tem-
+izel, A. Krenzer, A. Hekalo, Y. B. Guo, B. Matuszewski et al.,
+“Deep learning for detection and segmentation of artefact and
+disease instances in gastrointestinal endoscopy,” MedIA, vol. 70,
+p. 102002, 2021.
+[46]
+P. Ngoc Lan, N. S. An, D. V. Hang, D. V. Long, T. Q. Trung, N. T.
+Thuy, and D. V. Sang, “Neounet: Towards accurate colon polyp
+segmentation and neoplasm detection,” in ISVC, 2021.
+[47]
+Q. Wang, H. Che, W. Ding, L. Xiang, G. Li, Z. Li, and S. Cui,
+“Colorectal polyp classification from white-light colonoscopy
+images via domain alignment,” in MICCAI, 2021.
+[48]
+Y. Ma, X. Chen, K. Cheng, Y. Li, and B. Sun, “Ldpolypvideo
+benchmark: a large-scale colonoscopy video dataset of diverse
+polyps,” in MICCAI, 2021.
+[49]
+N. Celik, S. Ali, S. Gupta, B. Braden, and J. Rittscher, “Endouda:
+a modality independent segmentation approach for endoscopy
+imaging,” in MICCAI, 2021.
+[50]
+D. Jha, S. Ali, K. Emanuelsen, S. A. Hicks, V. Thambawita,
+E. Garcia-Ceja, M. A. Riegler, T. de Lange, P. T. Schmidt, H. D. Jo-
+hansen et al., “Kvasir-instrument: Diagnostic and therapeutic tool
+segmentation dataset in gastrointestinal endoscopy,” in MMM,
+2021.
+[51]
+W. Wang, J. Tian, C. Zhang, Y. Luo, X. Wang, and J. Li, “An
+improved deep learning approach and its applications on colonic
+polyp images detection,” BMCMI, vol. 20, pp. 1–14, 2020.
+[52]
+A. de Maissin, R. Vall´ee, M. Flamant, M. Fondain-Bossiere,
+C. Le Berre, A. Coutrot, N. Normand, H. Mouch`ere, S. Coudol,
+C. Trang et al., “Multi-expert annotation of crohn’s disease images
+of the small bowel for automatic detection using a convolutional
+recurrent attention neural network,” EIO, vol. 9, no. 07, pp.
+E1136–E1144, 2021.
+[53]
+Z. Kong, M. He, Q. Luo, X. Huang, P. Wei, Y. Cheng, L. Chen,
+Y. Liang, Y. Lu, X. Li et al., “Multi-task classification and segmen-
+tation for explicable capsule endoscopy diagnostics,” FMOLB,
+vol. 8, p. 614277, 2021.
+[54]
+M. Misawa, S.-e. Kudo, Y. Mori, K. Hotta, K. Ohtsuka, T. Mat-
+suda, S. Saito, T. Kudo, T. Baba, F. Ishida et al., “Development of a
+computer-aided detection system for colonoscopy and a publicly
+accessible large colonoscopy video database (with video),” GIE,
+vol. 93, no. 4, pp. 960–967, 2021.
+[55]
+D. Jha, P. H. Smedsrud, D. Johansen, T. de Lange, H. D. Johansen,
+P. Halvorsen, and M. A. Riegler, “A comprehensive study on col-
+orectal polyp segmentation with resunet++, conditional random
+field and test-time augmentation,” IEEE JBHI, vol. 25, no. 6, pp.
+2029–2040, 2021.
+[56]
+P. H. Smedsrud, V. Thambawita, S. A. Hicks, H. Gjestang, O. O.
+Nedrejord, E. Næss, H. Borgli, D. Jha, T. J. D. Berstad, S. L. Eske-
+land et al., “Kvasir-capsule, a video capsule endoscopy dataset,”
+SData, vol. 8, no. 1, p. 142, 2021.
+[57]
+K. Li, M. I. Fathan, K. Patel, T. Zhang, C. Zhong, A. Bansal,
+A. Rastogi, J. S. Wang, and G. Wang, “Colonoscopy polyp
+detection and classification: Dataset creation and comparative
+evaluations,” PONE, vol. 16, no. 8, p. e0255809, 2021.
+16
+[58]
+J. Cychnerski, T. Dziubich, and A. Brzeski, “Ers: a novel
+comprehensive endoscopy image dataset for machine learn-
+ing, compliant with the mst 3.0 specification,” arXiv preprint
+arXiv:2201.08746, 2022.
+[59]
+Y. Tian, G. Pang, F. Liu, Y. Liu, C. Wang, Y. Chen, J. Verjans, and
+G. Carneiro, “Contrastive transformer-based multiple instance
+learning for weakly supervised polyp frame detection,” in MIC-
+CAI, 2022.
+[60]
+F. J. P. Montalbo, “Diagnosing gastrointestinal diseases from en-
+doscopy images through a multi-fused cnn with auxiliary layers,
+alpha dropouts, and a fusion residual block,” BSPC, vol. 76, p.
+103683, 2022.
+[61]
+S.
+Ali
+and
+N.
+Ghatwary,
+“Endoscopic
+computer
+vision
+challenges 2.0,” 2022. [Online]. Available: https://endocv2022.
+grand-challenge.org/
+[62]
+G.-P. Ji, G. Xiao, Y.-C. Chou, D.-P. Fan, K. Zhao, G. Chen, and
+L. Van Gool, “Video polyp segmentation: A deep learning per-
+spective,” MIR, vol. 19, no. 6, pp. 531–549, 2022.
+[63]
+V. Thambawita, P. Salehi, S. A. Sheshkal, S. A. Hicks, H. L.
+Hammer, S. Parasa, T. d. Lange, P. Halvorsen, and M. A. Riegler,
+“Singan-seg: Synthetic training data generation for medical im-
+age segmentation,” PONE, vol. 17, no. 5, p. e0267976, 2022.
+[64]
+D. Fitting, A. Krenzer, J. Troya, M. Banck, B. Sudarevic, M. Brand,
+W. B¨ock, W. G. Zoller, T. R¨osch, F. Puppe et al., “A video based
+benchmark data set (endotest) to evaluate computer-aided polyp
+detection systems,” SJG, vol. 57, no. 11, pp. 1397–1403, 2022.
+[65]
+S. Hicks, A. Stor˚as, P. Halvorsen, T. de Lange, M. Riegler, and
+V. Thambawita, “Overview of imageclef medical 2023–medical
+visual question answering for gastrointestinal tract,” in CLEF
+(Working notes), 2023.
+[66]
+D. Jha, V. Sharma, N. Dasu, N. K. Tomar, S. Hicks, M. Bhuyan,
+P. K. Das, M. A. Riegler, P. Halvorsen, T. de Lange et al., “Gas-
+trovision: A multi-class endoscopy image dataset for computer
+aided gastrointestinal disease detection,” in ICML-W, 2023.
+[67]
+G. Ren, M. Lazarou, J. Yuan, and T. Stathaki, “Towards automated
+polyp segmentation using weakly-and semi-supervised learning
+and deformable transformers,” in IEEE CVPR-W, 2023.
+[68]
+G. Polat, H. T. Kani, I. Ergenc, Y. Ozen Alahdab, A. Temizel, and
+O. Atug, “Improving the computer-aided estimation of ulcerative
+colitis severity according to mayo endoscopic score by using
+regression-based deep learning,” IBD, vol. 29, no. 9, pp. 1431–
+1439, 2023.
+[69]
+S. Ali, D. Jha, N. Ghatwary, S. Realdon, R. Cannizzaro, O. E.
+Salem, D. Lamarque, C. Daul, M. A. Riegler, K. V. Anonsen et al.,
+“A multi-centre polyp detection and segmentation dataset for
+generalisability assessment,” SData, vol. 10, no. 1, p. 75, 2023.
+[70]
+D. Wang, X. Wang, L. Wang, M. Li, Q. Da, X. Liu, X. Gao, J. Shen,
+J. He, T. Shen et al., “A real-world dataset and benchmark for
+foundation model adaptation in medical image classification,”
+SData, vol. 10, no. 1, p. 574, 2023.
+[71]
+H. Khan, Ali; Malik, “Gastrointestinal bleeding wce images
+dataset,” 2023, doi: 10.17632/8pbbjf274w.1.
+[72]
+C. Biffi, G. Antonelli, S. Bernhofer, C. Hassan, D. Hirata,
+M. Iwatate, A. Maieron, P. Salvagnini, and A. Cherubini, “Real-
+colon: A dataset for developing real-world ai applications in
+colonoscopy,” SData, vol. 11, no. 1, p. 539, 2024.
+[73]
+Z. Xu, J. Rittscher, and S. Ali, “Ssl-cpcd: Self-supervised learning
+with composite pretext-class discrimination for improved gener-
+alisability in endoscopic image analysis,” IEEE TMI, 2024, doi:
+10.1109/TMI.2024.3411933.
+[74]
+S. Gautam, A. Stor˚as, C. Midoglu, S. A. Hicks, V. Thambawita,
+P. Halvorsen, and M. A. Riegler, “Kvasir-vqa: A text-image pair
+gi tract dataset,” in ACM MM-W, 2024.
+[75]
+P. Handa, A. Mahbod, F. Schwarzhans, R. Woitek, N. Goel,
+D. Chhabra, S. Jha, M. Dhir, D. Gunjan, J. Kakarla et al., “Capsule
+vision 2024 challenge: Multi-class abnormality classification for
+video capsule endoscopy,” in CVIP, 2024.
+[76]
+L. Ruiz, F. Sierra-Jerez, J. Ruiz, and F. Martinez, “Colon:
+The largest colonoscopy long sequence public database,” arXiv
+preprint arXiv:2403.00663, 2024.
+[77]
+P. Handa, M. Dhir, A. Mahbod, F. Schwarzhans, R. Woitek,
+N. Goel, and D. Gunjan, “Wcebleedgen: A wireless capsule
+endoscopy dataset and its benchmarking for automatic bleed-
+ing classification, detection, and segmentation,” arXiv preprint
+arXiv:2408.12466, 2024.
+[78]
+D. Jha, N. K. Tomar, V. Sharma, Q.-H. Trinh, K. Biswas, H. Pan,
+R. K. Jha, G. Durak, A. Hann, J. Varkey et al., “Polypdb: A
+curated multi-center dataset for development of ai algorithms
+in colonoscopy,” arXiv preprint arXiv:2409.00045, 2024.
+[79]
+M. Sivak, “Gastrointestinal endoscopy: past and future,” Gut,
+vol. 55, no. 8, pp. 1061–1064, 2006.
+[80]
+T. M. Berzin and E. J. Topol, “Adding artificial intelligence to
+gastrointestinal endoscopy,” The Lancet, vol. 395, no. 10223, p.
+485, 2020.
+[81]
+G. Iddan, G. Meron, A. Glukhovsky, and P. Swain, “Wireless
+capsule endoscopy,” Nature, vol. 405, no. 6785, pp. 417–417, 2000.
+[82]
+R. Anteby, N. Horesh, S. Soffer, Y. Zager, Y. Barash, I. Amiel,
+D. Rosin, M. Gutman, and E. Klang, “Deep learning visual anal-
+ysis in laparoscopic surgery: a systematic review and diagnostic
+test accuracy meta-analysis,” SEND, vol. 35, pp. 1521–1533, 2021.
+[83]
+S. Shao, Z. Pei, W. Chen, W. Zhu, X. Wu, D. Sun, and B. Zhang,
+“Self-supervised monocular depth and ego-motion estimation in
+endoscopy: Appearance flow to the rescue,” MedIA, vol. 77, p.
+102338, 2022.
+[84]
+J. C. ´A. Cer´on, G. O. Ruiz, L. Chang, and S. Ali, “Real-time
+instance segmentation of surgical instruments using attention
+and multi-scale feature fusion,” MedIA, vol. 81, p. 102569, 2022.
+[85]
+Y. Blau, D. Freedman, V. Dashinsky, R. Goldenberg, and E. Rivlin,
+“Unsupervised 3d shape coverage estimation with applications
+to colonoscopy,” in IEEE ICCV-W, 2021.
+[86]
+Y. Zhang, S. Wang, R. Ma, S. K. McGill, J. G. Rosenman, and S. M.
+Pizer, “Lighting enhancement aids reconstruction of colonoscopic
+surfaces,” in IPMI, 2021.
+[87]
+D.-P. Fan, G.-P. Ji, P. Xu, M.-M. Cheng, C. Sakaridis, and
+L. Van Gool, “Advances in deep concealed scene understanding,”
+VI, vol. 1, no. 1, p. 16, 2023.
+[88]
+W. M. de Vos and E. A. de Vos, “Role of the intestinal microbiome
+in health and disease: from correlation to causation,” Nutr. Rev.,
+vol. 70, no. suppl 1, pp. S45–S56, 2012.
+[89]
+Y. Li and P. Agarwal, “A pathway-based view of human diseases
+and disease relationships,” PONE, vol. 4, no. 2, p. e4346, 2009.
+[90]
+B. Veauthier and J. R. Hornecker, “Crohn’s disease: diagnosis and
+management,” AFP, vol. 98, no. 11, pp. 661–669, 2018.
+[91]
+L. Yang, H. Jiang, Q. Song, and J. Guo, “A survey on long-tailed
+visual recognition,” IJCV, vol. 130, no. 7, pp. 1837–1872, 2022.
+[92]
+J. Wu, X. Li, S. X. H. Yuan, H. Ding, Y. Yang, X. Li, J. Zhang,
+Y. Tong, X. Jiang, B. Ghanem et al., “Towards open vocabulary
+learning: A survey,” IEEE TPAMI, vol. 46, no. 7, pp. 5092–5113,
+2024.
+[93]
+K. Singhal, S. Azizi, T. Tu, S. S. Mahdavi, J. Wei, H. W. Chung,
+N. Scales, A. Tanwani, H. Cole-Lewis, S. Pfohl et al., “Large
+language models encode clinical knowledge,” Nature, vol. 620,
+no. 7972, pp. 172–180, 2023.
+[94]
+J. Zhang, Y. Xie, Y. Xia, and C. Shen, “Dodnet: Learning to
+segment multi-organ and tumors from multiple partially labeled
+datasets,” in IEEE CVPR, 2021.
+[95]
+D. Karimi, H. Dou, S. K. Warfield, and A. Gholipour, “Deep
+learning with noisy labels: Exploring techniques and remedies
+in medical image analysis,” MedIA, vol. 65, p. 101759, 2020.
+[96]
+H.-F. Yu, P. Jain, P. Kar, and I. Dhillon, “Large-scale multi-label
+learning with missing labels,” in ICML, 2014.
+[97]
+Y. Jia, E. Shelhamer, J. Donahue, S. Karayev, J. Long, R. Girshick,
+S. Guadarrama, and T. Darrell, “Caffe: Convolutional architecture
+for fast feature embedding,” in ACM MM, 2014.
+[98]
+G. Huang, Z. Liu, L. Van Der Maaten, and K. Q. Weinberger,
+“Densely connected convolutional networks,” in IEEE CVPR,
+2017.
+[99]
+K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for
+image recognition,” in IEEE CVPR, 2016.
+[100] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai,
+T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly
+et al., “An image is worth 16x16 words: Transformers for image
+recognition at scale,” in ICLR, 2021.
+[101] M. Sandler, A. Howard, M. Zhu, A. Zhmoginov, and L.-C. Chen,
+“Mobilenetv2: Inverted residuals and linear bottlenecks,” in IEEE
+CVPR, 2018.
+[102] S. Woo, J. Park, J.-Y. Lee, and I. S. Kweon, “Cbam: Convolutional
+block attention module,” in ECCV, 2018.
+[103] D. Tran, L. Bourdev, R. Fergus, L. Torresani, and M. Paluri,
+“Learning spatiotemporal features with 3d convolutional net-
+works,” in IEEE ICCV, 2015.
+[104] C. Szegedy, V. Vanhoucke, S. Ioffe, J. Shlens, and Z. Wojna,
+“Rethinking the inception architecture for computer vision,” in
+IEEE CVPR, 2016.
+17
+[105] J. Carreira and A. Zisserman, “Quo vadis, action recognition? a
+new model and the kinetics dataset,” in IEEE CVPR, 2017.
+[106] Y. Yuan, W. Qin, B. Ibragimov, B. Han, and L. Xing, “Riis-
+densenet: rotation-invariant and image similarity constrained
+densely connected convolutional network for polyp detection,”
+in MICCAI, 2018.
+[107] Y. Tian, G. Maicas, L. Z. C. T. Pu, R. Singh, J. W. Verjans, and
+G. Carneiro, “Few-shot anomaly detection for polyp frames from
+colonoscopy,” in MICCAI, 2020.
+[108] H. Gammulle, S. Denman, S. Sridharan, and C. Fookes, “Two-
+stream deep feature modelling for automated video endoscopy
+data analysis,” in MICCAI, 2020.
+[109] G. Carneiro, L. Z. C. T. Pu, R. Singh, and A. Burt, “Deep learning
+uncertainty and confidence calibration for the five-class polyp
+classification from colonoscopy,” MedIA, vol. 62, p. 101653, 2020.
+[110] X. Guo and Y. Yuan, “Semi-supervised wce image classification
+with adaptive aggregated attention,” MedIA, vol. 64, p. 101733,
+2020.
+[111] W. Ma, Y. Zhu, R. Zhang, J. Yang, Y. Hu, Z. Li, and L. Xiang,
+“Toward clinically assisted colorectal polyp recognition via struc-
+tured cross-modal representation consistency,” in MICCAI, 2022.
+[112] K.-N. Wang, Y. He, S. Zhuang, J. Miao, X. He, P. Zhou, G. Yang,
+G.-Q. Zhou, and S. Li, “Ffcnet: Fourier transform-based fre-
+quency learning and complex convolutional network for colon
+disease classification,” in MICCAI, 2022.
+[113] K.-N. Wang, S. Zhuang, Q.-Y. Ran, P. Zhou, J. Hua, G.-Q. Zhou,
+and X. He, “Dlgnet: A dual-branch lesion-aware network with
+the supervised gaussian mixture model for colon lesions classifi-
+cation in colonoscopy images,” MedIA, vol. 87, p. 102832, 2023.
+[114] G. Yue, P. Wei, Y. Liu, Y. Luo, J. Du, and T. Wang, “Automated
+endoscopic image classification via deep neural network with
+class imbalance loss,” IEEE TIM, vol. 72, pp. 1–11, 2023.
+[115] Y. Luo, X. Guo, L. Liu, and Y. Yuan, “Dynamic attribute-guided
+few-shot open-set network for medical image diagnosis,” ESWA,
+vol. 251, p. 124098, 2024.
+[116] H. Itoh, H. R. Roth, L. Lu, M. Oda, M. Misawa, Y. Mori, S.-e.
+Kudo, and K. Mori, “Towards automated colonoscopy diagnosis:
+binary polyp size estimation via unsupervised depth learning,”
+in MICCAI, 2018.
+[117] J. Schmidhuber, S. Hochreiter et al., “Long short-term memory,”
+Neural Comput., vol. 9, no. 8, pp. 1735–1780, 1997.
+[118] M. F. Byrne, N. Chapados, F. Soudan, C. Oertel, M. L. P´erez,
+R. Kelly, N. Iqbal, F. Chandelier, and D. K. Rex, “Real-time
+differentiation of adenomatous and hyperplastic diminutive col-
+orectal polyps during analysis of unaltered videos of standard
+colonoscopy using a deep learning model,” Gut, vol. 68, no. 1,
+pp. 94–100, 2019.
+[119] A. Tamhane, T. Mida, E. Posner, and M. Bouhnik, “Colonoscopy
+landmark detection using vision transformers,” in MICCAI-W,
+2022.
+[120] A. Bochkovskiy, C.-Y. Wang, and H.-Y. M. Liao, “Yolov4: Op-
+timal speed and accuracy of object detection,” arXiv preprint
+arXiv:2004.10934, 2020.
+[121] J. Redmon, “Yolov3: An incremental improvement,” arXiv
+preprint arXiv:1804.02767, 2018.
+[122] M. Tan, R. Pang, and Q. V. Le, “Efficientdet: Scalable and efficient
+object detection,” in IEEE CVPR, 2020.
+[123] B. Li, W. Wu, Q. Wang, F. Zhang, J. Xing, and J. Yan, “Siamrpn++:
+Evolution of siamese visual tracking with very deep networks,”
+in IEEE CVPR, 2019.
+[124] K. Simonyan and A. Zisserman, “Very deep convolutional net-
+works for large-scale image recognition,” in ICLR, 2015.
+[125] K. He, X. Zhang, S. Ren, and J. Sun, “Identity mappings in deep
+residual networks,” in ECCV, 2016.
+[126] X. Yang, Q. Wei, C. Zhang, K. Zhou, L. Kong, and W. Jiang,
+“Colon polyp detection and segmentation based on improved
+mrcnn,” IEEE TIM, vol. 70, pp. 1–10, 2020.
+[127] X. Liu, X. Guo, Y. Liu, and Y. Yuan, “Consolidated domain
+adaptive detection and localization framework for cross-device
+colonoscopic images,” MedIA, vol. 71, p. 102052, 2021.
+[128] H. A. Qadir, Y. Shin, J. Solhusvik, J. Bergsland, L. Aabakken,
+and I. Balasingham, “Toward real-time polyp detection using
+fully cnns for 2d gaussian shapes prediction,” MedIA, vol. 68,
+p. 101897, 2021.
+[129] X. Liu, W. Li, and Y. Yuan, “Intervention & interaction federated
+abnormality detection with noisy clients,” in MICCAI, 2022.
+[130] I. Pacal, A. Karaman, D. Karaboga, B. Akay, A. Basturk, U. Nal-
+bantoglu, and S. Coskun, “An efficient real-time colonic polyp
+detection with yolo algorithms trained by using negative samples
+and large datasets,” CIBM, vol. 141, p. 105031, 2022.
+[131] X. Liu and Y. Yuan, “A source-free domain adaptive polyp
+detection framework with style diversification flow,” IEEE TMI,
+vol. 41, no. 7, pp. 1897–1908, 2022.
+[132] R. Gong, S. He, T. Tian, J. Chen, Y. Hao, and C. Qiao, “Frcnn-
+aa-cif: An automatic detection model of colon polyps based on
+attention awareness and context information fusion,” CIBM, vol.
+158, p. 106787, 2023.
+[133] M. R. Haugland, H. A. Qadir, and I. Balasingham, “Deep learn-
+ing for improved polyp detection from synthetic narrow-band
+imaging,” in SPIE Med. Imaging, 2023.
+[134] W. Li, X. Liu, and Y. Yuan, “Scan++: Enhanced semantic condi-
+tioned adaptation for domain adaptive object detection,” IEEE
+TMM, vol. 25, pp. 7051–7061, 2023.
+[135] X. Pan, Y. Mu, C. Ma, and Q. He, “Tfcnet: A texture-aware
+and fine-grained feature compensated polyp detection network,”
+CIBM, vol. 171, p. 108144, 2024.
+[136] X. Liu, W. Li, and Y. Yuan, “Decoupled unbiased teacher for
+source-free domain adaptive medical object detection,” IEEE
+TNNLS, vol. 35, no. 6, pp. 7287–7298, 2024.
+[137] Tajbakhsh, Nima and Gurudu, Suryakanth R and Liang, Jian-
+ming, “A comprehensive computer-aided polyp detection system
+for colonoscopy videos,” in IPMI, 2015.
+[138] L. Yu, H. Chen, Q. Dou, J. Qin, and P. A. Heng, “Integrating
+online and offline three-dimensional deep learning for automated
+polyp detection in colonoscopy videos,” IEEE JBHI, vol. 21, no. 1,
+pp. 65–75, 2016.
+[139] X. Mo, K. Tao, Q. Wang, and G. Wang, “An efficient approach for
+polyps detection in endoscopic videos based on faster r-cnn,” in
+IEEE ICPR, 2018.
+[140] S. Ren, K. He, R. Girshick, and J. Sun, “Faster r-cnn: Towards real-
+time object detection with region proposal networks,” in NeurIPS,
+2015.
+[141] H.
+A.
+Qadir,
+I.
+Balasingham,
+J.
+Solhusvik,
+J.
+Bergsland,
+L. Aabakken, and Y. Shin, “Improving automatic polyp detection
+using cnn by exploiting temporal dependency in colonoscopy
+video,” IEEE JBHI, vol. 24, no. 1, pp. 180–193, 2019.
+[142] Z. Zhang, H. Shang, H. Zheng, X. Wang, J. Wang, Z. Sun,
+J. Huang, and J. Yao, “Asynchronous in parallel detection and
+tracking (aipdt): Real-time robust polyp detection,” in MICCAI,
+2020.
+[143] L. Wu, Z. Hu, Y. Ji, P. Luo, and S. Zhang, “Multi-frame collabo-
+ration for effective endoscopic video polyp detection via spatial-
+temporal feature transformation,” in MICCAI, 2021.
+[144] T. Yu, N. Lin, X. Zhang, Y. Pan, H. Hu, W. Zheng, J. Liu, W. Hu,
+H. Duan, and J. Si, “An end-to-end tracking method for polyp
+detectors in colonoscopy videos,” AIIM, vol. 131, p. 102363, 2022.
+[145] D. Wang, X. Wang, S. Wang, and Y. Yin, “Explainable multitask
+shapley explanation networks for real-time polyp diagnosis in
+videos,” IEEE TII, vol. 19, no. 6, pp. 7780–7789, 2022.
+[146] Y. Jiang, Z. Zhang, R. Zhang, G. Li, S. Cui, and Z. Li, “Yona:
+You only need one adjacent reference-frame for accurate and fast
+video polyp detection,” in MICCAI, 2023.
+[147] Y. Intrator, N. Aizenberg, A. Livne, E. Rivlin, and R. Goldenberg,
+“Self-supervised polyp re-identification in colonoscopy,” in MIC-
+CAI, 2023.
+[148] Y. Jiang, Z. Zhang, J. Wei, C.-M. Feng, G. Li, X. Wan, S. Cui, and
+Z. Li, “Let video teaches you more: Video-to-image knowledge
+distillation using detection transformer for medical video lesion
+detection,” arXiv preprint arXiv:2408.14051, 2024.
+[149] L. Zhu, B. Liao, Q. Zhang, X. Wang, W. Liu, and X. Wang,
+“Vision mamba: Efficient visual representation learning with
+bidirectional state space model,” in ICML, 2024.
+[150] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agar-
+wal, G. Sastry, A. Askell, P. Mishkin, J. Clark et al., “Learning
+transferable visual models from natural language supervision,”
+in ICML, 2021.
+[151] W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C.-Y. Fu, and
+A. C. Berg, “Ssd: Single shot multibox detector,” in ECCV, 2016.
+[152] J. Bernal, N. Tajkbaksh, F. J. Sanchez, B. J. Matuszewski, H. Chen,
+L. Yu, Q. Angermann, O. Romain, B. Rustad, I. Balasingham et al.,
+“Comparative validation of polyp detection methods in video
+colonoscopy: results from the miccai 2015 endoscopic vision
+challenge,” IEEE TMI, vol. 36, no. 6, pp. 1231–1249, 2017.
+18
+[153] Z. Zhang, Q. Liu, and Y. Wang, “Road extraction by deep residual
+u-net,” IEEE GRSL, vol. 15, no. 5, pp. 749–753, 2018.
+[154] S.-H. Gao, M.-M. Cheng, K. Zhao, X.-Y. Zhang, M.-H. Yang, and
+P. Torr, “Res2net: A new multi-scale backbone architecture,” IEEE
+TPAMI, vol. 43, no. 2, pp. 652–662, 2019.
+[155] H. Touvron, M. Cord, M. Douze, F. Massa, A. Sablayrolles, and
+H. J´egou, “Training data-efficient image transformers & distilla-
+tion through attention,” in ICML, 2021.
+[156] M. Tan and Q. Le, “Efficientnet: Rethinking model scaling for
+convolutional neural networks,” in ICML, 2019.
+[157] L.-C. Chen, Y. Zhu, G. Papandreou, F. Schroff, and H. Adam,
+“Encoder-decoder with atrous separable convolution for seman-
+tic image segmentation,” in ECCV, 2018.
+[158] W. Wang, E. Xie, X. Li, D.-P. Fan, K. Song, D. Liang, T. Lu, P. Luo,
+and L. Shao, “Pvt v2: Improved baselines with pyramid vision
+transformer,” CVMJ, vol. 8, no. 3, pp. 415–424, 2022.
+[159] H. Wu, B. Xiao, N. Codella, M. Liu, X. Dai, L. Yuan, and L. Zhang,
+“Cvt: Introducing convolutions to vision transformers,” in IEEE
+ICCV, 2021.
+[160] E. Xie, W. Wang, Z. Yu, A. Anandkumar, J. M. Alvarez, and
+P. Luo, “Segformer: Simple and efficient design for semantic
+segmentation with transformers,” in NeurIPS, 2021.
+[161] S. Chen, E. Xie, C. Ge, R. Chen, D. Liang, and P. Luo, “Cyclemlp:
+A mlp-like architecture for dense prediction,” in ICLR, 2022.
+[162] L. Chen, T. Yang, X. Zhang, W. Zhang, and J. Sun, “Points as
+queries: Weakly semi-supervised object detection by points,” in
+IEEE CVPR, 2021.
+[163] M.-H. Guo, C.-Z. Lu, Q. Hou, Z. Liu, M.-M. Cheng, and S.-M. Hu,
+“Segnext: Rethinking convolutional attention design for semantic
+segmentation,” in NeurIPS, 2022.
+[164] Z. Liu, Y. Lin, Y. Cao, H. Hu, Y. Wei, Z. Zhang, S. Lin, and B. Guo,
+“Swin transformer: Hierarchical vision transformer using shifted
+windows,” in IEEE ICCV, 2021.
+[165] A. Kirillov, E. Mintun, N. Ravi, H. Mao, C. Rolland, L. Gustafson,
+T. Xiao, S. Whitehead, A. C. Berg, W.-Y. Lo, P. Dollar, and
+R. Girshick, “Segment anything,” in IEEE ICCV, 2023.
+[166] N. Ravi, V. Gabeur, Y.-T. Hu, R. Hu, C. Ryali, T. Ma, H. Khedr,
+R. R¨adle, C. Rolland, L. Gustafson et al., “Sam 2: Segment
+anything in images and videos,” arXiv preprint arXiv:2408.00714,
+2024.
+[167] L.-C. Chen, G. Papandreou, I. Kokkinos, K. Murphy, and A. L.
+Yuille, “Deeplab: Semantic image segmentation with deep con-
+volutional nets, atrous convolution, and fully connected crfs,”
+IEEE TPAMI, vol. 40, no. 4, pp. 834–848, 2017.
+[168] J. Wang, K. Sun, T. Cheng, B. Jiang, C. Deng, Y. Zhao, D. Liu,
+Y. Mu, M. Tan, X. Wang et al., “Deep high-resolution representa-
+tion learning for visual recognition,” IEEE TPAMI, vol. 43, no. 10,
+pp. 3349–3364, 2020.
+[169] Z. Liu, H. Mao, C.-Y. Wu, C. Feichtenhofer, T. Darrell, and S. Xie,
+“A convnet for the 2020s,” in IEEE CVPR, 2022.
+[170] B. Cheng, I. Misra, A. G. Schwing, A. Kirillov, and R. Girdhar,
+“Masked-attention mask transformer for universal image seg-
+mentation,” in IEEE CVPR, 2022, pp. 1290–1299.
+[171] Y. Yuan, D. Li, and M. Q.-H. Meng, “Automatic polyp detection
+via a novel unified bottom-up and top-down saliency approach,”
+IEEE JBHI, vol. 22, no. 4, pp. 1250–1260, 2017.
+[172] Y. Fang, C. Chen, Y. Yuan, and K.-y. Tong, “Selective feature
+aggregation network with area-boundary constraints for polyp
+segmentation,” in MICCAI, 2019.
+[173] D. Jha, P. H. Smedsrud, M. A. Riegler, D. Johansen, T. De Lange,
+P. Halvorsen, and H. D. Johansen, “Resunet++: An advanced
+architecture for medical image segmentation,” in IEEE ISM, 2019.
+[174] R. Zhang, G. Li, Z. Li, S. Cui, D. Qian, and Y. Yu, “Adaptive
+context selection for polyp segmentation,” in MICCAI, 2020.
+[175] D.-P. Fan, G.-P. Ji, T. Zhou, G. Chen, H. Fu, J. Shen, and L. Shao,
+“Pranet: Parallel reverse attention network for polyp segmenta-
+tion,” in MICCAI, 2020.
+[176] K. Wickstrøm, M. Kampffmeyer, and R. Jenssen, “Uncertainty
+and interpretability in convolutional neural networks for seman-
+tic segmentation of colorectal polyps,” MedIA, vol. 60, p. 101619,
+2020.
+[177] H. Wu, J. Zhong, W. Wang, Z. Wen, and J. Qin, “Precise yet
+efficient semantic calibration and refinement in convnets for real-
+time polyp segmentation from colonoscopy videos,” in AAAI,
+2021.
+[178] Y. Meng, H. Zhang, D. Gao, Y. Zhao, X. Yang, X. Qian, X. Huang,
+and Y. Zheng, “Bi-gcn: Boundary-aware input-dependent graph
+convolution network for biomedical image segmentation,” in
+BMVC, 2021.
+[179] H. Wu, G. Chen, Z. Wen, and J. Qin, “Collaborative and adversar-
+ial learning of focused and dispersive representations for semi-
+supervised polyp segmentation,” in IEEE ICCV, 2021.
+[180] T.-C. Nguyen, T.-P. Nguyen, G.-H. Diep, A.-H. Tran-Dinh, T. V.
+Nguyen, and M.-T. Tran, “Ccbanet: cascading context and bal-
+ancing attention for polyp segmentation,” in MICCAI, 2021.
+[181] Y. Tian, G. Pang, F. Liu, Y. Chen, S. H. Shin, J. W. Verjans, R. Singh,
+and G. Carneiro, “Constrained contrastive distribution learning
+for unsupervised anomaly detection and localisation in medical
+images,” in MICCAI, 2021.
+[182] Y. Shen, X. Jia, and M. Q.-H. Meng, “Hrenet: A hard region
+enhancement network for polyp segmentation,” in MICCAI, 2021.
+[183] M. Cheng, Z. Kong, G. Song, Y. Tian, Y. Liang, and J. Chen,
+“Learnable oriented-derivative network for polyp segmenta-
+tion,” in MICCAI, 2021.
+[184] X. Zhao, L. Zhang, and H. Lu, “Automatic polyp segmentation
+via multi-scale subtraction network,” in MICCAI, 2021.
+[185] J. Wei, Y. Hu, R. Zhang, Z. Li, S. K. Zhou, and S. Cui, “Shallow
+attention network for polyp segmentation,” in MICCAI, 2021.
+[186] Y. Zhang, H. Liu, and Q. Hu, “Transfuse: Fusing transformers
+and cnns for medical image segmentation,” in MICCAI, 2021.
+[187] T. Kim, H. Lee, and D. Kim, “Uacanet: Uncertainty augmented
+context attention for polyp segmentation,” in ACM MM, 2021.
+[188] C. Yang, X. Guo, M. Zhu, B. Ibragimov, and Y. Yuan, “Mutual-
+prototype adaptation for cross-domain polyp segmentation,”
+IEEE JBHI, vol. 25, no. 10, pp. 3886–3897, 2021.
+[189] X. Guo, C. Yang, and Y. Yuan, “Dynamic-weighting hierarchical
+segmentation network for medical images,” MedIA, vol. 73, p.
+102196, 2021.
+[190] X. Du, X. Xu, and K. Ma, “Icgnet: Integration context-based
+reverse-contour guidance network for polyp segmentation,” in
+IJCAI, 2022.
+[191] J. Wei, Y. Hu, G. Li, S. Cui, S. Kevin Zhou, and Z. Li, “Boxpolyp:
+Boost generalized polyp segmentation using extra coarse bound-
+ing box annotations,” in MICCAI, 2022.
+[192] R. Zhang, P. Lai, X. Wan, D.-J. Fan, F. Gao, X.-J. Wu, and
+G. Li, “Lesion-aware dynamic kernel for polyp segmentation,”
+in MICCAI, 2022.
+[193] L. Cai, M. Wu, L. Chen, W. Bai, M. Yang, S. Lyu, and Q. Zhao,
+“Using guided self-attention with local information for polyp
+segmentation,” in MICCAI, 2022.
+[194] J. Wang, Q. Huang, F. Tang, J. Meng, J. Su, and S. Song, “Stepwise
+feature fusion: Local guides global,” in MICCAI, 2022.
+[195] Y. Shen, Y. Lu, X. Jia, F. Bai, and M. Q.-H. Meng, “Task-relevant
+feature replenishment for cross-centre polyp segmentation,” in
+MICCAI, 2022.
+[196] D. Wang, S. Chen, Q. Chen, Y. Cao, B. Liu, X. Liu, and
+X. Sun, “Afp-mask: Anchor-free polyp instance segmentation in
+colonoscopy,” IEEE JBHI, vol. 26, no. 7, pp. 2995–3006, 2022.
+[197] G. Yue, W. Han, B. Jiang, T. Zhou, R. Cong, and T. Wang, “Bound-
+ary constraint network with cross layer feature integration for
+polyp segmentation,” IEEE JBHI, vol. 26, no. 8, pp. 4090–4099,
+2022.
+[198] Y. Lin, J. Wu, G. Xiao, J. Guo, G. Chen, and J. Ma, “Bsca-net: Bit
+slicing context attention network for polyp segmentation,” PR,
+vol. 132, p. 108917, 2022.
+[199] J.-H. Shi, Q. Zhang, Y.-H. Tang, and Z.-Q. Zhang, “Polyp-mixer:
+An efficient context-aware mlp-based paradigm for polyp seg-
+mentation,” IEEE TCSVT, vol. 33, no. 1, pp. 30–42, 2022.
+[200] H. Wu, W. Xie, J. Lin, and X. Guo, “Acl-net: semi-supervised
+polyp segmentation via affinity contrastive learning,” in AAAI,
+2023.
+[201] J. Wei, Y. Hu, S. Cui, S. K. Zhou, and Z. Li, “Weakpolyp: You only
+look bounding box for polyp segmentation,” in MICCAI, 2023.
+[202] T. Ling, C. Wu, H. Yu, T. Cai, D. Wang, Y. Zhou, M. Chen, and
+K. Ding, “Probabilistic modeling ensemble vision transformer
+improves complex polyp segmentation,” in MICCAI, 2023.
+[203] A. Wang, M. Xu, Y. Zhang, M. Islam, and H. Ren, “S2me: Spatial-
+spectral mutual teaching and ensemble learning for scribble-
+supervised polyp segmentation,” in MICCAI, 2023.
+[204] Y. Su, Y. Shen, J. Ye, J. He, and J. Cheng, “Revisiting feature propa-
+gation and aggregation in polyp segmentation,” in MICCAI, 2023.
+[205] B. Dong, W. Wang, D.-P. Fan, J. Li, H. Fu, and L. Shao, “Polyp-pvt:
+Polyp segmentation with pyramid vision transformers,” CAAI
+AIR, vol. 2, p. 9150015, 2023.
+19
+[206] J. Wang and C. Chen, “Unsupervised adaptation of polyp seg-
+mentation models via coarse-to-fine self-supervision,” in IPMI,
+2023.
+[207] Q. Jin, H. Hou, G. Zhang, and Z. Li, “Fegnet: A feedback
+enhancement gate network for automatic polyp segmentation,”
+IEEE JBHI, vol. 27, no. 7, pp. 3420–3430, 2023.
+[208] J. Du, K. Guan, P. Liu, Y. Li, and T. Wang, “Boundary-sensitive
+loss function with location constraint for hard region segmenta-
+tion,” IEEE JBHI, vol. 27, no. 2, pp. 992–1003, 2023.
+[209] Y. Shi, H. Wang, H. Ji, H. Liu, Y. Li, N. He, D. Wei, Y. Huang,
+Q. Dai, J. Wu et al., “A deep weakly semi-supervised framework
+for endoscopic lesion segmentation,” MedIA, vol. 90, p. 102973,
+2023.
+[210] G.-P. Ji, D.-P. Fan, Y.-C. Chou, D. Dai, A. Liniger, and L. Van Gool,
+“Deep gradient learning for efficient camouflaged object detec-
+tion,” MIR, vol. 20, no. 1, pp. 92–108, 2023.
+[211] T. Zhou, Y. Zhou, K. He, C. Gong, J. Yang, H. Fu, and D. Shen,
+“Cross-level feature aggregation network for polyp segmenta-
+tion,” PR, vol. 140, p. 109555, 2023.
+[212] S. Jain, R. Atale, A. Gupta, U. Mishra, A. Seal, A. Ojha,
+J. Kuncewicz, and O. Krejcar, “Coinnet: A convolution-involution
+network with a novel statistical attention for automatic polyp
+segmentation,” IEEE TMI, vol. 42, no. 12, pp. 3987–4000, 2023.
+[213] N. K. Tomar, D. Jha, M. A. Riegler, H. D. Johansen, D. Johansen,
+J. Rittscher, P. Halvorsen, and S. Ali, “Fanet: A feedback attention
+network for improved biomedical image segmentation,” IEEE
+TNNLS, vol. 34, no. 11, pp. 9375–9388, 2023.
+[214] H. Shao, Q. Zeng, Q. Hou, and J. Yang, “Mcanet: Medical im-
+age segmentation with multi-scale cross-axis attention,” arXiv
+preprint arXiv:2312.08866, 2023.
+[215] H. Shao, Y. Zhang, and Q. Hou, “Polyper: Boundary sensitive
+polyp segmentation,” in AAAI, 2024.
+[216] M. M. Rahman, M. Munir, and R. Marculescu, “Emcad: Efficient
+multi-scale convolutional attention decoding for medical image
+segmentation,” in IEEE CVPR, 2024.
+[217] R. Sch¨on, J. Lorenz, K. Ludwig, and R. Lienhart, “Adapting the
+segment anything model during usage in novel situations,” in
+IEEE CVPR, 2024, pp. 3616–3626.
+[218] L. Xie, M. Lin, T. Luan, C. Li, Y. Fang, Q. Shen, and Z. Wu, “Mh-
+pflid: Model heterogeneous personalized federated learning via
+injection and distillation for medical data analysis,” in ICML,
+2024.
+[219] H. Li, D. Zhang, J. Yao, L. Han, Z. Li, and J. Han, “Asps:
+Augmented segment anything model for polyp segmentation,”
+in MICCAI, 2024.
+[220] Z. Xu, F. Tang, Z. Chen, Z. Zhou, W. Wu, Y. Yang, Y. Liang,
+J. Jiang, X. Cai, and J. Su, “ Polyp-Mamba: Polyp Segmentation
+with Visual Mamba ,” in MICCAI, 2024.
+[221] Y. Liu, Y. Tian, Y. Zhao, H. Yu, L. Xie, Y. Wang, Q. Ye, and Y. Liu,
+“Vmamba: Visual state space model,” NeurIPS, 2024.
+[222] J. Chai, Z. Luo, J. Gao, L. Dai, Y. Lai, and S. Li, “ QueryNet:
+A Unified Framework for Accurate Polyp Segmentation and
+Detection ,” in MICCAI, 2024.
+[223] W. Wang, H. Sun, and X. Wang, “ LSSNet: A Method for Colon
+Polyp Segmentation Based on Local Feature Supplementation
+and Shallow Feature Supplementation ,” in MICCAI, 2024.
+[224] X. Zhou and T. Chen, “Bsbp-rwkv: Background suppression with
+boundary preservation for efficient medical image segmenta-
+tion,” in ACM MM, 2024.
+[225] B. Peng, E. Alcaide, Q. G. Anthony, A. Albalak, S. Arcadinho,
+S. Biderman, H. Cao, X. Cheng, M. N. Chung, L. Derczynski,
+X. Du, M. Grella, K. K. GV, X. He, H. Hou, P. Kazienko, J. Kocon,
+J. Kong, B. Koptyra, H. Lau, J. Lin, K. S. I. Mantri, F. Mom,
+A. Saito, G. Song, X. Tang, J. S. Wind, S. Wo´zniak, Z. Zhang,
+Q. Zhou, J. Zhu, and R.-J. Zhu, “RWKV: Reinventing RNNs for
+the transformer era,” in EMNLP, 2023.
+[226] C. Wang, L. Wang, N. Wang, X. Wei, T. Feng, M. Wu, Q. Yao, and
+R. Zhang, “Cfatransunet: Channel-wise cross fusion attention
+and transformer for 2d medical image segmentation,” CIBM, vol.
+168, p. 107803, 2024.
+[227] X. Jia, Y. Shen, J. Yang, R. Song, W. Zhang, M. Q.-H. Meng, J. C.
+Liao, and L. Xing, “Polypmixnet: Enhancing semi-supervised
+polyp segmentation with polyp-aware augmentation,” CIBM,
+vol. 170, p. 108006, 2024.
+[228] Z. Zhang, Y. Li, and B.-S. Shin, “Generalizable polyp segmen-
+tation via randomized global illumination augmentation,” IEEE
+JBHI, vol. 28, no. 4, pp. 2138–2151, 2024.
+[229] M. Wang, X. An, Z. Pei, N. Li, L. Zhang, G. Liu, and D. Ming, “An
+efficient multi-task synergetic network for polyp segmentation
+and classification,” IEEE JBHI, vol. 28, no. 3, pp. 1228–1239, 2024.
+[230] L. Yang, Y. Gu, G. Bian, and Y. Liu, “Msde-net: A multi-scale
+dual-encoding network for surgical instrument segmentation,”
+IEEE JBHI, vol. 28, no. 7, pp. 4072–4083, 2024.
+[231] G.-P. Ji, J. Zhang, D. Campbell, H. Xiong, and N. Barnes, “Re-
+thinking polyp segmentation from an out-of-distribution per-
+spective,” MIR, vol. 21, no. 4, pp. 631–639, 2024.
+[232] J. Ma, Y. He, F. Li, L. Han, C. You, and B. Wang, “Segment
+anything in medical images,” NComms, vol. 15, no. 1, p. 654, 2024.
+[233] Z. Liu, S. Zheng, X. Sun, Z. Zhu, Y. Zhao, X. Yang, and Y. Zhao,
+“The devil is in the boundary: Boundary-enhanced polyp seg-
+mentation,” IEEE TCSVT, vol. 34, no. 7, pp. 5414–5423, 2024.
+[234] Z. Lu, Y. Zhang, Y. Zhou, Y. Wu, and T. Zhou, “Domain-
+interactive
+contrastive
+learning
+and
+prototype-guided
+self-
+training for cross-domain polyp segmentation,” IEEE TMI, 2024.
+[235] J. Gao, Q. Lao, Q. Kang, P. Liu, C. Du, K. Li, and L. Zhang,
+“Boosting your context by dual similarity checkup for in-context
+learning medical image segmentation,” IEEE TMI, 2024.
+[236] C. Li, X. Liu, W. Li, C. Wang, H. Liu, and Y. Yuan, “U-kan
+makes strong backbone for medical image segmentation and
+generation,” arXiv preprint arXiv:2406.02918, 2024.
+[237] Z. Liu, Y. Wang, S. Vaidya, F. Ruehle, J. Halverson, M. Soljaˇci´c,
+T. Y. Hou, and M. Tegmark, “Kan: Kolmogorov-arnold net-
+works,” arXiv preprint arXiv:2404.19756, 2024.
+[238] C. Fan, H. Yu, L. Wang, Y. Huang, L. Wang, and X. Jia, “Slice-
+mamba with neural architecture search for medical image seg-
+mentation,” arXiv preprint arXiv:2407.08481, 2024.
+[239] J. Xie, R. Liao, Z. Zhang, S. Yi, Y. Zhu, and G. Luo, “Pro-
+mamba: Prompt-mamba for polyp segmentation,” arXiv preprint
+arXiv:2403.13660, 2024.
+[240] X. Xiong, Z. Wu, S. Tan, W. Li, F. Tang, Y. Chen, S. Li, J. Ma, and
+G. Li, “Sam2-unet: Segment anything 2 makes strong encoder
+for natural and medical image segmentation,” arXiv preprint
+arXiv:2408.08870, 2024.
+[241] J. G.-B. Puyal, K. K. Bhatia, P. Brandao, O. F. Ahmad, D. Toth,
+R. Kader, L. Lovat, P. Mountney, and D. Stoyanov, “Endoscopic
+polyp segmentation using a hybrid 2d/3d cnn,” in MICCAI, 2020.
+[242] G.-P. Ji, Y.-C. Chou, D.-P. Fan, G. Chen, H. Fu, D. Jha, and L. Shao,
+“Progressively normalized self-attention network for video polyp
+segmentation,” in MICCAI, 2021.
+[243] X. Zhao, Z. Wu, S. Tan, D.-J. Fan, Z. Li, X. Wan, and G. Li, “Semi-
+supervised spatial temporal attention network for video polyp
+segmentation,” in MICCAI, 2022.
+[244] X. Li, J. Xu, Y. Zhang, R. Feng, R.-W. Zhao, T. Zhang, X. Lu, and
+S. Gao, “Tccnet: Temporally consistent context-free network for
+semi-supervised video polyp segmentation.” in IJCAI, 2022.
+[245] J. G.-B. Puyal, P. Brandao, O. F. Ahmad, K. K. Bhatia, D. Toth,
+R. Kader, L. Lovat, P. Mountney, and D. Stoyanov, “Polyp detec-
+tion on video colonoscopy using a hybrid 2d/3d cnn,” MedIA,
+vol. 82, p. 102625, 2022.
+[246] Z. Fang, X. Guo, J. Lin, H. Wu, and J. Qin, “An embedding-
+unleashing video polyp segmentation framework via region link-
+ing and scale alignment,” in AAAI, 2024.
+[247] H. Xu, Y. Yang, A. I. Aviles-Rivero, G. Yang, J. Qin, and L. Zhu,
+“Lgrnet: Local-global reciprocal network for uterine fibroid seg-
+mentation in ultrasound videos,” in MICCAI, 2024.
+[248] Q. Hu, Z. Yi, Y. Zhou, F. Peng, M. Liu, Q. Li, and Z. Wang,
+“Sali: Short-term alignment and long-term interaction network
+for colonoscopy video polyp segmentation,” in MICCAI, 2024.
+[249] Y. Lu, Y. Yang, Z. Xing, Q. Wang, and L. Zhu, “Diff-vps: Video
+polyp segmentation via a multi-task diffusion network with
+adversarial temporal reasoning,” in MICCAI, 2024.
+[250] L. Wan, Z. Chen, Y. Xiao, J. Zhao, W. Feng, and H. Fu, “Iterative
+feedback-based models for image and video polyp segmenta-
+tion,” CIBM, vol. 177, p. 108569, 2024.
+[251] Y.-C. Chou, B. Li, D.-P. Fan, A. Yuille, and Z. Zhou, “Acquiring
+weak annotations for tumor localization in temporal and volu-
+metric data,” MIR, vol. 21, no. 2, pp. 318–330, 2024.
+[252] Z. Xu, J. Rittscher, and S. Ali, “Sstfb: Leveraging self-supervised
+pretext learning and temporal self-attention with feature branch-
+ing for real-time video polyp segmentation,” arXiv preprint
+arXiv:2406.10200, 2024.
+[253] Y.
+Yang,
+Z.
+Xing,
+and
+L.
+Zhu,
+“Vivim:
+a
+video
+vision
+mamba for medical video object segmentation,” arXiv preprint
+arXiv:2401.14168, 2024.
+20
+[254] G. Chen, J. Yang, X. Pu, G.-P. Ji, H. Xiong, Y. Pan, H. Cui, and
+Y. Xia, “Mast: Video polyp segmentation with a mixture-attention
+siamese transformer,” arXiv preprint arXiv:2401.12439, 2024.
+[255] B. Zhou, A. Khosla, A. Lapedriza, A. Oliva, and A. Torralba,
+“Learning deep features for discriminative localization,” in IEEE
+CVPR, 2016.
+[256] N. Carion, F. Massa, G. Synnaeve, N. Usunier, A. Kirillov, and
+S. Zagoruyko, “End-to-end object detection with transformers,”
+in ECCV, 2020.
+[257] S. Chen, P. Sun, Y. Song, and P. Luo, “Diffusiondet: Diffusion
+model for object detection,” in IEEE ICCV, 2023.
+[258] M.-M. Cheng and D.-P. Fan, “Structure-measure: A new way to
+evaluate foreground maps,” IJCV, vol. 129, pp. 2622–2638, 2021.
+[259] Z. Zhou, M. M. R. Siddiquee, N. Tajbakhsh, and J. Liang,
+“Unet++: Redesigning skip connections to exploit multiscale
+features in image segmentation,” IEEE TMI, vol. 39, no. 6, pp.
+1856–1867, 2019.
+[260] O. Ronneberger, P. Fischer, and T. Brox, “U-net: Convolutional
+networks for biomedical image segmentation,” in MICCAI, 2015.
+[261] Q. Chen, X. Chen, H. Song, Z. Xiong, A. Yuille, C. Wei, and
+Z. Zhou, “Towards generalizable tumor synthesis,” in IEEE
+CVPR, 2024.
+[262] K. Tian, Y. Jiang, Z. Yuan, B. Peng, and L. Wang, “Visual au-
+toregressive modeling: Scalable image generation via next-scale
+prediction,” arXiv preprint arXiv:2404.02905, 2024.
+[263] M. Hu, P. Xia, L. Wang, S. Yan, F. Tang, Z. Xu, Y. Luo,
+K. Song, J. Leitner, X. Cheng et al., “Ophnet: A large-scale video
+benchmark for ophthalmic surgical workflow understanding,” in
+ECCV, 2024.
+[264] N. K. Tomar, D. Jha, U. Bagci, and S. Ali, “Tganet: Text-guided
+attention for improved polyp segmentation,” in MICCAI, 2022.
+[265] Y. Zhao, J. Li, L. Ren, and Z. Chen, “Dtan: Diffusion-based text
+attention network for medical image segmentation,” CIBM, vol.
+168, p. 107728, 2024.
+[266] Y. Zhao, J. Li, and Z. Hua, “Tact: Text attention based cnn-
+transformer network for polyp segmentation,” IJIST, vol. 34,
+2023.
+[267] Z. Qin, H. Yi, Q. Lao, and K. Li, “Medical image understand-
+ing with pretrained vision language models: A comprehensive
+study,” in ICLR, 2023.
+[268] M. Guo, H. Yi, Z. Qin, H. Wang, A. Men, and Q. Lao, “Mul-
+tiple prompt fusion for zero-shot lesion detection using vision-
+language models,” in MICCAI, 2023.
+[269] L. H. Li, P. Zhang, H. Zhang, J. Yang, C. Li, Y. Zhong, L. Wang,
+L. Yuan, L. Zhang, J.-N. Hwang et al., “Grounded language-image
+pre-training,” in IEEE CVPR, 2022.
+[270] S. Wang, Y. Zhu, X. Luo, Z. Yang, Y. Zhang, P. Fu, M. Wang,
+Z. Song, Q. Li, P. Zhou et al., “Knowledge extraction and
+distillation from large-scale image-text colonoscopy records
+leveraging large language and vision models,” arXiv preprint
+arXiv:2310.11173, 2023.
+[271] R. Biswas, “Polyp-sam++: Can a text guided sam perform better
+for polyp segmentation?” arXiv preprint arXiv:2308.06623, 2023.
+[272] Y. Zhao, Y. Zhou, Y. Zhang, Y. Wu, and T. Zhou, “ TextPolyp:
+Point-supervised Polyp Segmentation with Text Cues ,” in MIC-
+CAI, 2024.
+[273] S. Wang, W. Zhou, Y. Yang, H. Huang, Z. Ye, T. Zhang, and
+D. Yang, “Adapting pre-trained visual and language models for
+medical image question answering,” in CLEF (Working notes),
+2023.
+[274] J. Li, D. Li, S. Savarese, and S. Hoi, “Blip-2: Bootstrapping
+language-image pre-training with frozen image encoders and
+large language models,” in ICML, 2023.
+[275] Z. Huang, F. Bianchi, M. Yuksekgonul, T. J. Montine, and J. Zou,
+“A visual–language foundation model for pathology image anal-
+ysis using medical twitter,” NM, vol. 29, no. 9, pp. 2307–2316,
+2023.
+[276] R. Taylor, M. Kardas, G. Cucurull, T. Scialom, A. Hartshorn,
+E. Saravia, A. Poulton, V. Kerkez, and R. Stojnic, “Galac-
+tica: A large language model for science,” arXiv preprint
+arXiv:2211.09085, 2022.
+[277] H. Liu, C. Li, Q. Wu, and Y. J. Lee, “Visual instruction tuning,” in
+NeurIPS, 2024.
+[278] C. Li, Y. Ge, D. Li, and Y. Shan, “Vision-language instruction
+tuning: A review and analysis,” TMLR, 2024.
+[279] G. Lupyan, R. A. Rahman, L. Boroditsky, and A. Clark, “Effects of
+language on visual perception,” TICS, vol. 24, no. 11, pp. 930–944,
+2020.
+[280] C. Li, C. Wong, S. Zhang, N. Usuyama, H. Liu, J. Yang,
+T. Naumann, H. Poon, and J. Gao, “Llava-med: Training a large
+language-and-vision assistant for biomedicine in one day,” in
+NeurIPS, 2024.
+[281] M. A. Islam, S. Jia, and N. D. Bruce, “How much position
+information do convolutional neural networks encode?” in ICLR,
+2020.
+[282] E. J. Hu, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, W. Chen
+et al., “Lora: Low-rank adaptation of large language models,” in
+ICLR, 2022.
+[283] Y. Li, Y. Zhang, C. Wang, Z. Zhong, Y. Chen, R. Chu, S. Liu,
+and J. Jia, “Mini-gemini: Mining the potential of multi-modality
+vision language models,” arXiv preprint arXiv:2403.18814, 2024.
+[284] X. Chu, L. Qiao, X. Lin, S. Xu, Y. Yang, Y. Hu, F. Wei, X. Zhang,
+B. Zhang, X. Wei et al., “Mobilevlm: A fast, reproducible and
+strong vision language assistant for mobile devices,” arXiv
+preprint arXiv:2312.16886, 2023.
+[285] S. Woo, S. Debnath, R. Hu, X. Chen, Z. Liu, I. S. Kweon, and
+S. Xie, “Convnext v2: Co-designing and scaling convnets with
+masked autoencoders,” in IEEE CVPR, 2023.
+[286] K. He, X. Chen, S. Xie, Y. Li, P. Doll´ar, and R. Girshick, “Masked
+autoencoders are scalable vision learners,” in IEEE CVPR, 2023.
+[287] M. Oquab, T. Darcet, T. Moutakanni, H. Vo, M. Szafraniec,
+V. Khalidov, P. Fernandez, D. Haziza, F. Massa, A. El-Nouby et al.,
+“Dinov2: Learning robust visual features without supervision,”
+TMLR, 2024.
+[288] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agar-
+wal, G. Sastry, A. Askell, P. Mishkin, J. Clark et al., “Learning
+transferable visual models from natural language supervision,”
+in ICML, 2021.
+[289] P. Villalobos, A. Ho, J. Sevilla, T. Besiroglu, L. Heim, and
+M. Hobbhahn, “Position: Will we run out of data? limits of llm
+scaling based on human-generated data,” in ICML, 2024.
+[290] B. Xiao, H. Wu, W. Xu, X. Dai, H. Hu, Y. Lu, M. Zeng, C. Liu,
+and L. Yuan, “Florence-2: Advancing a unified representation for
+a variety of vision tasks,” in IEEE CVPR, 2024.
+[291] D. Jiang, X. He, H. Zeng, C. Wei, M. Ku, Q. Liu, and W. Chen,
+“Mantis: Interleaved multi-image instruction tuning,” arXiv
+preprint arXiv:2405.01483, 2024.
+[292] J. B. Haurum, S. Escalera, G. W. Taylor, and T. B. Moeslund,
+“Which tokens to use? investigating token reduction in vision
+transformers,” in IEEE ICCV-W, 2023.
+[293] H. Diao, Y. Cui, X. Li, Y. Wang, H. Lu, and X. Wang, “Unveiling
+encoder-free vision-language models,” in NeurIPS, 2024.
+[294] Z. Chen, J. Wu, W. Wang, W. Su, G. Chen, S. Xing, M. Zhong,
+Q. Zhang, X. Zhu, L. Lu et al., “Internvl: Scaling up vision foun-
+dation models and aligning for generic visual-linguistic tasks,”
+in IEEE CVPR, 2024.
+[295] G. Bachmann and V. Nagarajan, “The pitfalls of next-token pre-
+diction,” in ICML, 2024.
+[296] X. Huang, J. Wang, Y. Tang, Z. Zhang, H. Hu, J. Lu, L. Wang, and
+Z. Liu, “Segment and caption anything,” in IEEE CVPR, 2024.
+[297] Y. Kim, C. Park, H. Jeong, Y. S. Chan, X. Xu, D. McDuff,
+C. Breazeal, and H. W. Park, “Adaptive collaboration strategy
+for llms in medical decision making,” in NeurIPS, 2024.

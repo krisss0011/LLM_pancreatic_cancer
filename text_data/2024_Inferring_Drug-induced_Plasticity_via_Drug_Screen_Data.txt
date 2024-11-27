@@ -1,0 +1,2615 @@
+Inferring Drug-induced Plasticity via Drug Screen Data
+Chenyu Wu, Einar Bjarki Gunnarsson, Jasmine Foo, Kevin Leder
+September 30, 2024
+Abstract
+Resistance to therapy remains a significant challenge in cancer treatment, often due to the
+presence of a stem-like cell population that drives tumor recurrence post-treatment. Moreover,
+many anticancer drugs inadvertently induce plasticity, reverting differentiated cancer cells to
+drug-resistant stem-like states.
+Addressing this phenomenon is crucial for advancing cancer
+therapeutics. In this study, we introduce a robust statistical framework based on multi-type
+branching processes that can dissect tumor dynamics and drug effects from high throughput
+drug screening data. Through comprehensive in silico experiments, we show the efficacy of our
+framework in estimating parameters governing population dynamics and drug responses in a
+heterogeneous tumor population where cell state transitions are influenced by the drug. Finally,
+using recent in vitro data involving AGS-SORE6+/−cells treated with ciclopirox olamine, we
+show how our framework can be used to confirm the presence of drug-induced cell plasticity.
+1
+Introduction
+Cellular plasticity, the potential of immature cells to differentiate into various mature terminal
+cells, is a fundamental cell feature.
+This process is reversible and can be induced by external
+signals [34].
+In the context of cancer, cellular plasticity is often observed during treatment, a
+phenomenon known as drug-induced plasticity. Specifically, it refers to the process where a more
+mature cancer cell phenotype, a cancer non-stem-like cell (CNSC), reverts to a more immature cancer
+stem-like phenotype (CSC) in response to therapy. This phenomenon has been observed under both
+pharmaceutical treatments and other treatment modalities such as radiotherapy [17, 12, 31].
+Drug-induced plasticity is thought to play a significant role in the evolution of drug resistance
+[31, 2]. In particular, CSCs can confound treatment efforts due to their inherent resistance to therapy
+and their ability for unlimited cell division [3]. As such, understanding drug-induced transitions from
+CNSCs to CSCs can help shed light on tumor heterogeneity and aid in the development of improved
+treatment plans [18]. In addition, since Yamanaka et al. demonstrated the generation of induced
+pluripotent stem cells from human dermal fibroblasts [34], artificially enhancing cellular plasticity
+has gained popularity in cancer research. By enhancing cellular plasticity, researchers can reprogram
+cancer cells and facilitate the investigation of tumorigenesis [13, 30]. Small-molecule drugs represent
+one promising avenue for artificially reprogramming differentiated cells [15].
+In a recent study [25], ciclopirox olamine (CPX-O), originally an antifungal agent, was identified
+for its ability to induce the production of gastric CSCs from gastric CNSCs. The study utilized the
+SORE-GFP reporter system coupled with fluorescence-activated cell sorting (FACS) to distinguish
+between gastric CSCs and CNSCs. A high-throughput screening (HTS) technique was employed to
+assess the effects of various potential medications on a homogeneous population of gastric CNSC
+to explore drug-induced plasticity. One key assumption of this study is the effective separation of
+1
+arXiv:2409.18879v1  [q-bio.PE]  27 Sep 2024
+gastric CSCs and CNSCs using the FACS technique and the SORE-GFP reporter system, which may
+limit the scope of the findings. Additionally, the study noted CPX’s significant cytotoxic impact on
+gastric CNSCs. This complicates assessment of the level of drug-induced plasticity, since increased
+abundance of CSCs relative to CNSCs can both be explained by drug-induced plasticity and a
+selective advantage over CNSCs. Consequently, the empirical inference of drug-induced plasticity
+presents significant challenges. As an alternative approach, we propose using a mathematical model
+to understand how the drug affects the proliferation of both CNSCs and CSCs, and to tease apart
+the drug’s effect on cell proliferation vs. transitions from CNSCs to CSCs.
+Mathematical modeling has increasingly played a crucial role in understanding and treating
+cancer [38, 20], offering advantages in modeling complex biological dynamics through manageable
+mathematical models. For instance, recent studies have applied the multi-type branching process
+model to depict diverse tumor populations undergoing phenotypic switching [14, 8, 7]. This approach
+abstracts the cell division process into ‘branching events’, allowing each cell to generate descendants
+across any subtype described in the model. As a result, the model can naturally describe processes
+such as self-proliferation, differentiation, and de-differentiation of CSCs and CNSCs.
+On the other hand, several recent studies [16, 35] have proposed frameworks for deconvoluting
+subpopulation structure directly from HTS bulk cell count data, avoiding the need for a reporter
+system coupled with FACS to separate distinct subpopulations. Instead, these studies distinguish
+subpopulations based on their distinct responses to a given drug. For instance, these works have
+successfully identified Imatinib-sensitive and -resistant Ba/F3 cells from a population mixture by ex-
+amining heterogeneous drug response curves at various concentration levels. However, these frame-
+works assume that each subpopulation can only generate its own subtype, thereby limiting their
+ability to capture the differentiation and de-differentiation dynamics of CSCs and CNSCs.
+In this study, we have developed a novel statistical framework that integrates the multi-type
+branching process with a drug response model to simulate heterogeneous cell growth dynamics under
+drug influence. This newly proposed framework serves as a mathematical tool for investigating drug-
+induced plasticity directly from HTS bulk cell count data. The paper is organized as follows. In
+Section 2, we introduce our newly proposed framework.
+Based on this framework, we conduct
+multiple in silico experiments to validate our model predictions in Section 3.
+Subsequently, in
+Section 4, we validate our framework using in vitro data obtained from [25] and [16]. Finally, in
+Section 5, we conclude by discussing the advantages and limitations of our framework. A detailed
+derivation of the methods and the experimental settings are provided in the Appendix.
+2
+Methodology
+In this section, we start by introducing a general model to describe heterogeneous tumor growth
+dynamics, capable of accommodating an arbitrary number of distinct phenotypes. Then, we develop
+a drug-effect model using the classical Hill equation, which is widely employed to represent dose-
+response relationships. By integrating these two models, we propose a novel statistical framework
+for inferring underlying tumor dynamics from HTS data. Finally, we tailor this framework to a
+specific case involving two subpopulations within the tumor, CSCs and CNSCs, which will be the
+focus of our analysis in the remainder of the paper. In what follows, we denote vectors and matrices
+in boldface letters and all the vectors are row vectors.
+2.1
+Asymmetrical birth multi-type branching process model
+Assume there are K subpopulations of phenotypes within a tumor, each exhibiting its own growth
+dynamics and drug response. These subpopulations are indexed by K = {1, · · · , K}. Increasing
+2
+evidence indicates that asymmetric cell division is a key mechanism for both differentiation [11, 22]
+and dedifferentiation [32].
+Therefore, we assume that each phenotype can transition to one or
+more other phenotypes via asymmetric cell division. Our framework can also readily accommodate
+phenotypic transitions that occur independently of cell divisions, as discussed for example in [8].
+We employ an asymmetric birth multi-type branching process model in continuous time [1]. In
+the model, a type-i cell divides into two type-i cells at rate αi, experiences natural death at rate
+βi, and asymmetrically divides into one type-i cell and one type-j cell at rate νij (see Figure 1).
+Specifically, within a given infinitesimal time interval ∆t > 0, a type-i cell has a probability αi∆t of
+dividing into two type-i cells, βi∆t of dying, and νij∆t of asymmetrically dividing into one type-i
+and one type-j cell. The net growth rate of type-i cells, κi, is defined as κi := αi −βi. The dynamics
+of the model are encoded in the infinitesimal generator matrix A, which is the K × K matrix
+A :=
+
+
+κ1
+ν12
+· · ·
+ν1K
+ν21
+κ2
+· · ·
+ν2K
+...
+...
+...
+...
+νK1
+νK2
+· · ·
+κK
+
+.
+(1)
+In this matrix, the (i, j)-th element is the net rate at which a type-i cell produces a type-j cell. For
+all K phenotypes, we assume a strictly positive birth rate (αi > 0, i ∈K), a non-negative death rate
+(βi ≥0, i ∈K), and a non-negative asymmetric birth rate (νi,j ≥0, i ̸= j). We furthermore assume
+that κi > 0 for all i ∈K, i.e. the net birth rate is positive, though transition and death may not
+occur for all phenotypes.
+For simplicity, we assume that the multi-type branching process is irreducible, meaning that each
+subpopulation can eventually produce descendants in any other subpopulation, possibly through
+intermediate types. Mathematically, this means that the infinitesimal generator matrix A cannot
+be transformed into a block upper triangular matrix via simultaneous row or column permutation.
+(a) Symmetric division (rate: α1)
+(b) Death (rate: β1)
+(c) Asymmetric division (rate: ν12)
+Figure 1: Illustration of three independent events in the asymmetrical birth multi-type branching
+process model. Different shapes represent different phenotypes.
+We denote the cell counts of each phenotype as a random vector: B(t) = [B1(t), B2(t), · · · , BK(t)],
+where Bi(t) is the number of type-i cells at the time t.
+For the special case where the pro-
+cess is started by a single type-i cell, the cell count vector at time t is denoted by B(i)(t) =
+[B(i)
+1 (t), B(i)
+2 (t), · · · , B(i)
+K (t)], where B(i)(0) = ei is the i-th identity vector. The mean vector and
+covariance matrix for B(i)(t) are denoted by
+m(i)(t) := E
+h
+B(i)(t)
+i
+,
+Ξ(i)(t) := E
+h
+B(i)(t) −m(i)(t)
+⊺
+B(i)(t) −m(i)(t)
+i
+,
+3
+where t ≥0 and
+ B(i)(t) −m(i)(t)
+⊺represents the transpose of the vector
+ B(i)(t) −m(i)(t)
+
+. To
+explicitly compute the mean vector, we define the mean matrix using the matrix exponential:
+M(t) = exp (tA) =
+∞
+X
+j=0
+tj
+j!
+
+Aj.
+The mean vector m(i)(t) can be computed as the i-th row of the mean matrix,
+m(i)(t) = eiM(t),
+and the covariance matrix Ξ(i)(t) can be computed as shown in Proposition 1 below.
+2.2
+Drug-effect Model
+Before modeling the drug effect, we introduce a fixed drug dose d and denote the cell count at
+time t and concentration level d as B(t, d). The mean matrix M(t, d) and the covariance matrix
+Ξ(i)(t, d) follow. Note that we use concentration level and dose interchangeably.
+2.2.1
+Base model
+To model the drug effect, we define the well-known Hill equation with parameters (b, E, m) as
+H(d; b, E, m) = b +
+1 −b
+1 + (d/E)m .
+The Hill equation is a classic sigmoidal function used to describe a dose-response [27]. In the equa-
+tion, the parameter b represents the maximum drug effect, since H(0; b, E, m) = 1 and limd→∞H(d; b, E, m) =
+b. For b ∈(0, 1), the Hill equation is strictly decreasing, while it is strictly increasing for b > 1 (Fig-
+ure 2). The parameter E indicates the concentration at which 50 percent of the maximum effect is
+attained, known as the inflection point. The last parameter m is the Hill coefficient, which controls
+the steepness of the Hill equation around the inflection point. As a simplification, we fix the Hill
+parameter m = 1 for all drug effects when conducting our in silico experiments in Section 3. We
+then reintroduce this parameter when modeling in vitro data in Section 4.
+This study focuses on the time-homogeneous effects of a single drug. We distinguish between
+two types of drug responses, drug toxicity response and drug-induced plasticity response, thereby
+capturing multiple effects from a single drug.
+• Drug toxicity response (cytotoxic effect): The parameters related to this response are denoted
+as (bi,β, Ei,β) for type i. We assume that bi,β ∈(0, 1) and that the death rate of type-i under
+dose d is given by (for the case m = 1):
+βi(d) = βi −log(H(d; bi,β, Ei,β)) = βi −log
+
+bi,β +
+1 −bi,β
+1 + (d/Ei,β)
+
+.
+(2)
+The net growth rate of a type i cell, κi, is therefore negatively affected by increasing drug
+concentration, i.e. κi(d) = (αi−βi)+log(H(d; bi,β, Ei,β)). In this scenario, the drug is assumed
+to act through a cytotoxic mechanism, meaning that higher doses result in increased rates of
+cell death. We note that our framework can also easily incorporate cytostatic effects, where
+higher doses lead to a lower cell division rate, using a similar Hill function.
+4
+(a) Hill equation when b ∈(0, 1)
+(b) Hill equation when b > 1
+Figure 2: Hill equation illustrations
+• Drug-induced plasticity response: The parameters related to this response are denoted as
+(bi,ν, Ei,ν) for type-i. For simplicity, we assume here that the drug effect on type-i cell tran-
+sitions is independent of the target phenotype j.
+Drug-induced phenotypic transition is a
+widely observed effect of cancer treatment [26, 6, 33]. Particularly, drug-sensitive phenotypes
+may be induced to develop resistance when exposed to the drug. When modeling the drug
+effect on the asymmetric birth rate, we assume bi,ν ≥1 to account for elevated transitions
+between subpopulations caused by the therapeutic environment. We furthermore assume that
+the asymmetric birth rate of type i to any other type j under dose d is given by (for the case
+m = 1):
+νij(d) = νij + log(H(d; bi,ν, Ei,ν)) = νij + log
+
+bi,ν +
+1 −bi,ν
+1 + (d/Ei,ν)
+
+.
+(3)
+The assumption bi,ν ≥1 incorporates the situation where the drug does not impact phenotypic
+transitions, when bi,ν = 1, νij(d) = νij for all d ≥0. It is worth mentioning that our framework
+can also model drug inhibition of the asymmetric birth rate by letting bi,ν ∈(0, 1).
+2.2.2
+Logistic time-delayed drug response
+Our framework can be extended to accommodate a more complex drug-effect model, which may
+involve time-inhomogeneous drug effects. In particular, for the in vitro dataset from [25] investigated
+in Section 4, there appear to be delayed drug effects, which have been observed in other studies as
+well [10, 29, 36]. To address this behavior, we allow for the possibility of a time-inhomogeneous drug
+effect, which is modeled using a two-parameter logistic function. In this case, we assume that the
+maximum drug effect parameter b depends on time t through
+|1 −b(t)| =
+1
+1 + exp(k(t0 −t))|1 −b|,
+where k, t0 are logistic function parameters. In this way, we can model the drug’s maximum potential
+b(t) gradually reaching its ultimate value as time increases. Absolute values are taken to allow both
+the cytotoxic effect b(t) < 1 and the drug-induced plasticity effect b(t) > 1 to be time-inhomogeneous.
+5
+2.3
+Long-run behavior
+As the HTS experiments being considered are run for a longer time duration, it becomes impor-
+tant to understand the long-run behavior of the process B(t, d). According to the Perron-Frobenius
+Theorem, the irreducible infinitesimal generator A(d) has a strictly positive largest eigenvalue λ1(d),
+which corresponds to the largest eigenvalue eλ1(d)t of the mean matrix M(t, d). Additionally, the
+corresponding left eigenvector π(d) is strictly positive. A well-known limiting result reviewed in [1]
+states that there exists, almost surely, a non-negative numerical random variable W such that
+lim
+t→∞B(t, d)e−λ1(d)t = Wπ(d).
+This result characterizes two aspects of the long-run behavior of the process B(t, d).
+First, the
+stochastic process B(t, d) will grow with a deterministic exponential long-run growth rate λ1(d).
+Second, when the eigenvector π(d) is normalized so that PK
+i=1 πi(d) = 1, then πi(d) describes the
+long-run proportion of type-i cells in the population. Therefore, we refer to the normalized version
+of π(d) as the stable proportion between phenotypes.
+2.4
+Statistical Model
+Now, we construct a statistical framework to infer heterogeneous tumor growth dynamics and
+drug responses using HTS live-cell imaging bulk data. Here, ‘bulk data’ refers to aggregated total
+cell counts across all subpopulations within the heterogeneous tumor. Our framework is designed to
+accommodate data collected via live-cell imaging techniques, allowing efficient capture of bulk cell
+counts from a single sample across multiple time points [24].
+Assume the bulk dataset X is collected across a set of drug concentration levels D = {d1, · · · , dND}
+and a set of time points T = {t1, · · · , tNT }, where 0 < t1 < · · · < tNT . For each drug dose d ∈D,
+NR samples are cultivated, and live-cell imaging technique is used to collect bulk cell count data
+at time points t1, . . . , tNT . Let xT ,d,r = (xd,r,1, . . . , xd,r,NT ) denote the data collected for the r-th
+replicate under drug concentration d, where xd,r,k is the bulk cell count at time point tk. Taking
+into account experimental measurement error, we propose the statistical model
+xT ,d,r = Yd,r(T ) + Zd,r,
+(4)
+where Yd,r(T ) denotes bulk cell counts at the time points T under the stochastic model outlined in
+Sections 2.1 and 2.2, and Zd,r ∼N(0, c2I) are independent multivariate normally distributed noise
+terms. Assuming that ni is the starting number of cells of type i in each experiment, we can write
+Yd,r(T ) :=
+K
+X
+i=1
+ni
+X
+j=1
+y(i)
+j (T , d, r),
+(5)
+where y(i)
+j (T , d, r) denotes the size of the clone started by the j-th initial type i cell at the time
+points T under the stochastic model. Let n denote the initial total cell count and p = [p1, p2, · · · , pK]
+denote the initial subpopulation distribution, with ni = npi for all i. In this study, we assume that
+pi is independent of n for all i, implying that ni →∞as n →∞.
+2.4.1
+Central limit theorem
+For simplicity, we temporarily omit the explicit notation for drug concentration levels and ex-
+perimental replicates and write Y(T ) and y(i)
+j (T ). When bulk cell counts are observed as opposed
+6
+to individual subpopulation counts, the stochastic model outlined in Section 2.1 and 2.2 is no longer
+a Markov process. Therefore, the exact probability distribution for Y(T ) becomes overly complex
+[35]. Given that drug screening experiments are usually started by a relatively large number of cells
+(in [4] for example, 2500 cells were deployed in each well), it is natural to focus on the asymptotic
+behavior of Y(T ) as the initial cell number increases (n →∞). For that, we need to understand
+the asymptotic behavior of Pni
+j=1 y(i)
+j (T ). We denote the expectation
+E
+h
+y(i)
+j (T )
+i
+:= µ(i)(T ) = [⟨m(i)(t1), 1⟩, · · · , ⟨m(i)(tNT ), 1⟩],
+where 1 is a size K all ones vector, ⟨·, ·⟩is the inner product, and m(i)(t) denotes the mean vector
+described in Section 2.1. We furthermore define a centered and normalized process for each i ∈K
+by
+W(i)
+ni (T ) :=
+1
+√ni
+ni
+X
+j=1
+
+y(i)
+j (T ) −µ(i)(T )
+
+.
+A direct application of the multivariate central limit theorem gives the following result, where ‘⇒’
+denotes converge in distribution.
+Proposition 1. As ni →∞:
+W(i)
+ni (T ) ⇒N(0, V(i)(T ))
+where
+V(i)
+a,b(T ) = 1Ξ(i)(ta)M(tb −ta)1⊺
+for 1 ≤a ≤b ≤NT .
+Here, M(t) is the mean matrix, and Ξ(i)(ta) is a covariance matrix (Section 2.1) given by
+Ξ(i)(t) = diag(m(i)(t)) −m(i)(t)⊺m(i)(t) +
+Z t
+0
+(M(t −τ))⊺C(i)(τ) (M(t −τ)) dτ,
+where
+C(i)
+jk (τ) =
+(
+νkjMik(τ) + νjkMij(τ)
+j ̸= k
+2αjMij(τ)
+j = k.
+This result can be derived from a more general result, which is stated as Proposition 2 in Appendix
+6.4. According to Proposition 1, we can approximate Pni
+j=1 y(i)
+j (T ) as
+ni
+X
+j=1
+y(i)
+j (T ) ≈niµ(i)(T ) + N(0, niV(i)(T ))
+for sufficiently large ni. We can approximate Y(T ) accordingly. It is important to note that this
+approximation holds true for each fixed drug concentration level d.
+2.4.2
+Maximum likelihood estimation (MLE) framework
+Now we reintroduce the drug concentration level d ∈D and use the approximation
+Yd,r(T ) ≈
+K
+X
+i=1
+niµ(i)(T , d) + N (r)(0, niV(i)(T , d)),
+7
+where N (r)(0, niV(i)(T , d)) represents independent and identical copies of a random vector with
+distribution N(0, niV(i)(T , d)). We then formulate our newly proposed statistical model as
+xT ,d,r ≈
+K
+X
+i=1
+niµ(i)(T , d) + N (r)(0, niV(i)(T , d)) + N (r)(0, c2I),
+(6)
+where the final term captures experimental measurement error as before. Based on this statistical
+model, we compute the likelihood function L(θ(K)|X), which represents the probability of obtaining
+the observed dataset X given the set θ(K) of all parameters in the model:
+θ(K) = {(αi, βi, (νij)j̸=i, bi,β, Ei,β, bi,ν, Ei,ν)i∈K, c}.
+We then apply the maximum likelihood estimation framework to obtain the parameter set that is
+most likely to explain the observed dataset. The estimated parameter set ˆθ(K) is computed by
+minimizing the negative log-likelihood, which is equivalent to maximizing the likelihood function:
+ˆθ(K) = arg min
+θ(K)∈ˆΘ
+−log(L(θ(K)|X)),
+(7)
+where ˆΘ is the set of feasible parameters. In Table 1, we provide an overview of notation.
+Notation
+Dimension
+Description
+Definition/Range
+αi
+1
+Subtype i symmetric division rate
+α > 0
+βi(d)
+1
+Subtype i death rate
+β(0) ≥0
+νij(d)
+1
+Subtype i asymmetric division rate to subtype j
+ν(0) ≥0
+λ1(d)
+1
+Long-run growth rate
+λ1(0) > 0
+K
+1 × K
+Subpopulation index set
+|K| = K
+B(t, d)
+1 × K
+Vector of subpopulation counts
+B(t, d) ≥0
+B(i)(t, d)
+1 × K
+B(t) generated from single type i cell
+B(i)(t, d) ≥0
+m(i)(t, d)
+1 × K
+Expected value of B(i)(t, d)
+m(i)(t, d) ≥0
+Ξ(i)(t, d)
+K × K
+Covariance matrix of B(i)(t, d)
+det(Ξ(i)(t, d)) > 0
+A(d)
+K × K
+Infinitesimal generator matrix
+Aii(d) = αi −βi(d), Aij = νij(d)
+M(t, d)
+K × K
+Mean matrix
+limt→0 M(t, d) = I
+I
+K × K
+Identity matrix
+I
+C(i)(t, d)
+K × K
+Factor matrix for covariance
+see Proposition 1
+b
+1
+Maximum drug effect parameter
+b > 0
+E
+1
+Half maximum drug effect parameter
+E > 0
+m
+1
+Drug effect steepness parameter
+n > 0
+n
+1
+Initial total cell count
+n ∈[1000, 10000]
+c
+1
+Standard deviation of the i.i.d. observation noise
+c ∈(0, 0.1n)
+p
+1 × K
+Vector of initial proportion pi for subtype i
+PK
+i=1 pi = 1, ni = npi
+π(d)
+1 × K
+Stable proportion
+π(d)A(d) = λ1(d)π(d)
+D
+1 × ND
+Set of concentration levels applied
+|D| = ND
+T
+1 × NT
+Set of time points
+|T | = NT
+W(i)
+ni (T , d)
+1 × NT
+Centered and normalized process of total cell counts
+W(i)
+ni (T , d) =
+1
+√ni
+Pni
+j=1
+
+y(i)
+j (T , d) −µ(i)(T , d)
+
+µ(i)(T , d)
+1 × NT
+Expected value of the total cell counts
+µ(i)(T , d) ∈R1×NT
+V(i)(T , d)
+NT × NT
+Covariance matrix of W(i)
+ni (T , d)
+V(i)(T , d) ∈RNT ×NT
+Table 1: Table of definitions in Section 2.1, Section 2.2, Section 2.3, and Section 2.4.
+2.5
+Simplified model of drug effect on CSCs and CNSCs mixture
+In our computational analysis of Sections 3 and 4, we will investigate the performance of our
+newly proposed framework on a tumor population consisting of two phenotypes: 1. CSCs, 2. CNSCs.
+8
+Our primary focus is on identifying drug-induced plasticity, that is drug-induced transitions from
+the CNSC phenotype to the CSC phenotype. Given that we only have two subpopulations, we
+identify the parameters for the CSC subpopulation with an s subscript and those for the CNSC
+subpopulation with a d subscript, as shown in Table 2:
+Cell type
+Initial proportion
+α rate
+β rate
+ν rate
+b for β
+E for β
+b for ν
+E for ν
+CSCs
+ps
+αs
+βs
+νsd
+bs,β
+Es,β
+bs,ν
+Es,ν
+CNSCs
+pd
+αd
+βd
+νds
+bd,β
+Ed,β
+bd,ν
+Ed,ν
+Table 2: CSCs and CNSCs subpopulation parameters
+To investigate heterogeneous drug effects on CSCs and CNSCs, we adopt assumptions inspired
+by the experimental work [25]. First, we specify assumptions related to the cell growth dynamics:
+Assumption 1. CNSCs proliferate with less potential than CSCs, while CSCs have a non-negative
+natural proliferation rate and a non-negative differentiation rate, expressed as κs ≥κd ≥0, νsd ≥0.
+Assumption 2. CNSCs do not exhibit natural plasticity, implying no transition from CNSCs to
+CSCs in the absence of drug.
+We note that under Assumption 2, the irreducibility condition of Section 2.1 is violated in the
+absence of drug. However our framework can still be applied under the following non-extinction
+assumption, as discussed further in Appendix 6.1.
+Assumption 3. CSCs do not go extinct, ensuring the persistence of the CSC subpopulation.
+Additionally, we constrain the pharmacologic dynamics of cells as follows:
+Assumption 4. The drug does not affect CSCs, reflecting a resistant behavior in CSCs.
+We note that if the starting population of CSCs is sufficiently large and CSCs have a positive
+net growth rate, κs > 0, then Assumption 3 will follow from Assumption 4, since a large starting
+population of proliferating cells unaffected by the drug is unlikely to go extinct.
+The final assumption pertains to the initial distribution between CSCs and CNSCs. In [25],
+the researchers experimentally separated CSCs and CNSCs, and they performed assays on isolated
+subpopulations of CNSCs. However, assuming the stable proportion between CSCs and CNSCs at
+the start (Section 2.3) – without employing a separation technique – is more natural. Hence, we
+begin with Assumption 5 and later relax it in Section 3.2.2.
+Assumption 5. The initial proportion of CSCs and CNSCs in the absence of the drug is the stable
+proportion.
+By adopting this assumption, there is no need to estimate the initial proportions ps and pd; these
+parameters are inferred directly from the cell dynamic parameters (α, β, ν) for each subpopulation.
+The five assumptions above are summarized in Table 3, each accompanied by its respective
+mathematical formulation.
+3
+Results (in silico)
+To evaluate our framework’s performance in analyzing in silico data, we utilized the Gillespie
+algorithm [5] to generate computer-simulated data based on the asymmetrical birth multi-type
+9
+Assumptions
+Reflection in parameter
+Assumption 1
+κs ≥κd ≥0, νsd ≥0
+Assumption 2
+νds = 0
+Assumption 4
+bs,β = bs,ν = 1
+Assumption 5
+p = π(0)
+Table 3: Assumptions and corresponding parameter constraints
+branching process model. Each simulation started with an initial total cell count of n = 1000, and
+we conducted NR = 20 replicates across various concentration levels D and time points T , where
+D = {0, 0.0313, 0.0625, 0.125, 0.25, 0.375, 0.5, 1.25, 2.5, 3.75, 5},
+T = {0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36}.
+Finally, Gaussian observation noise was added to obtain the in silico dataset. Further details on the
+data generation can be found in Appendix 6.5.
+In these in silico experiments, we derive two types of estimation results: 1. point estimation
+(PE) obtained for each experiment through the MLE process (see Appendix 6.5 for implementation
+details), 2. confidence intervals (CIs) obtained using the bootstrapping technique (see Appendix 6.6
+for implementation details), specifically for selected in silico experiments.
+Given our focus on a specialized case involving two subpopulations, as outlined in Section 2.5,
+we set K = 2. It is worth noting that one can treat K as a variable and employ model selection
+techniques to estimate the number of subpopulations exhibiting distinct phenotypic drug responses.
+Similar approaches were explored in [16] using a simpler statistical framework, but a detailed explo-
+ration of this topic is outside the scope of the current study.
+3.1
+Deconvolution of drug effects (base experiment)
+3.1.1
+Illustrative example
+We begin with a single illustrative example.
+Table 4 shows the true parameter set used to
+generate the in silico dataset and the corresponding PEs obtained using our statistical framework.
+In Figure 3, we display both the PEs and CIs for this example, focusing on two key metrics: the
+stable proportion π(d) between phenotypes under each concentration level d, and the GR50 dose for
+the CNSC growth rate (cytotoxic effect) and dedifferentiation rate (plasticity effect), respectively.
+The GR50 dose is the concentration level at which the drug achieves half its maximal observed effect
+on the growth rate. It is a useful summary metric of the drug effect which incorporates both primary
+drug effect parameters E and b, as is further discussed in Appendix 6.7.
+αs
+βs
+νsd
+αd
+βd
+bd,β
+Ed,β
+bd,ν
+Ed,ν
+θ∗
+0.5407
+0.5055
+0.2929
+0.2280
+0.2280
+0.8536
+0.7073
+1.0827
+1.2285
+ˆθ
+0.5407
+0.5036
+0.2988
+0.2412
+0.2419
+0.8612
+0.6468
+1.0773
+1.2336
+Table 4: True parameter set θ∗and point estimates ˆθ in Figure 3
+Figure 3 illustrates that our newly proposed framework accurately estimates the stable proportion
+in the absence of drug (pie charts in top panel). Additionally, the varying stable proportions of
+CSCs at different drug concentrations are captured by the CIs constructed from the bootstrapping
+10
+Figure 3: Estimation of stable proportion and GR50 based on the data generated by the true param-
+eter set in Table 4. The pie chart demonstrates the PE of the stable proportion between CSCs and
+CNSCs under a no-drug environment. The upper-right plot shows 100 bootstrapped PEs as scatter
+points and the corresponding 90% CIs for the stable proportion of CSCs at each drug concentration
+level, with the red line representing the true stable proportion of CSCs in the same plot. The boxplot
+illustrates the CIs of GR50 of both the drug-induced plasticity effect and cytotoxic effect, with the
+dashed colored lines representing the corresponding true GR50 values.
+estimations (line plot in top panel). The CIs also encompass the correct GR50 values for both the
+cytotoxic and plasticity effects (bottom panel).
+In this example, the true GR50 values for the two drug effects fall between two concentration
+levels applied in the experiment. In our previous work [35], we used a similar statistical framework
+to investigate a tumor with two subpopulations, where each was affected by an anti-cancer drug to a
+varying degree and there were no transitions between the subpopulations. There, we observed that
+close GR50 values for the cytotoxic effects on each subpopulation often resulted in poor estimations
+of the GR50 values. In the current study, where we consider two distinct types of drug effects, the
+difference in GR50 is no longer critical for distinguishing these effects.
+3.1.2
+Estimation across a wide range of true parameter sets
+To assess estimation performance across a wide range of biologically realistic parameter sets, we
+examined the relative errors (RE) from 100 datasets, each generated using a different true parameter
+set. The RE between an estimator ˆx and the true value x∗was calculated as
+Er(ˆx; x∗) =
+
+ˆx −x∗
+x∗
+ .
+(8)
+11
+The results for all datasets are summarized using boxplots in Figure 4. Note that we recorded the
+RE for 1 −bd,β and bd,ν −1 rather than bd,β and bd,ν directly. These new measurements of REs
+ensure symmetry when measuring the maximum drug effect between cytotoxic and plasticity effects,
+since bd,β ∈(0.5, 1) and bd,ν ∈(1, 1.5) (see Appendix 6.5). Additionally, we included a horizontal
+line at RE = 0.2 as a threshold to indicate reasonably well estimated parameters.
+Figure 4: Relative error of the parameter estimation. The boxplot contains 100 independent exper-
+iments generated by randomly selected true parameter sets. The red line is the median of the REs.
+The grey horizontal line is a threshold when RE is equal to 0.2.
+Figure 4 shows that most point estimates are reasonable, with over three fourths of estimates
+having a RE below the specified threshold.
+This indicates that our newly proposed framework
+can successfully disentangle the cell growth dynamics and drug effect dynamics.
+We note that
+the plasticity effect parameter bd,ν is generally estimated less accurately than the cytotoxic effect
+parameter bd,β. This may stem from the fact that in all parameter sets, the true plasticity effect
+is smaller than the cytotoxic effect, i.e. bd,ν −1 < 1 −bd,β, making it more challenging to detect
+the plasticity effect (see Appendix 6.5). In addition, we note that the relative error metric is more
+sensitive when the true value is small, since even small absolute errors |ˆx −x∗| can lead to large
+relative errors |(ˆx −x∗)/x∗|.
+Although our estimation framework performs well overall, there are some examples where it fails
+to recover the true values from the data. One explanation for low quality in the estimation is a
+poor experimental design, i.e. poor selection of concentration levels and data collection time points,
+resulting in reduced parameter identifiability. For instance, when estimating E, if the tested concen-
+tration levels do not cover the true value, i.e. max(D) < E, it will be challenging for our framework
+to identify the true value. Even when E is within the tested concentration levels, observation noise
+and the stochastic nature of the data generation can still distort the estimation, particularly when E
+is close to the maximum tested concentration level. A detailed analysis of how experimental design
+impacts parameter identifiability will be explored in future work.
+12
+Figure 5: Scatter plots of 100 independent experiments. Both plots have average parameters es-
+timation relative error on the x-axis. In the left panel, the y-axis represents the observable drug
+effect on the long-term growth rate of the CSCs and CNSCs mixture. In the right panel, the y-axis
+represents the observable drug effect on the stable proportion between the CSCs and CNSCs.
+3.1.3
+Analysis of failed estimations
+As previously mentioned, one potential explanation for poor estimation under our framework is
+a poor experimental design. To better understand potential challenges in parameter identifiability,
+we analyzed the true parameter sets and the simulated data from the 100 experiments described
+earlier. We specifically examined the drug effects on two theoretical metrics of long-run behavior:
+stable proportion (π(d)) and long-run growth rate (λ1(d)) (see Section 2.3). For each metric, we
+computed its theoretical values across different concentration levels and determined the maximum
+discrepancy among them to quantify the ranges of drug effects observed in the experiments.
+In Figure 5, scatter plots illustrate these quantities plotted against the average RE over all
+estimated parameters for each experiment. In the right panel’s lower right corner, four examples
+show a maximum change in stable proportion below 0.1, coinciding with a notably high average
+estimation error.
+In the left panel, these same four examples exhibit low maximum changes in
+long-run growth rates. This observation indicates that inaccurate estimations tend to occur when
+observed drug effects are minimal. This insight is further supported by Figure 6, where we visualized
+two example datasets with high vs. low RE, and observed that the dataset with less variation in
+growth pattern across different concentration levels has higher average RE. To summarize, poor
+estimation in terms of RE can in most cases be traced to a small observed drug effect, which can
+either arise due to a poor experimental design (drug effects do not manifest due to poor selection
+of concentration levels or data collection points) or a small true drug effect, in which case the RE
+metric is more sensitive to estimation inaccuracy as mentioned in the previous section.
+3.2
+Robustness of the framework
+To assess the robustness of our newly proposed statistical framework using in silico data, we
+designed a series of experiments to evaluate the performance of the framework when relaxing some
+13
+Figure 6: Visualization of the simulated data with sufficient and insufficient information for accurate
+estimation. The left panel demonstrates data with insufficient information, while the right panel
+demonstrates data with sufficient information. Each line plot illustrates total cell count data across
+13 time points under a specific concentration level described in the legend. The error bar is derived
+from the standard deviation of 20 independent replicates.
+14
+Figure 7: Relative error of the parameter estimation when relaxing Assumption 4. The remaining
+details of the plot can be found in Figure 4.
+of the assumptions in Section 2.5. Detailed experimental settings are described in Appendix 6.5.
+3.2.1
+Relaxed drug effect assumption
+In Assumption 4 of Section 2.5, we posit that the drug will not affect the CSCs.
+However,
+this assertion may seem too stringent for practical scenarios, where the varying microenvironment
+caused by different drug concentration levels could potentially affect the CSCs [37]. Therefore, we
+conduct another set of experiments to examine the performance of our framework when the drug
+does influence the CSCs. While the mechanisms underlying drug resistance in CSCs are not yet fully
+understood [28, 19], for testing purposes, we make the simplifying assumption that the drug affects
+CSCs in a similar way to CNSCs, manifesting through cytotoxic effects and increased asymmetrical
+divisions, albeit to a lesser extent than for CNSCs. As noted in Section 2.2, our framework is also
+adaptable to scenarios where the drug might decrease the differentiation rate.
+Figure 7 presents the RE from 100 independent experiments. We observe that the estimates of
+certain parameters, such as (νsd, bd,ν, Ed,ν), show deterioration compared to Figure 4, with more
+than 50% of estimates having RE above the 0.2 threshold value. However, our framework continues
+to provide reasonably accurate estimates for parameters like αd, βd, bd,β.
+As mentioned in the previous section, the estimation accuracy may be correlated to the sig-
+nificance of the drug effect. In the current experiment, we find more compelling evidence to sup-
+port this observation. In particular, the estimation accuracy for the CSC drug effect parameters
+(bs,β, Es,β, bs,ν, Es,ν) is significantly lower than the accuracy in estimating the analogous parameters
+for CNSCs, due to our assumption of a more pronounced impact of the drug on CNSCs.
+15
+Figure 8: Relative error of the parameter estimation when relaxing Assumption 5. The remaining
+details of the plot can be found in Figure 4.
+3.2.2
+Relaxed initial proportion assumption
+Our next experiment aims to investigate the possibility of estimating the initial subpopulation
+structure under arbitrary initial proportions, relaxing Assumption 5 of Section 2.5. To accommodate
+this situation, we reintroduce two parameters, ps and pd, with the constraint that ps + pd = 1,
+representing the initial proportions of CSCs and CNSCs respectively.
+The results in Figure 8 indicate that relaxing the initial proportion assumption does not dete-
+riorate the accuracy of the estimation of other parameters, and the initial proportion is estimated
+reasonably well. This highlights the potential of our framework to deconvolute the phenotypic sub-
+population structure with an unknown initial proportion. It is also worth noting that we allow the
+ps and pd to be uneven, for example, ps = 0.03 and pd = 0.97.
+3.2.3
+Limited division CNSC dynamics assumption
+We finally consider a more general CNSC division scheme, where CNSCs can only undergo
+symmetric division a limited number of times, reflecting a gradual loss of proliferation potential. We
+refer to CNSCs produced through asymmetric division of CSCs as first-generation CNSCs, which
+can only divide up to G times. For the first G generations of CNSCs, we assume that the g-th
+generation can symmetrically divide into two (g + 1)-th generation CNSCs, asymmetrically divide
+into one CSC and one g-th generation CNSC, or die. The (G + 1)-th generation CNSCs can only
+die or asymmetrically divide into one CSC and one (G + 1)-th generation CNSC. All CNSCs share
+the same symmetric division rate αd, death rate βd and asymmetric division rate νds (Figure 9).
+In addition, the drug effect parameters bd,β, Ed,β, bd,ν, Ed,ν are the same for CNSCs in the different
+generations. This scheme encompasses a broader spectrum of CNSC dynamics, ranging from the
+scenario where CNSCs cannot self-renew (G = 0) to the scenario where CNSCs have an infinite
+capacity for self-renewal with a certain rate αd (G →∞). Theoretically, our current framework can
+16
+accurately capture the extreme scenarios where G = 0 or G →∞. We are interested in the practical
+performance of our framework in the intermediate case, i.e., 0 < G < ∞.
+(a) Symmetric division
+of CSC (rate: αs)
+(b) Asymmetric division
+of CSC (rate: νsd)
+(c) Symmetric division of
+CNSC (rate: αd)
+(d) Asymmetric division
+of CNSC (rate: νds)
+Figure 9: Illustration of four distinct division events assumed for the limited division scenario.
+Square shape represents CSC and round shape indicates CNSC, while different colors illustrate a
+different division potential of each generation in CNSC.
+We first want to determine whether our framework can reliably estimate the symmetric division
+rate of CNSCs, αd.
+To streamline the experiment, we selected the same true value α∗
+d > 0 for
+G ∈{0, 1, 2, 3}. Instead of using the RE, we adopt the ratio between the estimated value and the
+true value of αd as the metric of accuracy. Specifically, for an estimator ˆx and the true value x∗, we
+compute the accuracy metric as:
+Er(ˆx; x∗) = ˆx
+x∗.
+(9)
+This new metric effectively captures two important scenarios: (i) the framework should produce
+an estimation ˆαd = 0 when G = 0, resulting in a ratio ˆαd/α∗
+d = 0, and (ii) the framework should
+accurately estimate ˆαd = α∗
+d when G is sufficiently large.
+The results of our experiment (Figure 10) align well with these two scenarios. Specifically, our
+framework accurately infers that αd = 0 when the maximum division number is G = 0, indicating
+that CNSCs cannot undergo self-renewal.
+However, when G = 1, 75% of estimates for αd are
+below the true value. Surprisingly, our framework accurately recovers the true value of αd when
+G = 2 and G = 3. For other parameters, we generally observed systematic biases in the estimation,
+see Appendix 6.8. However, interestingly, we found that the drug effects’ inflection points, Ed,ν
+and Ed,β, were accurately estimated across different values of G. This observation demonstrates
+the robustness of our framework in estimating the drug effects’ inflection points under varying
+differentiation dynamics. In other words, through detecting the changes in cell population growth
+dynamics, our framework can estimate the concentration levels at which such changes occur, even
+though it may not fully explain these changes. For the other parameters, we note that it is possible
+to fully capture the dynamics of CNSCs with limited proliferation potential by expanding our model
+beyond two subpopulations, as we further discuss in the conclusion section (Section 5).
+4
+Results (in vitro)
+4.1
+DATA overview
+To validate our framework using in vitro data, we utilized data from the recent study [25]
+that investigated four human gastric carcinoma cell lines (AGS SORE6−, AGS SORE6+, Kato
+17
+Figure 10: Estimation error of the CNSCs division rate when CNSCs can only divide a limited
+amount of times. The ratios between the estimated division rate and the true division rate are
+presented to varying maximum division numbers G. The boxplot is based on 30 independent exper-
+iments for each G ∈{0, 1, 2, 3} with varying true parameter sets. The grey horizontal line illustrates
+the ratio when CNSCs division rate is accurately estimated.
+18
+III SORE6−, Kato III SORE6+). Our focus in this section is specifically on the AGS SORE6−
+and AGS SORE6+ cell lines. SORE6 serves as a reporter system indicating the stemness of these
+cancerous gastric cells, where SORE6−and SORE6+ denote gastric CNSCs and CSCs, respectively.
+In the study [25], ciclopirox olamine (CPX-O) was found to reprogram gastric CNSCs into CSCs.
+To support these findings, the authors cultivated pure AGS SORE6−cells and monitored both cell
+viability data and the percentage of AGS SORE6+ cells using the SORE6 reporter system.
+In our study, we mainly utilized two experimental datasets provided in [25]:
+1. AGS Conc (XConc): AGS SORE6−samples were cultivated under 9 concentration levels of
+CPX-O:
+D1 = {0, 0.125, 0.25, 0.5, 1, 2, 4, 8, 16} (µm).
+Total cell count data (TC) and stem cell proportion (SC) were observed after 48 hours of
+treatment, i.e. T1 = {48} (hours).
+2. AGS Time (XT ime): AGS SORE6−samples were cultivated under 3 concentration levels of
+CPX-O:
+D2 = {0, 4, 8} (µm).
+Total cell count data (TC) and stem cell proportion (SC) were observed after 2, 6, 12, 24 and
+48 hours of treatment:
+T2 = {2, 6, 12, 24, 48} (hours).
+Unfortunately, neither of these experiments provides enough information to estimate all param-
+eters under our framework. Specifically, three concentration levels in the AGS Time data are not
+sufficient to estimate the four parameter effects of the drug in our framework, and a single time point
+in the AGS Conc data is inadequate to capture the heterogeneous dynamics of cell growth. This
+limitation may arise from the need to employ the FACS technique to distinguish between the CSC
+and CNSC populations. To overcome this limitation, we propose to employ a data imputation on the
+AGS Conc data based on the information from the AGS Time data. Further details of imputation
+can be found in Appendix 6.9.2. We provide the imputed dataset in Table 5.
+Concentration levels (µm)
+0
+0.125
+0.25
+0.5
+1
+2
+4
+8
+16
+TC of replicate 1 at time 12
+3083
+3083
+3083
+3083
+3083
+3083
+3083
+3083
+3083
+TC of replicate 1 at time 24
+4272
+4246
+4222
+4173
+4080
+3907
+3608
+3150
+2568
+TC of replicate 1 at time 48
+5038
+4503
+3242
+2235
+1849
+1608
+1140
+1054
+756
+TC of replicate 2 at time 12
+3502
+3502
+3502
+3502
+3502
+3502
+3502
+3502
+3502
+TC of replicate 2 at time 24
+4851
+4823
+4795
+4739
+4633
+4437
+4098
+3578
+2917
+TC of replicate 2 at time 48
+5722
+4597
+3433
+2881
+2511
+2295
+1875
+1309
+694
+Table 5: In vitro total cell count (TC) data: AGS Conc data with augmented estimation according
+to AGS Time. The colored data are estimated data according to the AGS Time data, while the
+black data are actual data from [25].
+4.2
+Using model selection criteria to verify the existence of drug-induced
+plasticity
+One potential application of our newly proposed statistical framework in practical settings is to
+detect the presence of drug-induced plasticity using model selection criteria. Here, we employ the
+19
+Model
+|θ|
+Free parameters
+I
+12
+αs, βs, νsd, αd, βd, bd,β, Ed,β, md,β, bd,ν, Ed,ν, md,ν, c
+Ia
+6
+αd, βd, bd,β, Ed,β, md,β, c
+II
+14
+αs, βs, νsd, αd, βd, bd,β, Ed,β, md,β, bd,ν, Ed,ν, md,ν, k, t0, c
+IIa
+8
+αd, βd, bd,β, Ed,β, md,β, k, t0, c
+Table 6: Free parameters in models proposed in in vitro result.
+Drug-induced plasticity
+no Drug-induced plasticity
+Models without time-delay assumption
+AIC(I): 653.4866
+AIC(Ia): 677.9985
+Models with time-delay assumption
+AIC(II): 534.1237
+AIC(IIa): 556.4027
+Table 7: AIC value for 4 varying model assumptions
+well-known Akaike Information Criterion (AIC) calculated by the formula:
+AIC = 2|θ| −2 log(L∗),
+(10)
+where |θ| is the number of free parameters in the model and L∗is the maximum value of the
+likelihood function for the model. AIC, rooted in information theory, quantifies the information lost
+by a model, with lower AIC values indicating higher model quality.
+We consider a total of four different models. The first two models, based on the framework
+described in equation (6), differ in their assumptions regarding the induction of plasticity by CPX-
+O. We denote the model that assumes drug-induced plasticity as model I and the alternative as
+model Ia. In fitting the in vitro data, we reintroduce the Hill parameter m to our drug-effect model
+(Section 2.2). Additionally, it is assumed that the drug does not affect the dynamics of CSCs.
+Model I has 12 free parameters, as detailed in Table 6, to depict the cell growth dynamics
+of CSCs and CNSCs and the drug response of CNSCs. In contrast, Model Ia requires only 6 free
+parameters, as it assumes no drug-induced plasticity for CPX-O, resulting in no parameters necessary
+for gastric CSCs. Indeed, since the in vitro experiments in question are started with isolated CNSC
+subpopulations (pd = 1), and no natural plasticity of CNSCs is assumed (νds = 0), no CSCs should
+emerge in the experiments according to the assumptions of Model Ia.
+In the other two models, we introduce a time-delayed drug-effect which is present in the AGS
+Time data, since similar cell growth patterns are observed within the first 12 hours across different
+drug concentration levels, with pronounced variations emerging thereafter. Further details can be
+found in Appendix 6.9.1. Therefore, we assume that the maximum drug effect parameter b varies
+over time following a two-parameter logistic function as described in Section 2.2.2. Like the previous
+two models, one of these time-delayed drug-effect models, denoted as II, assumes that CPX-O can
+induce plasticity, while the other, denoted as IIa, does not.
+Model II has 14 free parameters,
+whereas Model IIa involves 8 free parameters, as detailed in Table 6.
+The AIC results, summarized in Table 7, indicate a preference for the models assuming drug-
+induced plasticity under the AIC model selection criteria. Furthermore, comparing the AIC values
+between models with and without the time-delay assumption reveals the significant role of the time-
+delay effect in the current data. While our newly proposed framework may not fully capture the
+experimental data in [25], it nonetheless yields conclusions consistent with the actual observations
+reported in [25]. It should also be stressed that our framework is able to infer the presence of drug-
+induced resistance from total cell count data, whereas this conclusion is drawn in [25] using additional
+data on the CSC proportion over time. Of course, the inference of drug-induced plasticity is in this
+20
+case facilitated by the ability to start the experiments from isolated CNSCs, but our framework is
+applicable to a broader range of experimental setups without this ability.
+In Appendix 6.10, we validate our framework’s estimations using the imatinib-sensitive and -
+resistant Ba/F3 cells dataset provided in [16], which originates from a mixture of two phenotypes
+with a known initial proportion. Our framework suggests that drug-induced phenotypic transitions
+have minimal impact on the dynamics of this dataset, consistent with our prior belief that these
+transitions are infrequent. Unlike the conclusion drawn in the current section, the experiment in
+Appendix 6.10 demonstrates that our framework can reliably avoid indicating false effects when
+none are present.
+5
+Conclusion
+In this study, we introduced a novel statistical framework designed for analyzing HTS bulk data
+involving multiple subpopulations of cells. Using an asymmetrical birth multi-type branching pro-
+cess, we extended a model introduced in our previous work [35] to accommodate transitions between
+the different subpopulations, thereby enhancing its range of applications. One such application in-
+volves inferring drug-induced plasticity in a mixture population of cancer stem-like cells (CSCs) and
+cancer non-stem-like cells (CNSCs). The asymmetrical birth multi-type branching process naturally
+accounts for the differentiation of CSCs and the dedifferentiation of CNSCs. Additionally, we incor-
+porated the Hill equation to characterize the cytotoxic effects of anti-cancer drugs and drug-induced
+dedifferentiation rates. We tested our approach using both in silico and in vitro data.
+In our in silico experiments, we used stochastic simulation to generate datasets involving drug-
+treated mixtures of CSCs and CNSCs.
+The datasets consisted of total cell counts collected at
+predetermined drug concentration levels and time points. Drawing inspiration from recent research
+on drug-induced plasticity [25], we formulated four assumptions to simulate the dynamics of CSCs
+and CNSCs, along with their respective drug effects. Under these assumptions, our newly proposed
+framework not only identifies the presence of drug-induced plasticity, but also accurately predicts
+several key features of the mixture dynamics. Specifically, in an illustrative example, the framework
+accurately recovered the drug-affected stable proportions between CSCs and CNSCs across various
+drug concentration levels. Furthermore, it determined the GR50 values for both the drug’s cytotoxic
+effect on CNSCs and its induced plasticity effect.
+Through further numerical experiments, we
+confirmed that the newly proposed framework consistently provides precise estimations for each
+model parameter, capturing the growth dynamics of individual subpopulations, transitions between
+the subpopulations, as well as drug-induced toxicity and plasticity.
+We further investigated the robustness of our framework by relaxing assumptions regarding the
+dynamics of the CSCs and CNSCs and how the drug affects each supbopulation. By allowing the
+CSC and CNSC mixture to start from an arbitrary initial proportion instead of the stable drug-free
+proportion, our framework accurately estimated not only the mixture’s growth dynamics and drug
+effects but also the initial proportion. However, relaxing the assumption that the drug only affects
+CNSCs resulted in a more complex drug effect profile, which degraded the identifiability of each
+individual effect. In particular, the drug effects on CSCs were less identifiable, which may be due
+to our assumption that the drug has a more significant effect on CNSCs. It should also be kept
+in mind that we only assume data on total cell counts, as opposed to cell counts for individual
+subpopulations, which is an inherent limitation for teasing apart complex evolutionary dynamics
+and drug effect profiles involving multiple parameters. Using this kind of data, some simplifying
+assumptions must be made to ensure the identifiability of all model parameters.
+Additionally, we explored the performance of our framework under the assumption of limited
+21
+division of CNSCs, portraying the differentiation process as a gradual loss of cell proliferation po-
+tential. Our framework successfully estimated the CNSC division rate when the maximum division
+number (G) of CNSCs equaled 0, 2 or 3. Furthermore, it consistently provided reliable estimates of
+the half-maximum effects parameter (E) for each drug effect on the CNSCs. Even though parame-
+ter estimates generally degraded, these results demonstrate that our newly proposed framework can
+offer valuable insights even under more complex and realistic scenarios. To fully capture these dy-
+namics, we propose expanding our model beyond two subpopulations, by modeling each generation
+of CNSCs as a distinct subpopulation. Specifically, we can represent the symmetric division of g-th
+generation cells into two (g + 1)-th generation cells as birth events where a cell of one type produces
+two cells of another type. Currently, our asymmetric division framework does not account for this
+behavior, as it models subpopulation transitions through asymmetric divisions. However, model-
+ing subpopulation transitions through symmetric division is straightforward using the multi-type
+branching process framework [1]. We plan to explore this in future work.
+We proceeded to validate our framework using data from mixtures of gastric CNSCs and CSCs
+treated with ciclopirox olamine [25], as well as data from an imatinib-sensitive and -resistant Ba/F3
+mixture [16]. Our framework successfully demonstrated the absence of drug-induced transition in the
+latter dataset, which is consistent with the original experimental observations. However, validation
+using data from [25] posed a challenge due to the limited amount of in vitro data available, which
+was not comparable to the extensive data generated in our in silico experiments. This is at least in
+part due to the experimental procedure described in [25], which involves the use of FASC to separate
+CSCs and CNSCs – a step that our framework does not require. Nevertheless, our newly proposed
+framework indicates that CPX-O induces plasticity in the AGS gastric carcinoma cell line using the
+AIC model selection technique. This finding aligns with the conclusion drawn in [25].
+In general, our framework requires many parameters to model various drug effects, necessitating
+multiple data points at distinct concentration levels to adequately capture mixture dynamics under
+drug influence. However, this requirement may be offset by the advantage of not needing a more
+sophisticated technique for subpopulation separation. Moreover, the quality of the data is equally as
+important as the quantity of it. As observed in our in silico experiments, some true parameter sets
+became unidentifiable under the specific concentration levels used in the experiments. To enhance
+the framework’s utility, one future direction involves developing techniques for experimental design,
+meaning optimal selection of drug concentrations and time points for accurate parameter inference.
+Such analysis could markedly improve the framework’s ability to extract insights from HTS data.
+Another challenge identified in the in vitro experiment involving gastric CSCs and CNSCs was
+the time-inhomogeneous drug effect. While our drug-effect base model assumes time-homogeneous
+drug effects on the target tumor sample, data from [25] show significant heterogeneity in drug effects
+over time.
+In Section 2.2.2, we addressed this by developing a two-parameter logistic function,
+resulting in a better fit to the in vitro data.
+There are several avenues for extension of the framework beyond those already mentioned. First,
+while we have focused on inferring drug-induced plasticity in a CSC and CNSC mixture, the newly
+proposed framework is based on a versatile mathematical model (multi-type branching process)
+which can be adapted to a broader range of transition dynamics between two or more subpopulations.
+These subpopulations are defined by their heterogeneous responses to controllable interferences –
+specifically, drugs in this case. Second, we have in this work focused on cellular responses to single-
+drug interventions. One potential extension involves expanding our framework to encompass more
+complex multi-drug responses, potentially unveiling more intricate underlying systems. Moreover,
+external factors such as nutrient levels, hypoxia, stromal content, and other microenvironmental
+factors could be integrated into our framework in future work.
+22
+Acknowledgements
+The authors would like to thank Diana P´adua for helpful conversations regarding the analysis of
+the data in [25]. K. Leder, J. Foo and C. Wu were supported in part by National Science Foundation,
+United States grant CMMI-2228034. J. Foo was supported in part by National Science Foundation,
+United States grant DMS-2052465.
+Code availability
+The code necessary to reproduce the experimental results presented in this paper are published
+in https://github.com/chenyuwu233/Cancer-Stem-Cells-Drug-induced-Plasticity.
+6
+Appendix
+6.1
+Reducible infinitesimal generator matrix A and long-run behavior of
+B
+The results in Section 2.3 rely on the irreducibility assumption of infinitesimal generator matrix
+A.
+However, Assumption 2 in Section 2.5 violates this irreducibility assumption under no-drug
+conditions.
+Consequently, we explore the details of these assumptions and discuss the situation
+when those assumptions are violated in this section.
+The main issue arising from reducibility is that the process B(t, 0) may not converge almost
+surely to a stable proportion π in the long-run. To address this, we use the results in [23]. Given
+that we assume κs > κd > 0 (Assumption 1) and CSCs do not go extinct (Assumption 3), we can
+directly apply Proposition 1 and Corollary 1 in [23]. Specifically, Proposition 1 in [23] states that
+there exist random variables Vs and Vd such that
+lim
+t→∞e−κstBs(t) = Vs and lim
+t→∞e−κstBd(t) = Vd
+almost surely. From Corollary 1 in [23], we further have
+Vd =
+νsdVs
+κs −κd
+almost surely. From this ratio, we can further derive
+[Vs, Vd] = C
+
+κs −κd
+κs −κd + νsd
+,
+νsd
+κs −κd + νsd
+
+= Cπ,
+where C is a random variable and the stable proportion π is still the left eigenvector of A corre-
+sponding to the largest eigenvalue. Consequently, the stable proportion exists. By following the
+same procedure—obtaining the left eigenvector of A corresponding to the largest eigenvalue—we
+can determine the stable proportion when A becomes reducible under the no-drug condition.
+6.2
+Long-run behavior of finite moment of the multi-type branching pro-
+cess
+In [1], the authors reviewed the long-run growth rate of the first and the second moments of the
+multi-type branching process. Specifically, the mean matrix scaled by e−λ1t would converge to a
+23
+matrix independent of time. In other words, the long-run expected cell count will increase at rate
+eλ1t. Similarly, the second moment has a growth rate e2λ1t. To prove Proposition 2, we extend these
+results by considering any finite moment of this process, i.e. we want to show that for any positive
+finite integer z and combination cz : [c1(z), · · · , cK(z)] ≥0 such that PK
+i=1 ci(z) = z,
+lim sup
+t→∞E
+h
+B(i)
+1 (t)c1(z)B(i)
+2 (t)c2(z) · · · B(i)
+K (t)cK(z)
+i
+e−λ1zt < ∞.
+Consequently, we show the following Lemma 1.
+Lemma 1. For any integer z > 0 and combination cz, we have
+E
+h
+B(i)
+1 (t)c1(z)B(i)
+2 (t)c2(z) · · · B(i)
+K (t)cK(z)
+i
+= O(eλ1zt).
+Proof. The probability-generating function for the multi-type branching process for B(i)(t) is de-
+noted as
+F (i)(s, t) := E
+h
+sB(i)(t)i
+= E
+" K
+Y
+k=1
+s
+B(i)
+k (t)
+k
+#
+,
+where s = [s1, · · · , sK]. With these notations, we can write the Kolmogorov forward equation [1]
+for B(i)(t) as
+∂
+∂tF (i)(s, t) =
+K
+X
+k=1
+u(k)(s) ∂
+∂sk
+F (i)(s, t),
+(11)
+where the function u(i)(s) for type i is defined as
+u(i)(s) := αis2
+i + βi +
+X
+j̸=i
+νijsisj −
+
+αi + βi +
+X
+j̸=i
+νij
+
+si,
+0 ≤s ≤1
+We denote a vector cz = [c1(z), c2(z), · · · , cK(z)] as the combination index vector. Then we use
+∂scz to represent ∂s
+c1(z)
+1
+∂s
+c2(z)
+2
+· · · ∂s
+cK(z)
+K
+.
+Now we can define
+ℓz(t) = max
+cz
+∂z
+∂scz F (i)(s, t)
+
+s=1,
+(12)
+and we denote c∗
+z as the maximum combination index of z-th moment. We can see from the equation
+(12) that for each z ≥1 there exists C′
+z > 0 such that for any combination cz
+ℓz(t) ≥
+∂z
+∂scz F (i)(s, t)
+
+s=1
+≥C′
+z
+∞
+X
+n1=c1(z),··· ,nK=cK(z)
+n
+c1(z)
+1
+· · · n
+cK(z)
+K
+P(B(i)
+1 (t) = n1, · · · , B(i)
+K (t) = nK)
+= C′
+z E
+" K
+Y
+k=1
+B(i)
+k (t)ck(z)
+#
+−C′
+z E
+" K
+Y
+k=1
+B(i)
+k (t)ck(z); B(i)
+k (t) < ck(z)
+#
+.
+As the multi-type branching process goes to infinity or extinct with probability 1 as time goes to
+infinity, we have, in the supercritical case,
+lim
+t→∞
+E
+hQK
+k=1 B(i)
+k (t)c∗
+k(z); B(i)
+k (t) < c∗
+k(z)
+i
+E
+hQK
+k=1 B(i)
+k (t)c∗
+k(z)
+i
+= 0
+24
+so that there exists Cz such that ℓz(t) ≥Cz E
+hQK
+k=1 B(i)
+k (t)c∗
+k(z)
+i
+.
+Thus, it suffices to establish the upper bound on ℓz(t) to prove the Lemma. We show the upper
+bound of ℓz(t) by induction on z.
+The base case was given by the fact that eλ1t is the largest
+eigenvalue of the mean matrix M(t), i.e.
+E
+h
+B(i)
+k (t)
+i
+= [eiM(t)]k ≤eλ1t,
+where [·]k is the k-th element of the vector, for any k ∈{1, · · · , K}. Then we assume that for z > 1
+and all j ≤z −1, ℓj(t) = O(eλ1jt). Then from the equation (11) we have that
+d
+dtℓz(t) =
+∂z
+∂sc∗z
+K
+X
+k=1
+u(k)(s) ∂
+∂sk
+F(s, t)
+
+s=1
+=
+z
+X
+j=0
+X
+cj≤c∗z
+c∗
+1(z)
+c1(j)
+
+· · ·
+c∗
+K(z)
+cK(j)
+ K
+X
+k=1
+∂j
+∂scj u(k)(s)
+∂z−j+1
+∂sc∗z−cj∂sk
+F(s, t)
+
+s=1
+=
+z
+X
+j=1
+X
+cj≤c∗
+z
+c∗
+1(z)
+c1(j)
+
+· · ·
+c∗
+K(z)
+cK(j)
+ K
+X
+k=1
+∂j
+∂scj u(k)(s)
+∂z−j+1
+∂sc∗z−cj∂sk
+F(s, t)
+
+s=1
+≤
+z
+X
+j=1
+X
+cj≤c∗z
+c∗
+1(z)
+c1(j)
+
+· · ·
+c∗
+K(z)
+cK(j)
+ K
+X
+k=1
+∂j
+∂scj u(k)(1)ℓz−j+1(t)
+≤λ1zℓz(t) +
+z
+X
+j=2
+X
+cj≤c∗z
+c∗
+1(z)
+c1(j)
+
+· · ·
+c∗
+K(z)
+cK(j)
+ K
+X
+k=1
+∂j
+∂scj u(k)(1)ℓz−j+1(t)
+The third equality is due to the fact that u(k)(1) = 0 for all k, the first inequality follows from the
+definition of ℓz(t), and the last inequality is due to the following inequality
+K
+X
+k=1
+∂
+∂si
+u(k)(1) = αi −βi +
+X
+k̸=i
+νki = 1Ae⊺
+i ≤λ1,
+for any i ∈{1, · · · , K}. Since ℓz−j+1(t) = O(eλ1(z−j+1)t), for z ≥j ≥2, there exists constants αz,cj
+such that
+e−λ1ztℓz(t) ≤
+z
+X
+j=2
+X
+cj≤c∗z
+c∗
+1(z)
+c1(j)
+
+· · ·
+c∗
+K(z)
+cK(j)
+ K
+X
+k=1
+αz,cj
+Z t
+0
+e−λ1τ(j−1)dτ
+=
+z
+X
+j=2
+X
+cj≤c∗z
+c∗
+1(z)
+c1(j)
+
+· · ·
+c∗
+K(z)
+cK(j)
+ K
+X
+k=1
+αz,cj
+λ1(j −1)
+
+1 −e−λ1t(j−1)
+.
+The induction hypothesis is thus established, completing the proof.
+6.3
+Derivation of the covariance for asymmetric birth model:
+In this sub-section, we would like to derive the covariance matrix
+Ξ(i)(t) = E
+h
+B(i)(t) −m(i)(t)
+⊺
+B(i)(t) −m(i)(t)
+i
+.
+25
+Rather than drive this directly, we denote a second factorial moment D(i)
+jk (t) = E
+h
+B(i)
+j (t)(B(i)
+k (t) −δjk)
+i
+,
+where δjk is the Kronecker delta. Note that
+D(i)(t) = Ξ(i)(t) + m(i)(t)⊺m(i)(t) −diag(m(i)(t))
+(13)
+From the proof of Lemma 1, we have the probability generating function for B(i)(t) defined as
+F (i)(s, t) := E
+h
+sB(i)(t)i
+= E
+" K
+Y
+k=1
+s
+B(i)
+k (t)
+k
+#
+,
+where s = [s1, · · · , sK]. Then from the Kolmogorov Forward Equation (11), we have the u(i)(s) for
+asymmetric birth model defined as:
+u(i)(s) := αis2
+i + βi +
+X
+j̸=i
+νijsisj −
+
+αi + βi +
+X
+j̸=i
+νij
+
+si,
+0 ≤s ≤1.
+(14)
+Then we have
+∂
+∂t
+
+∂2
+∂sj∂sk
+F (i)(s, t)
+
+=
+K
+X
+ℓ=1
+
+∂2
+∂sj∂sk
+u(ℓ)(s) ∂
+∂sℓ
+F (i)(s, t) + ∂
+∂sj
+u(ℓ)(s)
+∂2
+∂sℓ∂sk
+F (i)(s, t)
++ ∂
+∂sk
+u(ℓ)(s)
+∂2
+∂sℓ∂sj
+F (i)(s, t) + u(ℓ)(s)
+∂3
+∂sℓ∂sj∂sk
+F (i)(s, t)
+
+.
+(15)
+We can see from the equation (14) that for any ℓ∈{1, · · · , K}
+u(ℓ)(1) = 0
+∂
+∂sj
+u(ℓ)(1) =
+(
+αj −βj
+j = ℓ
+νℓi
+j ̸= ℓ
+∂2
+∂sj∂sk
+u(ℓ)(1) =
+(
+νjk
+ℓ= j ̸= k
+2αj
+ℓ= j = k.
+Letting s = 1 and re-arranging equation (15), we can see that
+d
+dtD(i)
+jk (t) =
+K
+X
+ℓ=1
+AℓjD(i)
+kℓ(t) +
+K
+X
+ℓ=1
+AℓkD(i)
+jℓ(t) + (1 −δjk)[νkjMik(t) + νjkMij(t)] + 2δjkαjMij(t),
+where A is the infinitesimal generation matrix, and we know that D(i)(t) is a symmetric matrix.
+Thus, we derive the following matrix differential equation
+d
+dtD(i)(t) = A⊺D(i)(t) + D(i)(t)A + C(i)(t),
+(16)
+where C(i)
+jk (t) =
+(
+νkjMik(t) + νjkMij(t)
+j ̸= k
+2αjMij(t)
+j = k . Observe that equation (16) is a Lyapunov matrix
+differential equation. With the initial condition D(i)(0) = 0, we have the solution
+D(i)(t) = exp(tA⊺)
+Z t
+0
+exp(−τA⊺)C(i)(τ) exp(−τA)dτ
+
+exp(tA)
+=
+Z t
+0
+(M(t −τ))⊺C(i)(τ) (M(t −τ)) dτ.
+26
+Then we can derive the covariance Ξ(i)(t) from D(i)(t) from equation (13).
+6.4
+Extension of Proposition 1
+In Proposition 1, we assume that time points T = {t1, · · · , tNT } are independent of the initial cell
+count n. This assumption becomes invalid if we assign specific numerical values to n and t1, · · · tNT .
+Therefore, in this subsection, we aim to relax this assumption to make our results applicable in a
+more realistic scenario, where there is a dependency between the set of time points and the initial
+cell count.
+To that end, we denote
+Y(Tn) := [Y (t1,n), Y (t2,n), · · · , Y (tNT ,n)],
+where Tn depends on n and ti,n belongs to one of the following sets of sequences:
+F := {(tn)n∈N; lim sup
+n→∞tn < ∞}
+I := {(tn)n∈N; lim
+n→∞tn = ∞}.
+The sets F and I correspond to the finite time points sequence, which remain finite as n →∞, and
+the infinite time points sequence, which diverge to infinite as n →∞, respectively.
+Since we introduce the dependency on n, the covariance between Z(ti,n) and Z(tj,n) no longer
+remains constant as n approaches infinity. Therefore, directly applying the multivariate CLT is not
+valid in this case; instead, we should utilize the more general Lindeberg-Feller multivariate CLT.
+To apply the Lindeberg-Feller multivariate CLT, we denote the normalized random vector
+¯Y(Tn) =
+K
+X
+i=1
+ni
+X
+j=1
+¯y(i)
+j (Tn) =
+K
+X
+i=1
+ni
+X
+j=1
+[exp(−λ1t1,n)⟨B(i)
+j (t1,n), 1⟩, · · · , exp(−λ1tNT ,n)⟨B(i)
+j (tNT ,n), 1⟩].
+We next denote the
+¯µ(i)(Tn) = [exp(−λ1t1,n)⟨m(i)(t1,n), 1⟩, · · · , exp(−λ1tNT ,n)⟨m(i)(tNT ,n), 1⟩]
+as the expectation of ¯y(i)
+j (Tn). Note that all elements in ¯µ(i)(Tn) are bounded above by 1 according
+to the spectral property of the mean matrix.
+Same as Proposition 1, we define a centered and normalized process for a given i ∈K
+¯
+W(i)
+ni (Tn) =
+1
+√ni
+ni
+X
+j=1
+
+¯y(i)
+j (Tn) −¯µ(i)(Tn)
+
+and claim Proposition 2 from Lindeberg-Feller multivariate CLT
+Proposition 2. as n →∞
+¯
+W(i)
+ni (Tn) ⇒N(0, ¯V(i)(Tn))
+where for 1 ≤a ≤b ≤NT
+¯V(i)
+a,b(Tn) =
+
+
+
+
+
+
+
+
+
+1 exp(−2λ1ta,n)Ξ(i)(ta,n) exp(−λ1(tb,n −ta,n))M(tb,n −ta,n)1⊺
+ta,n, tb,n ∈F
+1 exp(−2λ1ta,n)Ξ(i)(ta,n)P1⊺
+tb,n −ta,n ∈I, ta,n ∈F
+1Q(i) exp(−λ1(tb,n −ta,n))M(tb,n −ta,n)1⊺
+tb,n −ta,n ∈F, ta,n ∈I
+1Q(i)P1⊺
+tb,n −ta,n ∈I, ta,n ∈I.
+The Q(i) and P are the limit of the exp(−2λ1t)Ξ(i)(t) and exp(−λ1t)M(t) respectively as t →∞.
+27
+Proof. For simplicity, we denote z(i)
+j (Tn) = ¯y(i)
+j (Tn) −¯µ(i)(Tn). It is obvious that E
+h
+z(i)
+j (Tn)
+i
+= 0
+for all n. Then we need to check the behavior of its covariance matrix. Without loss of generality,
+we assume 1 ≤a ≤b ≤NT . For a, b-th element of the second moment of z(i)
+j (Tn):
+[Vz(i)
+j (Tn)]a,b = exp(−λ1(ta,n + tb,n))Cov
+
+⟨B(i)(ta,n), 1⟩, ⟨B(i)(tb,n), 1⟩
+
+Cov
+
+⟨B(i)(ta,n), 1⟩, ⟨B(i)(tb,n), 1⟩
+
+= 1
+n
+E
+h
+B(i)(ta,n)⊺B(i)(tb,n)
+i
+−E
+h
+B(i)(ta,n)
+i⊺
+E
+h
+B(i)(tb,n)
+io
+1⊺
+= 1
+n
+E
+h
+B(i)(ta,n)⊺E
+h
+B(i)(tb,n)
+ B(i)(ta,n)
+ii
+−E
+h
+B(i)(ta,n)
+i⊺
+E
+h
+E
+h
+B(i)(tb,n)
+ B(i)(ta,n)
+iio
+1⊺
+= 1
+n
+E
+h
+B(i)(ta,n)⊺B(i)(ta,n)M(tb,n −ta,n)
+i
+−E
+h
+B(i)(ta,n)
+i⊺
+E
+h
+B(i)(ta,n)M(tb,n −ta,n)
+io
+1⊺
+= 1
+n
+E
+h
+B(i)(ta,n)⊺B(i)(ta,n)
+i
+−E
+h
+B(i)(ta,n)
+i⊺
+E
+h
+B(i)(ta,n)
+io
+M(tb,n −ta,n)1⊺
+= 1Ξ(i)(ta,n)M(tb,n −ta,n)1⊺
+[Vz(i)
+j (Tn)]a,b = 1 exp(−2λ1ta,n)Ξ(i)(ta,n) exp(−λ1(tb,n −ta,n))M(tb,n −ta,n)1⊺
+We know from Athreya and Ney that:
+lim
+t→∞M(t) exp(−λ1t) = P
+where P is the outer product of the left and right eigenvector of M(t) corresponding to eigenvalue
+exp(λ1t), and there exists a finite matrix Q(i) such that
+lim
+t→∞Ξ(i)(t) exp(−2λ1t) = Q(i).
+Therefore, we know that all the elements in Vz(i)
+j (Tn) are finite. In particular, we claim the following
+condition for Lindeberg-Feller multivariate CLT holds:
+lim
+ni→∞
+1
+ni
+ni
+X
+j=1
+Vz(i)
+j (Tn) = lim
+n→∞Vz(i)
+j (Tn) = ¯V(i)(Tn),
+where
+¯V(i)
+a,b(Tn) =
+
+
+
+
+
+
+
+
+
+1 exp(−2λ1ta,n)Ξ(i)(ta,n) exp(−λ1(tb,n −ta,n))M(tb,n −ta,n)1⊺
+ta,n, tb,n ∈F
+1 exp(−2λ1ta,n)Ξ(i)(ta,n)P1⊺
+tb,n −ta,n ∈Iτ
+1Q exp(−λ1(tb,n −ta,n))M(tb,n −ta,n)1⊺
+ta,n ∈I
+1QP1⊺
+tb,n −ta,n ∈Iτ, ta,n ∈I.
+The first equality is due to the following two observations: 1. As pi independent of n, we know that
+ni →∞is equivalent to n →∞. 2. For any given n, the random vector z(i)
+j (Tn) is i.i.d. copy of
+z(i)(Tn).
+Then we claim the Lindeberg condition:
+lim
+ni→∞
+1
+ni
+ni
+X
+j=1
+E
+h
+∥z(i)
+j (Tn)∥21(∥z(i)
+j (Tn)∥≥ϵ√n)
+i
+= 0
+(17)
+28
+for a given ϵ > 0, where 1(·) is the indicator function, is satisfied. Due to the aforementioned two
+observations, it is equivalent to show that
+lim
+n→∞E
+h
+∥z(i)(Tn)∥21(∥z(i)(Tn)∥≥ϵ√n)
+i
+= 0.
+(18)
+We applied the Cauchy-Schwarz inequality to (18), which simplifies the task to showing that
+lim
+n→∞E
+h
+∥z(i)(Tn)∥4i1/2
+E
+h
+1(∥z(i)(Tn)∥≥ϵ√n)
+i1/2
+= 0.
+(19)
+Then we argue that
+lim
+n→∞E
+h
+∥z(i)(Tn)∥4i
+= lim
+n→∞E
+
+
+" NT
+X
+τ=1
+exp(−2λ1tτ,n)
+
+⟨B(i)(tτ,n), 1⟩−⟨m(i)(tτ,n), 1⟩
+2
+#2
+
+≤lim
+n→∞E
+
+
+" NT
+X
+τ=1
+exp(−2λ1tτ,n)(1B(i)(tτ,n)⊺B(i)(tτ,n)1⊺+ 1m(i)(tτ,n)⊺m(i)(tτ,n)1⊺)
+#2
+
+= lim
+n→∞
+X
+1≤τ≤ℓ≤NT
+exp(−2λ1(tτ,n + tℓ,n))(c4
+τ,ℓ+ c2
+τ,ℓ+ c0
+τ,ℓ),
+where
+c4
+τ,ℓ= E
+h
+1B(i)(tτ,n)⊺B(i)(tτ,n)1⊺1B(i)(tℓ,n)⊺B(i)(tℓ,n)1⊺i
+c2
+τ,ℓ= E
+h
+1B(i)(tτ,n)⊺B(i)(tτ,n)1⊺i
+1m(i)(tℓ,n)⊺m(i)(tℓ,n)1⊺
+c0
+τ,ℓ= 1m(i)(tτ,n)⊺m(i)(tτ,n)1⊺1m(i)(tℓ,n)⊺m(i)(tℓ,n)1⊺.
+With Lemma 1 and the fact limt→∞exp(−2λ1t)1m(i)(t)⊺m(i)(t)1⊺< ∞, we can directly see that
+lim
+n→∞exp(−2λ1(tτ,n + tℓ,n))c0
+τ,ℓ< ∞
+lim
+n→∞exp(−2λ1(tτ,n + tℓ,n))c2
+τ,ℓ< ∞.
+For c4
+τ,ℓ, we apply the Cauchy-Schwarz inequality to obtain
+exp(−2λ1(tτ,n + tℓ,n))c4
+τ,ℓ≤
+
+exp(−4λ1tτ,n)c4
+τ,n
+1/2 
+exp(−4λ1tℓ,n)c4
+ℓ,n
+1/2 ,
+where
+c4
+τ,n = E
+h
+(1B(i)(tτ,n)⊺B(i)(tτ,n)1⊺)2i
+, for 1 ≤τ ≤NT .
+From Lemma 1, we claim that for 1 ≤τ ≤NT
+lim
+n→∞exp(−4λ1tτ,n)c4
+τ,n < ∞.
+Consequently, we have
+lim
+n→∞E
+h
+∥z(i)(Tn)∥4i
+< ∞.
+29
+Next, we observe that
+E
+h
+1(∥z(i)(Tn)∥≥ϵ√n)
+i
+= P(∥z(i)(Tn)∥≥ϵ√n) ≤E
+
+∥z(i)(Tn)∥
+
+ϵ√n
+.
+As we have already shown that limn→∞E
+
+∥z(i)(Tn)∥4
+< ∞, we can directly show that
+lim
+n→∞
+E
+
+∥z(i)(Tn)∥
+
+ϵ√n
+= 0.
+As a result, we have equation (19) follows.
+We conclude this proof by applying the Lindeberg multivariate CLT:
+W(i)
+ni (Tn) =
+1
+√ni
+ni
+X
+j=1
+z(i)
+j (Tn) ⇒N(0, ¯V(i)(Tn)).
+In Proposition 2, we demonstrate with an appropriate normalization factor the normalized and
+centered random vector Y is still approximately normally distributed when time depends on n. In
+practice, because we cannot employ n →∞, Proposition 1 is enough to obtain a good approximation
+of Y.
+6.5
+Details of data generation and optimization implementation in the
+in silico experiments
+To describe the data generation and optimization in the in silico experiment, we define two
+distinct ranges:
+1. the Generating parameters range based on the assumption outlined in Section 2.5.
+2. the Optimization feasible range employed in all of the in silico experiments.
+These two ranges characterize most of the differences among the in silico experiments, while the
+procedure of the experiments is the same. The detailed in silico experiments procedure is given
+by the following. We first randomly select a ‘true parameters set’ from the Generating parameters
+range to simulate the in silico data through the Gillespie algorithm [5]. Subsequently, we solve the
+MLE problem in equation (7) within the Optimization feasible range. In particular, we employ the
+MATLAB Optimization Toolbox [21] function fmincon with sequential quadratic programming (sqp)
+solver. Given the complex likelihood equation, we solve the optimization starting from 20 initial
+points within the feasible region and select the estimation with the lowest negative log-likelihood.
+We denote the ‘true parameters sets’ and the estimated parameters as θ∗and ˆθ respectively,
+while referring to the Generating parameters range and Optimization feasible range as Θ∗and ˆΘ.
+These ranges simulate realistic scenarios and reflect our prior knowledge about nature. One principle
+in setting these two ranges is that Θ∗⊆ˆΘ to simulate insufficient prior knowledge about the ‘true
+nature’.
+30
+6.5.1
+Base experiment
+In this experiment, we adhere to the assumptions outlined in Section 2.5. In particular, the Gen-
+erating parameter range Θ∗and the Optimization feasible range satisfy the assumptions established
+in Section 2.5. For simplicity, we implemented a special case of Assumption 1: αs ∈(βs, βs + 0.1)
+and αd = βd, (i.e. 0 = κd ≤κs ∈(0, 0.1)). Nevertheless, we also tested for the case when κd > 0
+and got a similar results. Assumption 2 can be directly implemented in the selection of Θ∗and
+ˆΘ, and Assumption 5 can be implemented in the computation of likelihood. In accordance with
+Assumption 4, where bs,β = bs,ν = 1, the selection of Es,β and Es,ν does not impact the likelihood
+computation, so we set Es,β = Es,ν = 1 for simplicity. Conversely, we carefully choose the values
+for Ed,β and Ed,ν within the concentration levels implemented in the in silico experiment to ensure
+the drug has an observable effect on the tumor within the given concentration levels.
+We conclude our selection of Θ∗and ˆΘ in Table 8. To prevent the occurrence of unreasonably
+large net growth rates during the optimization process, we imposed two linear constraints: αs−βs ≤
+0.1 and νsd + αd −βd ≤0.5. In addition to the subpopulation parameters, we also selected the
+standard deviation parameter c ∈(0, 10) for the observation noised added to the data.
+Parameters
+Θ∗
+ˆΘ
+αs
+(βs, βs + 0.1)
+(0, 1)
+βs
+(10−3, 0.9)
+(0, 1)
+νsd
+(0, 0.5)
+(0, 1)
+αd
+βd
+(0, 1)
+βd
+(10−3, 0.5)
+(0, 1)
+bd,β
+(0.8, 0.9)
+(0.5, 1)
+Ed,β
+(0.0625, 2.5)
+(0, 3)
+bd,ν
+(1, 1.1)
+(1, 1.5)
+Ed,ν
+(0.0625, 2.5)
+(0, 3)
+Table 8: Generating parameter range Θ∗and Optimization feasible range ˆΘ. According to assump-
+tions in Section 2.5, bs,β = Es,β = bs,ν = Es,ν = 1 and νd,s = 0 are set to both range.
+6.5.2
+Relaxed drug effect assumption
+To model a scenario where the drug has less significant effects on the CSCs, we selected 1−bs,β <
+1−bd,β and bs,ν −1 < bd,ν −1. As in the base experiment, we present the new Generating parameters
+range and Optimization feasible range in Table 9.
+6.5.3
+Relaxed initial proportion assumption
+Compared to the base experiment, we added initial proportion as variables to be estimated in
+these experiments. The corresponding Generating parameters range and Optimization feasible range
+are given in Table 10. It is important to note that during the optimization process, we also apply
+an equality constraint, pd = 1 −ps, to avoid unrealistic initial proportion.
+6.6
+Bootstrapping technique
+To compute the confidence interval (CIs) of estimation, we employ the bootstrapping technique.
+This technique requires resampling the original dataset to obtain a new dataset. In Section 3.1.1,
+31
+Parameters
+Θ∗
+ˆΘ
+αs
+(βs, βs + 0.1)
+(0, 1)
+βs
+(10−3, 0.9)
+(0, 1)
+νsd
+(0, 0.5)
+(0, 1)
+bs,β
+(0.97, 1)
+(0.5, 1)
+Es,β
+(0.0625, 2.5)
+(0, 5)
+bs,ν
+(1, 1.03)
+(1, 1.5)
+Es,ν
+(0.0625, 2.5)
+(0, 5)
+αd
+βd
+(0, 1)
+βd
+(10−3, 0.5)
+(0, 1)
+bd,β
+(0.8, 0.9)
+(0.5, 1)
+Ed,β
+(0.0625, 2.5)
+(0, 3)
+bd,ν
+(1, 1.1)
+(1, 1.5)
+Ed,ν
+(0.0625, 2.5)
+(0, 3)
+Table 9: Generating parameter range Θ∗and Optimization feasible range ˆΘ for relaxed drug effect
+experiments. According to assumptions in Section 2.5, νd,s = 0 is set to both ranges.
+we resampled 13 replicates from 20 generated replicates, while in Appendix 6.10 we resampled 10
+replicates from 14 replicates. Then the MLE process was conducted to obtain a bootstrap estimate.
+Based on 100 bootstrap estimates, we obtained the 95% CIs by taking the 2.5 and 97.5 percentile
+of those estimates.
+6.7
+Parameters of interest
+To evaluate the quality of the estimations, we consider the estimations of the following quantity,
+which can profile the phenotypical switching dynamics and the subpopulation sensitivity to the drug.
+• Stable proportion:
+The stable proportion of the multi-type branching process is determined by the normalized
+left eigenvector, π, corresponding to the largest eigenvalue, eλ1t, of the mean matrix. As a
+result, it depends on the symmetric birth rates, death rates, and asymmetric birth rates of
+each subpopulation. In our drug-effect model, we assume that either the death rates or the
+asymmetric birth rates of each subpopulation are affected by the drug, and thus, the stable
+proportion also depends on the drug concentration levels. To better understand the nature of
+the given tumor, we consider the stable proportion as one important parameter of interest.
+• GR50:
+The GR50, introduced in [9], is a newly proposed summary metric of drug-sensitivity.
+It
+is defined as the concentration at which a drug’s effect on cell growth is half the observed
+effect.
+For a given maximum concentration level, dm, applied during the experiment and
+corresponding drug effect parameters, (b, E), we compute the GR50 by
+GR50 = E
+1 −erm
+erm −b
+
+,
+where rm = 1
+2 log
+
+b +
+1−b
+1+ dm
+E
+
+is the half-maximum effects.
+32
+Parameters
+Θ∗
+ˆΘ
+ps
+(0, 1)
+(0, 1)
+αs
+βs, βs + 0.1
+(0, 1)
+βs
+(10−3, 0.9)
+(0, 1)
+νsd
+(0, 0.5)
+(0, 1)
+pd
+1 −ps
+(0, 1)
+αd
+βd
+(0, 1)
+βd
+(10−3, 0.5)
+(0, 1)
+bd,β
+(0.8, 0.9)
+(0.5, 1)
+Ed,β
+(0.0625, 2.5)
+(0, 3)
+bd,ν
+(1, 1.1)
+(1, 1.5)
+Ed,ν
+(0.0625, 2.5)
+(0, 3)
+Table 10: Generating parameter range Θ∗and Optimization feasible range ˆΘ for relaxed initial
+proportion experiments. According to assumptions in Section 2.5, bs,β = Es,β = bs,ν = Es,ν = 1
+and νd,s = 0 are set to both range.
+6.8
+Detailed analysis of limited division CNSCs dynamics assumption
+To better understand how the our framework analyzes the data with limited CNSCs symmetric
+division, we monitor the relative difference (RD) between the estimation and true parameters, defined
+as
+Er(ˆx; x∗) = ˆx −x∗
+x∗
+.
+(20)
+Compared to RE, RD can better depict overestimation and underestimation. As an analogy to
+the RE = 0.2 threshold, we consider RD = 0.2 and RD = −0.2 lines as thresholds for accurate
+estimation. The RD of the estimation from 30 experiments with limited division number G = 0, 1, 2, 3
+are shown in Figure 11, Figure 12, Figure 13, and Figure 14, respectively.
+When G = 0, our novel framework accurately captures the limited division cell dynamics by
+correctly identifying the CNSCs’ symmetric division rate αd = 0.
+Therefore, in Figure 11, we
+observe that every parameter ehibits an RD centered around 0. However, there are many instances
+where the estimations of other parameters related to CNSCs have RD value less than −0.2 or greater
+than 0.2. We suggest that this could be due to the small population of CNSCs compared to CSCs
+when G = 0; hence, the estimation quality of these parameters might be influenced by the variability
+across distinct experiments.
+In Figures 12 to 14, we observe that the estimation of αd becomes more accurate with increas-
+ing G. However, the differentiation rate νsd and CNSCs’ death rate βd are often overestimated.
+Conversely, the CSCs’ symmetric division rate αs and death rate βs tend to be slightly underes-
+timated. Overall, we conclude that our framework systematically overestimates νsd and βd, while
+underestimating αs, βs in order to better capture the αd.
+Surprisingly, the estimation of Ed,β and Ed,ν are not systematically overestimated or underes-
+timated. Additionally, these two quantities becomes more accurately estimated with increasing G.
+Therefore, we propose two hypotheses about the estimations of Ed,β and Ed,ν:
+1. These estimations are not significantly affected by changes in the underlying tumor growth
+dynamics.
+2. The quality of these estimations might be related to the size of the targeted subpopulation,
+CNSCs.
+33
+Figure 11: Relative difference of parameter estimation when CNSCs can only symmetrically divide
+G = 0 times.
+The solid line indicates RD = 0 and the dashed line indicates RD = 0.2 and
+RD = −0.2.
+These conjectures suggest that the drug effects’ inflection points Ed,β and Ed,ν could exhibit robust
+estimation characteristics across different scenarios, particularly when the targeted subpopulation is
+abundant.
+6.9
+Detailed implementation of in vitro experiment
+In this subsection, we present a detailed implementation of the in vitro experiment described in
+Section 4.
+6.9.1
+Analysis of the AGS Time experiment data
+To understand the AGS Time experiment data obtained from [25], we visualize the total cell
+count data at different time points in Figure 15. It is evident that, before time point 12, the total cell
+count growth dynamics remains indifferent across three varying drug concentration levels. However,
+after 24 hours, the effect of the drug becomes significant. Therefore, we conclude that there is a
+time delay before CPX-O can fully activate to affect the AGS cell line.
+In contrast to practical observation, our statistical framework does not assume heterogeneity
+of the drug effect over time. As a result, our current framework struggles to adequately capture
+the AGS Time experiment data without additional assumptions to incorporate the time effect on
+drug activation. We then consider modeling the time effect on drug activation as one of the future
+directions, which can further strengthen the current statistical framework. Nevertheless, we are still
+incorporating some aspects of the information obtained from the AGS Time experiment.
+34
+Figure 12: Relative difference of parameter estimation when CNSCs can only symmetrically divide
+G = 1 times.
+The solid line indicates RD = 0 and the dashed line indicates RD = 0.2 and
+RD = −0.2.
+6.9.2
+AGS Conc TC data imputation for varying concentration levels at 12 and 24
+hours.
+Due to the scarcity of the AGS Time data, we proposed to employ the simpler exponential
+growth model to characterize the cell growth dynamics to estimate the TC of AGS Conc for varying
+concentration levels at 12 and 24 hours. In particular, this model comprises two parameters λ, X0,
+representing the growth rate and initial cell count, respectively. One can mathematically formulate
+the cell count X(t) at time t by
+X(t, d) = X0 exp(λ(d)t),
+(21)
+where the growth rate λ may depend on the drug concentration level d.
+As mentioned in the main text, the AGS Time data comprises only 3 concentration levels, which
+is insufficient for estimating 4 drug-related parameters bd,β, Ed,β, bd,ν, Ed,ν. Therefore, we need to
+utilize the AGS Conc data, which collects data at 9 varying concentration levels.
+Time-delayed drug effect assumption:
+In Appendix 6.9.1, we observed that the cell growth dynamics did not change at the first 12
+hours under varying doses of CPX-O. To validate our statistical framework, which does not assume
+a delay in the drug effect over time, we propose focusing on the data after the 12-hour checkpoint.
+In other words, we assume that the CPX-O does not have an effect in the first 12 hours.
+Shared underlying dynamics between AGS Time and AGS Conc data assumption:
+Because the AGS Time and AGS Conc data have different initial experimental settings, such
+as varying the initial total cell count and the proportion between CSCs and CNSCs, we need to
+assume that under no drug effect (DMSO), the underlying growth dynamics are consistent for these
+35
+Figure 13: Relative difference of parameter estimation when CNSCs can only symmetrically divide
+G = 2 times.
+The solid line indicates RD = 0 and the dashed line indicates RD = 0.2 and
+RD = −0.2.
+two experiments. Based on this assumption, we can estimate the initial TC (XConc(0, 0)) in the
+AGS Conc data from TC at 48 hours (XConc(48, 0)) based on the ratio between the initial TC
+(XT ime(0, 0)) and TC at 48 hours (XT ime(48, 0)) in AGS Time data. In other words, we assume
+the following equation holds
+XT ime(48, 0)
+XT ime(0, 0) = XConc(48, 0)
+XConc(0, 0) ,
+(22)
+where the colored quantity is estimated data.
+Estimating the AGS Conc data at 12 hour
+We estimate the XT ime(0, 0) data by fitting the exponential growth model to the DMSO AGS
+Time data at 2, 6, and 12 time-points. After obtaining the estimation for XConc(0, 0), we further
+estimate the XConc(12, 0) based on the exponential growth model fitted to the DMSO AGS Time
+data at 2, 6, 12 time-points. Since we assume that CPX-O has no effect in the first 12 hours, we
+assign the same value of XConc(12, d) = XConc(12, 0) to all nine varying concentration levels. It is
+also worth mentioning that we estimate XConc(12, 0) separately for each replicate.
+Estimating the AGS Conc data at 24 hours
+To estimate the AGS Conc data at 24 hours, we first note that CPX-O affected cell growth
+dynamics during the time interval (12, 24 hours). Therefore, we need to estimate the drug effect
+during the time interval (12, 24 hours). Since we only have three concentration levels, we proposed
+to utilize the Hill equation with two cytotoxic effects parameters b, E to model the drug effect here.
+It is also worth noticing that the cytotoxic effect is the main effect that is observed. Based on the
+exponential growth model, we obtain 3 estimated growth rates λ(0), λ(4), λ(8) for 3 concentration
+36
+Figure 14: Relative difference of parameter estimation when CNSCs can only symmetrically divide
+G = 3 times.
+The solid line indicates RD = 0 and the dashed line indicates RD = 0.2 and
+RD = −0.2.
+Figure 15: AGS Time experiment data.
+37
+levels of CPX-O. We then fit these growth rates through the 2 parameters Hill equations
+λ(d) = λ(0) + log
+
+b +
+1 −b
+1 + d/E
+
+.
+With the estimated parameters b, E, we estimate the growth rate λ(d), d ∈{0, 0.125, 0.25, 0.5, 1, 2, 4, 8, 16}.
+We then plug in these estimated growth rates to estimate the TC at 24 hours, i.e.
+X(24, d) = X(12, 0) exp(12λ(d)), d ∈{0, 0.125, 0.25, 0.5, 1, 2, 4, 8, 16}.
+6.9.3
+Details of maximum likelihood estimation
+To calculate the AIC value, we first need to obtain the maximum likelihood estimate for each
+model. Following the experimental setup described in Appendix 6.5, Table 11 provides the Opti-
+mization feasible range used in the experiment. The same optimization range is applied to the free
+parameters across all four model assumptions.
+Parameters
+ˆΘ
+αs
+(βs, βs + 0.1)
+βs
+(0, 1)
+νsd
+(0, 1)
+αd
+(βd, βd + 0.1)
+βd
+(0, 1)
+bd,β
+(0, 1)
+Ed,β
+(0, 16)
+md,β
+(0.1, 5)
+bd,ν
+(1, 2)
+Ed,ν
+(0, 16)
+md,ν
+(0.1, 5)
+k
+(0, 1)
+t0
+(0, 36)
+c
+(0, 300)
+Table 11: Optimization feasible range ˆΘ for in vitro drug-induced plasticity experiment.
+6.10
+Inferring no drug-induced phenotypic transition in imatinib-sensitive
+and -resistant Ba/F3 cells data
+We further validated our framework using another HTS in vitro dataset, which includes a mixture
+of imatinib-sensitive and -resistant Ba/F3 cells [16]. This dataset includes the total cell count of the
+mixture under 11 different concentration levels of imatinib. Each concentration level was evaluated
+with 14 sample replicates, and cell counts were recorded at 14 time points using live-cell imaging.
+The specific concentration levels and time points are as follows:
+DBa/F 3 = {0, 0.0313, 0.0625, 0.125, 0.25, 0.375, 0.5, 1.25, 2.5, 3.75, 5}(µm),
+TBa/F 3 = {0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36}(hours).
+38
+In this study, we focused on a dataset named BF21, which corresponds to an initial proportion 2 : 1
+between the sensitive and resistant subpopulations.
+In this case, the drug affects both the resistant and sensitive subpopulations.
+We therefore
+adopted model assumptions similar to those in Section 3.2.1. However, unlike the model in Section
+3.2.1, we allow νsr to be nonzero, indicating potential natural plasticity of the sensitive cells. As
+previously noted, the estimation quality was suboptimal in Section 3.2.1. To improve this, we fixed
+the initial proportion between the sensitive and resistant subpopulations at 2 : 1. The model used
+in this experiment includes 19 free parameters:
+θ = (αs, βs, νsr, bs,β, Es,β, ms,β, bs,ν, Es,ν, ms,ν, αr, βr, νrs, br,β, Er,β, mr,β, br,ν, Er,ν, mr,ν, c),
+where the subscript s and r represent the sensitive and resistant subpopulations, respectively. A
+detailed implementation of the Optimization feasible region, ˆΘ, is provided in Table 12.
+Parameters
+ˆΘ
+αs
+(βs, βs + 0.06)
+βs
+(0, 1)
+νsr
+(0, 0.1)
+bs,β
+(0.878, 1)
+Es,β
+(0, 50)
+ms,β
+(0.001, 20)
+bs,ν
+(1, 2)
+Es,ν
+(0, 50)
+ms,ν
+(0.001, 20)
+αr
+(βr, βr + 0.06)
+βr
+(0, 1)
+νrs
+(0, 0.1)
+br,β
+(0.878, 1)
+Er,β
+(0, 50)
+mr,β
+(0.001, 20)
+br,ν
+(1, 2)
+Er,ν
+(0, 50)
+mr,ν
+(0.001, 20)
+c
+(0, 100)
+Table 12: Optimization feasible range ˆΘ for relaxed drug effect experiments. The subscript s, r
+represent parameters for sensitive and resistant subpopulations respectively.
+In our previous work [35], we performed parameter estimations on this dataset using a simpler
+version of the current framework that did not account for potential subpopulation transitions. This
+simpler version aligned with our prior belief that these transitions were very rare. Here, we aimed
+to determine whether our more complex framework could yield similar conclusions. For assessing
+transition effects, we analyzed the estimated asymmetrical division rates νsr and νrs. Since the
+model can only identify observed drug effects, we use the drug effects on the asymmetrical division
+rate at the maximum concentration level (d = 5) to evaluate drug-induced transition effects, denoted
+as DITsr := νsr(5) −νsr and DITrs := νrs(5) −νrs.
+Due to potential numerical error and inexact optimization solutions, we report in Table 13
+the number of bootstrap estimates below 10−6 for (νsr, νrs, DITsr, DITrs) out of 100 bootstrap
+39
+estimates. The estimates of the drug-induced transition effects (DITsr, DITrs) are all below 10−6,
+and most of estimates of νrs are also below 10−6. These results suggest that drug-induced transitions
+between cell types are very unlikely. However, there are only 6 bootstrap instances where νsr is below
+10−6. We hypothesize that this discrepancy is due to either a genuine natural transition from the
+sensitive to the resistant subpopulation, or an artifact of noise in the initial proportions that is not
+adequately captured by our model, which assumes a fixed initial proportion. In either case, our
+framework indicates that drug-induced transitions do not play a large role in the dynamics.
+νsr
+νrs
+DITsr
+DITrs
+6
+80
+100
+100
+Table 13: Number of bootstrap estimates below 10−6 for (νsr, νrs, DITsr, DITrs) among 100 boot-
+strap estimates.
+References
+[1] Krishna B Athreya and Peter E Ney. Branching processes. Courier Corporation, 2004.
+[2] Soufiane Boumahdi and Frederic J de Sauvage. The great escape: tumour cell plasticity in
+resistance to targeted therapy. Nature reviews Drug discovery, 19(1):39–56, 2020.
+[3] David Dingli and Franziska Michor. Successful therapy must eradicate cancer stem cells. Stem
+cells, 24(12):2603–2610, 2006.
+[4] Anusha Dravid, Brad Raos, Darren Svirskis, and Simon J O’Carroll. Optimised techniques for
+high-throughput screening of differentiated sh-sy5y cells and application for neurite outgrowth
+assays. Scientific reports, 11(1):23935, 2021.
+[5] Daniel T Gillespie. A general method for numerically simulating the stochastic time evolution
+of coupled chemical reactions. Journal of computational physics, 22(4):403–434, 1976.
+[6] Aaron Goldman, Biswanath Majumder, Andrew Dhawan, Sudharshan Ravi, David Goldman,
+Mohammad Kohandel, Pradip K Majumder, and Shiladitya Sengupta. Temporally sequenced
+anticancer drugs overcome adaptive resistance by targeting a vulnerable chemotherapy-induced
+phenotypic transition. Nature communications, 6(1):6139, 2015.
+[7] Einar Bjarki Gunnarsson, Subhajyoti De, Kevin Leder, and Jasmine Foo. Understanding the
+role of phenotypic switching in cancer drug resistance. Journal of theoretical biology, 490:110162,
+2020.
+[8] Einar Bjarki Gunnarsson, Jasmine Foo, and Kevin Leder. Statistical inference of the rates of cell
+proliferation and phenotypic switching in cancer. Journal of Theoretical Biology, 568:111497,
+2023.
+[9] Marc Hafner, Mario Niepel, Mirra Chung, and Peter K Sorger. Growth rate inhibition metrics
+correct for confounders in measuring sensitivity to cancer drugs. Nature methods, 13(6):521–527,
+2016.
+[10] Leonard A Harris, Peter L Frick, Shawn P Garbett, Keisha N Hardeman, B Bishal Paudel,
+Carlos F Lopez, Vito Quaranta, and Darren R Tyson. An unbiased metric of antiproliferative
+drug effect in vitro. Nature methods, 13(6):497–500, 2016.
+40
+[11] Masahiro Hitomi, Anastasia P Chumakova, Daniel J Silver, Arnon M Knudsen, W Dean Pontius,
+Stephanie Murphy, Neha Anand, Bjarne W Kristensen, and Justin D Lathia. Asymmetric cell
+division promotes therapeutic resistance in glioblastoma stem cells. JCI insight, 6(3), 2021.
+[12] Francisco J Iborra, Cristina Mart´ı, Virtu Calabuig-Navarro, Petros Papadopoulos, Salvador
+Meseguer, Pedro M Iborra, Francisco Garc´ıa, Antonio Mart´ınez-Lorente, Fernando Almaz´an,
+and Juana Calabuig. Chemotherapy induces cell plasticity; controlling plasticity increases ther-
+apeutic response. Signal Transduction and Targeted Therapy, 8(1):256, 2023.
+[13] Banu Iskender, Kenan Izgi, and Halit Canatan. Reprogramming bladder cancer cells for study-
+ing cancer initiation and progression. Tumor Biology, 37:13237–13245, 2016.
+[14] Alexandra Jilkine. Mathematical models of stem cell differentiation and dedifferentiation. Cur-
+rent Stem Cell Reports, 5:66–72, 2019.
+[15] Yohan Kim, Jaemin Jeong, and Dongho Choi.
+Small-molecule-mediated reprogramming: a
+silver lining for regenerative medicine.
+Experimental & Molecular Medicine, 52(2):213–226,
+2020.
+[16] Alvaro K¨ohn-Luque, Even Moa Myklebust, Dagim Shiferaw Tadele, Mariaserena Giliberto,
+Leonard Schmiester, Jasmine Noory, Elise Harivel, Polina Arsenteva, Shannon M Mumenthaler,
+Fredrik Schjesvold, et al. Phenotypic deconvolution in heterogeneous cancer cell populations
+using drug-screening data. Cell Reports Methods, 3(3), 2023.
+[17] L Kyjacova, S Hubackova, K Krejcikova, R Strauss, H Hanzlikova, R Dzijak, T Imrichova,
+J Simova, M Reinis, J Bartek, et al. Radiotherapy-induced plasticity of prostate cancer mobilizes
+stem-like non-adherent, erk signaling-dependent cells. Cell Death & Differentiation, 22(6):898–
+911, 2015.
+[18] Kevin Leder, Ken Pitter, Quincey LaPlant, Dolores Hambardzumyan, Brian D Ross, Timo-
+thy A Chan, Eric C Holland, and Franziska Michor. Mathematical modeling of pdgf-driven
+glioblastoma reveals optimized radiation dosing schedules. Cell, 156(3):603–616, 2014.
+[19] Yuan Li, Zhenning Wang, Jaffer A Ajani, and Shumei Song. Drug resistance and cancer stem
+cells. Cell Communication and Signaling, 19:1–11, 2021.
+[20] Deepti Mathur, Ethan Barnett, Howard I Scher, and Joao B Xavier. Optimizing the future: how
+mathematical models inform treatment schedules for cancer. Trends in cancer, 8(6):506–516,
+2022.
+[21] Matlab optimization toolbox, R2022a. The MathWorks, Natick, MA, USA.
+[22] Sean J Morrison and Judith Kimble. Asymmetric and symmetric stem-cell divisions in devel-
+opment and cancer. nature, 441(7097):1068–1074, 2006.
+[23] Michael D Nicholson, David Cheek, and Tibor Antal. Sequential mutations in exponentially
+growing populations. PLOS Computational Biology, 19(7):e1011289, 2023.
+[24] Thomas A Nketia, Heba Sailem, Gustavo Rohde, Raghu Machiraju, and Jens Rittscher. Anal-
+ysis of live cell images: Methods, tools and opportunities. Methods, 115:65–79, 2017.
+41
+[25] Diana P´adua, Paula Figueira, Mariana Pinto, Andr´e Filipe Maia, Joana Peixoto, Raquel T
+Lima, Ant´onio Pombinho, Carlos Filipe Pereira, Raquel Almeida, and Patr´ıcia Mesquita. High-
+throughput drug screening revealed that ciclopirox olamine can engender gastric cancer stem-
+like cells. Cancers, 15(17):4406, 2023.
+[26] Angela Oliveira Pisco, Amy Brock, Joseph Zhou, Andreas Moor, Mitra Mojtahedi, Dean Jack-
+son, and Sui Huang. Non-darwinian dynamics in therapy-induced cancer drug resistance. Nature
+communications, 4(1):2467, 2013.
+[27] Heino Prinz.
+Hill coefficients, dose–response curves and allosteric mechanisms.
+Journal of
+chemical biology, 3:37–44, 2010.
+[28] Hamed Rezayatmand, Mahboobeh Razmkhah, and Iman Razeghian-Jahromi. Drug resistance in
+cancer therapy: the pandora’s box of cancer stem cells. Stem cell research & therapy, 13(1):181,
+2022.
+[29] Mariangela Russo, Simone Pompei, Alberto Sogari, Mattia Corigliano, Giovanni Crisafulli,
+Alberto Puliafito, Simona Lamba, Jessica Erriquez, Andrea Bertotti, Marco Gherardi, et al. A
+modified fluctuation-test framework characterizes the population dynamics and mutation rate
+of colorectal cancer persister cells. Nature Genetics, 54(7):976–984, 2022.
+[30] Shigeo Saito, Ying-Chu Lin, Yukio Nakamura, Richard Eckner, Kenly Wuputra, Kung-Kai
+Kuo, Chang-Shen Lin, and Kazunari K Yokoyama. Potential application of cell reprogramming
+techniques for cancer research. Cellular and molecular life sciences, 76:45–65, 2019.
+[31] Zhen-Duo Shi, Kun Pang, Zhuo-Xun Wu, Yang Dong, Lin Hao, Jia-Xin Qin, Wei Wang, Zhe-
+Sheng Chen, and Cong-Hui Han. Tumor cell plasticity in targeted therapy-induced resistance:
+mechanisms and new strategies. Signal Transduction and Targeted Therapy, 8(1):113, 2023.
+[32] Yang Song, Jennifer Soto, Pingping Wang, Qin An, Xuexiang Zhang, SoonGweon Hong, Luke P
+Lee, Guoping Fan, Li Yang, and Song Li. Asymmetric cell division of fibroblasts is an early deter-
+ministic step to generate elite cells during cell reprogramming. Advanced Science, 8(7):2003516,
+2021.
+[33] Yapeng Su, Wei Wei, Lidia Robert, Min Xue, Jennifer Tsoi, Angel Garcia-Diaz, Blanca
+Homet Moreno, Jungwoo Kim, Rachel H Ng, Jihoon W Lee, et al.
+Single-cell analysis re-
+solves the cell state transition and signaling dynamics associated with melanoma drug-induced
+resistance. Proceedings of the National Academy of Sciences, 114(52):13679–13684, 2017.
+[34] Kazutoshi Takahashi, Koji Tanabe, Mari Ohnuki, Megumi Narita, Tomoko Ichisaka, Kiichiro
+Tomoda, and Shinya Yamanaka. Induction of pluripotent stem cells from adult human fibrob-
+lasts by defined factors. cell, 131(5):861–872, 2007.
+[35] Chenyu
+Wu,
+Einar
+Bjarki
+Gunnarsson,
+Even
+Moa
+Myklebust,
+Alvaro
+K¨ohn-Luque,
+Dagim Shiferaw Tadele, Jorrit Martijn Enserink, Arnoldo Frigessi, Jasmine Foo, and Kevin
+Leder. Using birth-death processes to infer tumor subpopulation structure from live-cell imag-
+ing drug screening data. PLoS computational biology, 20(3):e1011888, 2024.
+[36] Emily Y Yang, Grant R Howard, Amy Brock, Thomas E Yankeelov, and Guillermo Lorenzo.
+Mathematical characterization of population dynamics in breast cancer cells treated with dox-
+orubicin. Frontiers in Molecular Biosciences, 9:972146, 2022.
+42
+[37] Liqun Yang, Pengfei Shi, Gaichao Zhao, Jie Xu, Wen Peng, Jiayi Zhang, Guanghui Zhang,
+Xiaowen Wang, Zhen Dong, Fei Chen, et al. Targeting cancer stem cell pathways for cancer
+therapy. Signal transduction and targeted therapy, 5(1):8, 2020.
+[38] Anyue Yin, Dirk Jan AR Moes, Johan GC van Hasselt, Jesse J Swen, and Henk-Jan Guchelaar.
+A review of mathematical models for tumor dynamics and treatment resistance evolution of
+solid tumors. CPT: pharmacometrics & systems pharmacology, 8(10):720–737, 2019.
+43

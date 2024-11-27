@@ -1,0 +1,990 @@
+Effect sizes as a statistical feature-selector-based
+learning to detect breast cancer
+Nicolás Masino1 and Antonio Quintero-Rincón1,2
+Data Science and AI Laboratory1, Data Science Department1,
+Computer Science Department2
+Catholic University of Argentina (UCA), Argentina
+nicolasmasino@uca.edu.ar, antonioquintero@uca.edu.ar
+To cite this work, please use this reference
+https://doi.org/10.1109/ARGENCON62399.2024.10735908
+Abstract. Breast cancer detection is still an open research field, despite
+a tremendous effort devoted to work in this area. Effect size is a statistical
+concept that measures the strength of the relationship between two
+variables on a numeric scale. Feature selection is widely used to reduce
+the dimensionality of data by selecting only a subset of predictor variables
+to improve a learning model. In this work, an algorithm and experimental
+results demonstrate the feasibility of developing a statistical feature-
+selector-based learning tool capable of reducing the data dimensionality
+using parametric effect size measures from features extracted from cell
+nuclei images. The SVM classifier with a linear kernel as a learning tool
+achieved an accuracy of over 90%. These excellent results suggest that
+the effect size is within the standards of the feature-selector methods.
+Keywords: Effect Size · Cohen’s d · Standardized Mean Difference ·
+Feature selection · Breast Cancer
+1
+Introduction
+Breast cancer is a disease frequently diagnosed in women in which abnormal
+breast cells grow uncontrollably until tumors form. According to the World
+Health Organization [1] in 2022, breast cancer was diagnosed to over 2.3 million
+women and 670,000 deaths globally. Cancer treatment is patient-specific through
+radiation therapy, medications, and surgery; and depends on the type of cancer
+and its spread in the body.
+Effect size (EF) is an association-magnitude measure between two populations
+under research. EF has become more popular in recent years in meta-analyses of
+psychological, educational, and behavioral treatments [2]. EF can be estimated
+through parametric or non-parametric kernels. EF expresses across a numerical
+decision rule the practical significance or strength of a research outcome. This
+numerical scale yields an index that lets us know how meaningful the relationship
+between variables or the difference between groups is. It is common knowledge
+that statistical significance denoted by p-values affects an outcome, while effect
+arXiv:2411.06868v1  [stat.ML]  11 Nov 2024
+2
+Nicolás Masino and Antonio Quintero-Rincón
+sizes represent practical significance. A large effect size means that the research
+outcome has practical importance, while a small effect size indicates limited
+practical applications. The family of EF indices can be separated into two types
+of measures. The standardized differences between two groups and the correlation
+measure of effect size [3]. This work is focused on estimating the parametric
+standardized difference between two independent populations vs a dichotomous
+dependent variable.
+The well-known free Diagnostic Wisconsin Breast Cancer database hosted in
+the Machine Learning Repository at the University of California, Irvine [4] was
+considered for experimentation purposes. Its features describe the characteristics
+of the cell nuclei present in a digitized image of a fine needle aspirate (FNA) of a
+breast mass. For details, consult the Section 2.1 introduced below.
+This work proposes a statistical feature-selector-based learning to detect
+breast cancer through effect size. The underlying idea of feature-selector-based
+learning lies in finding a good interaction between the features and selecting
+only the most relevant. In this context, a correct combination of features may
+provide higher predictive power and increase the precision of a learning model
+with minimal risk. Therefore, performing feature-selector-based learning allows
+for identifying an optimal feature combination and a dimensional data reduction
+to improve the predictive learning capacity. This process has several advantages.
+It can significantly reduce model training time and prediction speed during
+production deployment. Additionally, it makes the model less complex and easier
+to explain.
+Feature-selection methods can be grouped into three approaches: Filter
+method, Wrapper method, and Embedded method [5, 6]. Filter methods are
+based on a relevance index based on correlation coefficients or test statistics. The
+methods used are Correlation-based filters, Relevance indices based on Distances
+between distributions, or Information Theory, Decision trees for ranking, or Reli-
+ability and Bias of relevance indices. Wrapper’s methods utilize the performance
+of a learning machine trained using a given feature subset. The methods used are
+based on forward selection and backward elimination. Both methods use search
+strategies to explore the space of all possible feature combinations. Embedded
+methods incorporate feature subset generation and evaluation in the training
+algorithm [6,7]. The methods used are based on forward selection and backward
+elimination with an optimization of scaling factors. Embedded and wrapper
+methods perform well for a given classifier. However, these approaches represent
+more computational complexity, above all the data dimension is high [5, 8, 9].
+Note that, the proposed EF as statistical feature-selection-based learning fits
+the filter method. Many well-known feature selection techniques are within the
+filter, wrapper, or embedded methods. That is why choosing a specific technique
+is not easy. It is essential to know the data dimension, the size of the data,
+and the computational cost that is required and accepted. In medical diagnosis
+scenarios, the most common techniques are Correlation-Based Feature Selec-
+tion, Consistency-Based Filter, INTERACT, Information Gain, Relief, Recursive
+Feature Elimination, and Lasso Regularization [9]. Specifically in feature selec-
+Title Suppressed Due to Excessive Length
+3
+tion to identify relevant cell nuclei features, a variety of studies can be found
+to diagnose breast cancer, for example, in [10] three different techniques were
+proposed: minimum redundancy maximum relevance, Wilcoxon’s rank-sum test,
+and Random Forest, in [11] by employing a Sequential Forward Selection (SBS),
+or across an embedded approach using SVM based on the F-score to predict
+it [12]. Another study from the same field compared Random Forest (RF) with
+other select feature procedures, like SVM-RF, RRF, SBS, and VarSelRF. Binary
+Random Forest Feature Selection method (BRFFS) was proposed to reduce the
+nuclear features and classify leukocytes [8]. For a comprehensive treatment of
+feature selection see [13,14].
+The hypothesis to be assessed in this work is under the assumption that the
+behavior of a variable is different for each class. Specifically in breast cancer
+scenarios, the features should have different values for their classes, called malig-
+nant cancerous and benign non-cancerous samples. To assess this hypothesis, the
+parametric measure of effect size was proposed to quantify the difference in the
+distributions. Note that the techniques used in this study are all well-known in
+the scientific community. Still, to our knowledge, the effect size measurement has
+never been used as a statistical feature-selector-based learning scheme. This is
+the main contribution of this work.
+The remainder of this paper is organized as follows. Section 2 presents the
+proposed method and provides an introduction of the dataset used in Section 2.1,
+the effect size in Section 2.3, the feature-selector-based decision rule in Section
+2.4, the feature-selector-based learning with a support vector machine in Section
+2.5, and the confidence intervals in section 2.6. In Section 3, the results are
+discussed and analyzed. Finally in Section 4 conclusion, advantages, limitations,
+and future works are given.
+2
+Methodology
+The pipeline proposal is as follows. Initial data with the features of cell nuclei
+present from digitized images obtained by FNA of a breast mass were given. Then,
+the parametric effect size measurement is computed for each sample to estimate
+a dimensional feature reduction from the original feature data. Feature-selector-
+based learning is calculated according to the values of a numerical decision rule.
+If the observed value of the effect size is greater than a numerical value, then
+it is decided if the feature is significant or not. The numerical value is chosen
+for the standardized effect size scale value, or estimating the mean of the rank
+of their values. Finally, with the new data arising from feature reduction, a
+classification-based learning scheme for detecting breast cancer is computed
+in such a way that can be utilized in prevalent clinical settings. The dataset,
+software, parametric effect size methods, feature selector-based decision rule, and
+feature selector-based learning are then presented.
+4
+Nicolás Masino and Antonio Quintero-Rincón
+2.1
+Dataset
+For experimentation purposes, the Diagnostic Wisconsin Breast Cancer Database
+from the University of California, Irvin, was considered [4,15]. This dataset is
+based on image-processing techniques that use custom active contour models,
+known as snakes. Images close to the boundaries of a set of cell nuclei are selected
+using a fine needle aspiration slide. Thus, size, shape, and texture can be acquired
+precisely because the snakes are deformed to the exact shape of the nuclei. For
+each nucleus, 10 features called: radius, perimeter, area, texture, compactness,
+smoothness, concavity, concave points, symmetry, and fractal dimension, were
+estimated. Also, the mean value, the largest or worst value, and the standard error
+of each feature are found over the range of isolated cells. Different combinations
+of features were then tested to find those that best discriminated between benign
+and malignant samples, yielding 30 features in total related to mean texture,
+worst area, and worst smoothness, see Table 2. The dataset contains 569 binary
+observations that were split into two groups. 212 malignant cancerous samples,
+and 357 benign non-cancerous samples. See [15] for a detailed description, and
+explanation of this dataset.
+2.2
+Software
+The implementations were implemented through RStudio 2023.09.1+494 "Desert
+Sunflower" Release, using the Learning Statistics with R (LSR) library and
+MBESS Package.
+2.3
+Effect size
+Let M ∈RF ×N denote the matrix gathering with F raw features and N values
+extracted from cell nuclei images with two groups related to the malignant
+cancerous and benign non-cancerous samples. Let Mi ∈R1×N1,i the malignant
+cancerous sample vector, and Bi ∈R1×N2,i the benign non-cancerous sample
+vector for each i feature, with 1 ≤i ≤F, N1 ≤N, and N2 ≤N respectively. For
+a detailed explanation of the estimation of the effect size and its interpretation,
+we refer the reader to [2,3,16]
+Cohen’s d standardized effect size Cohen’s d standardized effect size [3] is
+defined as:
+d =
+M i −Bi
+r
+(N1,i−1)SD2
+N1,i+(N2,i−1)SD2
+N2,i
+N1,i+N2,i−2
+(1)
+where • is the mean for each group, SD is the pooled standard deviation, N1,i
+and N2,i are the samples size for each i feature. Note that the standard deviation
+is estimated from the differences between each observation and the mean for the
+group. These differences are the sum of squares used to avoid the positive and
+Title Suppressed Due to Excessive Length
+5
+negative values from canceling each other out and summing. This value is divided
+by the number of observations minus one, which is Bessel’s correction for bias
+in the population calculation variance based on the least squares estimate [17].
+Finally, the square root is computed. Since Cohen’s d expressed the effect size
+for t-test results in units of variability, two assumptions must be considered: the
+first is related to the normal assumption and the second is the assumption of
+homogeneity of variance.
+Cohen’s D Cohen’s D is the Cohen’s d without homogeneity of variance
+assumption, also known as Welch’s t-test. It can be formulated as:
+D =
+Mi −Bi
+r
+SD2
+N1,i+SD2
+N2,i
+2
+(2)
+U measures Let Φ be the standard normal cumulative distribution function.
+Cohen’s U3 represents the percentage of Mi is upper half of the cases of the Bi,
+is computed as:
+U3 = Φ(d)
+(3)
+In the same way, Cohen’s U2 is defined as:
+U2 = Φ
+d
+2
+
+(4)
+Cohen’s U2 measures the percentage in Bi that exceeds the same percentage in
+Mi. Finally, Cohen’s U1 is the following non-overlapping percentage:
+U1 = 2U2 −1
+U2
+(5)
+Cohen’s U1 is the amount of combined area not shared by the two population
+distributions, Mi and Bi [3].
+U measures lie between the values 0 and 1. A value 0 means a full overlapping
+or null effect, while a value 1 means a large effect. Hence the variables whose U
+measures are closer to 1 are better at classifying among benign and malignant
+samples.
+2.4
+Feature-selector-based decision rule
+The effect size value (or strength) between two samples, such as the cancerous or
+benign non-cancerous samples, can be interpreted through the numerical decision
+rule presented in Table 1. Precisely, the observed value from this measure is the
+statistical value calculated that allows a reduction in the dimensionality of data.
+6
+Nicolás Masino and Antonio Quintero-Rincón
+Table 1. Decision rules for assessing the strength of the effect size measurement of the
+observed difference. µ is the mean.
+Observed value for Cohen’s d and Cohen’s D Strength
+Effect size value < 0.2
+Null
+0.2 ≤Effect size value < 0.5
+Small
+0.5 ≤Effect size value ≤0.8
+Medium
+Effect size value > 0.8
+Large
+Observed value for Cohen’s U1 to Cohen’s U3 Strength
+Effect size value < µ(rank(Effect size values))
+Null
+Effect size value ≥µ(rank(Effect size values))
+Large
+2.5
+Feature-selector-based learning
+Support Vector Machines (SVM) are based on finding a hyperplane that separates
+the classes under study at the same distance. SVM results in an optimization
+problem whose primary purpose is to find the largest number of margins between
+the points in space and the separating hyperplane. The points within these
+margins are called support vectors. Fig. 1 illustrates how a Support Vector
+Machine works.
+Fig. 1. Linear-SVM illustration
+Let a set with N observations value in bi-dimensional space, with order pairs
+(x1, x2). Let a variable target with two-factor levels Yi ∈{+1, −1}. Then the
+Title Suppressed Due to Excessive Length
+7
+separating hyperplane is defined as:
+w.xi + b = 0
+(6)
+xi = x⊥+ r w
+||w||
+(7)
+The expression (7) is the distance of a point to the decision boundary, where
+r is the distance of xi from the decision boundary whose normal vector is w,
+and x⊥is the orthogonal projection of xi onto this boundary. See [18,19] for a
+comprehensive treatment of the properties of the SVM.
+2.6
+Confidence intervals (CIs)
+CIs are estimated using the non-centrality parameter (NCP) method. This is a
+pivot method that finds the NCP of a non-central t, F, or χ2 distribution that
+places the observed t, F, or χ2 test statistic at the desired probability point of the
+distribution [20]. Furthermore, the NCP method is useful to find the confidence
+intervals for Cohen’s d and Cohen’s D, but not for the U measures. For these
+measures, the Bootstrap method is used [19,21]. After estimating these confidence
+bounds on the NCP, they are converted into the effect size metric to yield a
+confidence interval for the effect size.
+Some equations are necessary to express the relationship between effect size
+and NCP. Please note that equation (8) is given the Cohen expression (1) and
+the t-test expression defined in (10), therefore it is possible to convert the t-test
+statistic into a Cohen’s d value.
+d = t
+s
+N1,i + N2,i
+N1,iN2,i
+(8)
+In such case, especially for the standardized mean difference, the population
+NCP for the two independent groups t-test is defined as:
+λ =
+µ1,i −µ2,i
+σi
+q
+1
+N1,i +
+1
+N2,i
+(9)
+Where µ1,i and µ2,i are the population means for the malignant and benign
+samples for each i feature. Since Cohen’s d assumes homogeneous variances, both
+σ2
+1,i and σ2
+2,i are identical, so the populations mean the difference is divided by
+the product between σi and the square root. The population NCP is estimated
+as follows:
+ˆλ =
+Mi −Bi
+SDi
+q
+1
+N1,i +
+1
+N2,i
+(10)
+Note that ˆλ equals the observed t-test statistic. For the estimated non-
+centrality parameter, SD is the pooled deviation defined in (1). Given the NCP
+8
+Nicolás Masino and Antonio Quintero-Rincón
+equations, it is possible to compute the confidence intervals for λ. Let p, the
+probability that the feature is contained within a random interval is 1 −α, where
+α is the Type I error rate and 1 −α is the confidence level coverage, and let T be
+the standardized of the effect size. The confidence intervals are estimated using
+the following equation, with ν degrees of freedom.
+p
+
+t(α/2;ν) ≤T ≤t(1−α/2;ν)
+
+= 1 −α
+(11)
+For Cohen’s d, T is given as:
+T = (Mi −Bi) −(µ1,i −µ2,i)
+SDi
+q
+1
+N1,i +
+1
+N2,i
+(12)
+For Cohen’s D, T is given as:
+T = (Mi −Bi) −(µ1,i −µ2,i)
+r
+SD2
+1,i
+N1,i +
+SD2
+2,i
+N2,i
+(13)
+To get the confidence intervals for Cohen’s d, it is necessary to find the
+confidence intervals for λ, and then the bounds are transformed to the Cohen’s d
+scale using (8). The CIs can therefore be written as:
+p[λL ≤λ ≤λU] = 1 −α
+(14)
+The value λL is found such that p(ˆλ|λL) = α/2 and λU is found such that
+p(ˆλ|λU) = 1 −α/2 with ν = N1,i + N2,i −2 degrees of freedom. Thus, the
+confidence intervals are finally defined as:
+"
+λL
+s
+N1,i + N2,i
+N1,iN2,i
+; λU
+s
+N1,i + N2,i
+N1,iN2,i
+#
+(15)
+The Cohen’s D procedure is similar, but using T based on Welch’s t-test. Note
+that its standard deviation is a mean of the standard deviations of the benign
+and malignant groups, so the equation (8) should be written as:
+d =
+t
+r
+SD2
+1,i
+N1,i +
+SD2
+2,i
+N2,i
+q
+SD2
+1,i+SD2
+2,i
+2
+(16)
+Moreover, the degrees of freedom are approximated by using the Welch-
+Satterthwaite equation [22]:
+ν =
+ SD2
+1,i
+N1,i +
+SD2
+2,i
+N2,i
+2
+ SD2
+1,i
+N1,i
+2
+N1,i−1
++
+ SD2
+2,i
+N2,i
+2
+N2,i−1
+(17)
+Title Suppressed Due to Excessive Length
+9
+Confidence intervals for the U measures are estimated using the Bootstrap
+method. The main idea is to take B random samples from the original sample, just
+as samples are taken from the population. This allows us to create a Bootstrap
+distribution for ˆθ∗or a Bootstrap estimate that follows the sampling distribution
+for ˆθ. Therefore, the goal is to estimate the distribution of
+ˆθ−θ
+SD(ˆθ) so that confidence
+intervals can be constructed, for this the equation (11) is used, but defining T as:
+T ∗
+b =
+ˆθ∗
+b −ˆθ
+SD(ˆθ∗
+b)
+(18)
+where ˆθ∗
+b is the value of ˆθ for the bth bootstrap sample. Likewise, ˆθ is the effect
+size of interest. The below algorithm represents the Bootstrap procedure.
+Algorithm 1 Confidence intervals for U measures.
+Require: X = {x1, x2, . . . , xn}
+▷Data
+Require: B1
+▷Bootstrap samples numbers for ˆθ∗
+Require: B2
+▷Bootstrap samples numbers for SD(ˆθ∗)
+Require: 1 −α
+▷Confidence level
+for b = 1 to B1 do
+X∗
+b = {x∗
+1, x∗
+2, . . . , x∗
+n}
+▷Generate B1 Bootstrap sample from X
+Compute ˆθ∗
+b
+end for
+for b = 1 to B2 do
+X∗
+b = {x∗
+1, x∗
+2, . . . , x∗
+n}
+▷Generate B2 Bootstrap sample from X
+Compute SD(ˆθ∗
+b)
+end for
+Sort Bootstrap values {ˆθ∗
+1, ˆθ∗
+2, . . . , ˆθ∗
+B} in ascending order
+Compute T ∗
+b and find the percentiles ˆt∗
+α/2 and ˆt∗
+1−α/2
+return [ˆθ −ˆt∗
+1−α/2SD(ˆθ∗); ˆθ −ˆt∗
+α/2SD(ˆθ∗)]
+3
+Results and Discussion
+For illustration, Fig. 2 shows some feature examples from the dataset introduced
+in Section 2.1. t-distributed Stochastic Neighbor Embedding (t-SNE) was used
+to yield the scatter plot between couples for malignant cancerous samples (red
+circles), and benign non-cancerous samples (blue circles). Note that samples can
+be separated linearly, allowing the use of linear-methods-based learning schemes.
+Fig. 3 and Table 2 show the effect size values observed for each feature using
+the different measures introduced in Section 2.3 and the feature-selector-based
+decision rule, Section 2.4. Note that in Fig. 3 the Cohen’s d and Cohen’s D results
+10
+Nicolás Masino and Antonio Quintero-Rincón
+Fig. 2. t-SNE scatter plot examples of some initial features for malignant cancerous
+samples (red circles), and benign non-cancerous samples (blue circles). (a) Area worst
+vs. Concave points worst y (b) Perimeter worst vs. Radius worst (c) Texture worst vs.
+Concave point mean. y (d) Area see vs. Texture mean.
+Title Suppressed Due to Excessive Length
+11
+are based on the decision rule when the effect size value is greater than 0.8, while
+Cohen’s U1 to Cohen’s U3 results, the decision rule is based on the mean of its
+rank. A red vertical line in the figures shows the decision rule threshold. Decision
+rule results in Tables 3 and confidence intervals results in Table 4 complement
+the observed results of Fig. 3.
+(a) Cohen’s d
+(b) Cohen’s D
+(c) Cohen’s U1
+(d) Cohen’s U2
+(e) Cohen’s U3
+Fig. 3. Decision rule threshold results are illustrated by a red line for the features under
+study. (a) Cohen’s d: 0.8. y (b) Cohen’s D: 0.8. (c) Cohen’s U1: 0.5. (d) Cohen’s U2:
+0.7.(e) Cohen’s U3: 0.8.
+In Table 2, the Feature column contains the variables and the Effect Sizes
+columns show the more significant feature for each effect size measure based
+12
+Nicolás Masino and Antonio Quintero-Rincón
+on the decision rule. The feature-selector is highlighted with a black x and the
+common features for all effect sizes measure with a blue x.
+Table 2. Effect size feature-selector-based learning results. In blue, common features
+for all effect size measures are reported.
+Effect Sizes
+Features
+Cohen’s d Cohen’s D Cohen’s U1 Cohen’s U2 Cohen’s U3 Common features
+Radius mean
+x
+x
+x
+x
+x
+x
+Perimeter mean
+x
+x
+x
+x
+x
+x
+Area mean
+x
+x
+x
+x
+x
+x
+Texture mean
+x
+x
+Compactness mean
+x
+x
+x
+x
+x
+x
+Smoothness mean
+Concavity mean
+x
+x
+x
+x
+x
+x
+Concave points mean
+x
+x
+x
+x
+x
+x
+Symmetry mean
+Fractal dimension mean
+Radius se
+x
+x
+x
+x
+x
+x
+Perimeter se
+x
+x
+x
+x
+x
+x
+Area se
+x
+x
+x
+x
+x
+x
+Texture se
+Compactness se
+Smoothness se
+Concavity se
+Concave points se
+x
+x
+x
+Symmetry se
+Fractal dimension se
+Radius worst
+x
+x
+x
+x
+x
+x
+Perimeter worst
+x
+x
+x
+x
+x
+x
+Area worst
+x
+x
+x
+x
+x
+x
+Texture worst
+x
+x
+x
+x
+Compactness worst
+x
+x
+x
+x
+x
+x
+Smoothness worst
+x
+x
+x
+Concavity worst
+x
+x
+x
+x
+x
+x
+Concave points worst
+x
+x
+x
+x
+x
+x
+Symmetry worst
+x
+x
+Fractal dimension worst
+For feature-selector-based learning, a classical SVM with a linear kernel was
+used as a learner tool with 10-fold cross-validation. The experiment was repeated
+20 times randomly to assess consistency in the detection. The True Positive Rate
+or Recall or Sensitivity (TPR), False Positive Rate (FPS) or false alarm rate,
+Accuracy (ACC), and Area Under the Curve (AUC) classification performance
+metrics yield interesting results in detecting abnormalities in breast cancer. The
+metrics used in this study show excellent results, over 90% for all the effect sizes
+studied, except for Cohen’s U1 with an accuracy of 61.18%, but an acceptable
+AUC. Also, all common features for all the effect sizes were tested yielding an
+excellent performance. Additionally, the feature-selector filter method Relief [23]
+was tested for comparison with the effect size measures used, see Table 5. It
+is important to highlight that the complexity of effect sizes is linear O(f.n),
+while the Relief is quadratic O(f.n2), where f is the number of features and n is
+the number of instances [24]. These excellent results suggest that the effect size
+proposed is within the standards of the feature-selector methods.
+Title Suppressed Due to Excessive Length
+13
+Table 3. Ranks observed, Means, and Decision rules
+Effect Size Mean
+Rank
+Decision Rule
+Cohen’s d
+1.29
+[0, 2.7]
+0.8
+Cohen’s D
+1.20
+[0, 2.6]
+0.8
+Cohen’s U1
+0.56
+[0, 0.9]
+0.5
+Cohen’s U2
+0.74
+[0.5, 0.95]
+0.7
+Cohen’s U3
+0.84
+[0.3, 1]
+0.8
+4
+Conclusions
+In this work, a statistical feature-selector-based learning tool based on effect sizes
+was proposed to detect abnormalities in breast cancer from features extracted
+from cell nuclei images. Five parametric methods based on Cohen’s d, Cohen’s
+D, Cohen’s U1, Cohen’s U2, and Cohen’s U3 were used as feature-selectors to
+estimate a dimensional reduction of the data based on a numeric decision rule. To
+assess the potentiality of the tool proposed a classical SVM with a linear kernel
+was used as a learner classifier with a 10-fold cross-validation. The experiment
+was repeated 20 times randomly to assess consistency in detecting abnormalities
+in breast cancer. The True Positive Rate or Recall or Sensitivity (TPR), False
+Positive Rate (FPS) or false alarm rate, Accuracy (ACC), and Area Under the
+Curve (AUC) were used as metric performance achieving excellent results, over
+90% for all the effect sizes measures studied, except for Cohen’s U1 with accuracy
+over 60%, but an acceptable AUC. These excellent results suggest that the effect
+size of statistical feature-selector-based learning to detect breast cancer is within
+the standards of the feature-selector methods. A notable advantage of using effect
+size as feature-selection-based learning is the lower computational complexity and
+versatility. The effect size measures could be treated as a filter method, so the
+complexity is lower than other methods when the data dimension is high because
+they are estimated directly from the data and are independent of the sample
+size. The main limitation lies in the statistical significance. It can be misleading
+if it is influenced by sample size, since increasing the sample size may increase
+the probability of finding a statistically significant effect. Future work will focus
+on a comprehensive evaluation of the proposed approach with parametric and
+non-parametric effect size measures as feature-selection-based learning and on
+deriving instances of the method with other datasets tailored for specific medical
+applications in detecting abnormalities in breast cancer.
+14
+Nicolás Masino and Antonio Quintero-Rincón
+Table 4. Confidence Intervals for the effect sizes studied.
+Confidence Interval
+Features
+Cohen’s d
+Cohen’s D Cohen’s U1 Cohen’s U2 Cohen’s U3
+Radius mean
+[1.99, 2.41]
+[1.81, 2.31]
+[0.81, 0.87]
+[0.84, 0.88]
+[0.97, 0.99]
+Texture mean
+[0.76, 1.12]
+[0.77, 1.13]
+[0.45, 0.59]
+[0.64, 0.71]
+[0.77, 0.86]
+Perimeter mean
+[2.07, 2.5]
+[1.88, 2.39]
+[0.82, 0.88]
+[0.85, 0.89]
+[0.98, 0.99]
+Area mean
+[1.86, 2.28]
+[1.62, 2.12]
+[0.78, 0.85]
+[0.82, 0.87]
+[0.96, 0.98]
+Smoothness mean
+[0.61, 0.96]
+[0.62, 0.97]
+[0.38, 0.64]
+[0.62, 0.68]
+[0.73, 0.83]
+Compactness mean
+[1.34, 1.72]
+[1.24, 1.66]
+[0.66, 0.75]
+[0.74, 0.8]
+[0.91, 0.95]
+Concavity mean
+[1.79, 2.2]
+[1.64, 2.12]
+[0.77, 0.84]
+[0.81, 0.86]
+[0.96, 0.98]
+Concave points mean
+[2.31, 2.76]
+[2.07, 2.61]
+[0.85, 0.9]
+[0.87, 0.91]
+[0.98, 0.99]
+Symmetry mean
+[0.54, 0.89]
+[0.53, 0.89]
+[0.35, 0.51]
+[0.6, 0.67]
+[0.7, 0.81]
+Fractal dimension mean [−0.14, 0.19]
+[−0.14, 0.19]
+[0, 0.14]
+[0.5, 0.53]
+[0.42, 0.55]
+Radius se
+[1.23, 1.61]
+[1.05, 1.49]
+[0.63, 0.73]
+[0.73, 0.78]
+[0.89, 0.94]
+Texture se
+[−0.15, 0.18]
+[−0.14, 0.18]
+[0, 0.13]
+[0.5, 0.53]
+[0.42, 0.56]
+Perimeter se
+[1.19, 1.56]
+[1.01, 1.45]
+[0.61, 0.72]
+[0.72, 0.78]
+[0.88, 0.94]
+Area se
+[1.16, 1.54]
+[0.96, 1.4]
+[0.61, 0.71]
+[0.71, 0.77]
+[0.87, 0.93]
+Smoothness se
+[−0.03, 0.3]
+[−0.02, 0.3]
+[0, 0.21]
+[0.5, 0.56]
+[0.37, 0.51]
+Compactness se
+[0.45, 0.8]
+[0.44, 0.8]
+[0.3, 0.47]
+[0.59, 0.65]
+[0.67, 0.78]
+Concavity se
+[0.36, 0.71]
+[0.4, 0.73]
+[0.25, 0.43]
+[0.57, 0.63]
+[0.64, 0.76]
+Concave points se
+[0.74, 1.1]
+[0.75, 1.11]
+[0.44, 0.58]
+[0.64, 0.7]
+[0.77, 0.86]
+Symmetry se
+[−0.15, 0.18]
+[−0.16, 0.19]
+[0, 0.13]
+[0.5, 0.53]
+[0.42, 0.56]
+Fractal dimension se
+[−0.008, 0.33] [−0.006, 0.33]
+[0, 0.23]
+[0.5, 0.56]
+[0.49, 0.62]
+Radius worst
+[2.31, 2.76]
+[2.07, 2.61]
+[0.85, 0.9]
+[0.87, 0.91]
+[0.98, 0.99]
+Texture worst
+[0.87, 1.24]
+[0.88, 1.25]
+[0.5, 0.63]
+[0.66, 0.73]
+[0.81, 0.89]
+Perimeter worst
+[2.37, 2.82]
+[2.11, 2.66]
+[0.86, 0.91]
+[0.88, 0.92] [0.991, 0.997]
+Area worst
+[2.01, 2.44]
+[1.72, 2.24]
+[0.81, 0.87]
+[0.84, 0.88]
+[0.97, 0.99]
+Smoothness worst
+[0.78, 1.13[
+[0.76, 1.13]
+[0.46, 0.6]
+[0.65, 0.71]
+[0.78, 0.87]
+Compactness worst
+[1.32, 1.7]
+[1.19, 1.62]
+[0.65, 0.75]
+[0.74, 0.8]
+[0.9, 0.95]
+Concavity worst
+[1.61, 2.01]
+[1.54, 1.98]
+[0.73, 0.81]
+[0.78, 0.84]
+[0.94, 0.97]
+Concave points worst
+[2.46, 2.92]
+[2.35, 2.87]
+[0.87, 0.92]
+[0.89, 0.92] [0.993, 0.998]
+Symmetry worst
+[0.76, 1.12]
+[0.69, 1.08]
+[0.45, 0.59]
+[0.64, 0.71]
+[0.77, 0.86]
+Fractal dimension worst
+[0.53, 0.88]
+[0.48, 0.85]
+[0.34, 0.5]
+[0.6, 0.67]
+[0.7, 0.81]
+Table 5. True Positive Rate or Recall (TPR), False Positive Rate (FPS), Accuracy
+(ACC), and Area Under the Curve (AUC) classification performance metrics with this
+dataset
+Features
+TPR FPS ACC AUC
+Cohen’s d
+97.20 92.06 95.29
+0.98
+Cohen’s D
+90.65 90.48 90.59
+0.98
+Cohen’s U1
+72.90 41.27 61.18
+0.88
+Cohen’s U2
+98.13 84.13 92.94
+0.98
+Cohen’s U3
+96.47 99.07 92.06
+0.98
+Common features 94.39 93.65 94.12
+0.97
+Relief
+100
+95.24 98.24
+0.99
+Title Suppressed Due to Excessive Length
+15
+References
+1. World health organization: Breast cancer.
+https://www.who.int/news-room/
+fact-sheets/detail/breast-cancer, 2024. Accessed: 2024-05-05.
+2. Geoff Cumming and Robert Calin-Jageman. Introduction to the New Statistics.
+Estimation, Open Science, and Beyond. Routledge, 2024.
+3. Jacob Cohen. Statistical power analysis for the behavioral sciences. Routledge,
+2013.
+4. William Wolberg, Olvi Mangasarian, Nick Street, and W. Street. Breast Can-
+cer Wisconsin (Diagnostic).
+UCI Machine Learning Repository, 1995.
+doi:
+https://doi.org/10.24432/C5DW2B.
+5. Yun Li, Tao Li, and Huan Liu.
+Recent advances in feature selection and its
+applications. Knowledge and Information Systems, 53:551–577, 2017.
+6. Jundong Li, Kewei Cheng, Suhang Wang, Fred Morstatter, Robert P Trevino,
+Jiliang Tang, and Huan Liu. Feature selection: A data perspective. ACM computing
+surveys (CSUR), 50(6):1–45, 2017.
+7. Jianyu Miao and Lingfeng Niu. A survey on feature selection. Procedia Computer
+Science, 91:919–926, 2016. Promoting Business Analytics and Quantitative Man-
+agement of Technology: 4th International Conference on Information Technology
+and Quantitative Management (ITQM 2016).
+8. Mukesh; Saraswat and K. V. Arya. Feature selection and classification of leukocytes
+using Random Forest. Medical & Biological Engineering & Computing, 52(12):1041–
+1052, 2014.
+9. Beatriz Remeseiro and Veronica Bolon-Canedo.
+A review of feature selection
+methods in medical applications. Computers in Biology and Medicine, 112:103375,
+2019.
+10. Cheng; Lu, David; Romo-Bucheli, Xiangxue; Wang, Andrew; Janowczyk, Shridar;
+Ganesan, Hannah; Gilmore, David; Rimm, and Anant Madabhushi. Nuclear shape
+and orientation features from H&E images predict survival in early-stage estrogen
+receptor-positive breast cancers. Laboratory Investigation, 98(11):1438–1448, 2018.
+11. Alireza Osareh and Bita Shadgar. Machine learning techniques to diagnose breast
+cancer. In 2010 5th International Symposium on Health Informatics and Bioinfor-
+matics, pages 114–120, 2010.
+12. Mehmet Fatih Akay. Support vector machines combined with feature selection for
+breast cancer diagnosis. Expert Systems with Applications, 36(2, Part 2):3240–3247,
+2009.
+13. Isabelle Guyon, Steve Gunn, Masoud Nikravesh, and Lofti A. Zadeh. Feature
+Extraction Foundations and Applications. Springer, 2006.
+14. Azimul Haque. Feature Engineering and Selection for Explainable Models. Lulu.com,
+2023.
+15. W. Nick Street, W.H. Wolberg, and O.L. Mangasarian. Nuclear feature extraction
+for breast tumor diagnosis. Society of Photo-Optical Instrumentation Engineers
+(SPIE) Conference Series, 1905:861–870, 1993.
+16. Geoff Cumming. Understanding the New Statistics Effect Sizes, Confidence Intervals,
+and Meta-Analysis. Routledge, 2012.
+17. Daniël Lakens. Calculating and reporting effect sizes to facilitate cumulative science:
+A practical primer for t-tests and ANOVAs. Frontiers in psychology, 4:863, 2013.
+18. Kevin P. Murphy. Probabilistic Machine Learning An Introduction. The MIT Press,
+2022.
+16
+Nicolás Masino and Antonio Quintero-Rincón
+19. Gareth James, Daniela Witten, Trevor Hastie, and Robert Tibshirani. An Intro-
+duction to Statistical Learning with Applications in R. Springer, 2023.
+20. Ken Kelley. Confidence intervals for standardized effect sizes: Theory, application,
+and implementation. Journal of Statistical Software, 20(8):1–24, 2007.
+21. Jo Hardin. Bootstrapping. https://st47s.com/Math154/Notes/boot.html, 2024.
+Accesed: 2024-08-06.
+22. Nor Aishah Ahad and Sharipah Soaad Syed Yahaya. Sensitivity analysis of Welch’s
+t-test. AIP Conference Proceedings, 1605(1):888–893, 2014.
+23. Kenji Kira and Larry A. Rendell. A practical approach to feature selection. In
+Derek Sleeman and Peter Edwards, editors, Machine Learning Proceedings 1992,
+pages 249–256. Morgan Kaufmann, 1992.
+24. Ryan J. Urbanowicz, Melissa Meeker, William La Cava, Randal S. Olson, and
+Jason H. Moore. Relief-based feature selection: Introduction and review. Journal
+of Biomedical Informatics, 85:189–203, 2018.

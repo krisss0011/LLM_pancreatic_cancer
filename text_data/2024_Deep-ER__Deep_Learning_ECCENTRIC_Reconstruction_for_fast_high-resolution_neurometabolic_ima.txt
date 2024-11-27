@@ -1,0 +1,1061 @@
+Deep-ER: Deep Learning ECCENTRIC
+Reconstruction for fast high-resolution
+neurometabolic imaging
+Paul Weiser1,2,3, Georg Langs3, Wolfgang Bogner4, Stanislav Motyka3,
+Bernhard Strasser4, Polina Golland5, Nalini Singh5, Jorg Dietrich6,
+Erik Uhlmann7, Tracy Batchelor8, Daniel Cahill9, Malte Hoffmann1,2,
+Antoine Klauser10,11, and Ovidiu C. Andronesi1,2,*
+1Athinoula A. Martinos Center for Biomedical Imaging,
+Massachusetts General Hospital, Boston, MA, USA
+2Department of Radiology, Massachusetts General Hospital, Harvard
+Medical School, Boston, MA, USA
+3Computational Imaging Research Lab - Department of Biomedical
+Imaging and Image-guided Therapy, Medical University of Vienna,
+Vienna, Austria
+4High Field MR Center - Department of Biomedical Imaging and
+Image-Guided Therapy, Medical University of Vienna, Vienna,
+Austria
+5Computer Science and Artificial Intelligence Lab, MIT, Cambridge,
+MA, USA
+6Pappas Center for Neuro-Oncology, Department of Neurology,
+Massachusetts General Hospital, Boston, MA, USA
+7Department of Neurology, Beth-Israel Deaconess Medical Center,
+Boston, MA, USA
+8Department of Neurology, Brigham and Women’s Hospital, Boston,
+MA, USA
+9Department of Neurosurgery, Massachusetts General Hospital,
+Boston, MA, USA
+10Advanced Clinical Imaging Technology, Siemens Healthineers
+International AG, Lausanne, Switzerland
+11Center for Biomedical Imaging (CIBM), Geneva, Switzerland
+September 30, 2024
+1
+arXiv:2409.18303v1  [eess.IV]  26 Sep 2024
+Abstract
+Introduction. Altered neurometabolism is an important pathologi-
+cal mechanism in many neurological diseases and brain cancer, which
+can be mapped non-invasively by Magnetic Resonance Spectroscopic
+Imaging (MRSI). Advanced MRSI using non-cartesian compressed-
+sense acquisition enables fast high-resolution metabolic imaging but
+has lengthy reconstruction times that limits throughput and needs ex-
+pert user interaction.
+Here, we present a robust and efficient Deep
+Learning reconstruction embedded in a physical model within an end-
+to-end automated processing pipeline to obtain high-quality metabolic
+maps.
+Methods. Fast high-resolution whole-brain metabolic imaging was
+performed at 3.4 mm3 isotropic resolution with acquisition times be-
+tween 4:11-9:21 min:s using ECCENTRIC pulse sequence on a 7T
+MRI scanner. Data were acquired in a high-resolution phantom and
+27 human participants, including 22 healthy volunteers and 5 glioma
+patients. A deep neural network using recurring interlaced convolu-
+tional layers with joint dual-space feature representation was devel-
+oped for deep learning ECCENTRIC reconstruction (Deep-ER). 21
+subjects were used for training and 6 subjects for testing. Deep-ER
+performance was compared to conventional iterative Total Generalized
+Variation reconstruction using image and spectral quality metrics.
+Results. Deep-ER demonstrated 600-fold faster reconstruction than
+conventional methods, providing improved spatial-spectral quality and
+metabolite quantification with 12%-45% (P¡0.05) higher signal-to-noise
+and 8%-50% (P¡0.05) smaller Cramer-Rao lower bounds. Metabolic
+images clearly visualize glioma tumor heterogeneity and boundary.
+Deep-ER generalizes reliably to unseen data.
+Conclusion.
+Deep-ER provides efficient and robust reconstruction
+for sparse-sampled MRSI. The accelerated acquisition-reconstruction
+MRSI is compatible with high-throughput imaging workflow. It is ex-
+pected that such improved performance will facilitate basic and clinical
+MRSI applications for neuroscience and precision medicine.
+Abbreviations: MRSI = Magnetic Resonance Spectroscopic Imaging, EC-
+CENTRIC = ECcentric Circle ENcoding TRajectorIes for Compressed sens-
+ing, Deep-ER = Deep learning Eccentric Reconstruction, TGV = Total Gen-
+eral Variation, TGV-ER = TGV Eccentric Reconstruction.
+Keywords: MR Spectroscopic Imaging, Compressed Sensing, Non-Cartesian,
+Deep Learning, Image Reconstruction, Ultra High Field, Brain, Glioma,
+Metabolism.
+2
+1
+Introduction
+Magnetic resonance spectroscopic imaging (MRSI) is unique in its ability to
+non-invasively probe a detailed profile of brain metabolism [1], [2]. Hence, it
+is a highly valuable imaging modality employed in fundamental neuroscience
+[3] and clinical neurology [4].
+In particular, whole-brain MRSI at ultra-high-field provides comprehen-
+sive in-vivo assessment of more than ten neurometabolites simultaneously
+with high-resolution spatial mapping.
+However, its potential is not fully
+realized due to limitations in technical performance. Such MRSI data are
+essentially 4D (or more), encoding 3 spatial dimensions and 1 (or more)
+spectral dimensions. The need to encode the spectral dimension with high
+temporal rate (>1kHz) and the low signal-to-noise ratio (SNR) of metabo-
+lites impose demanding requirements on the MRSI acquisition compared to
+other MRI modalities. As a result, the acquisition of high spatial resolu-
+tion MRSI requires acceleration techniques for scan times that are clinically
+feasible.
+Substantial acceleration can be achieved by combining spectral-spatial
+encoding (SSE) with undersampling techniques [5], [6]. While non-Cartesian
+undersampled SSE schemes reduce the acquisition time of high-resolution
+(≈3 mm isotropic) whole-brain MRSI from hours to less than 10 minutes
+[7]–[9], the reconstruction times for such rapidly acquired data are often
+prohibitive (hours) with classical algorithms. This represents a significant
+obstacle to the adoption of fast high-resolution MRSI for human imaging in
+research and clinical applications.
+Although deep learning (DL) methods enable near-instant reconstruction
+of structural compressed-sensing MRI [10], [11], for high-resolution MRSI
+the spectral-spatial data size and the feature-parameter space that have
+to be explored pose great challenges to deep learning reconstruction with
+today’s computational hardware. Furthermore, due to the low SNR of the
+metabolite signal, exceptional fidelity of the DL reconstruction is required
+along the spectral dimension to avoid noise amplification and spurious peaks
+for accurate metabolite quantification. Considering that SNR of MRSI is
+3-5 orders of magnitude lower than MRI, stability that may be appropriate
+for MRI reconstructions is not sufficient for MRSI.
+Due to these challenges, only few DL MRSI reconstructions have been
+shown to date [12]–[14], with implementations that may limit their general-
+ization and practical applicability to: 1) Cartesian k-space data, 2) pipelines
+with multiple neural networks to reconstruct different regions of the k-space,
+3) single-slice MRSI, and 4) use of spectral dimension that makes the recon-
+struction dependent on the nucleus, pulse sequence and B0 field.
+In the present work, we addressed these limitations and extended DL
+MRSI reconstruction to non-Cartesian undersampled SSE acquisitions, such
+as the ECCENTRIC pulse sequence [7].
+3
+ECCENTRIC acquires randomized circular k-space trajectories, simul-
+taneously accelerating two spatial dimensions and providing optimal SNR
+for high spatial resolution at ultra-high field. ECCENTRIC acquisition re-
+sults in a 4D matrix size of 64×64×31×451 complex-valued data points for
+each receive channel, requiring 13.7 GB of memory. Considering that DL re-
+quires holding a computational graph with intermediate tensors to compute
+gradients via backpropagation [15]–[17], processing the full MRSI acquisi-
+tion in one-shot exceeds the capability of the GPU hardware most research
+laboratories have access to.
+Due to the challenges of k-space undersampling and k-space point hold-
+ing information about every spatial voxel, we adopted a strategy aligning
+MRSI reconstruction with dynamic 4D MRI [18]. Specifically, we recon-
+structed each k-space volume independently along the MRSI time dimen-
+sion, reducing the input data size to 31 MB.
+The reconstruction of individual timepoints brings several benefits. 1)
+It enables us to use the water signal as training data, which can be ac-
+quired substantially faster by omitting water suppression in the MRSI pulse
+sequence and shortening the repetition time. 2) Reconstruction of water
+MRSI can be validated directly against high-resolution structural MRI. This
+is an advantage compared to validation using metabolic maps that have less
+clear structural features due to lower SNR, which can confound the infor-
+mativity of quality metrics. 3) Because each time point is reconstructed
+separately, the reconstruction is independent of pulse sequence characteris-
+tics such as the echo time, repetition time, B0 field, and nucleus. Hence, the
+reconstruction has the potential to generalize naturally to varied acquisition
+parameters and data.
+Processing MRSI as dynamic time-series MRI requires reconstructing
+3-dimensional image volumes along the time dimension with high fidelity
+despite the substantially varying contrast and SNR. Advances in DL have
+lead to an array of neural-network approaches, most often focusing on the
+reconstruction of structural MRI [19]–[32]. While the majority of these ap-
+proaches operate either solely in image space or k-space, a recent class of
+methods demonstrated improved performance by jointly extracting features
+from both spaces [30], [33]–[37]. A promising example of these methods,
+Interlacer [37], achieves dual-space feature extraction with recurring lay-
+ers that separately learn convolutional filters in each space, subsequent to
+a mixing operation that adds features from each space to the other after
+taking the appropriate Fourier transform. This strategy proved to outper-
+form state-of-the-art networks across a variety of tasks, most importantly
+reconstruction of undersampled 2D multi-channel MRI.
+The reconstruction network was integrated in an efficient end-to-end pro-
+cessing pipeline for whole-brain 1H-MRSI and was evaluated on phantoms,
+healthy human volunteers and glioma patients.
+4
+2
+Materials and Methods
+2.1
+Human Subjects:
+27 subjects were scanned at the Athinoula A. Martinos Center for Biomed-
+ical Imaging with informed consent (Protocol 2013P001195), including 22
+healthy volunteers (12M/10F, 21-49 years) and 5 patients with glioma tu-
+mors (demographics and 2021 WHO histo-molecular diagnosis [38] are listed
+in Table 1).
+Patient
+Age/
+Histological Diagnosis
+Molecular Diagnosis
+#
+Gender
+Grade
+Type
+IDH1 status
+1p/19q codel
+Other
+1
+34/F
+3
+Astrocytoma
+mutant
+not-deleted
+2
+25/M
+3
+Astrocytoma
+mutant
+not-deleted
+ATRX, TP53
+3
+66/F
+3
+Oligodendroglioma
+mutant
+co-deleted
+TP53
+4
+58/M
+2
+Astrocytoma
+mutant
+not-deleted
+5
+35/M
+4
+Glioblastoma
+wild-type
+not-deleted
+C7+/C10-, MGMT-, EGFRvIII
+TABLE 1: The demographics of glioma patients along with their histo-
+logical and molecular diagnoses according to the 2021 World Health Or-
+ganization guidelines: IDH1= isocitrate dehydrogenase 1, 1p/19q codel=
+codeletion of the short arm of chromosome 1 and the long arm of chro-
+mosome 19, ATRX= α-thalassemia mental retardation X-linked, MGMT=
+O6-methylguanine-DNA methyltransferase, TP53= tumor protein p53,
+C7+/C10-= gain of chromosome 7 and loss of chromosome 10, CDK4=
+Cyclin-dependent kinase 4, EGFRvIII= Epidermal growth factor variant
+III.
+2.2
+MRSI Acquisition:
+Whole-brain 1H-FID-MRSI was acquired with the 3D-ECCENTRIC (Fig.
+1, top) pulse sequence [7] on a 7T scanner (MAGNETOM Terra, Siemens
+Healthcare, Germany) equipped with a 32Rx/1Tx head coil (NovaMedical,
+USA) using: 0.9 ms echo-time, 27° excitation flip-angle, 275 ms repetition-
+time, field-of-view 220x220x105 mm3, matrix size 64x64x31, 3.4x3.4x3.4
+mm3 voxel size. The ECCENTRIC circle radius was set to kmax/8 with
+spectral bandwidth of 2326 Hz without temporal interleaving. The acquisi-
+tion was further accelerated (AF=2-4) by random undersampling ECCEN-
+TRIC, resulting in acquisition times between 4:11-9:21 min. Low-resolution
+water calibration data was acquired for determination of coil sensitivity pro-
+files and B0 field estimation with the same sequence but a smaller matrix
+size (22x22x11) and rosette trajectory in 1:16 minutes. For training, fully
+sampled water un-suppressed MRSI data were acquired with the same 3D-
+ECCENTRIC 1H-FID-MRSI sequence, but shorter TR=100ms in 6:46 min-
+utes.
+5
+2.3
+Deep Learning MRSI Reconstruction
+Reconstruction of multi-channel proton MRSI (1H-MRSI) requires multi-
+ple, sophisticated steps to extract metabolite signals from the overwhelming
+background of water and lipid signals in the presence of the inhomogeneous
+B0 field and produce metabolic maps. We addressed this challenge by imple-
+menting an efficient end-to-end 1H-MRSI processing pipeline that integrates
+physics-based modeling and data-driven machine learning as shown in Fig-
+ure 1, including the following specific steps: 1) single channel initialization
+2) coil combination, 3) B0 correction, 4) water and lipid removal, 5) image
+reconstruction, 6) low-rank decomposition, and 7) spectral fitting. The main
+novelty of the presented pipeline lies in the design of deep neural networks
+for the removal of nuisance signals (step 4) and image reconstruction (step
+5), which is the main topic of this paper. The deep learning reconstruction
+is described in the following, while details of the other steps are provided in
+the Supplementary Material.
+In this work, we built on and extended the fully convolutional joint-
+domain Interlacer [37] architecture for effective domain transfer to MRSI
+reconstruction. First, we extended Interlacer to support our specific data
+requirements by applying image- and k-space convolutions in 3D. We in-
+creased the receptive field in the image-space domain using a series of con-
+volutional blocks and performed coil combination with ESPIRiT [39] coil
+sensitivity maps in each Interlacer layer. Second, we extended the model
+to non-Cartesian acquisitions via inclusion of an initial gridding layer that
+samples the non-Cartesian k-space input onto a grid using iNUFT [40] fol-
+lowed by FFT. Third, we embedded the network and end-to-end optimized
+it in conjunction with a full MRSI reconstruction pipeline.
+The convolutional network (Fig. 1, bottom) takes as input to the first
+layer the coil-combined undersampled image data (x1) and gridded multi-
+channel undersampled k-space (k1) to predict fully sampled k-space on a
+Cartesian grid, which is subsequently transformed to image space, where
+the loss is computed. In a series of nL = 10 recurrent Interlacer-type layers
+fi (i ∈{1, 2, ..., nL}) [37], the input (xi, ki) to each layer is added back to its
+output fi(xi, ki) = ( ˜xi, ˜ki), removing undersampling artifacts by applying
+incremental corrections to obtain the fully sampled image xFS,
+ki+1 = ˜ki + ki
+(1)
+xi+1 = ˜xi + xi
+(2)
+Each Interlacer layer separately applies convolutional blocks in k-space
+and image-space. Before each block, image- and k-space features are merged
+via weighted addition with learnable mixing parameters {αi, βi},
+6
+Figure 1:
+Deep-learning ECCENTRIC reconstruction (Deep-ER), fully
+compatible with non-Cartesian compressed-sensing MRSI acquisition over
+the whole brain. Top: ECCENTRIC pulse sequence with ultra-short TE ex-
+citation and gradient waveforms for eccentric circles, showing full sampling
+(AF=1) and twice accelerated compressed-sense undersampling (AF=2), as
+well as the 3D spherical stack of phase-encoded partitions. Middle: Process-
+ing pipeline diagram. Bottom: Deep-learning image reconstruction using 10
+fully convolutional Interlacer layers. Each layer processes image and k-space
+features in parallel, mixing them back together by a learned linear combina-
+tion after taking the appropriate Fourier transform. The output of each layer
+is added back to the input. The network reconstructs each 3D time-point of
+MRSI data separately to maintain independence of the specific acquisition
+parameters of the MRSI sequence.
+kmix
+i
+= αiF(C−1(xi)) + (1 −αi) ki
+(3)
+xmix
+i
+= βixi + (1 −βi) F−1(C(ki))
+(4)
+where F represents the FFT operation and C the channel-wise coil combi-
+nation of individual coil images by voxel-wise multiplication with ESPIRiT
+7
+profiles [39].
+A single block with 64 filters is applied in k-space, whereas three blocks
+with 2-64-2 features, respectively, are applied in image space. The convo-
+lutional blocks each apply 3×3×3 kernels followed by BatchNorm [41], as
+well as ReLU activation in image space and 3-piece activation [37] in k-
+space. Complex values are processed as concatenated real and imaginary
+channels [42]. A final convolutional layer is applied at the end to obtain the
+desired 64 real and imaginary k-space channels.
+The ground truth image xGT was generated for training purposes from
+fully sampled k-space data kFS, utilizing the conventional reconstruction
+method presented in [7], which is based on an iterative optimization that em-
+ploys Total-Generalized-Variation (TGV) [43] as a regularizer. Additional
+details are provided in the TGV-ER subsection of the Methods.
+During training, the weights θ of the neural network f(·|θ) are optimized
+subject to
+θ = arg min
+θ
+EkF S∼K
+h
+L
+ f(UkFS|θ), xGT
+i
+(5)
+where L is a loss function measuring the error of the network prediction from
+the ground-truth image, U is the undersampling operator that derives kUS
+from kFS, and K represents the distribution of fully sampled ECCENTRIC
+k-space training data.
+The loss function L combines mean-squared-error
+(MSE) and structural-similarity-index (SSIM) terms,
+L
+ f(kUS), xGT
+
+= MSE
+ f(kUS), xGT
+
++ (1 −SSIM
+ f(kUS), xGT )
+
+(6)
+in order to minimize outliers and maximize visually perceptible structural
+information between the network output f(kUS) and the ground truth image
+xGT . In the following, the trained image reconstruction network is referred
+to as Deep-ER (Deep learning Eccentric Reconstruction).
+2.4
+Deep-ER training details
+Water MRSI data from 21 subjects were used for training and validation,
+with 6 additional subjects used for testing. The training data were aug-
+mented by adding a random global phase and random rotation (±0.3 rad),
+translation (±20 mm), and scaling (±20%) transformations in image space [44].
+During training, non-Cartesian k-space data was randomly undersam-
+pled to achieve accelerations AF ∈[1, 6]. Two types of k-space trajectories
+are acquired by ECCENTRIC: circles that pass through the center of their
+kz partition and circles that do not. Retrospective undersampling exclu-
+sively omitted the latter, which is in-line with ECCENTRIC undersampling
+during the acquisition. Data were normalized into the interval [0, 1] in im-
+age space by dividing the undersampled input and TGV-ER-reconstructed
+8
+ground truth data by the maximum absolute value of the input. Optimiza-
+tion used Adam [45] with a learning rate of 10−5 for 500 epochs over the
+training set. The network was trained on a Dell PowerEdge R7525 server
+with 64 CPU cores (AMD EPYC 7542 2.90GHz, 128M Cache, DDR4-3200),
+512 GB CPU RAM (RDIMM, 3200MT/s), 3 NVIDIA Ampere A40 GPUs
+(PCIe, 48GB RAM) running Rocky Linux release 8.8 (Green Obsidian) us-
+ing PyTorch 2.2.1 and CUDA 12.1 packages in Python 3.8.
+2.5
+Statistical Analysis:
+Paired one-tail T-Test was used to check statistical significant (P<0.05)
+improvement in a voxel-wise comparison of metabolic image maps obtained
+by Deep-ER relative to TGV-ER reconstruction. P-values were adjusted for
+multiple comparison by Bonferroni correction.
+3
+Results
+To evaluate the performance of the newly developed deep learning Deep-ER
+reconstruction pipeline we compared its results to the conventional TGV-ER
+reconstruction pipeline that was previously demonstrated [7]. For a more
+compact notation in Figures and Tables we indicated the results obtained
+by Deep-ER as Deep and results obtained by TGV-ER as TGV.
+TGV
+(hh:min.)
+Deep
+(hh:min.)
+Image
+Reconstruction
+09:50
+00:01
+Pipeline w/o
+Spectral fitting
+11:23
+00:28
+Pipeline w
+Spectral fitting
+13:06
+02:11
+TABLE 2: Processing times for TGV-ER and Deep-ER pipelines. ’Image
+Reconstruction’ includes only the time taken by this pipeline’s step. The
+second time includes reconstruction and all the prior steps, while the last line
+provides the total time that includes also the spectral fitting by LCModel [46]
+after the reconstruction. The TGV-ER performs lipid suppression, Fourier
+transform and B0 correction during the iterative reconstruction.
+In Table 2 the computational efficiency of the Deep-ER and TGV-ER
+reconstructions are compared. The image reconstruction step of the 4D (k,t)
+ECCENTRIC data by the Interlaced network [37] is performed in 1 minute,
+9
+which is approximately
+600 times (590) faster than conventional recon-
+struction.
+The total processing times which include all processing steps,
+with and without spectral fitting, are provided for each MRSI pipeline. Ad-
+ditional speed-up is possible for Deep-ER pipeline due to faster water and
+lipid removal by the WALINET [47] deep neural network. Hence, in the case
+of Deep-ER pipeline the largest contribution to the processing time comes
+from the last step of spectral fitting.
+The performance of the Interlacer reconstruction (Deep) was first evalu-
+ated on the water MRSI test data acquired in human participants. For this,
+the water suppression was turned off during ECCENTRIC acquisition while
+in the processing pipeline the water-lipid removal and spectral fitting steps
+were omitted. Hence, the quality of the water MRSI data is determined
+only by the performance of the image reconstruction step. As can be seen
+by visual inspection of Figure 2, the water images obtained by Interlacer
+reconstruction agree well with the ground-truth T1 weighted MRI, showing
+improved image quality compared to TGV and iNUFT reconstructions. In
+particular, iNUFT exhibits visible undersampling ringing artifacts for accel-
+eration factors higher than 2. The NRMSE (normalized root mean square
+error) and SSIM (structure similarity index) show less error and more struc-
+tural similarity for the Interlacer compared to TGV and iNUFT. While the
+images above show improvements for the first time point of the FID (free in-
+duction decay), the time series FIDs at the bottom indicate that across time
+dimension the Interlacer provides more stable reconstruction with increasing
+acceleration. There is higher variability between the FIDs of different accel-
+erations for iNUFT and TGV. At higher accelerations (A.F.≥4), there is
+increased jittering of the FID for iNUFT and TGV reconstructions. Larger
+FID variability and jittering results in noisier spectra and metabolic maps
+as can be seen in Supplementary Figure 1.
+The MRSI pipeline was evaluated next on the high resolution struc-
+tural metabolic phantom shown in Figure 3. The Deep-ER pipeline pro-
+vides higher quality metabolic images compared to TGV-ER, visualizing
+well structural features up to 4 mm resolution, which can be resolved by
+the 3.4 mm resolution of ECCENTRIC acquisition. The correlation coeffi-
+cients (CC) between the metabolic maps obtained by the two methods show
+that overall there is a good agreement between the newly proposed DL re-
+construction and the conventional established reconstruction. In the case of
+TGV-ER the 4 mm diameter tubes are blurred and less resolved compared to
+Deep-ER. The overlaid spectra at the bottom show that Deep-ER provides
+a more stable spectral reconstruction across accelerations, while TGV-ER
+shows more spectral variability. Combined these results demonstrate that
+the network trained only on human brain data sets, generalizes well to very
+different unseen data sets such as the structural metabolic phantom.
+In-vivo metabolic images reconstructed from two-fold accelerated (A.F.=2)
+ECCENTRIC data acquired in a glioma patient and a healthy volunteer are
+10
+Figure 2: Comparison of reconstruction methods for water images acquired
+with ECCENTRIC in human brain for accelerations 1 to 6. The top im-
+ages present the data reconstructed only with the inverse non-uniform FFT
+(iNUFT). The center images show the reconstruction performed by conven-
+tional compressed sense reconstruction (TGV) and the bottom slices show
+reconstruction by Interlacer (Deep). The images reconstructed for the first
+FID time point of ECCENTRIC are shown for each reconstruction method.
+The corresponding ground truth T1-weighted image is shown to the left.
+Two different slices are presented for each reconstruction method. NRMSE
+and SSIM were computed for each acceleration between the T1-weighted
+image and the ECCENTRIC reconstructions. At the bottom examples of
+FIDs time-series overlaid for all accelerations are shown for all three meth-
+ods.
+shown in Figure 4. Metabolic maps in the patient show well defined bound-
+aries for the tumor and metabolic heterogeneity within the tumor. There
+is higher contrast between the tumor and the normal brain in the maps
+11
+Figure 3: Phantom metabolic images of Creatine reconstructed by Deep-
+ER and TGV-ER for accelerations from 1 to 5.
+Correlation coefficients
+(CC) indicate the agreement between Creatine images reconstructed by the
+2 methods.
+Representative spectra from voxels indicated by arrows are
+presented at the bottom. Spectra for all accelerations are shown overlaid
+for each method from the tubes of 10mm (I), 8mm (II), 6mm (III) and 4mm
+(IV) diameter. The 2mm tubes are not individually resolved by the 3.4mm
+ECCENTRIC resolution.
+produced by Deep-ER compared to TGV-ER. In the healthy volunteer sim-
+ilar gray-white matter structural features are visible in the metabolic maps
+obtained by both Deep-ER and TGV-ER reconstructions. The qualitative
+parametric maps clearly indicate higher SNR and lower CRLB values for the
+Deep-ER compared to TGV-ER reconstruction. Examples of spectra show a
+very distinctive pattern between tumor and healthy metabolic profiles, with
+a better spectral fit in the case of Deep-ER than TGV-ER spectra. In addi-
+tion, Supplementary Figure 1 shows metabolic maps obtained for all accel-
+erations (A.F.=1-5) with Deep-ER, TGV-ER and iNUFT reconstructions.
+For the fully sample data (A.F.=1) the Deep-ER metabolic maps show the
+sharpest anatomical features compared to TGV-ER and iNUFT maps. As
+the acceleration increases it can be seen that the metabolic maps obtained by
+iNUFT reconstruction become gradually noisier, while the metabolic maps
+of TGV-ER reconstruction exhibit increasing blurring of structural details.
+In the same time, the accelerated Deep-ER metabolic maps preserve sharper
+12
+Figure 4: Metabolic images in a glioma patient (top, Patient #1 in Ta-
+ble 1) and a healthy volunteer (bottom). The deep learning Deep-ER re-
+construction (left) is compared to the conventional TGV-ER reconstruc-
+tion (right) showing metabolic maps (NAA, Choline, Creatine, Glutamate
+and Glutamine), maps of SNR and Cramer-Rao Lower Bounds (NAA and
+Choline). Example of spectra from individual voxels indicated by red ar-
+rows on the anatomical images are shown at the bottom (white trace shows
+measured spectrum, red trace shows LCModel fit).
+structural features compared to TGV-ER maps and have less noise ampli-
+fication compared to iNUFT maps. Examples of the spectra show artifacts
+that overlap metabolite peaks for iNUFT reconstruction of accelerated data,
+indicative of undersampling aliasing artifacts.
+Quantitative analysis from all test subjects is presented in Figure 5. The
+Bland-Altman plots show a very small bias between Deep-ER and TGV-ER
+metabolic maps. The bias increases slightly from the lowest (A.F.=1) accel-
+eration (0.6%-2%) to the highest (A.F.=5) acceleration (3%-7%). A similar
+trend is noticed for the confidence interval, showing that limits of agreement
+increases from [-59%, +55%] for A.F.=1 to [-96%, +82%] for A.F.=5. Box-
+plots indicate Deep-ER has higher SNR (12%-45% more) than TGV-ER,
+which is statistically significant (P<0.05) for reconstructions up to A.F.=4.
+In addition, Deep-ER has lower CRLB (8%-50% less) than TGV-ER that is
+statistically significant for A.F.=2. Spectral linewidth with a mean value of
+0.04-0.05 ppm is obtained for both reconstructions. Supplementary Figure
+13
+2 shows the change in correlation coefficient, normalized root mean square
+error and structure-similarity index across accelerations. These metrics indi-
+cate that as the acceleration increases the difference between Deep-ER than
+TGV-ER slightly increases (NRMSE from 8% to 12%, SSIM from 0.9 to 0.82,
+CC from 0.97 to 0.93), however all metrics are well above the thresholds for
+high agreement and high quality reconstruction.
+Figure 5: Quantitative comparison of metabolic maps across acceleration
+factors.
+Left: Bland-Altman plots are computed for acceleration 2 to 5
+for the reconstructed metabolic maps (NAA+NAAG, Cr+PCr, GPC+PCh,
+Glu+Gln and Ins+Gly). Right: Boxplots of FWHM, SNR and CRLB of
+total NAA, Choline and Creatine as computed by LCModel. Each plot com-
+pares the deep learning based approach Deep-ER to conventional TGV-ER
+reconstruction across accelerations 2 to 5. Statistical significant differences
+are indicated by the * symbol.
+4
+Discussion
+In this work we developed an end-to-end processing pipeline for high-resolution
+MRSI data that integrates DL models for image reconstruction and nuisance
+signal removal. These two steps are time consuming and of critical impor-
+tance for the quality of metabolic images.
+The Deep-ER neural network was specially developed to reconstruct non-
+cartesian compressed sense MRSI. We demonstrated that Deep-ER provides
+high efficiency and quality: 1) The reconstruction time of whole-brain high-
+resolution 1H-MRSI 3D FID-ECCENTRIC is greatly reduced by a factor
+of almost 600 using Deep-ER compared to conventional TGV-ER. 2) Ef-
+14
+ficient usage of GPU memory enables multichannel high-resolution MRSI
+data processing. 3) High temporal consistency across accelerations reduces
+spectral noise and improves precision and accuracy of metabolite quantifi-
+cation.
+4) Sharper spatial features and less image blurring are achieved
+with increasing accelerations. Although we demonstrated Deep-ER for un-
+dersampled ECCENTRIC trajectories, the network can be easily applied to
+other accelerated spectral-spatial encoding trajectories.
+Our learning strategy addresses an important bottleneck in neural net-
+work development associated with the scarcity of training data for high
+resolution MRSI. Because of the challenges with acquiring high resolution
+metabolic MRSI data, it is common practice to use simulated data [48]
+instead of measured data for training models of MRSI reconstruction. How-
+ever, it is hard to capture by simulations all the complexity of MRSI mea-
+surements [6].
+In a departure from prior methods, our approach was to
+train on the water signal measured by water-unsuppressed MRSI, which is
+easier to acquire and can provide high quality ground truth images. This
+concept brings high flexibility and makes the network independent of echo-
+time, magnetic field and nucleus. Additionally, such training results in a
+robust network that can generalize the reconstruction to structures that are
+completely different than brain, as proven on phantom data.
+When Deep-ER reconstruction of water-unsuppressed MRSI was com-
+pared to high quality T1-weighted MRI we observed very good agreement
+(NRMSE ≈8%, SSIM ≈0.9). The small image difference is explained by
+small difference in acquisition parameters of water-unsuppressed MRSI by
+ECCENTRIC and T1-weighted by the standard FLASH sequence [49]. Al-
+though we tried to match as closely as possible the acquisition parameters
+(TR, TE, FA, matrix, FOV) of the two sequences, there were few differ-
+ences such as different RF pulse used for excitation, coil combination and
+the use of GRAPPA acceleration for T1-weighted. These can lead to slightly
+different image contrast due to RF transmit and receive inhomogeneity at
+ultra-high field.
+We observed high stability of the Deep-ER reconstruction across the FID
+time series with increasing acceleration, in particular for the late time points
+that have significantly lower SNR compared to the beginning of the FID.
+By comparison there is more variability between FIDs of different accelera-
+tions and more FID jittering at high accelerations for TGV-ER and iNUFT
+reconstructions. The high fidelity of Deep-ER was important to obtain bet-
+ter spectra and correspondingly metabolic maps of superior quality across
+accelerations, compared to TGV-ER or iNUFT reconstructions.
+At the moment the main limitation of Deep-ER is the matrix size of the
+data, which for this work was fixed to 64x64x31. However, due to its efficient
+memory utilization and training data generation the network can be trained
+for higher matrix sizes, and this will be subject of future work. Further
+acceleration of the end-to-end MRSI processing pipeline can be obtained by
+15
+speeding with deep learning the spectral fitting [50]–[54] and pre-processing
+steps (coil combination [55], B0 correction [56] or artifact removal/denoising
+[57], [58]).
+In addition, the MRSI data quality can be further improved
+using real-time motion correction and shim update [59] in combination with
+integrated receive-shim arrays [60].
+A particular challenge for the reconstruction of undersampled whole-
+brain 1H-MRSI data is represented by the overwhelming nuisance signals of
+water and fat, which create aliasing artifacts during image reconstruction.
+Nuisance signals need to be removed prior to metabolic image reconstruc-
+tion, however, conventional methods [61], [62] come with significant pro-
+cessing times. For this reason we developed the WALINET neural network
+[47] that removes efficiently and accurately the fat and water signals before
+reconstruction of metabolite images.
+In summary, we demonstrate a robust and fast MRSI processing pipeline
+that can be combined with accelerated high-resolution MRSI acquisition to
+obtain high quality metabolic imaging of the brain. We expect that such
+advanced joint acquisition-reconstruction MRSI methodology will open new
+avenues of discovery in neuroscience research and enable high-throughput
+workflow consistent with the needs of clinical translation for precision medicine
+in patients.
+16
+Supplementary Material
+5
+Supplementary Methods
+5.1
+MRSI pre-processing:
+MRSI 4D (k,t) data of each coil channel were pre-processed by apply-
+ing Hamming filter and density compensation based on Voronoi diagrams
+[63]. Voronoi diagrams were computed based on the ECCENTRIC sampling
+scheme and each k-space points was normalized by the area of its assigned
+Voronoi vertex. Inverse non-uniform Fourier transform (iNUFT) [40] was
+performed with the density compensation for each in-plane partition (kx,ky)
+and conventional inverse fast Fourier transformation was applied along the
+uniformly sampled kz axis.
+Coil combination was performed by multiplication of the adjoint coil
+sensitivity profile with each channel and their summation, resulting in the
+initial 4D image-time MRSI data. Coil sensitivity profiles were computed
+from water un-suppressed MRSI data using ESPIRiT [39].
+To compensate for B0 field inhomogeneities, a frequency shift map was
+estimated from water un-suppressed measurement and applied on the coil
+combined MRSI image [64].
+Water residual was removed using Hankel singular value decomposition
+[61] and filtering out frequencies from a predefined range around 4.7ppm.
+5.2
+Deep Learning Lipid Removal:
+Before DL reconstruction of the MRSI dataset, the nuisance lipid signal was
+removed by a new approach using deep learning to identify the lipid sig-
+nal. The WALINET (WAter and LIpid neural NETwork) method provides
+an improvement over the conventional L2-lipid regularization suppression
+method [62].
+The network architecture was based on Y-Net [65] with 2 encoders and
+1 decoder.
+The encoders and decoders consist of 4 convolutional blocks
+followed by MaxPooling or upsampling. Each convolutional block contains
+dropout, two convolutional layers and two ReLU activation functions. Skip
+connections are applied between the blocks in the encoders and decoder.
+Full details about WALINET are presented in [47].
+17
+5.3
+TGV-ER Reconstruction:
+A low-rank (LR) model constrained with Total-Generalized-Variation (TGV)
+was used for the TGV-ER reconstruction [7]
+arg min
+U,V,L
+∥W (s −FCB (UV + L))∥2
+2
++λ PK
+c=1 TGV2{Uc},
+(7)
+where s is the measured data, F the non-uniform Fourier transform (NUFT)
+encoding operator, C the coil sensitivity operator, B the B0 frequency shift
+operator and L represents the lipid signal (Nr by T array) located at the
+skull that is reconstructed simultaneously with spatial (U) and temporal
+(V) low-rank components of the brain metabolites signal. W, is a weight-
+ing operator of a Hamming window shape. TGV2 is the total generalized
+variation regularization with parameter λ [43].
+The regularization parameter used in the reconstruction was adjusted to
+λ = 3 × 10−4 and K was specifically set to 40, identical to the original work
+[7]. The metabolite ECCENTRIC reconstruction described by Equation 7
+is referred in this paper as TGV-ER.
+The TGV-ER was employed with some modification to obtain the ground
+truth water image xGT used for training the Interlacer network (Eqs. 5-6).
+For this purpose, the low-rank assumption and the lipid reconstruction (L)
+steps were omitted, since spectral decomposition and lipid removal is not
+required for the water signal.
+Each time-point in the water dataset was
+treated as an independent image and reconstructed sequentially using the
+TGV-ER method.
+5.4
+Spectral fitting
+Spectral fitting of metabolites was performed by LCModel [46] using a basis
+set containing spectra simulated by NMR quantum mechanics in GAMMA
+(19) for twenty-two metabolites: phosphorylcholine (PCh), glycerophospho-
+rylcholine (GPC), creatine (Cr), phosphocreatine (PCr), gamma-aminobutyric
+acid (GABA), glutamate (Glu), glutamine (Gln), glycine (Gly), glutathione
+(GSH), myo-inositol (Ins), N-acetylaspartate (NAA), N-acetyl aspartylglu-
+tamate (NAAG), scylloinositol (Sci), lactate (Lac), threonine (Thr), beta-
+glucose (bGlu), alanine (Ala), aspartate (Asp), ascorbate (Asc), serine (Ser),
+taurine (Tau), and 2-hydroxyglutarate (2HG) and a measured macromolecu-
+lar background [66]. The spectral fitting was done for 1ppm-4.2ppm spectral
+range and the results for each voxel were used to generate metabolic im-
+ages. The unsupressed water signal was used as quantification reference for
+metabolites concentrations (institutional units, I.U.) to compare metabolite
+levels across subjects and scanners. To assess the quality of the MRSI data
+and fit, linewidth (FWHM), signal-to-noise ratio (SNR), and Cramer-Rao
+lower bounds (CRLB) goodness of fit maps were generated.
+18
+5.5
+Image quality metrics
+To assess the quality of image reconstruction methods and the agreement
+with the ground truth the normalized root mean square error (NRMSE),
+correlation coefficients (CC), and the structure similarity index (SSIM) [67]
+were calculated .
+5.6
+High resolution metabolic phantom
+A custom made high resolution metabolic phantom with geometry similar
+to Derenzo molecular imaging phantom [68] contained 5 sets of tubes with
+diameters of 2, 4, 6, 8 and 10 mm as shown in Figure 3. Each set contained
+6 tubes of identical diameters separated by a distance equal to twice the
+inner diameter positioned in a triangular configuration. In every set, the
+six tubes were filled with metabolite solutions including 10 mM of creatine.
+Magnevist (Gd-DTPA) was added (1 mL/L) in each tube to shorten T1 and
+create T1-weighted contrast for structural MRI. The whole tube structure
+was inserted in a large cylindrical container (13.33 cm inner diameter) which
+was filled with 10 mM NaCl solution.
+19
+6
+Supplementary Results
+Supplementary Figure 1: Comparison of different MRSI reconstruction
+methods across accelerations from 1 to 5. Four different metabolic maps
+are presented for each method and acceleration, including total NAA, total
+Cr, total Cho and Glu. Examples of spectra obtained by each method are
+shown overlaid at the bottom for each acceleration. Arrow indicate the voxel
+location for the spectra.
+20
+Supplementary Figure 2: Quantitative comparison between Deep-ER
+and TGV-ER showing plots of NRMSE, SSIM and Correlation Coefficient
+across accelerations 2 to 5 for five metabolic maps including NAA+NAAG,
+GPC+PCh, Cr+PCr, Glu+Gln and Ins+Gly. Line plots show the mean
+across all subjects, and the error bar represent the standard deviation.
+Supplementary Figure 3
+21
+References
+[1]
+A. A. Maudsley, O. C. Andronesi, P. B. Barker, et al., “Advanced
+magnetic resonance spectroscopic neuroimaging: Experts’ consensus
+recommendations,” NMR in Biomedicine, vol. 34, no. 5, e4309, 2021.
+[2]
+W. Bogner, S. Gruber, S. Trattnig, and M. Chmelik, “High-resolution
+mapping of human brain metabolites by free induction decay 1h mrsi
+at 7 t,” NMR in Biomedicine, vol. 25, no. 6, pp. 873–882, 2012.
+[3]
+J. M. Duarte, H. Lei, V. Mlyn´arik, and R. Gruetter, “The neurochem-
+ical profile quantified by in vivo 1H NMR spectroscopy,” Neuroimage,
+vol. 61, no. 2, pp. 342–362, 2012.
+[4]
+G. ¨Oz, J. R. Alger, P. B. Barker, et al., “Clinical proton mr spec-
+troscopy in central nervous system disorders,” Radiology, vol. 270,
+no. 3, pp. 658–679, 2014.
+[5]
+W. Bogner, R. Otazo, and A. Henning, “Accelerated MR spectro-
+scopic imaging—a review of current and emerging techniques,” NMR
+in Biomedicine, vol. 34, no. 5, e4314, 2021.
+[6]
+F. Lam, X. Peng, and Z.-P. Liang, “High-dimensional mr spatiospec-
+tral imaging by integrating physics-based modeling and data-driven
+machine learning: Current progress and future directions,” IEEE sig-
+nal processing magazine, vol. 40, no. 2, pp. 101–115, 2023.
+[7]
+A. Klauser, B. Strasser, W. Bogner, et al., “Eccentric: A fast and
+unrestrained approach for high-resolution in vivo metabolic imaging
+at ultra-high field mr,” ArXiv, 2023.
+[8]
+L. Hingerl, B. Strasser, P. Moser, et al., “Clinical high-resolution 3d-
+mr spectroscopic imaging of the human brain at 7 t,” Investigative
+radiology, vol. 55, no. 4, pp. 239–248, 2020.
+[9]
+R.-J. Ho and F. Lam, “High-resolution 3d spin-echo mrsi using in-
+terleaved water navigators, sparse sampling and subspace-based pro-
+cessing,” in 2020 42nd Annual International Conference of the IEEE
+Engineering in Medicine & Biology Society (EMBC), IEEE, 2020,
+pp. 1465–1468.
+[10]
+F. Knoll, K. Hammernik, C. Zhang, et al., “Deep-learning methods
+for parallel magnetic resonance imaging reconstruction: A survey of
+the current approaches, trends, and issues,” IEEE signal processing
+magazine, vol. 37, no. 1, pp. 128–140, 2020.
+[11]
+K. Hammernik, J. Schlemper, C. Qin, J. Duan, R. M. Summers, and
+D. Rueckert, “Systematic evaluation of iterative deep neural networks
+for fast parallel mri reconstruction with sensitivity-weighted coil com-
+bination,” Magnetic Resonance in Medicine, vol. 86, no. 4, pp. 1859–
+1872, 2021.
+22
+[12]
+F. Lam, Y. Li, and X. Peng, “Constrained magnetic resonance spectro-
+scopic imaging by learning nonlinear low-dimensional models,” IEEE
+transactions on medical imaging, vol. 39, no. 3, pp. 545–555, 2019.
+[13]
+P. Weiser, S. Motyka, W. Bogner, and G. Langs, “Reconstruction and
+coil combination of undersampled concentric-ring MRSI data using a
+Graph U-Net,” in Medical Imaging with Deep Learning, 2021.
+[14]
+S. Nassirpour, P. Chang, and A. Henning, “MultiNet PyGRAPPA:
+Multiple neural networks for reconstructing variable density GRAPPA
+(a 1H FID MRSI study),” NeuroImage, vol. 183, pp. 336–345, 2018.
+[15]
+D. E. Rumelhart, G. E. Hinton, and R. J. Williams, “Learning rep-
+resentations by back-propagating errors,” nature, vol. 323, no. 6088,
+pp. 533–536, 1986.
+[16]
+R. Hecht-Nielsen, “Theory of the backpropagation neural network,”
+in Neural networks for perception, Elsevier, 1992, pp. 65–93.
+[17]
+D. C. Cire¸san, U. Meier, L. M. Gambardella, and J. Schmidhuber,
+“Deep, big, simple neural nets for handwritten digit recognition,” Neu-
+ral computation, vol. 22, no. 12, pp. 3207–3220, 2010.
+[18]
+V. Vishnevskiy, J. Walheim, and S. Kozerke, “Deep variational net-
+work for rapid 4d flow mri reconstruction,” Nature Machine Intelli-
+gence, vol. 2, pp. 228–235, 2020.
+[19]
+S. Wang, Z. Su, L. Ying, et al., “Accelerating magnetic resonance imag-
+ing via deep learning,” in 2016 IEEE 13th international symposium on
+biomedical imaging (ISBI), IEEE, 2016, pp. 514–517.
+[20]
+H. K. Aggarwal, M. P. Mani, and M. Jacob, “Modl: Model-based
+deep learning architecture for inverse problems,” IEEE transactions
+on medical imaging, vol. 38, no. 2, pp. 394–405, 2018.
+[21]
+K. Hammernik, T. Klatzer, E. Kobler, et al., “Learning a variational
+network for reconstruction of accelerated MRI data,” Magnetic reso-
+nance in medicine, vol. 79, no. 6, pp. 3055–3071, 2018.
+[22]
+C. M. Hyun, H. P. Kim, S. M. Lee, S. Lee, and J. K. Seo, “Deep
+learning for undersampled MRI reconstruction,” Physics in Medicine
+& Biology, vol. 63, no. 13, p. 135 007, 2018.
+[23]
+J. Schlemper, J. Caballero, J. V. Hajnal, A. N. Price, and D. Rueckert,
+“A deep cascade of convolutional neural networks for dynamic mr
+image reconstruction,” IEEE transactions on Medical Imaging, vol. 37,
+no. 2, pp. 491–503, 2017.
+[24]
+T. K¨ustner, K. Armanious, J. Yang, B. Yang, F. Schick, and S. Gatidis,
+“Retrospective correction of motion-affected MR images using deep
+learning frameworks,” Magnetic resonance in medicine, vol. 82, no. 4,
+pp. 1527–1540, 2019.
+23
+[25]
+R. Shaw, C. H. Sudre, T. Varsavsky, S. Ourselin, and M. J. Cardoso,
+“A k-space model of movement artefacts: application to segmentation
+augmentation and artefact removal,” IEEE transactions on medical
+imaging, vol. 39, no. 9, pp. 2881–2892, 2020.
+[26]
+N. M. Singh, N. Dey, M. Hoffmann, et al., “Data consistent deep
+rigid mri motion correction,” in Medical Imaging with Deep Learning,
+PMLR, 2024, pp. 368–381.
+[27]
+B. Yaman, S. A. H. Hosseini, S. Moeller, J. Ellermann, K. U˘gurbil,
+and M. Ak¸cakaya, “Self-supervised physics-based deep learning MRI
+reconstruction without fully-sampled data,” in 2020 IEEE 17th In-
+ternational Symposium on Biomedical Imaging (ISBI), IEEE, 2020,
+pp. 921–925.
+[28]
+B. Yaman, S. A. H. Hosseini, and M. Ak¸cakaya, “Zero-shot self-supervised
+learning for MRI reconstruction,” arXiv preprint arXiv:2102.07737,
+2021.
+[29]
+P. M. Johnson, D. J. Lin, J. Zbontar, et al., “Deep learning reconstruc-
+tion enables prospectively accelerated clinical knee MRI,” Radiology,
+vol. 307, no. 2, e220425, 2023.
+[30]
+B. Zhou, N. Dey, J. Schlemper, et al., “DSFormer: A dual-domain
+self-supervised transformer for accelerated multi-contrast MRI recon-
+struction,” in Proceedings of the IEEE/CVF Winter Conference on
+Applications of Computer Vision, 2023, pp. 4966–4975.
+[31]
+J. Lee, H. Seo, W. Lee, and H. Park, “Unsupervised motion artifact
+correction of turbo spin-echo MRI using deep image prior,” Magnetic
+Resonance in Medicine, 2024.
+[32]
+B. Zhu, J. Z. Liu, S. F. Cauley, B. R. Rosen, and M. S. Rosen, “Im-
+age reconstruction by domain-transform manifold learning,” Nature,
+vol. 555, no. 7697, pp. 487–492, 2018.
+[33]
+R. Souza and R. Frayne, “A hybrid frequency-domain/image-domain
+deep network for magnetic resonance image reconstruction,” in 2019
+32nd SIBGRAPI Conference on Graphics, Patterns and Images (SIB-
+GRAPI), IEEE, 2019, pp. 257–264.
+[34]
+G. Wang, E. Gong, S. Banerjee, J. Pauly, and G. Zaharchuk, “Ac-
+celerated mri reconstruction with dual-domain generative adversar-
+ial network,” in Machine Learning for Medical Image Reconstruction:
+Second International Workshop, MLMIR 2019, Held in Conjunction
+with MICCAI 2019, Shenzhen, China, October 17, 2019, Proceedings
+2, Springer, 2019, pp. 47–57.
+24
+[35]
+B. Zhou and S. K. Zhou, “DuDoRNet: learning a dual-domain recur-
+rent network for fast MRI reconstruction with deep T1 prior,” in Pro-
+ceedings of the IEEE/CVF conference on computer vision and pattern
+recognition, 2020, pp. 4273–4282.
+[36]
+Z. Wang, H. Jiang, H. Du, J. Xu, and B. Qiu, “IKWI-net: A cross-
+domain convolutional neural network for undersampled magnetic res-
+onance image reconstruction,” Magnetic resonance imaging, vol. 73,
+pp. 1–10, 2020.
+[37]
+N. M. Singh, J. E. Iglesias, E. Adalsteinsson, A. V. Dalca, and P. Gol-
+land, “Joint frequency and image space learning for MRI reconstruc-
+tion and analysis,” The journal of machine learning for biomedical
+imaging, vol. 2022, 2022.
+[38]
+D. N. Louis, A. Perry, P. Wesseling, et al., “The 2021 who classification
+of tumors of the central nervous system: A summary,” Neuro-oncology,
+vol. 23, no. 8, pp. 1231–1251, 2021.
+[39]
+M. Uecker, P. Lai, M. J. Murphy, et al., “Espirit—an eigenvalue ap-
+proach to autocalibrating parallel mri: Where sense meets grappa,”
+Magnetic resonance in medicine, vol. 71, no. 3, pp. 990–1001, 2014.
+[40]
+S. Bagchi and S. K. Mitra, “The nonuniform discrete fourier transform
+and its applications in filter design. i. 1-d,” IEEE Transactions on
+Circuits and Systems II: Analog and Digital Signal Processing, vol. 43,
+no. 6, pp. 422–433, 1996.
+[41]
+S. Ioffe and C. Szegedy, “Batch normalization: Accelerating deep net-
+work training by reducing internal covariate shift,” in International
+conference on machine learning, pmlr, 2015, pp. 448–456.
+[42]
+M. Hoffmann, N. M. Singh, A. V. Dalca, B. Fischl, and R. Frost, “Can
+we predict motion artifacts in clinical mri before the scan completes?”
+In Proceedings of the International Society for Magnetic Resonance in
+Medicine... Scientific Meeting and Exhibition. International Society
+for Magnetic Resonance in Medicine. Scientific Meeting and Exhibi-
+tion, NIH Public Access, vol. 2023, 2023.
+[43]
+F. Knoll, K. Bredies, T. Pock, and R. Stollberger, “Second order total
+generalized variation (tgv) for mri,” Magnetic resonance in medicine,
+vol. 65, no. 2, pp. 480–491, 2011.
+[44]
+M. Hoffmann, A. Hoopes, B. Fischl, and A. V. Dalca, “Anatomy-
+specific acquisition-agnostic affine registration learned from fictitious
+images,” in Medical Imaging 2023: Image Processing, SPIE, vol. 12464,
+2023, p. 1 246 402.
+[45]
+D. P. Kingma and J. Ba, “Adam: A method for stochastic optimiza-
+tion,” arXiv preprint arXiv:1412.6980, 2014.
+25
+[46]
+S. W. Provencher, “Lcmodel & lcmgui user’s manual,” LCModel ver-
+sion, vol. 6, no. 3, 2014.
+[47]
+P. Weiser, G. Langs, S. Motyka, et al., “Lipcon: Lipid identification
+with convolutional neural network for mr spectroscopic imaging,” Pro-
+ceedings of the ISMRM, no. 7832, 2024.
+[48]
+F. Lam, Y. Li, R. Guo, B. Clifford, and Z.-P. Liang, “Ultrafast mag-
+netic resonance spectroscopic imaging using spice with learned sub-
+spaces,” Magnetic resonance in medicine, vol. 83, no. 2, pp. 377–390,
+2020.
+[49]
+M. D. Frahm J Haase A, “Rapid three-dimensional mr imaging us-
+ing the flash technique,” Journal of Computer Assisted Tomography,
+vol. 10, no. 2, pp. 363–368, 1986.
+[50]
+S. S. Gurbani, S. Sheriff, A. A. Maudsley, H. Shim, and L. A. Cooper,
+“Incorporation of a spectral model in a convolutional neural network
+for accelerated spectral fitting,” Magnetic resonance in medicine, vol. 81,
+no. 5, pp. 3346–3357, 2019.
+[51]
+A. Shamaei, J. Starcukova, I. Pavlova, and Z. Starcuk Jr, “Model-
+informed unsupervised deep learning approaches to frequency and
+phase correction of mrs signals,” Magnetic Resonance in Medicine,
+vol. 89, no. 3, pp. 1221–1236, 2023.
+[52]
+A. Shamaei, J. Starcukova, and Z. Starcuk Jr, “Physics-informed deep
+learning approach to quantification of human brain metabolites from
+magnetic resonance spectroscopy data,” Computers in Biology and
+Medicine, vol. 158, p. 106 837, 2023.
+[53]
+Y. Zhang and J. Shen, “Quantification of spatially localized mrs by
+a novel deep learning approach without spectral fitting,” Magnetic
+resonance in medicine, vol. 90, no. 4, pp. 1282–1296, 2023.
+[54]
+D. Chen, M. Lin, H. Liu, et al., “Magnetic resonance spectroscopy
+quantification aided by deep estimations of imperfection factors and
+macromolecular signal,” IEEE Transactions on Biomedical Engineer-
+ing, 2024.
+[55]
+S. Motyka, L. Hingerl, B. Strasser, et al., “K-space-based coil combi-
+nation via geometric deep learning for reconstruction of non-cartesian
+mrsi data,” Magnetic Resonance in Medicine, vol. 86, no. 5, pp. 2353–
+2367, 2021.
+[56]
+S. Motyka, P. Weiser, B. Bachrata, et al., “Predicting dynamic, motion-
+related changes in b 0 field in the brain at a 7t mri using a subject-
+specific fine-trained u-net,” Magnetic Resonance in Medicine, 2024.
+[57]
+M. Raki´c, F. Turco, G. Weng, F. Maes, D. M. Sima, and J. Slotboom,
+“Deep learning pipeline for quality filtering of mrsi spectra,” NMR in
+Biomedicine, vol. 37, no. 7, e5012, 2024.
+26
+[58]
+J. Wang, B. Ji, Y. Lei, T. Liu, H. Mao, and X. Yang, “Denoising mag-
+netic resonance spectroscopy (mrs) data using stacked autoencoder for
+improving signal-to-noise ratio and speed of mrs,” Medical Physics,
+vol. 50, no. 12, pp. 7955–7966, 2023.
+[59]
+W. Bogner, A. T. Hess, B. Gagoski, et al., “Real-time motion- and
+b-correction for laser-localized spiral-accelerated 3d-mrsi of the brain
+at 3t,” Neuroimage, vol. 88C, pp. 22–31, 2013.
+[60]
+M. Esmaeili, J. Stockmann, B. Strasser, et al., “An integrated rf-
+receive/b(0)-shim array coil boosts performance of whole-brain mr
+spectroscopic imaging at 7t,” Scientific Reports, vol. 10, no. 1, pp. 15 029–
+15 046, 2020.
+[61]
+E. Cabanes, S. Confort-Gouny, Y. Le Fur, G. Simond, and P. Cozzone,
+“Optimization of residual water signal removal by hlsvd on simulated
+short echo time proton mr spectra of the human brain,” Journal of
+Magnetic Resonance, vol. 150, no. 2, pp. 116–125, 2001.
+[62]
+B. Bilgic, I. Chatnuntawech, A. P. Fan, et al., “Fast image reconstruc-
+tion with l2-regularization,” Journal of magnetic resonance imaging,
+vol. 40, no. 1, pp. 181–191, 2014.
+[63]
+W. Q. Malik, H. A. Khan, D. J. Edwards, and C. J. Stevens, “A grid-
+ding algorithm for efficient density compensation of arbitrarily sam-
+pled fourier-domain data,” in IEEE/Sarnoff Symposium on Advances
+in Wired and Wireless Communication, 2005., IEEE, 2005, pp. 125–
+128.
+[64]
+A. Klauser, B. Strasser, B. Thapa, F. Lazeyras, and O. Andronesi,
+“Achieving high-resolution 1h-mrsi of the human brain with compressed-
+sensing and low-rank reconstruction at 7 tesla,” Journal of Magnetic
+Resonance, vol. 331, p. 107 048, 2021.
+[65]
+A. Mohammed, S. Yildirim, I. Farup, M. Pedersen, and Ø. Hovde, “Y-
+net: A deep convolutional neural network for polyp detection,” arXiv
+preprint arXiv:1806.01907, 2018.
+[66]
+M. Povaˇzan, G. Hangel, B. Strasser, et al., “Mapping of brain macro-
+molecules and their use for spectral processing of 1h-mrsi data with an
+ultra-short acquisition delay at 7 t,” Neuroimage, vol. 121, pp. 126–
+135, 2015.
+[67]
+Z. Wang, A. C. Bovik, H. R. Sheikh, and E. P. Simoncelli, “Image qual-
+ity assessment: From error visibility to structural similarity,” IEEE
+transactions on image processing, vol. 13, no. 4, pp. 600–612, 2004.
+[68]
+S. Derenzo, T. Budinger, J. Cahoon, R. Huesman, and H. Jackson,
+“High resolution computed tomography of positron emitters,” IEEE
+transactions on Nuclear Science, vol. 24, no. 1, pp. 544–558, 1977.
+27

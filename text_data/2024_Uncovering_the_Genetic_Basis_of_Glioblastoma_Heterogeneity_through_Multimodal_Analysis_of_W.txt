@@ -1,0 +1,533 @@
+Uncovering the Genetic Basis of Glioblastoma
+Heterogeneity through Multimodal Analysis of Whole
+Slide Images and RNA Sequencing Data
+Ahmad Berjaouia,c,1,∗, Eduardo Hugo Sancheza,1, Louis Roussela, Elizabeth
+Cohen-Jonathan Moyalb,c
+aIRT Saint Exupéry, Toulouse, France
+bOncopole Claudius Regaud, Toulouse, France
+cINSERM UMR 1037 Cancer Research Center of Toulouse (CRCT), University Paul
+Sabatier Toulouse III, Toulouse, France
+Abstract
+Glioblastoma is a highly aggressive form of brain cancer characterized by
+rapid progression and poor prognosis. Despite advances in treatment, the
+underlying genetic mechanisms driving this aggressiveness remain poorly un-
+derstood. In this study, we employed multimodal deep learning approaches to
+investigate glioblastoma heterogeneity using joint image/RNA-seq analysis.
+Our results reveal novel genes associated with glioblastoma. By leveraging a
+combination of whole-slide images and RNA-seq, as well as introducing novel
+methods to encode RNA-seq data, we identified specific genetic profiles that
+may explain different patterns of glioblastoma progression. These findings
+provide new insights into the genetic mechanisms underlying glioblastoma
+heterogeneity and highlight potential targets for therapeutic intervention.
+1. Introduction
+Glioblastoma (GB) is the most aggressive primary brain tumor and is not
+curable [1] despite of treatment associating surgery when possible followed
+by radio-chemotherapy [2] and more recently Tumor treating Fields [3] lead-
+ing to a median overall survival (OS) of 20.9 months and a progression free
+∗Corresponding author
+1Equal contribution
+Preprint submitted to Artificial Intelligence in Medicine
+October 25, 2024
+arXiv:2410.18710v1  [q-bio.QM]  23 Oct 2024
+survival (PFS) around 7 months. Despite being a minor population of can-
+cer cells, the cancer stem cells that are identified in glioblastoma (GSCs) are
+thought to be the major driving force behind glioblastoma biological hetero-
+geneity and are likely to explain the high rates of glioblastoma recurrence. In
+the STEMRI clinical trial aiming to study GB heterogeneity and the enrich-
+ment of GSC in certain areas defined by multimodal MRI (NCT01872221)
+[4] different GSC sub-populations extracted from tumor samples obtained by
+multimodal MRI guided surgery were xenografted into mice brain to study
+their invasion patterns as well as their aggressiveness.
+RNA-seq on each
+tumor bulk samples was also performed. The observed differences in mice
+survival according to the GSC implanted confirm the heterogeneous nature
+of tumor cells lineage.
+In this study, we set out to determine potential genetic markers associated
+with glioblastoma aggressiveness using multimodal deep learning. Our re-
+sults reveal genetic targets already identified in medical literature but also
+highlight new potential targets. We leverage the extensive recent develop-
+ments in multimodal data analysis, namely image and text, and adapt these
+techniques to whole slide images (WSI) and RNA-seq data. Training uses
+public data from The Cancer Genome Atlas (TCGA) [5] but also WSI and
+RNA-seq data from the STEMRI trial. Furthermore, we introduce a new
+RNA-seq encoding technique where genes are grouped based on biological
+pathways prior to encoding and show better performance in comparison to
+mere position based grouping.
+Overall, our results can be used to test new GB treatment strategies. Our
+main contributions can be summarized as follows:
+i Identify genetic profiles leading to unique GB patterns.
+ii Novel method to encode RNA-seq data for use in deep learning models.
+iii Novel method to combine WSI and RNA-seq data for use in deep learn-
+ing models.
+This paper is structured as follows. Section 2 details the developed algo-
+rithms, the datasets and training strategies. Section 3 showcases our exper-
+imental results followed by our main findings.
+2
+2. Material and methods
+2.1. Datasets
+Two datasets are used to train our models. The TCGA public dataset is
+used to pre-train RNA-seq encoders. This dataset contains around 10k RNA-
+Seq gene expression samples from multiple sites (breast, brain, prostate, blad-
+der, etc.).
+51 RNA-seq samples from the STEMRI trial complete this data. These corre-
+spond to 16 patients and bulk tumor RNA from metabolically heterogeneous
+regions identified by spectral MRI, as explained in [4].
+This corresponds
+to 51 different tumor cell lineages. To insure data homogeneity, only genes
+common to both STEMRI and TCGA were kept. Genes expressions with
+relatively low variance were also removed and all data was then normalized.
+Tumor cells from these 51 different lineages were xenografted onto mice
+brains. Cells from the same lineage were used onto more than one mouse
+whenever possible, as culture was not always successful. This led to a total
+of 116 mice. Whole slide images of mice brain slices were used at x10 magni-
+fication factor (fig.2) after each mouse’s death. These images are in average
+composed of 16k x 21k RGB pixels and human tumor cells are highlighted
+using specific coloration.
+Observation data contains patient OS and PFS and mouse survival time in
+days.
+2.2. RNA-seq encoding
+RNA-seq data is a vector representing protein expressions for roughly
+19K protein coding genes. Moreover, attention-based encoders are currently
+state-of-the-art for vision [6] and language [7]. Combining these two obser-
+vations, we leveraged the Protein-to-Protein interaction (PPI) graph [8] to
+regroup protein scores before computing attention scores. The PPI graph is
+a directed graph and [9] propose a clustering algorithm that considers the
+directed nature of PPI.
+The reader can refer to [9] for more detail about the directed Louvain algo-
+rithm but in brief, the aim is to maximize modularity [10] Qd which in the
+case of a directed graph, can be defined by:
+Qd = 1
+m
+X
+i,j
+[Aij −din
+i dout
+j
+m
+]δ(ci, cj)
+(1)
+3
+m is the total number of edges. Aij indicates the presence of an edge between
+nodes i and j. din
+i
+(resp. dout
+i
+) is the in-degree (resp. out-degree) of node
+i. The degree is the number of incoming (resp. outgoing) edges. δ(ci, cj)
+indicates whether nodes i and j are in the same cluster. Connected edges
+with low degrees contribute significantly to modularity when they are in the
+same cluster as this is much less likely than a connection between edges of
+high degrees, regardless of cluster assignment.
+Applying this algorithm to PPI leads to 11 clusters. Clusters with signifi-
+cantly less nodes were then grouped together, leading to 7 final clusters with
+an average of 2905 genes per cluster (ranging between 1514 and 3182).
+Genes in each cluster constitute a sub-vector that is projected to a common
+size. The result is 7 sub-vectors of the same size, each as a separate token
+as input to a masked-autoencoder [11]. During training, one token is ran-
+domly masked and the decoder uses the cls token and the remaining tokens
+to reconstruct it, as illustrated in fig.1. This results in a first loss term:
+Lr
+RNA = 1
+N
+N
+X
+i=1
+||xi −ˆxi||2
+(2)
+where N is the batch size, xi represents RNA-seq vector i and ˆxi its recon-
+struction. [htbp] In our experiments, we compared this encoding strategy to
+a similar strategy but where genes where clustered according to their chro-
+mosome. The second loss term Lc
+RNA is obtained using pairwise contrastive
+learning [12]: a positive pair is obtained from two RNA sub-vectors cor-
+responding to the same tumor cell lineage, and a negative pair is obtained
+using two sub-vectors corresponding to two different tumor cell lineages. This
+forces the encoder to learn lineage specific features. Given a pair of repre-
+sentations zi and z′
+i with batch size N, temperature τ, the loss term li is
+therefore:
+li = −y(i, i′) log
+exp(zT
+i z′
+i/τ)
+PN
+j=1 exp(zT
+i zj/τ)
+(3)
+y(i, i′) = 1 for a matching pair and 0 for negative pairs (i.e. different cell
+lineages). Hence,
+Lc
+RNA =
+N
+X
+i=1
+li
+(4)
+The final loss for RNA-seq encoding is:
+LRNA = Lr
+RNA + Lc
+RNA
+(5)
+4
+Figure 1: RNA-seq encoding. The original vector is reorganized according to directed
+graph clustering from the PPI knowledge graph. Sub-vectors are projected to a common
+embedding size. A token is randomly masked. The decoder reconstructs the RNA-seq
+vector using the remaining tokens and the cls token.
+2.3. WSI encoding
+All images are split into sequential, non-overlapping patches of 256x256
+RGB pixels, which results in roughly 5K patches per image and a total of
+100K patches for the whole dataset. All patches are converted to hue, satura-
+tion, luminance, space (HSL). HSL conversion makes it easier to distinguish
+non-tumor and tumor cells (colored in brown). Patches with a majority of tu-
+mor cells can hence be easily extracted by computing an overall pixel score,
+by counting pixels that respect a given hue interval, regardless of lighting
+conditions. Patches can then be sorted based on that score, which correlates
+with their tumor cells content. Only those with a brown colored pixel ratio
+exceeding 20% are kept for training.
+Training a masked autoencoder for tumor patches would require a very high
+computational cost due to the size of the WSI dataset. We therefore rely
+solely on contrastive learning as our experiments have proved that it was
+enough to achieve very good performance.
+A 256x256 patch is split into
+smaller 16x16 sub-patches and we use a ViT [6] transformer encoder to obtain
+a global representation of the patch, using the cls token. This representation
+serves then as an anchor in a triplet loss[13]: the anchor (zi) is matched with
+5
+the representation of another patch of the same tumor cell lineage (z+) and
+it is contrasted with the representation of a patch from another tumor cell
+lineage (z−).
+Lc
+WSI = 1
+N
+N
+X
+i=1
+max(||zi −z+||2 −||zi −z−||2 + d, 0)
+(6)
+where d is the margin and N is the batch size.
+Figure 2: (Left) Example of a WSI of a mouse brain slice. (Right) Zoom on the upper-right
+part of the left brain slice. Red square patches have a majority of tumor cells whereas
+green square patches have a majority of non-tumor cells.
+2.4. Multimodal training
+Both the RNA and the WSI encoders are pre-trained using eq.5 and eq.6.
+In order to consider both modalities, we draw inspiration from ALBEF[14].
+A multimodal contrastive loss Lc
+MM is used to align the modalities’ repre-
+sentations before a cross-attention encoder. For a given RNA vector and a
+256x256 WSI patch, let uk and u′
+k be the cls representations at the output
+of their respective encoders, after linear projection to a common embedding
+size. Order is irrelevant as the following equations treat uk and u′
+k sym-
+metrically. We use a similar pairwise loss as in eq.4, considering a pair of
+RNA/WSI representations uk and u′
+k, a temperature τc and batch size N:
+lk = −y(k, k′) log
+exp(uT
+k u′
+k/τc)
+PN
+j=1 exp(uT
+k uj/τc)
+(7)
+6
+y(k, k′) = 1 for a matching pair and 0 for negative pairs.
+Lc
+MM =
+N
+X
+k=1
+lk
+(8)
+As is done in [14], a cross-attention model is used to obtain a joint RNA/WSI
+Figure 3: Multimodal model. A pairwise contrastive loss aligns RNA and WSI represen-
+tations. A cross-attention module is used to obtain a joint representation. The latter is
+used for a classification head that matches data from the same tumor cells lineage and a
+RNA decoder reconstructs the original RNA vector.
+representation from the unimodal representations. The cross-attention model
+is trained along with a classification head and a RNA decoder head. The
+classification head is trained using a weakly supervised loss Lm
+MM where a
+label of 1 indicates samples from the same tumor cells lineage and 0 for
+mismatching samples. The RNA decoder is trained using a reconstruction
+loss Lr
+MM similar to Eq.2.
+2.5. Evaluation
+Training the multimodal model leads to aligned WSI and RNA-seq repre-
+sentations. Given a WSI patch not used during training, it becomes possible
+to retrieve the closest RNA-seq vector amongst all the 51 RNA-seq vectors
+by measuring its cosine similarity, as shown in fig.4
+The main evaluation criteria is therefore matching accuracy, computed
+over a subset of WSI patches (from a total of 100K patches) not used during
+training but that are drawn evenly amongst corresponding cell lineages and
+patients. Let I = {1..51} be the set of all the 51 RNA-seq samples, zWSI be
+the output of the image encoder for a given WSI patch, and ui be the output
+7
+Figure 4: RNA-seq retrieval using a WSI patch.
+of the RNA encoder for sample i (i ∈I). The predicted sample ˆp is given by
+eq.9
+ˆp = arg max
+i∈I
+zT
+WSIui
+||zWSI|| · ||ui||
+(9)
+3. Experiments
+RNA-encoding. After pre-training the RNA-seq encoder depicted in §2.2 us-
+ing TCGA data, we plotted the t-SNE two dimensional projections for both
+TCGA data and STEMRI data (fig.5). Nearly all STEMRI data points lie
+very close to TCGA data points corresponding to brain tumors.
+RNA retrieval. Table.1 lists RNA-seq retrieval accuracy considering tumor
+cell lineage and patient of origin. The best results are obtained using pathway
+based clustering as explained in §2.2, and using only a matching loss (without
+a RNA decoder and a reconstruction loss).
+Results show a near perfect
+accuracy for both patient and cell lineage matching tasks. This indicates
+that our model has learned unique genetic features that can be matched
+against unique cellular microscopic patterns.
+Model
+Accuracy (patient)
+Accuracy (lineage)
+Random initialization
+0.050
+0.006
+Lr
+MM + Lc
+MM + Lm
+MM (frozen RNA-Image encoders)
+0.29
+0.199
+Lr
+MM + Lc
+MM + Lm
+MM (all modules are trainable)
+0.946
+0.941
+Lc
+MM + Lm
+MM (all modules are trainable/chromosome gene groups)
+0.890
+0.913
+Lc
+MM + Lm
+MM (all modules are trainable/pathways gene groups)
+0.970
+0.968
+Table 1: Lineage and patient retrieval results. The table lists WSI patch/RNA-seq match-
+ing accuracy by considering cell lineage or patient of origin, in several configurations.
+8
+Figure 5: 2D t-SNE projections of RNA-seq representations of primary tumor locations,
+combining public TCGA data (circles) and STEMRI data (stars).
+The figure clearly
+showcases a strong similarity between public brain RNA-seq data and STEMRI data.
+9
+Genetic analysis. Grad-CAM [15] is a common technique to analyse deep
+neural networks’ response.
+We used grad-CAM to determine genetic po-
+sitions that have the greatest contribution in the WSI/RNA-seq matching
+process. For each WSI in the validation set, we sort gene expressions accord-
+ing to their importance as computed using grad-CAM. Keeping the 15 most
+occurring gene expressions leads to the results in table.2. The highlighted
+Gene
+Occurrence
+Symbol
+0
+ENSG00000198964.14
+2344
+SGMS1
+1
+ENSG00000120008.16
+2151
+WDR11
+2
+ENSG00000111670.16
+1759
+GNPTAB
+3
+ENSG00000078098.14
+1669
+FAP
+4
+ENSG00000143147.14
+1639
+GPR161
+5
+ENSG00000070061.16
+1463
+ELP1
+6
+ENSG00000139624.14
+1350
+CERS5
+7
+ENSG00000077254.14
+1347
+USP33
+8
+ENSG00000138614.15
+1249
+INTS14
+9
+ENSG00000090054.15
+1202
+SPTLC1
+10
+ENSG00000183036.11
+1187
+PCP4
+11
+ENSG00000130717.13
+1177
+UCK1
+12
+ENSG00000184164.15
+1157
+CRELD2
+13
+ENSG00000125633.11
+1138
+CCDC93
+14
+ENSG00000128829.12
+1112
+EIF2AK4
+Table 2: Key genes in the WSI/RNA-seq matching process. Highlighted genes have been
+found in glioblastoma literature.
+genes have already been identified in literature as playing an important role
+in the occurrence or development of glioblastoma [16, 17, 18, 19, 20] (most of
+them playing a role in metabolism, micro-environment and invasion), other
+brain cancer types [21] and cancer in general [22, 23, 24, 25, 26, 27, 28].
+4. Conclusion
+In conclusion, our study demonstrates the effectiveness of multimodal
+deep learning approaches in identifying genetic profiles that explain different
+glioblastoma patterns. By leveraging joint image/RNA-seq analysis and in-
+troducing novel methods to encode RNA-seq data, we have shed new light
+on the heterogeneous nature of this aggressive brain tumor. Our findings
+10
+not only confirm existing medical literature but also highlight new potential
+targets for therapeutic intervention. These results have significant implica-
+tions for the development of personalized medicine strategies for glioblastoma
+patients and underscore the importance of continued research into the appli-
+cation of AI algorithms in cancer biology.
+Acknowledgement
+The results shown here are in part based upon data generated by the
+TCGA Research Network: https://www.cancer.gov/tcga.
+The authors
+would like to thank Caroline Delmas2 for WSI images acquisition.
+Declaration of competing interest
+Elizabeth Moyal-Cohen Jonathan served as board expert for Novocure
+and received research grants from Astra Zeneca, Incyte, Bayer and Novocure.
+Other authors declare that they have no known competing financial interests
+or personal relationships that could have interfered with the study being
+conducted.
+References
+[1] O. G. Taylor, J. S. Brzozowski, K. A. Skelding, Glioblastoma Multi-
+forme: An Overview of Emerging Therapeutic Targets, Frontiers in On-
+cology 9 (2019) 963. doi:10.3389/fonc.2019.00963.
+[2] R. Stupp, M. Weller, K. Belanger, U. Bogdahn, S. K. Ludwin, D. La-
+combe, R. O. Mirimanoff, Radiotherapy plus Concomitant and Adjuvant
+Temozolomide for Glioblastoma, The New England Journal of Medicine
+(2005) 10.
+[3] O. Rominiyi, A. Vanderlinden, S. J. Clenton, C. Bridgewater, Y. Al-
+Tamimi, S. J. Collis, Tumour treating fields therapy for glioblastoma:
+current advances and future directions, British journal of cancer 124 (4)
+(2021) 697–709.
+2INSERM UMR 1037 Cancer Research Center of Toulouse (CRCT), University Paul
+Sabatier Toulouse III
+11
+[4] A. Lemarié, V. Lubrano, C. Delmas, A. Lusque, J.-P. Cerapio, M. Per-
+rier, A. Siegfried, F. Arnauduc, Y. Nicaise, P. Dahan, et al., The stemri
+trial: Magnetic resonance spectroscopy imaging can define tumor areas
+enriched in glioblastoma stem-like cells, Science Advances 9 (44) (2023)
+eadi0114.
+[5] F. S. Collins, A. D. Barker, Mapping the cancer genome, Scientific Amer-
+ican 296 (3) (2007) 50–57.
+[6] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai,
+T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly, et al.,
+An image is worth 16x16 words: Transformers for image recognition at
+scale, arXiv preprint arXiv:2010.11929 (2020).
+[7] A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, I. Sutskever, et al.,
+Language models are unsupervised multitask learners, OpenAI blog 1 (8)
+(2019) 9.
+[8] P. Chandak, K. Huang, M. Zitnik, Building a knowledge graph to enable
+precision medicine, Scientific Data 10 (1) (2023) 67.
+URL https://doi.org/10.1038/s41597-023-01960-3
+[9] N. Dugué, A. Perez, Direction matters in complex networks: A theoret-
+ical and applied study for greedy modularity optimization, Physica A:
+Statistical Mechanics and its Applications 603 (2022) 127798.
+[10] M. E. Newman, The structure and function of complex networks, SIAM
+review 45 (2) (2003) 167–256.
+[11] K. He, X. Chen, S. Xie, Y. Li, P. Dollár, R. Girshick, Masked autoen-
+coders are scalable vision learners, in: Proceedings of the IEEE/CVF
+conference on computer vision and pattern recognition, 2022, pp. 16000–
+16009.
+[12] T. Chen, S. Kornblith, M. Norouzi, G. Hinton, A simple framework for
+contrastive learning of visual representations, in: International confer-
+ence on machine learning, PMLR, 2020, pp. 1597–1607.
+[13] X. Dong, J. Shen, Triplet loss in siamese network for object tracking, in:
+Proceedings of the European Conference on Computer Vision (ECCV),
+2018, pp. 459–474.
+12
+[14] J. Li, R. Selvaraju, A. Gotmare, S. Joty, C. Xiong, S. C. H. Hoi, Align
+before fuse: Vision and language representation learning with momen-
+tum distillation, Advances in neural information processing systems 34
+(2021) 9694–9705.
+[15] R. R. Selvaraju, M. Cogswell, A. Das, R. Vedantam, D. Parikh, D. Batra,
+Grad-cam: visual explanations from deep networks via gradient-based
+localization, International journal of computer vision 128 (2020) 336–
+359.
+[16] C. C. Hawkins, T. Ali, S. Ramanadham, A. B. Hjelmeland, Sphingolipid
+metabolism in glioblastoma and metastatic brain tumors: a review of
+sphingomyelinases and sphingosine-1-phosphate, Biomolecules 10 (10)
+(2020) 1357.
+[17] O. B. Chernova, A. Hunyadi, E. Malaj, H. Pan, C. Crooks, B. Roe, J. K.
+Cowell, A novel member of the wd-repeat gene family, wdr11, maps to
+the 10q26 region and is disrupted by a chromosome translocation in
+human glioblastoma cells, Oncogene 20 (38) (2001) 5378–5392.
+[18] H. Xu, Y. Chen, C. Tan, T. Xu, Y. Yan, R. Qin, Q. Huang, C. Lu,
+C. Liang, Y. Lu, et al., High expression of wdr1 in primary glioblastoma
+is associated with poor prognosis, American Journal of Translational
+Research 8 (2) (2016) 1253.
+[19] P. Busek, E. Balaziova, I. Matrasova, M. Hilser, R. Tomas, M. Syrucek,
+Z. Zemanova, E. Krepela, J. Belacek, A. Sedo, Fibroblast activation
+protein alpha is expressed by transformed and stromal cells and is as-
+sociated with mesenchymal features in glioblastoma, Tumor Biology 37
+(2016) 13961–13971.
+[20] A. Zhang, Z. Huang, W. Tao, K. Zhai, Q. Wu, J. N. Rich, W. Zhou,
+S. Bao, Usp33 deubiquitinates and stabilizes hif-2alpha to promote hy-
+poxia response in glioma stem cells, The EMBO Journal 41 (7) (2022)
+e109187.
+[21] M. Kojic, N. E. Abbassi, T.-Y. Lin, A. Jones, E. L. Wakeling,
+E. Clement, V. Nakou, M. Singleton, D. Dobosz, M. Kaliakatsos, et al.,
+A novel elp1 mutation impairs the function of the elongator complex
+13
+and causes a severe neurodevelopmental phenotype, Journal of Human
+Genetics 68 (7) (2023) 445–453.
+[22] M. E. Feigin, B. Xue, M. C. Hammell, S. K. Muthuswamy, G-protein–
+coupled receptor gpr161 is overexpressed in breast cancer and is a pro-
+moter of cell proliferation and invasion, Proceedings of the National
+Academy of Sciences 111 (11) (2014) 4191–4196.
+[23] S. Wang, J. Yang, W. Huang, Z. Yu, Y. Mao, Y. Feng, J. Chen, Identifi-
+cation of cers5 as a molecular biomarker in pan-cancer through multiple
+omics integrative analysis, Cellular Signalling 116 (2024) 111054.
+[24] X. Liu, J. Xu, B. Shen, J. Xu, J. Jiang, Usp33 promotes pancreatic can-
+cer malignant phenotype through the regulation of tgfbr2/tgfβ signaling
+pathway, Cell Death & Disease 14 (6) (2023) 362.
+[25] W.-K. Zhu, W.-H. Xu, J. Wang, Y.-Q. Huang, M. Abudurexiti, Y.-Y.
+Qu, Y.-P. Zhu, H.-L. Zhang, D.-W. Ye, Decreased sptlc1 expression pre-
+dicts worse outcomes in ccrcc patients, Journal of cellular biochemistry
+121 (2) (2020) 1552–1562.
+[26] T. Hamada, M. Souda, T. Yoshimura, S. Sasaguri, K. Hatanaka,
+T. Tasaki, T. Yoshioka, Y. Ohi, S. Yamada, M. Tsutsui, et al., Anti-
+apoptotic effects of pcp4/pep19 in human breast cancer cell lines: a
+novel oncotarget, Oncotarget 5 (15) (2014) 6076.
+[27] G. Aji, F. Li, J. Chen, F. Leng, K. Hu, Z. Cheng, Y. Luo, X. Xu,
+J. Zhang, Z. Lu, Upregulation of pcp4 in human aldosterone-producing
+adenomas fosters human adrenocortical tumor cell growth via akt and
+ampk pathway, International Journal of Clinical and Experimental
+Pathology 11 (3) (2018) 1197.
+[28] U. Jariwala, J. Prescott, L. Jia, A. Barski, S. Pregizer, J. P. Cogan,
+A. Arasheben, W. D. Tilley, H. I. Scher, W. L. Gerald, et al., Iden-
+tification of novel androgen receptor target genes in prostate cancer,
+Molecular cancer 6 (2007) 1–15.
+14

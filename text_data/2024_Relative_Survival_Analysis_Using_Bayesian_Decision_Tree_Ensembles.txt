@@ -1,0 +1,2413 @@
+Relative Survival Analysis Using
+Bayesian Decision Tree Ensembles
+Piyali Basak1∗, Antonio R. Linero2†, Camille Maringe3‡,
+and F. Javier Rubio4§
+Abstract
+In cancer epidemiology, the relative survival framework is used to quantify the
+hazard associated with cancer by comparing the all-cause mortality hazard in cancer
+patients to that of the general population. This framework assumes that an individ-
+ual’s hazard function is the sum of a known population hazard and an excess hazard
+associated with the cancer.
+Several estimands are derived from the excess hazard,
+including the net survival, which are used to inform decisions and to assess the effec-
+tiveness of interventions on cancer management. In this paper, we introduce a Bayesian
+machine learning approach to estimating the excess hazard and identifying vulnerable
+subgroups, with a higher excess risk, using Bayesian additive regression trees (BART).
+We first develop a proportional hazards extension of the BART model to the relative
+survival setting, and then extend this model to non-proportional hazards. We develop
+tools for model interpretation and posterior summarization and then present an appli-
+cation using colon cancer data from England, highlighting the insights our proposed
+methodology offers when paired with state-of-the-art data linkage methods. This appli-
+cation demonstrates how these methods can be used to identify drivers of inequalities
+in cancer survival through variable importance quantification.
+Keywords: Bayesian nonparametrics; competing risks; decision trees; excess hazard;
+survival analysis;
+1
+Introduction
+Reducing the burden of cancer is a top priority for national and international health insti-
+tutions, such as the World Health Organization and the International Agency for Research
+∗piyali.basak@merck.com
+†antonio.linero@austin.utexas.edu
+‡camille.maringe@lshtm.ac.uk
+§f.j.rubio@ucl.ac.uk
+1
+arXiv:2411.01435v1  [stat.AP]  3 Nov 2024
+on Cancer. To monitor cancer patients at the population level, several complementary in-
+dicators are used to assess cancer management, including incidence and prevalence rates,
+mortality rates, and survival probabilities. The survival probability represents the probabil-
+ity of surviving beyond a time point t > 0, typically measured from the diagnosis of cancer.
+The overall survival framework is a common approach for quantifying survival, which aims at
+estimating survival probabilities associated with any cause of death. In cancer epidemiology,
+however, the overall survival framework is usually avoided as it does not quantify the survival
+associated only with the cancer of interest and prevents meaningful comparisons (Mariotto
+et al., 2014; NHS National Cancer Registration and Analysis Service, 2023). In contrast, the
+“relative survival” framework (Pohar-Perme et al., 2012) aims at estimating the survival as-
+sociated only with the cancer under study, without requiring knowledge of the cause of death
+(as this may be either unavailable or unreliable at the population level). Consequently, the
+relative survival framework is the preferred approach for monitoring the effectiveness of the
+health system in preventing patients dying from cancer, and for comparing cancer survival
+across countries, regions within a country, or over different time periods (Mariotto et al.,
+2014; NHS National Cancer Registration and Analysis Service, 2023; Quaresma et al., 2024).
+The key distinction between relative survival and overall survival methods lies in com-
+paring the observed mortality hazard with an expected mortality hazard in the disease-free
+population. This approach offers a metric to quantify the mortality associated with a partic-
+ular disease (such as cancer), removing the need for information on the actual cause of death.
+Relative survival analysis is a valuable and a widely used tool in population-based cancer
+studies, providing important insights into cancer prognosis and cancer management, while
+enabling efficient comparison between different population subgroups of interest. The key
+assumption in the relative survival framework is that the overall hazard of an individual λ(·)
+decomposes additively into two components: (a) the expected hazard λP(·) for the general
+2
+population, and (b) the excess hazard λE(·) associated with the cancer of interest. That is,
+λ(t | x) = λP(age + t | w) + λE(t | x),
+(1)
+where age denotes the age at diagnosis. The population hazard λP(t | w) is assumed to
+be available from population-level life tables for each calendar year and region, based on a
+subset of the available characteristics w ∈RQ with w ⊆x; typically, w includes information
+about sex, age, and measures of societal deprivation. The excess hazard λE(t | x), on the
+other hand, is estimated using the available data and the patient characteristics x ∈RP,
+which include those variables in the life table (w) along with other socio-demographic and
+clinical characteristics such as tumor stage.
+1.1
+Challenges in Relative Survival Modeling
+One of the main quantities of interest in the relative survival framework is the net sur-
+vival, which is the survival function associated with the excess hazard. For an individual
+with characteristics x, the net survival is defined as SE(t | x) = exp
+n
+−
+R t
+0 λE(r | x) dr
+o
+.
+Policy-making and epidemiological reports (Mariotto et al., 2014; Quaresma et al., 2024) are
+typically based on the average net survival for the population of interest with characteristics
+Xi ∼FX:
+SE(t | FX) =
+Z
+SE(t | x) FX(dx).
+Estimating the net survival presents a variety of challenges for both parametric and non-
+parametric approaches. Parametric models require restrictive assumptions on the form of
+the excess hazard function λE(t | x), both in terms of the parametric form of the hazard
+(e.g., Weibull, log-normal, and so forth) and in terms of how the covariates enter the model
+and interact with time (e.g., accelerated failure time or proportional hazards models). These
+assumptions may not always hold in practice, leading to biased estimates or inaccurate pre-
+dictions if they are not properly validated. In the parametric framework, several methods
+3
+have been proposed for modeling the excess hazard, such as using general parametric hazard
+structures (Rubio et al., 2019), or modeling the baseline excess hazard (or cumulative excess
+hazard) and non-linear effects using splines (Giorgi et al., 2003; Dickman et al., 2004; Char-
+vat and Belot, 2021; Fauvernier et al., 2019; Quaresma et al., 2020; Eletti et al., 2022). Other
+approaches include the four methods described by Dickman et al. (2004), who assume that
+the excess hazard is constant within pre-specified intervals to establish a link with General-
+ized Linear Models (GLM), thus facilitating the estimation of the regression model, as well
+as approaches utilizing multivariate fractional polynomials (MFP) under an additive haz-
+ard structure (Lambert et al., 2005). Each of these modelling frameworks require a careful
+specification of the role of each covariate as well as the specification of the spline basis.
+In practice, structural assumptions like proportional hazards are often unrealistic, and
+opting for a flexible modeling approach that allows for potential non-linearity and multi-way
+interactions between the covariates and survival time may be crucial to fully understand the
+dynamics of the disease. In these cases, fully-nonparametric estimators of the net survival
+may be preferred.
+Nonparametric estimators of net survival have a rich and interesting
+history, with several methods proposed that, in fact, failed to estimate the net survival.
+These include the so-called Ederer I and Ederer II estimators (Ederer, 1961). We refer the
+reader to Pohar-Perme et al. (2012) for a through review of nonparametric estimators of net
+survival and their corresponding limitations. Nonparametric estimators of net survival are
+based on estimating the cumulative excess hazard (Pohar-Perme et al., 2012), in a similar
+fashion as the Nelson-Aalen estimator of the overall cumulative hazard (Aalen, 1978), using
+counting processes. While often viewed as a gold-standard for estimating the net survival
+function, Nelson-Aalen type estimators are limited in that (i) estimates of the cumulative
+excess hazard may be negative (thus leading to non-monotonic net survival functions) and
+(ii) incorporating covariate information requires stratification by the covariates, which can
+present challenges when handling continuous variables and may result in a loss of power due
+to sparse strata. Hence there is a need for methods that combine the flexibility of Nelson-
+4
+Aalen type estimators with the ability to borrow information across sub-populations offered
+by parametric methods.
+1.2
+Background and Research Questions
+The quality and availability of population-based data have increased in recent years, thus al-
+lowing richer information on cancer patients through linkage of various data sources collected
+at primary and secondary care settings. These efforts have motivated the development of al-
+gorithms aimed at deriving key information, not readily available or collected, such as route
+to diagnosis (Elliss-Brookes et al., 2012), stage at diagnosis (Benitez-Majano et al., 2016),
+frailty scores (Gilbert et al., 2018), and the presence of comorbidities (Maringe et al., 2017).
+These variables offer new insights into prognostic factors for cancer survival, at population
+level. Stage at diagnosis is a key prognostic factor, determining treatment options (National
+Institute for Health and Care Excellence, 2020), surveillance and follow-up. Efforts in cancer
+awareness, prevention, and screening aim to detect signs and symptoms early and diagnose
+cancer at the earliest possible stage, ensuring the best possible outcomes. Nonetheless, de-
+spite health systems built on principles of equity of access and use, factors such as patient’s
+age, level of deprivation, education, area of residence as well as clinical characteristics such
+as frailty or the presence of comorbidities impact cancer outcomes, isolating groups with
+heightened vulnerability. So far, understanding the impact of comorbidities and other socio-
+demographic or clinical factors has only been done on the overall survival framework (Rubio
+et al., 2022), which is a sub-optimal measure for cancer management, or through descriptive
+studies (Michalopoulou et al., 2021). The proposed methodology provides the tools to high-
+light the importance of each characteristic on net survival, beyond the impact of the stage
+at diagnosis. The specific outputs following the use of Bayesian Additive Regressive Trees
+(BART) for the estimation of net survival nicely complement the accurate estimation of net
+survival, and provide time-varying effects and variable importance: their interpretation and
+value are detailed in section 5.
+5
+1.3
+Our Contributions
+In this article, we propose a flexible semi-parametric model for estimating excess hazard and
+the associated net survival function using a log-linear extension of the Bayesian Additive
+Regression Trees framework (Chipman et al., 2010; Hill et al., 2019). Our approach models
+the excess hazard of the survival times as a product λE(t | x) = λ0E(t) er(x,t) where the
+baseline hazard λ0E(t) is a piece-wise constant function and the non-parametric component
+r(x, t) is modeled nonparametrically using BART. We first propose a piecewise constant
+proportional hazards model (r(x, t) ≡r(x)) and then subsequently extend it to allow the
+covariates to interact with the time in a completely non-parametric fashion.
+Using the
+automatic relevance determination prior of Linero (2018), we also show how to shrink the
+fully nonparametric model towards the proportional hazards model, allowing us to choose
+an appropriate structure in a data-adaptive fashion.
+Our approach has several desirable properties relative to other approaches to estimating
+the net survival function:
+i. By using BART, we are able to avoid the need to directly specify variable transformations
+or interactions between covariates. Additionally, our implementation of the proportional
+hazards model is just as computationally efficient as the original BART algorithm of
+Chipman et al. (2010).
+ii. Our nonparametric extension allows for sharing of information across sub-populations
+of interest, allowing us to maintain the flexibility of Nelson-Aalen type estimators while
+accounting for continuous characteristics and sparsely-observed sub-populations of in-
+terest.
+iii. By using Bayesian methods, we are able to combine the predictive power of machine
+learning with the need to appropriately quantify uncertainty in our inferences.
+iv. We also propose several posterior summarization techniques to understand the role of
+covariate interactions and to understand how the effects of covariates change over time.
+6
+Using these tools, for example, we can quantify and identify variations in the prognostic
+value of age at diagnosis, route to diagnosis, deprivation and specific comorbidities
+throughout follow-up, for patients diagnosed with colon cancer in England.
+The rest of this paper is organized as follows: Section 2 of this paper provides a brief
+review of Bayesian Additive Regression Trees and its applications in survival settings. Sec-
+tion 3 provides the details of our proposed semi-parametric piecewise exponential model for
+excess hazards and net survival estimation in proportional hazard setup, and extends this
+to the non-proportional scenario. In Section 4 we conduct a thorough simulation study to
+demonstrate the effectiveness of the proposed model and compare the results with those
+achieved by established methods for estimating net survival. Section 5 discusses a genuine
+epidemiological question, illustrating the use of the proposed methodology for calculating
+standard quantities of interest, such as net survival. It highlights the additional insights the
+proposed method provides when applied to linked datasets. We close in Section 6 with a
+discussion.
+2
+A Brief Review of BART
+Let Ti denote a survival time and Xi = (Xi1, . . . , XiP)⊤∈RP denote a vector of P covariates
+for subject i = 1, . . . , N.
+Our interest is in modeling the survival function S(t | x) of
+[Ti | Xi = x] and the associated hazard function λ(t | x) = −∂
+∂t log S(t | x). We assume
+right-censoring of the Ti’s, with Ci denoting a non-informative censoring time for subject i.
+The observed data consists of the event time Yi = min(Ti, Ci) and the censoring indicator
+δi = 1(Ti ≤Ci).
+The Bayesian additive regression trees (BART) framework, proposed by Chipman et al.
+(2010), is a popular Bayesian ensemble method that combines “weak” decision trees into a
+single “strong” learner with high predictive accuracy. BART has seen widespread adoption
+in various research communities, including the causal inference community (Dorie et al.,
+7
+2019), due to its ability to perform well under high-noise scenarios and offer uncertainty
+quantification.
+Chipman et al. (2010) introduced BART in the context of the semiparametric regression
+model Yi = r(Xi) + ϵi where Xi is a P-dimensional covariate vector, r : RP →R is an
+unknown regression function, and ϵi ∼N(0, σ2) is a random error. The BART framework
+models the unknown function r(x) as a sum of M regression trees r(x) = PM
+t=1 g(x; Tt, Mt),
+where Tt denotes the structure and splitting rules of tree t and Mt = (µt1, . . . , µtLt) denotes
+the set of predictions associated with the Lt terminal nodes of the tth decision tree.
+The BART framework uses a regularization prior to perform Bayesian inference on r(x);
+this requires specifying a prior on the tree structures Tt and the leaf node predictions Mt.
+Following Chipman et al. (2010), Tt is assigned a branching process prior with each node
+at depth d being non-terminal with probability γ(1 + d)−β, where γ > 0 and β > 0 control
+the shape of the tree. For each branch node b, a splitting rule of the form [xj ≤Cb] is
+assigned with x going left down the tree if the condition is satisfied and right down the
+tree otherwise. Conditional on j, the cut-point Cb is assigned a Uniform(Lj, Uj) prior where
+QP
+k=1[Lk, Uk] is the hyper-rectangle of x’s that lead to branch b. The splitting variable j
+is chosen with probability sj, and we refer to the vector s = (s1, . . . , sP)⊤as the splitting
+proportions. Chipman et al. (2010) set sj = 1/P, however following Linero (2018) we will
+consider a prior on s that we describe later. Independent Gaussian priors are designated to
+the terminal node parameters, with µtl
+iid
+∼N(0, σ2
+µ). A schematic showing how the branching
+process prior generates a sample of a decision tree, and its associated partition, is given in
+Figure 1.
+Inference for Non-Normal Likelihoods
+Beyond semiparametric regression with normal
+errors, BART has been adapted widely to accommodate non-Gaussian likelihoods. Chipman
+et al. (2010) showed how to adapt the BART model to binary classification problems with
+the probit link using the data augmentation scheme of Albert and Chib (1993). This can be
+8
+Figure 1: Schematic showing how to sample (Tt, Mt). We first determine whether the root
+node will have a branch, with probability γ; then sample the splitting coordinate j = 1 and
+the cut-point C = 0.5. This process then iterates; the left child node is set to be a leaf
+node with probability 1 −γ/2β, and the right child is made a leaf with probability γ/2β.
+Eventually this process terminates, and we sample a mean parameter µ for each leaf node.
+used to form the basis of many other methods, including the survival model of Sparapani
+et al. (2016), which bears some similarity to the models we use here. Beyond this, Murray
+(2021) showed that the Bayesian backfitting algorithm can be easily generalized to Poisson
+outcomes without the need for data augmentation, provided that one uses the leaf node prior
+µtℓ∼log Gam(a, b) instead of the normal prior. The Poisson log-linear model spurred further
+advances, with Linero et al. (2020) developing a Bayesian backfitting algorithm for gamma-
+distributed responses, and Linero et al. (2022) showing that Cox’s proportional hazard model
+is also amenable to Bayesian backfitting. The present work also proceeds in this style, using
+a log-gamma prior for the leaf node parameters.
+Inference Via Bayesian Backfitting
+Inference for BART models proceeds via a Bayesian
+backfitting algorithm that alternates between updating (Tt, Mt) (conditional on the remain-
+ing trees) for t = 1, . . . , M, followed by sampling hyperparameters from their full conditional
+distributions. As argued by Linero (2024), the main condition required in order for a Bayesian
+9
+backfitting algorithm to be constructible is that the integrated likelihood
+L(Y, η) =
+Z Y
+i
+f(Yi | ηi + µ) πµ(µ) dµ,
+have a closed form expression for all Y and η, where f (y | r(x)) is the assumed density of
+[Yi | Xi = x]. If this holds, then L(Y, η) can be used to update Tt via Metropolis-Hastings
+and then sample Mt from its full conditional given Tt, with ηi = P
+j̸=t g(Xi; Tj, Mj). Full
+details of this approach are given in Linero (2024).
+Default Priors
+BART priors have the advantage of being relatively easy to use due to
+the availability of good default priors that work across a variety of situations. As defaults
+in this work we set γ = 0.95, β = 2, M ∈{50, 100}, and σµ = 1.5/
+√
+M, and do not engage
+in tuning the prior beyond this.
+It is sometimes possible to get better performance by
+choosing M via cross-validation, at the expense of more computation time, but the benefits
+of cross-validation are not consistent (Chipman et al., 2010; Linero and Yang, 2018).
+3
+Relative Survival BART
+The additive relative survival model expresses the overall hazard of an individual as the sum
+of a population hazard and an excess hazard, as described in (1). In general, the likelihood
+of the excess hazard model under non-informative censoring is given by (Rubio et al., 2019):
+Y
+i
+
+{λP(agei + Yi | Wi) + λE(Yi | Xi)}δi × exp
+
+−
+Z Yi
+0
+λP(agei + u | Wi) + λE(u | Xi) du
+
+∝
+Y
+i
+
+{λP(agei + Yi | Wi) + λE(Yi | Xi)}δi × exp {−ΛE(Yi | Xi)}
+
+.
+where ΛE(t | x) =
+R t
+0 λE(u | x) du is the cumulative excess hazard, and Wi ⊆Xi. In the
+remainder of this section we describe our specific choices for λE(t | x) and describe how to
+perform posterior inference via Gibbs sampling.
+10
+3.1
+Proportional and Non-Proportional Hazards BART Models
+We first propose a Bayesian nonparametric proportional hazards (PH) model for λE(t | x),
+which is set equal to λ0E(t) er(x) where r(x) is given a BART prior. We then model λ0E(t)
+using a piecewise exponential model
+λ0E(t) =
+B
+X
+b=1
+1(tb−1 ≤t < tb) λb,
+where 0 = t0 < t1 < · · · < tB−1 < tB = ∞. To model the baseline hazard we set λb ∼
+Gam(1, bλ) with a flat prior placed on bλ, and generally recommend a modest number of bins;
+in our illustrations, we take B = N 1/3 (matching the order of, for example, the Freedman-
+Diaconis rule for the number bins of a histogram), with the tb’s chosen to be evenly spaced
+quantiles of the Yi’s.
+This model can be extended to a non-proportional hazards (NPH) model that allows the
+hazard to vary with the covariates in a fully nonparametric fashion. We set
+λE(t | x) =
+B
+X
+b=1
+1(tb−1 ≤t ≤tb) λb exp{r(x, b)}.
+This model still assumes that the hazard function is piecewise constant, but allows the
+hazard within each bin to also depend on the covariates. We incorporate b into the decision
+tree in the same fashion as the other covariates.
+Additionally, we can induce shrinkage
+of this model to the proportional hazards model by taking advantage of the automatic
+relevance determination prior introduced by Linero (2018). Specifically, let ω denote the
+probability that a given splitting rule in r(x, b) makes use of b. To induce shrinkage towards
+the proportional hazards model, we can set ω ∼Beta(P −1, 1).
+We emphasize that the number of bins B should be kept modest, which lies in contrast
+to the standard survival setting (i.e., not the relative survival model) where one can instead
+take B →∞and use an improper prior λb ∼Gam(0, 0); inferences produced under this
+11
+later model tend toward inferences based on the Cox partial likelihood for r(x), provided
+that we set λb ≡0 in any empty bins (Sinha et al., 2003). We do not recommend setting
+B large in the relative survival setting for several reasons. First, the population hazards
+are usually obtained via actuarial tables, and hence are likely themselves computed from
+a piecewise exponential model with a modest number of bins, and there is little reason to
+adopt a model for the excess hazard that is more precise than that of the population hazard.
+Second, for the NPH model, using a smaller number of bins improves the computational
+efficiency of our Gibbs sampler. Third, a modest choice for B facilitates likelihood-based
+comparisons with other Bayesian parametric and semiparametric approaches, which would
+not be possible otherwise.
+For the leaf node parameters we set µtℓ∼log Gam(a, b) where a and b are chosen so that
+E(µtℓ) = 0 and Var(µtℓ) = σ2
+µ for some user-specified choice of σ2
+µ. This choice facilitates
+computations for our Gibbs sampling algorithm, leading to straight-forward updates for
+the tree topologies, while mirroring as closely as possible the recommendations of Chipman
+et al. (2010). These constraints imply that ψ(α) = log β and ψ′(α) = σ2
+µ where ψ(·) and
+ψ′(·) denote the digamma and trigamma functions respectively. In our illustrations we set
+σµ = 1.5/
+√
+M, which corresponds to a belief that r(x) ∈(−3, 3) with prior probability
+approximately 95%; it is also straight-forward to place a prior on σµ.
+3.2
+Extracting Quantities of Interest
+We now introduce some tools for interpreting draws from the posterior distribution of the
+PH and NPH models. We first consider the PH model, where the main object of interest is
+the function r(x), as this determines how the various predictors affect the risk of death.
+Interpreting the Marginal Effects of Variables.
+We use the posterior projection strat-
+egy of Woody et al. (2020) to summarize the posterior distribution of r(x). This approach
+defines an interpretable summary of r(x) as a functional of the data generating process,
+12
+which is sampled as we would any other parameter. To summarize r(x) we compute its
+projection onto an interpretable family Q as er(x) = arg minq∈Q ∥r −q∥, for some norm ∥· ∥,
+typically the empirical L2-norm defined by ∥r∥2 = N −1 P
+i r(Xi)2. Common choices of Q
+include the class of linear models q(x) = x⊤βq, additive models q(x) = Pp
+j=1 qj(xj), or
+single decision trees q(x) = g(x; Tq, Mq). We will restrict our attention to the setting of
+additive models in this work, as additive models happen to work very well as summaries in
+our illustrations.
+Subgroup Identification.
+As an alternative to interpreting marginal effects, we might
+instead be interested in identifying subgroups of individuals that have different prognoses;
+this might be useful for informing policy, where we aim to identify relatively coarse subsets of
+individuals with particularly high risk that we might want to perform some intervention on.
+To do this, we will use the virtual twins approach of Foster et al. (2011), which amounts to
+applying the Classification and Regression Tree (CART) algorithm with the Bayes estimator
+br(Xi) as the outcome to identify subgroups with different prognoses based on Xi.
+Summarizing Variable Importance.
+To help quantify the importance of each predictor
+we use a predictive variable importance that measures a given variable’s contribution to r(x).
+We do this by computing the posterior distribution of the summary R2 (Woody et al., 2020)
+R2 = 1 −
+P
+i{r(Xi) −q(Xi)}
+P
+i{r(Xi) −¯r}
+where q(x) denotes a projection of r(x) onto some space Q and ¯r = N −1 P
+i r(Xi). We do
+this for several different models:
+1. We first assess the predictive importance simultaneously of all of the interactions by
+considering the summary R2 of a generalized additive model q(x) = PP
+j=1 qj(xj) with
+each qj(·) estimated using a smoothing spline for numeric predictors.
+2. Next, we assess the predictive performance of the additive components of each indi-
+13
+vidual variable in isolation by considering the summary R2 of a generalized additive
+model that removes predictor p from the summary, q−p(x) = P
+j̸=p qj(xj) with each
+qj(·) estimated using a smoothing spline for numeric predictors.
+The idea behind this procedure is that (i) if there are important interactions, then q(x) should
+have a poor summary R2, while (ii) if variable p is important, then q−p(x) should have a
+poor summary R2. Hence, smaller values of summary R2 correspond to higher importance.
+To extend these procedures to the NPH setting, we apply the same procedures but to the
+function SE(t | x) for fixed values of t. This allows us to assess, for example, how variable
+importance changes over time.
+3.3
+Posterior Computation
+Computations for the PH and NPH models can be carried out through relatively simple
+extensions of existing Gibbs samplers for BART survival models for the proportional hazards
+model Basak et al. (2021). To convert the likelihood
+Y
+i
+{λP(agei + Yi | Wi) + λE(Yi | Xi)}δi exp {−ΛE(Yi | Xi)} ,
+into a more tractable form, we augment a modified censoring indicator di ∼Bernoulli(pi)
+where pi = λE(Yi | Xi)/{λE(Yi | Xi) + λP(agei + Yi | Wi)} for each individual with δi = 1,
+and set di = 0 if δi = 0. After augmenting these latent indicators, the likelihood becomes
+Y
+i
+λE(Yi | Xi)di exp {−ΛE(Yi | Xi)} ,
+(2)
+which is the standard likelihood form for survival analysis with di playing the role of the cen-
+soring indicator. We apply a straight-forward extension of the Bayesian backfitting algorithm
+of Chipman et al. (2010) to the proportional hazards model; this approach is conceptually
+similar to the approach of Linero et al. (2022). With the augmented indicators di and the like-
+14
+lihood as above, we must update the trees and their leaf parameters (Tt, Mt), t = 1, . . . , M
+and the parameters of the baseline hazard function λb, b = 1, . . . , B.
+We apply a straight-forward extension of the Bayesian backfitting algorithm of Chipman
+et al. (2010) to the proportional hazards model; this approach is conceptually similar to the
+approach of Linero et al. (2022). Let D denote the observed data and let T−t and M−t
+respectively denote the collection of all tree topologies and leaf parameters except for those
+associated to tree t. Let L(T ) denote the collection of leaf nodes associated to tree T .
+Our Gibbs sampler alternates between the following steps:
+1. For i = 1, . . . , N sample di ∼Bernoulli
+n
+δiλbier(Xi)
+λP (agei+Yi|Wi)+λbi er(Xi)
+o
+.
+2. For m = 1, . . . , M:
+(a) Sample Tt from a Markov transition function that leaves the conditional posterior
+distribution π(Tt | T−t, M−t, D) invariant.
+(b) For ℓ∈L(Tt), sample µtℓfrom its full conditional distribution.
+3. Sample λ1, . . . , λb from π(λ1, . . . , λb | (T1, M1), . . . , (TM, MM), d1, . . . , dN, D).
+Step 1 is straight forward; below we describe details on Step 2 and Step 3 below.
+For
+notational convenience, we define Zib = 1(Yi ≥tb)(tb −tb−1) + 1(tb−1 ≤Yi < tb)(Yi −tb−1),
+which represents the contribution of bin b to the cumulative excess hazard of observation i.
+Full Conditional of λ’s
+Conditional on all other parameters, the likelihood of the λb’s
+factors across b, and hence under the the prior λb ∼
+iid
+Gam (aλ, bλ) the λb’s are conditionally
+independent given the other parameters in the model. The full conditional for each individual
+λb is given by
+π(λb | everything else) ∝
+(Y
+i
+λdi 1(bi=b)
+b
+e−Zibλber(Xi)
+)
+× λaλ−1
+b
+e−bλ λb
+∝λaλ+Ab−1
+b
+e−(bλ+Bb) λb,
+15
+where Ab = P
+i di 1(bi = b) and Bb = P
+i Zib er(Xi). This is the full conditional of a gamma
+distribution, i.e., λb
+indep
+∼Gam(aλ + Ab, bλ + Bb). It is easy to show that we can compute Bb
+efficiently via recursion by noting that
+Bb+1 = tb+1 −tb
+tb −tb−1
+
+Bb −
+X
+i:Yi∈[tb−1,tb+1)
+Ziber(Xi)
+
++
+X
+i:Yi∈[tb,tb+1)
+Zi(b+1)er(Xi).
+Rather than requiring O(NB) computations to compute all of the Bb’s, utilizing this recur-
+sion requires only O(N) computations.
+Updating the Trees
+To update (Tt, Mt) we first make a Metropolis-Hastings proposal to
+update the decision tree Tt and then sample Mt from its full conditional distribution. Let
+Q(T →T ′) denote a Markov transition function (MTF) on the collection of possible tree
+structures. The MTF is typically a mixture of the Birth, Death, Swap, and Change proposals
+introduced by Chipman et al. (1998); see Kapelner and Bleich (2016) for a detailed descrip-
+tion of these different proposals and how to compute the various transition probabilities.
+After sampling a new tree structure from T ∼Q(Tt →T ), we set Tt = T with probability
+A = min
+π(T ) L(T ) Q(T →Tt)
+π(Tt) L(Tt) Q(Tt →T ), 1
+
+,
+and leave Tt unchanged otherwise; here L(T ) is the integrated likelihood
+L(T ) =
+Y
+ℓ
+Z Y
+i⇝ℓ
+λdi
+bi exp
+ 
+diηi + diµ −eµ X
+b
+Zibλbeηi
+!
+×
+ba
+Γ(a) exp(aµ −beµ) dµ,
+where ηi = r(Xi) −g(Xi; Tt, Mt). Observing that the term inside the integral simplifies to
+the normalizing constant of a log-gamma distribution, this expression simplifies to
+L(T ) ∝
+(Y
+ℓ
+Γ(a + Aℓ)
+(b + Bℓ)a+Aℓ
+)
+×
+ba
+Γ(a)
+16
+where Aℓ= P
+i di and Bℓ= P
+i,b Zibλbeηi. By similar calculations, the full conditional for
+the µtℓ’s is given by a log Gam(a + Aℓ, b + Bℓ) distribution.
+As with the update for the λb’s, it is possible to take advantage of redundancy in P
+b Zibλb
+to reduce the computational cost of computing Bℓfrom O(NB) to O(N). Note that by
+definition we have Zib = 1(Yi ≥tb)(tb −tb−1) + 1(tb−1 ≤Yi < tb)(Yi −tb−1).
+Hence,
+P
+b Zibλb = λbi(Yi −tbi−1) + P
+b<bi λb(tb −tb−1) = λbi(Yi −tbi−1) + Fbi where we define
+Fb = P
+k<b λk(tk −tk−1), and importantly the Fb’s can be computed for b = 1, . . . , B prior
+to computing the Bℓ’s. Hence, we can write Bℓ= P
+i λbi(Yi −tbi−1) + Fbi.
+Computations for the Gibbs sampler for the NPH model are very similar to those for the
+PH model, and are deferred to the appendix; the main complication is that it is no longer
+easy to speed up computations via recursion, and so computations for the NPH model are
+slower by a factor of B. Full details for both algorithms are also given in Algorithm 1 and
+Algorithm 2 in the appendix.
+4
+Simulation Study
+In this section, we demonstrate the implementation of our proposed method through an
+extensive simulation study, by mimicking the real dataset LeukSurv, which is available in the
+spBayesSurv R package. This dataset contains information about 1, 043 patients diagnosed
+with acute myeloid leukemia, including their age, sex, white blood cell count at the time of
+diagnosis (truncated at 500) and Townsend score (lower values indicate that the individual is
+from a less affluent area). We augmented this dataset with an approximation of the baseline
+survival probabilities of the individuals in the background population, stratified by sex and
+age at baseline. To make our data generation mechanism as realistic as possible, we fitted
+four different models incorporating varying baseline hazard functions and incorporating both
+linear and non-linear interactions among covariates to the motivating LeukSurv data, and
+used these fitted models as the “true model” to generate the necessary survival times for our
+17
+simulation study.
+For each data generating mechanism, we generated 100 replicates of survival times for
+1,043 subjects, and covariates as age, sex, white blood cell count (wbc) and Townsend score
+(tpi). We first simulated the survival times associated to the excess hazard with the true
+hazard function λE(·) modeled as λE(t) = λ0E(t) × exp{r(x)}. We consider the following
+data generating mechanisms, which were obtained by fitting these models to the data:
+• Cox-Linear: The baseline hazard is modeled as a piecewise exponential function and
+the interaction among the covariates x is modeled in a linear fashion through the
+exponent is r(x) = x⊤β, where β is the vector of the regression coefficients.
+• Weibull-Linear: Same as Cox-Linear, except the baseline hazard is a Weibull hazard.
+• Weibull-Spline: Same as Weibull-Linear, except r(x) is modeled additively using splines
+for the continuous variables.
+• COXPH-BART: Same as Cox-Linear, except r(x) is a decision tree ensemble.
+We simulated the survival times for the general population from an exponential distri-
+bution using life tables, and introduced a non-informative censoring variable C, which was
+sampled from a uniform distribution. Finally, we obtained the observed event times as the
+minimum of the population survival, excess survival, and censoring times.
+With the survival times generated as above, we fitted our proposed COXPH-BART model
+and compared model performances with the linear Cox’s proportional hazards model (Cox-
+linear) and the linear Weibull proportional hazards model (Weibull-linear). Monte Carlo
+approximation of the root mean squared error (RMSE) for the mth replicated dataset, m =
+1, . . . , 100 was obtained as RMSEm =
+qPN
+i=1{r(xi)m−br(xi)m}2
+N
+, where r(xi)m and br(xi)m denote
+the true and the estimated values of the exponent term in the excess hazard model, as
+obtained for the ith subject from the mth replicated dataset. Performances from the above
+models are compared based on the average RMSE, the average proportion of nominal 90%
+18
+“True” Model
+avg. RMSE
+avg. coverage probability
+avg. length
+Cox-
+Weibull-
+COXPH-
+Cox-
+Weibull-
+COXPH-
+Cox-
+Weibull-
+COXPH-
+Linear
+Linear
+BART
+Linear
+Linear
+BART
+Linear
+Linear
+BART
+Cox-Linear
+0.068
+0.193
+0.250
+0.874
+0.391
+0.951
+0.212
+0.221
+0.718
+Weibull-Linear
+0.077
+0.070
+0.170
+0.826
+0.875
+0.954
+0.211
+0.215
+0.676
+Weibull-Spline
+0.182
+0.179
+0.171
+0.446
+0.461
+0.956
+0.211
+0.217
+0.690
+COXPH-BART
+0.191
+0.197
+0.164
+0.404
+0.410
+0.958
+0.210
+0.215
+0.686
+Table 1: Simulation results based on 100 replicates of data comparing Monte Carlo estimates
+of average Root Mean Squared Error (RMSE), average coverage probabilities, and average
+length of 90% confidence intervals obtained from fitting the proposed COXPH-BART model
+as compared to Cox-Linear and Weibull-Linear models under different true models with
+proportional hazards.
+credible intervals which capture the true value of r(x) and the average length of the 90%
+credible intervals (Table 1). Figure 2 panel (a) also includes a boxplot of the subject-level
+prediction error averaged over all 100 replicated datasets, given by
+P100
+m=1{br(xi)m−r(xi)m}
+100
+for
+i = 1, · · · , N. Similarly, Figure 2 panels (b) and (c) provide boxplots of the subject-level
+proportion of the 90% credible intervals which capture the true value of r(·) and the lengths
+of these credible intervals, averaged over 100 replicates, respectively.
+Simulation results show that when the true model is non-linear (Weibull-Spline and
+COXPH-BART), the proposed COXPH-BART model provides the minimum prediction er-
+ror. The Cox-BART model also surpasses the nominal coverage rate whereas, other models
+fail to do so, especially in data generated using the non-linear models. These results suggest
+that fitting the Cox-Linear and Weibull-Linear are insufficient in the presence of underly-
+ing non-linear associations among the covariates and it will provide improved estimation to
+adopt an ensemble based model as proposed in such situations. To balance this, COXPH-
+BART yields wider intervals and has higher RMSE when the parametric models are correctly
+specified.
+Note that each of the data generation mechanisms and the fitted models considered in
+the above simulation settings assumes proportional hazards, that is, the association and in-
+teraction among the covariates (modeled by r(x)) is independent of time t. To demonstrate
+performance of the non-proportional relative survival model (COXNPH-BART) proposed in
+19
+(a)
+(b)
+(c)
+Figure 2: Boxplot comparing the proposed COXPH-BART model with Cox-Linear and
+Weibull-Linear in terms of the error (panel (a)), coverage probabilities (panel (b)), and
+length of the 90% credible intervals (CI) (panel (c)) in predicting r(x) under data simulated
+from different true models with proportional hazards.
+20
+this paper, we perform another simulation study mimicking the same LeukSurv data. We
+obtain 100 replicated datasets using the same data generation technique as in the propor-
+tional hazards simulation, except that in this case, we first fit a non-proportional hazard
+survival model λ(t) = λ0(t)×exp r(x, t) to the data and then use this as the ground truth to
+simulate the survival times for the diseased population. With the non-proportional hazards
+survival times simulated as above, we fitted our proposed COXPH-BART and COXNPH-
+BART models and compared model performances based on the prediction accuracy of the
+relative survival function SE(t | x) = exp
+n
+−
+R t
+0 λ0E(z) er(x,z) dz
+o
+. As before, Monte Carlo
+approximations of the RMSE for the mth replicated dataset at time point t was obtained as
+RMSEm,t =
+q
+{SE(t,xi)m−bSE(t,xi)m}
+N
+where SE(t | x)m and bSE(t | x)m denotes the true and the
+estimated relative survival at time point t obtained from the mth replicated dataset.
+We report the average RMSE, average coverage probability of 90% credible intervals
+and the average lengths of these intervals plotted over time in figure (4). Figure (3) also
+includes boxplot of the prediction error in bSE, the coverage probabilities and length of the
+90% credible intervals plotted over time. Note that we gain somewhat in terms of bias,
+coverage probability as well as width of the credible intervals due to using COXNPH-BART
+as opposed to COXPH-BART, however, the two models are quite comparable, especially in
+terms of the error.
+5
+Application to Colon Cancer Data
+We extracted socio-demographic and clinical information on 18, 296 adults (9, 746 males and
+8, 550 females) diagnosed with colon cancer (ICD-10 C18) in England in 2012, using data from
+national population-based cancer registries linked to secondary care records. The most recent
+vital status was confirmed on or before December 31st 2019, providing 7 years of follow-up.
+We used or derived information on the following key individual factors: age at diagnosis;
+cancer stage at diagnosis, coded according to the Tumor Node and Metastasis (TMN) system;
+21
+Figure 3: Boxplot comparing the COXPH-BART model with COXNPH-BART model in
+terms of the error (left), coverage probabilities of 90% credible intervals (CIs) (middle), and
+lengths of the 90% CIs (right) in predicting SE(t) plotted over time under data simulated
+from COXNPH-BART model. Solid horizontal line in the middle panel is at 0.9 indicating
+the 90% nominal coverage probability in predicting SE(·).
+Figure 4: Plot comparing the COXPH-BART and COXNPH-BART models in terms of the
+average root mean squared error (RMSE) (left), average coverage probabilities of 90% cred-
+ible intervals (middle), and average length of the 90% credible intervals (right) in predicting
+SE(t) over time under data simulated from the COXNPH-BART model.
+22
+deprivation score (1 = least deprived, 5 = most deprived), derived from income domain of the
+Index of Multiple Deprivation (IMD) measured at the small-area level of patient’s residence
+at the time of their diagnosis; emergency presentation (EP, binary); presence of comorbidities
+(including cardiovascular disease, chronic obstructive pulmonary disease, diabetes, and renal
+disease, see Table 3 in the appendix). The tumor stages (I - IV) are derived from the size
+of the tumor (T), the number of nodes involved (N), and the presence of metastasis (M).
+EP is one of eight routes to diagnosis, and is defined by an algorithm based on linked
+electronic health records (Elliss-Brookes et al., 2012): it corresponds to an emergency route
+via A&E, emergency GP Referral, emergency transfer, emergency consultant outpatient
+referral, emergency admission or attendance.
+A summary of the data set is presented in Table 2 for males and Table 4 in the appendix
+for females. We observe higher rates of EPs in patients with stage IV cancer tumor com-
+pared to those with stage I: from 7.6% and 10.9% in stage I to 39.4% and 42.2% in stage
+IV, respectively, for male and female patients. Proportions of patients with comorbidities
+increase with stage at diagnosis in females, but remain stable throughout all stages in males.
+As expected, mean follow-up time decreases from 5.6 and 5.8 years in males and females
+diagnosed at stage I to 1.4 years for patients diagnosed at stage IV, with less than 30% of
+stage I patients dying in the 7 years of follow-up in contrast to over 90% of stage IV patients.
+Stage at diagnosis is a well-established clinical prognostic factor, with more advanced
+stages linked to fewer treatment options and lower survival probabilities. In addition, a
+vast literature has been devoted to understand differences in cancer survival by deprivation
+(Woods et al., 2006), which has evidenced inequalities in survival for most deprived patients
+compared to less deprived groups. Deprivation level, however, might be a proxy for other
+underlying factors such as unhealthy lifestyles and difficulties in healthcare access, which
+contribute to lower survival. This motivates our epidemiological question of understanding
+the importance of other prognostic factors on explaining cancer survival, and to understand
+how they interact with stage and deprivation. With this aim, we fit both COXNPH-BART
+23
+Stage at diagnosis
+I
+II
+III
+IV
+N
+%
+N
+%
+N
+%
+N
+%
+N
+1,537
+2,801
+2,620
+2,788
+Mean age (sd)
+70.1
+(11.2)
+72.4
+(11.7)
+70.5
+(12.2)
+71.7
+(12.0)
+Emergency presentation
+116
+7.6
+684
+24.4
+698
+26.6
+1,097
+39.4
+Comorbidities
+Cardiovascular disease
+191
+12.4
+439
+15.7
+343
+13.1
+408
+14.6
+COPD
+139
+9.0
+249
+8.89
+243
+9.3
+262
+9.4
+Diabetes
+170
+11.1
+324
+11.6
+283
+10.8
+327
+11.7
+Renal disease
+54
+3.5
+131
+4.7
+84
+3.2
+127
+4.6
+Deprivation (in quintiles)
+Least deprived
+353
+23.0
+613
+21.9
+584
+22.3
+569
+20.4
+2
+361
+23.5
+671
+24.0
+599
+22.9
+598
+21.5
+3
+315
+20.5
+553
+19.7
+544
+20.8
+602
+21.6
+4
+261
+17.0
+517
+18.5
+494
+18.9
+541
+19.4
+Most deprived
+247
+16.1
+447
+16.0
+399
+15.2
+478
+17.1
+Number of deaths
+420
+27.3
+1,132
+40.4
+1,409
+53.8
+2,595
+93.1
+Mean follow-up time, years (sd)
+5.6
+(1.9)
+5.1
+(2.3)
+4.3
+(2.5)
+1.4
+(1.9)
+Table 2: Characteristics of male patients diagnosed with colon cancer
+and COXPH-BART models to the data, separately for males and females diagnosed with
+colon cancer; results for females are presented in the appendix B. The models included all
+variables (x) discussed above (age, stage, deprivation (dep), cardiovascular disease (CVD),
+diabetes, renal disease (renal), and emergency presentation (EP)). Life-tables of population
+mortality rates estimated for each year of age, sex, deprivation level (by IMD quintiles) (w),
+region, and calendar year were linked to patients records, to allow estimation of the excess
+hazard.
+We fit the models with M = 100 trees, a burn-in period of 1, 000 iterations and saved
+1, 000 samples after burn-in with a thinning interval of 10 (for 11, 000 total iterations).
+We then computed the leave-one-out expected log predictive density (ELPD) for each of
+these models, which is an omnibus measure of goodness-of-fit for model comparison. Addi-
+tional details on using this statistic are given by Vehtari et al. (2017). The ELPD of the
+COXNPH-BART model was found to be substantially higher (−10, 285.4) compared to the
+COXPH-BART model (−10, 570.9), indicating a better fit to the data. Below, we present
+an interpretation of the results and new findings derived from the COXNPH-BART model.
+24
+Figure 8 in the appendix shows that there is indeed evidence on inequalities in net survival
+between most and least deprived groups, as suggested in previous literature. Figure 5 shows
+the partial effect of age (as recorded at diagnosis) on net survival at different time points
+(bins 2, 20, 40, 60 and 80 months). This figure shows a non-linear and time-varying effect of
+age. It also shows that patients diagnosed at younger ages have increased net survival, up
+until around 78 years when older ages are associated with lower net survival. The amplitude
+of the partial effects of age are most extreme at 20 months after diagnosis, and then reduce
+slightly as follow-up time elapses.
+The variable importance, measured through summary R2 based on net survival, reflects
+the contribution of covariates in explaining the levels of net survival and how these contribu-
+tions vary over the follow-up period (Figure 6). At 2 months after diagnosis, the full model
+explains approximately 68% of the variability in net survival, with the largest contributions
+coming from the EP status variable, followed by stage and age at diagnosis. Deprivation and
+comorbidities do not hold much variable importance in addition to the three aforementioned
+variables. After the acute diagnostic phase, the full-model’s importance reaches 75% and
+further increases to 87%, thus explaining even more of the variability in individual net sur-
+vival. The importance of stage at diagnosis is increased, and while emergency presentation
+and age at diagnosis remain important prognostic factors, they are not as discriminant as
+they were shortly after diagnosis.
+Another way to interpret the fit of the model to the data is through a decision tree,
+which can be used to find subgroups with different prognosis, as shown in Figure 7. At
+2 months post-diagnosis, EP status is the first variable to divide the cohort, with 26%
+of patients having received an emergency diagnosis. The next division is based on stage,
+distinguishing 11% of late-stage (IV, metastatic) from 15% of early-stage (I–III) patients
+with EP = 1. Notably, for patients with EP = 1, age at diagnosis further differentiates
+the group within both stage categories, showing significant variation in net survival (from
+79% to 93% in stage IV and 96% to 98% in stages I-III) across age groups. In contrast,
+25
+patients with EP = 0 are only divided by stage, with net survival probabilities remaining
+close to 1. This suggests that an emergency diagnosis has a substantial impact on cancer
+prognosis across different age groups. However, an emergency diagnosis alone is unlikely
+to be the primary cause of lower survival probabilities; rather, it may indicate healthcare
+access challenges or suboptimal care provision. At 20 months post-diagnosis, stage is the first
+variable to divide the group into early and late stages, with further splits based on age and
+EP status. Notably, in this time frame, net survival in late-stage patients primarily depends
+on age, with significant differences observed between groups above and below 79 years.
+Additionally, EP continues to further divide these age groups, resulting in marked variations
+in net survival. In contrast, for early-stage patients, EP becomes the next variable to split
+the group, followed by age group divisions only for those with EP = 1. At later intervals
+(40, 60, and 80 months post-diagnosis), the decision trees simplify, with only metastatic
+disease and EP status strongly influencing prognosis. Overall, the BART summary provides
+valuable insights into the evolution of net survival over time, suggesting that EP may serve
+as a proxy for healthcare access, which in turn affects patient follow-up and prognosis.
+Figure 9 in the appendix presents the importance of each variable in explaining net
+survival (on a [0, 1] scale), as defined by the R package rpart, at different time points. In this
+case, variable importance quantifies how much each variable contributes to reducing impurity
+in the tree. The conclusions are similar to those drawn from the previous variable importance
+measure, but this method provides an additional, readily available tool for understanding
+and quantifying variable importance.
+6
+Discussion
+In this article, we have developed a novel flexible Bayesian semi-parametric approach for
+estimating excess hazard and associated net survival probability in the relative survival
+setting using BART. More specifically, we have modeled the baseline of the excess hazard
+26
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+(a)
+(b)
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+(c)
+(d)
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+(e)
+Figure 5: Males colon cancer data: Partial effect of age at 2, 20, 40, 60, and 80 months.
+27
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+(a)
+(b)
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+(c)
+(d)
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+(e)
+Figure 6: Males colon cancer data. Variable importance (R2) distributions at 2, 20, 40,
+60, and 80 months.
+Lower summary R2 deleting each variable indicates higher variable
+importance.
+28
+EP = 1
+stage >= 4
+age >= 79
+age >= 87
+age >= 71
+age >= 79
+stage >= 4
+0.98
+100%
+0.94
+26%
+0.89
+11%
+0.83
+4%
+0.79
+1%
+0.85
+3%
+0.92
+7%
+0.89
+2%
+0.93
+5%
+0.97
+15%
+0.96
+6%
+0.98
+9%
+0.99
+74%
+0.97
+18%
+1
+56%
+yes
+no
+stage >= 4
+age >= 79
+EP = 1
+EP = 1
+EP = 1
+age >= 79
+0.79
+100%
+0.44
+29%
+0.27
+9%
+0.16
+4%
+0.36
+5%
+0.51
+20%
+0.39
+7%
+0.58
+13%
+0.93
+71%
+0.82
+15%
+0.74
+6%
+0.87
+9%
+0.96
+56%
+yes
+no
+(a)
+(b)
+stage >= 4
+EP = 1
+stage >= 3
+stage >= 3
+0.61
+100%
+0.12
+29%
+0.8
+71%
+0.6
+15%
+0.48
+7%
+0.7
+8%
+0.85
+56%
+0.74
+20%
+0.92
+36%
+yes
+no
+stage >= 4
+EP = 1
+stage >= 3
+stage >= 3
+0.56
+100%
+0.084
+29%
+0.75
+71%
+0.52
+15%
+0.4
+7%
+0.64
+8%
+0.81
+56%
+0.67
+20%
+0.89
+36%
+yes
+no
+(c)
+(d)
+stage >= 4
+EP = 1
+stage >= 3
+stage >= 3
+0.55
+100%
+0.08
+29%
+0.75
+71%
+0.52
+15%
+0.39
+7%
+0.63
+8%
+0.81
+56%
+0.66
+20%
+0.88
+36%
+yes
+no
+(e)
+Figure 7: Males colon cancer data. Variable importance (net survival) trees at 2, 20, 40, 60,
+and 80 months.
+29
+function as piecewise exponential and modeled the complex non-linear associations among
+the covariates using BART, allowing for both proportional as well as non-proportional (time-
+varying) hazard assumptions, and thus avoiding the need to specify closed-form variable
+transformations or covariate interactions. Using a Bayesian ensemble-based model enables
+us to effectively merge the predictive capabilities of machine learning with a robust approach
+to quantifying uncertainty in our conclusions. Simulation results validate that our proposed
+models are conservative in terms of the coverage provided by credible intervals, even under
+model misspecification. This method facilitates the sharing of information across relevant
+sub-populations, enabling us to retain the flexibility of Nelson-Aalen type estimators while
+accommodating continuous characteristics and sparsely observed sub-groups.
+Applicability of the proposed model has been demonstrated through a case study con-
+cerning the analysis of colon cancer data in England, along with the proposed posterior
+summarization techniques to quantify feature importance and interaction with time. Tumor
+stage at diagnosis is a well-established clinical prognostic factor, with more advanced stages
+being associated with fewer treatment options and lower survival probabilities. Additionally,
+extensive literature has examined disparities in cancer survival linked to deprivation. How-
+ever, researchers should consider newly available variables, obtained through data linkage,
+to better identify the underlying causes of these inequalities. Given the flexibility of the
+COXNPH-BART model and its ability to consider all possible interactions, we were able to
+provide new insights into factors driving colon cancer net survival, up to 7 years after diagno-
+sis. More specifically, the case study demonstrates the strong prognostic value of emergency
+presentations (EP), potentially as a proxy for healthcare access and usage. It also illustrates
+the additional insights epidemiologists and clinicians could gain by considering the effect of
+factors beyond stage at diagnosis and deprivation level. The outputs of the proposed model-
+ing approach enable the analysis of time-varying variable importance, highlighting different
+phases in the patients’ follow-up. Clinical factors, such as the four comorbidities included
+here and deprivation do not bear large importance in explaining net survival, throughout
+30
+follow-up. It is important to emphasize that these conclusions apply at the population level,
+which is the focus of this work. Certain clinical prognostic factors may still be important at
+the individual level, but that is beyond the scope of our study. This work opens the door to
+analyzing and understanding the importance of prognostic factors for different cancer sites,
+as well as validating our findings in datasets from other countries.
+Data Availability and Ethical Approval
+The data used for this study are the English National Cancer Registry data 1971–2016.
+Cancer registration data consist of patient information and as such, it is protected under
+the Data Protection Act 1998 and GDPR 2018 and cannot be made available as open data.
+Formal requests for release of cancer registration data can be made to the data custodian NHS
+Digital (NHSD). The researchers will have beforehand obtained all the ethical and statutory
+approvals required for accessing sensitive data.
+Detailed information on the application
+process can be found at https://digital.nhs.uk/ndrs/. The authors have obtained the ethical
+and statutory approvals required for this research (PIAG 1-05(c)/2007); ethical approval
+updated 6 April 2017 (REC 13/LO/0610).
+References
+Aalen, O. (1978). Nonparametric inference for a family of counting processes. The Annals
+of Statistics, 6(4):701–726.
+Albert, J. H. and Chib, S. (1993). Bayesian analysis of binary and polychotomous response
+data. Journal of the American Statistical Association, 88(422):669–679.
+Basak, P., Linero, A., and Sinha, D. (2021). Semiparametric analysis of clustered interval-
+censored survival data using soft bayesian additive regression trees (SBART). Biometrics,
+78(3):880–893.
+31
+Benitez-Majano, S., Fowler, H., Maringe, C., Di-Girolamo, C., and Rachet, B. (2016). Deriv-
+ing stage at diagnosis from multiple population-based sources: colorectal and lung cancer
+in England. British Journal of Cancer, 115(3):391–400.
+Charvat, H. and Belot, A. (2021). mexhaz: an R package for fitting flexible hazard-based re-
+gression models for overall and excess mortality with a random effect. Journal of Statistical
+Software, 98:1–36.
+Chipman, H. A., George, E. I., and McCulloch, R. E. (1998). Bayesian CART model search.
+Journal of the American Statistical Association, 93(443):935–948.
+Chipman, H. A., George, E. I., and McCulloch, R. E. (2010). BART: Bayesian additive
+regression trees. The Annals of Applied Statistics, 4(1):266–298.
+Dickman, P., Sloggett, A., Hills, M., and Hakulinen, T. (2004). Regression models for relative
+survival. Statistics in Medicine, 23(1):51–64.
+Dorie, V., Hill, J., Shalit, U., Scott, M., and Cervone, D. (2019). Automated versus do-it-
+yourself methods for causal inference: Lessons learned from a data analysis competition.
+Statistical Science, 34(1):43–68.
+Ederer, F. (1961). The relative survival rate: a statistical methodology. National Cancer
+Institute Monograph, 6:101–121.
+Eletti, A., Marra, G., Quaresma, M., Radice, R., and Rubio, F. (2022). A unifying framework
+for flexible excess hazard modelling with applications in cancer epidemiology. Journal of
+the Royal Statistical Society: Series C (Applied Statistics), 71:1044–1062.
+Elliss-Brookes, L., McPhail, S., Ives, A., Greenslade, M., Shelton, J., Hiom, S., and Richards,
+M. (2012). Routes to diagnosis for cancer–determining the patient journey using multiple
+routine data sets. British Journal of Cancer, 107(8):1220–1226.
+32
+Fauvernier, M., Roche, L., Uhry, Z., Tron, L., Bossard, N., Remontet, L., and Challenges
+in the Estimation of Net Survival Working Survival Group (2019).
+Multi-dimensional
+penalized hazard model with continuous covariates: applications for studying trends and
+social inequalities in cancer survival. Journal of the Royal Statistical Society: Series C
+(Applied Statistics), 68(5):1233–1257.
+Foster, J. C., Taylor, J. M., and Ruberg, S. J. (2011). Subgroup identification from random-
+ized clinical trial data. Statistics in Medicine, 30(24):2867–2880.
+Gilbert, T., Neuburger, J., Kraindler, J., Keeble, E., Smith, P., Ariti, C., Arora, S., Street,
+A., Parker, S., and Roberts, H. (2018). Development and validation of a hospital frailty
+risk score focusing on older people in acute care settings using electronic hospital records:
+an observational study. The Lancet, 391(10132):1775–1782.
+Giorgi, R., Abrahamowicz, M., Quantin, C., Bolard, P., Esteve, J., Gouvernet, J., and
+Faivre, J. (2003). A relative survival regression model using B-spline functions to model
+non-proportional hazards. Statistics in Medicine, 22(17):2767–2784.
+Hill, J., Linero, A. R., and Murray, J. (2019). Bayesian additive regression trees: A review
+and look forward. Annual Review of Statistics and Its Application, 7:251–278.
+Kapelner, A. and Bleich, J. (2016). bartMachine: Machine learning with Bayesian additive
+regression trees. Journal of Statistical Software, 70(4):1–40.
+Lambert, P., Smith, L., Jones, D., and Botha, J. (2005). Additive and multiplicative co-
+variate regression models for relative survival incorporating fractional polynomials for
+time-dependent effects. Statistics in Medicine, 24(24):3871–3885.
+Linero, A. R. (2018). Bayesian regression trees for high-dimensional prediction and variable
+selection. Journal of the American Statistical Association, 113(522):626–636.
+33
+Linero, A. R. (2024). Generalized Bayesian additive regression trees models: Beyond condi-
+tional conjugacy. Journal of the American Statistical Association, pages 1–14.
+Linero, A. R., Basak, P., Li, Y., and Sinha, D. (2022). Bayesian Survival Tree Ensembles
+with Submodel Shrinkage. Bayesian Analysis, 17(3):997–1020.
+Linero, A. R., Sinha, D., and Lipsitz, S. R. (2020). Semiparametric mixed-scale models using
+shared Bayesian forests. Biometrics, 76(1):131–144.
+Linero, A. R. and Yang, Y. (2018). Bayesian regression tree ensembles that adapt to smooth-
+ness and sparsity. Journal of the Royal Statistical Society: Series B (Statistical Methodol-
+ogy), 80(5):1087–1110.
+Maringe, C., Fowler, H., Rachet, B., and Luque-Fernandez, M. (2017).
+Reproducibility,
+reliability and validity of population-based administrative health data for the assessment
+of cancer non-related comorbidities. PloS One, 12(3):e0172814.
+Mariotto, A., Noone, A., Howlader, N., Cho, H., Keel, G., Garshell, J., Woloshin, S., and
+Schwartz, L. (2014). Cancer survival: an overview of measures, uses, and interpretation.
+Journal of the National Cancer Institute Monographs, 2014(49):145–186.
+Michalopoulou, E., Matthes, K., Karavasiloglou, N., Wanner, M., Limam, M., Korol, D.,
+Held, L., and Rohrmann, S. (2021). Impact of comorbidities at diagnosis on the 10-year
+colorectal cancer net survival: A population-based study. Cancer Epidemiology, 73:101962.
+Murray, J. S. (2021).
+Log-linear Bayesian additive regression trees for multinomial lo-
+gistic and count regression models.
+Journal of the American Statistical Association,
+116(534):756–769.
+National Institute for Health and Care Excellence (2020). Colorectal cancer, nice guideline
+[ng151]. Accessed: 2024-10-08.
+34
+NHS National Cancer Registration and Analysis Service (2023). Cancer survival methodol-
+ogy. Accessed: 2024-09-24.
+Pohar-Perme, M., Stare, J., and Est`eve, J. (2012). On estimation in relative survival. Bio-
+metrics, 68(1):113–120.
+Quaresma, M., Carpenter, J., and Rachet, B. (2020). Flexible Bayesian excess hazard models
+using low-rank thin plate splines. Statistical Methods in Medical Research, 29(6):1700–
+1714.
+Quaresma, M., Rubio, F., and Rachet, B. (2024). An index of cancer survival to measure
+progress in cancer control: A tutorial. Cancer Epidemiology, 90:102576.
+Rubio, F., Alvares, D., Redondo-Sanchez, D., Marcos-Gragera, R., S´anchez, M., and Luque-
+Fernandez, M. (2022). Bayesian variable selection and survival modeling: assessing the
+most important comorbidities that impact lung and colorectal cancer survival in Spain.
+BMC Medical Research Methodology, 22(1):1–14.
+Rubio, F., Remontet, L., Jewell, N., and Belot, A. (2019). On a general structure for hazard-
+based regression models: an application to population-based cancer research. Statistical
+Methods in Medical Research, 28:2404–2417.
+Sinha, D., Ibrahim, J. G., and Cen, M.-H. (2003). A Bayesian justification of Cox’s partial
+likelihood. Biometrika, 90(3):629–641.
+Sparapani, R. A., Logan, B. R., McCulloch, R. E., and Laud, P. W. (2016). Nonparametric
+survival analysis using Bayesian additive regression trees (BART). Statistics in Medicine,
+35(16):2741–2753.
+Vehtari, A., Gelman, A., and Gabry, J. (2017). Practical bayesian model evaluation using
+leave-one-out cross-validation and waic. Statistics and Computing, 27(5):1413–1432.
+35
+Woods, L., Rachet, B., and Coleman, M. (2006). Origins of socio-economic inequalities in
+cancer survival: a review. Annals of Oncology, 17(1):5–19.
+Woody, S., Carvalho, C. M., and Murray, J. S. (2020). Model interpretation through lower-
+dimensional posterior summarization. Journal of Computational and Graphical Statistics,
+pages 1–9.
+36
+A
+More Details on the Gibbs Samplers
+In this section we provide more detail on the computations. First, the full algorithm for the
+PH model is given in Algorithm 1. Next, we provide details on computations for the NPH
+model.
+The Gibbs sampling updates for the λb’s are nearly identical, except that we instead take
+Bb = P
+i Ziber(Xi,b) and it is no longer easy to compute the Bb’s recursively. Computations
+for L(T ) and µtℓare again similar. We now let r(Xi, b) −g(Xi, b; Tt, Mt) = ηib and write
+the integrated likelihood as
+L(T ) =
+Y
+ℓ
+Z
+Y
+(i,b)⇝ℓ
+λdi1(bi=b)
+b
+exp {di1(bi = b)(ηib + µ) −eµZibλbeηib}
+×
+ba
+Γ(a) exp(aµ −beµ) dµ,
+which evaluates to
+L(T ) ∝
+(Y
+ℓ
+Γ(a + Aℓ)
+(b + Bℓ)a+Aℓ
+)
+×
+ba
+Γ(a),
+where Aℓ= P
+(i,b)⇝ℓdi1(bi = b) and Bℓ= P
+(i,b)⇝ℓZibλbeηib; similarly, the update for the leaf
+predictions is given by µtℓ∼log Gam(a + Aℓ, b + Bℓ). The full details of this algorithm are
+given in Algorithm 2.
+37
+Algorithm 1: Bayesian Backfitting for the Proportional Hazards Model
+Input: Data D = {(Yi, δi, Xi, λP(agei + Yi | Wi))}N
+i=1
+Output: Posterior samples of {Tm, Mm}M
+m=1 and {λb}B
+b=1
+1 Initialize the trees {Tm}M
+m=1 and their leaf parameters {Mm}M
+m=1
+2 for each iteration do
+3
+for each individual i = 1, . . . , N do
+4
+Update di ∼Bernoulli
+n
+δiλbier(Xi)
+λP (Yi|Wi)+λbier(Xi)
+o
+;
+5
+for each tree m = 1, . . . , M do
+6
+Propose a new tree structure T ∼Q(Tm →T );
+7
+Compute Aℓ= P
+i:Xi⇝ℓdi and Bℓ= P
+b,i:Xi⇝ℓZib λb eηi for each leaf ℓin T
+and Tm;
+8
+Compute L(T ) and L(Tm) as:
+L(T ) ∝
+Y
+ℓ
+Γ(a + Aℓ)
+(b + Bℓ)a+Aℓ×
+ba
+Γ(a).
+9
+Set Tm = T with probability A = min
+n
+π(T ) L(T ) Q(T →Tm)
+π(Tm) L(Tm) Q(Tm→T ), 1
+o
+;
+10
+for each leaf ℓ∈L(Tm) do
+11
+Sample µmℓ∼log Gam(a + Aℓ, b + Bℓ);
+12
+for each bin b = 1, . . . , B do
+13
+Compute Ab = P
+i:bi=b di;
+14
+Compute Bb = P
+i Ziber(Xi) using:
+Bb+1 = tb+1 −tb
+tb −tb−1
+
+Bb −
+X
+i:Yi∈[tb−1,tb+1)
+Ziber(Xi)
+
++
+X
+i:Yi∈[tb,tb+1)
+Zi(b+1)er(Xi)
+Sample λb ∼Gam(aλ + Ab, bλ + Bb);
+38
+Algorithm 2: Bayesian Backfitting for the Non-Proportional Hazards (NPH)
+Model
+Input: Data D = {(Yi, δi, Xi, λP(agei + Yi | Wi))}N
+i=1
+Output: Posterior samples of {Tm, Mm}T
+m=1 and {λb}B
+b=1
+1 Initialize the trees {Tm}M
+m=1 and their leaf parameters {Mm}M
+m=1
+2 for each iteration do
+3
+for each individual i = 1, . . . , N do
+4
+Update di ∼Bernoulli
+n
+δiλbier(Xi,bi)
+λP (Yi|Wi)+λbier(Xi,bi)
+o
+;
+5
+for each tree m = 1, . . . , M do
+6
+Propose a new tree structure T ∼Q(Tm →T );
+7
+Compute ηib = r(Xi, b) −g(Xi, b; Tm, Mm) for all (i, b);
+8
+Compute Aℓ= P
+(i,b)⇝ℓdi1(bi = b) and Bℓ= P
+(i,b)⇝ℓZibλbeηib;
+9
+Compute L(T ) and L(Tm) as:
+L(T ) ∝
+Y
+ℓ
+Γ(a + Aℓ)
+(b + Bℓ)a+Aℓ×
+ba
+Γ(a).
+10
+Set Tm = T with probability A = min
+n
+π(T ) L(T ) Q(T →Tm)
+π(Tm) L(Tm) Q(Tm→T ), 1
+o
+;
+11
+for each leaf ℓ∈L(Tm) do
+12
+Sample µmℓ∼log Gam(a + Aℓ, b + Bℓ);
+13
+for each bin b = 1, . . . , B do
+14
+Compute Ab = P
+i:bi=b di1(bi = b);
+15
+Compute Bb = P
+i Ziber(Xi,b);
+16
+Sample λb ∼Gam(aλ + Ab, bλ + Bb);
+39
+B
+Additional results for the real data application
+B.1
+Comorbidity definitions
+Table 3 below presents the definition of the comorbidities used in our case study. These
+definitions are based on ICD-10 codes and the algorithm proposed in Maringe et al. (2017)
+to derive information on the presence of comorbidities in cancer patients in the UK.
+Comorbidity
+ICD-10 codes
+Cardiovascular disease (CVD)
+I21, I22, I252, I70,
+I71, I731, I738, I739,
+I771, I790, I792, K551,
+K558, K559, Z958, Z959,
+G45, G46, H340, I60-I69
+Chronic Obstructive Pulmonary
+I278, I279, J40-J47, J60-J67,
+Disease (COPD)
+J684, J701, J703
+Diabetes
+E10-E14
+Renal disease
+I120, I131, N032-N037,
+N052-N057, N18-N19, N250,
+Z490-Z492, Z940, Z992
+Table 3: Comorbidity definitions.
+B.2
+Male colon cancer patients
+This section provides supplementary figures for the results concerning male colon cancer
+patients, as presented in the main document.
+40
+0
+1
+2
+3
+4
+5
+6
+7
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Time
+Net Survival
+Population
+Least deprived
+Most deprived
+Figure 8: Males colon cancer data. Net survival. Most deprived vs least deprived vs popu-
+lation
+0.001
+0.003
+0.006
+0.183
+0.397
+0.410
+COPD
+CVD
+Renal
+age
+stage
+EP
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+0.001
+0.002
+0.003
+0.074
+0.079
+0.841
+COPD
+Renal
+CVD
+age
+EP
+stage
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+0.000
+0.002
+0.074
+0.924
+COPD
+age
+EP
+stage
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+(a)
+(b)
+(c)
+0.000
+0.002
+0.090
+0.908
+COPD
+age
+EP
+stage
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+0.000
+0.002
+0.092
+0.906
+COPD
+age
+EP
+stage
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+(d)
+(e)
+Figure 9: Males colon cancer data. Variable importance from rpart at 2, 20, 40, 60, and 80
+months.
+B.3
+Female colon cancer patients
+We fitted the same BART models to the female colon cancer data than we did for male,
+and present here their specific results and conclusions. The ELPD of the COXNPH-BART
+model was found to be substantially higher (−8, 458.1) compared to the COXPH-BART
+41
+model (−8, 716.4), indicating a better fit to the data. Below, we present an interpretation
+of the results and new findings derived from the COXNPH-BART model.
+Figure 10 also reveals inequalities in net survival by deprivation for female cancer patients.
+Figure 11 shows the partial effect of age (as recorded at diagnosis) on net survival at different
+time points (bins 2, 20, 40, 60 and 80 months). The conclusions are similar to those drawn for
+male patients, with age having a non-linear and time-varying effect, and the largest amplitude
+of the partial effect of age observed at 20 months after diagnosis, and then reducing slightly
+as follow-up time elapses.
+The variable importance, measured through R2 based on net survival, in presented in
+Figure 12.
+At 2 months after diagnosis, the full model explains approximately 75% of
+the variability in net survival, with the largest contributions coming from the EP status
+variable, followed by stage and age at diagnosis.
+Deprivation and comorbidities do not
+hold much variable importance in addition to the three aforementioned variables.
+After
+the acute diagnostic phase, the full-model’s importance increases. The importance of stage
+at diagnosis is increased, and while emergency presentation and age at diagnosis remain
+important prognostic factors, they are not as discriminant as they are shortly after diagnosis.
+A decision tree for the variable importance on explaining net survival is shown in Figure 13.
+At 2 months post-diagnosis, EP status is the first variable to divide the cohort, with 29%
+of patients having received an emergency diagnosis. The next division is based on stage,
+distinguishing 12% of late-stage (IV, metastatic) from 17% of early-stage (I–III) patients
+with EP = 1. For patients with EP = 1, age at diagnosis further differentiates the late-
+stage group showing some variation in net survival (from 86% to 95%). Earlier stages are
+further divided by age (at 80 years), with the older group subdivided by stages III versus I-II,
+exhibiting non-negligible differences in net survival. In contrast, patients with EP = 0 are
+divided by stage (IV vs. I–III), with late stage further divided by two age groups at 80 years.
+In this branch net survival probabilities remain close to 1. At later intervals (40, 60, and
+80 months post-diagnosis), the decision trees simplify, with only metastatic disease and EP
+42
+status strongly influencing prognosis. Overall, we obtain similar conclusions for female colon
+cancer patients than for male patients, which provide further evidence about the usefulness
+of EP as a proxy for healthcare access, all through follow up time.
+Stage at diagnosis
+I
+II
+III
+IV
+N
+%
+N
+%
+N
+%
+N
+%
+N
+1,114
+2,616
+2,369
+2,451
+Mean age (sd)
+69.4
+(13.6)
+73.5
+(12.0)
+72.1
+(12.5)
+71.6
+(13.8)
+Emergency presentation
+121
+10.9
+686
+26.2
+712
+30.1
+1,035
+42.2
+Comorbidities
+Cardiovascular disease
+73
+6.6
+245
+9.4
+194
+8.2
+211
+8.6
+COPD
+104
+9.3
+270
+10.3
+208
+8.8
+256
+10.4
+Diabetes
+73
+6.6
+240
+9.2
+212
+8.9
+218
+8.9
+Renal disease
+25
+2.2
+85
+3.2
+93
+3.9
+100
+4.1
+Deprivation (in quintiles)
+Least deprived
+259
+23.2
+528
+20.2
+517
+21.8
+485
+19.8
+2
+244
+21.9
+583
+22.3
+529
+22.3
+540
+22.0
+3
+221
+19.8
+542
+20.7
+489
+20.6
+508
+20.7
+4
+201
+18.0
+513
+19.6
+441
+18.6
+476
+19.4
+Most deprived
+189
+17.0
+450
+17.2
+393
+16.6
+442
+18.0
+Number of deaths
+257
+23.1
+933
+35.7
+1,250
+52.8
+2,243
+91.5
+Mean follow-up time, years (sd)
+5.8
+(1.8)
+5.2
+(2.3)
+4.2
+(2.6)
+1.4
+(1.9)
+Table 4: Characteristics of females with colon cancer
+43
+0
+1
+2
+3
+4
+5
+6
+7
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Time
+Net Survival
+Population
+Least deprived
+Most deprived
+Figure 10: Females colon cancer data. Net survival. Most deprived vs least deprived vs
+population
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+(a)
+(b)
+(c)
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+20
+40
+60
+80
+100
+−0.3
+−0.2
+−0.1
+0.0
+0.1
+Age
+Partial effect
+(d)
+(e)
+Figure 11: Females colon cancer data: Partial effect of age at 2, 20, 40, 60, and 80 months.
+44
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+(a)
+(b)
+(c)
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+0.00
+0.25
+0.50
+0.75
+1.00
+All
+No age
+No Stage
+No Dep
+No CVD No COPD No Diab No Renal
+No EP
+Data
+Density
+(d)
+(e)
+Figure 12: Females colon cancer data. Variable importance (R2) distributions at 2, 20, 40,
+60, and 80 months.
+EP = 1
+stage >= 4
+age >= 79
+age >= 68
+age >= 80
+stage >= 3
+stage >= 4
+age >= 80
+0.97
+100%
+0.94
+29%
+0.9
+12%
+0.86
+5%
+0.93
+7%
+0.91
+3%
+0.95
+4%
+0.96
+17%
+0.94
+7%
+0.92
+3%
+0.95
+4%
+0.98
+11%
+0.99
+71%
+0.98
+17%
+0.96
+4%
+0.98
+13%
+1
+54%
+yes
+no
+stage >= 4
+age >= 75
+EP = 1
+EP = 1
+EP = 1
+age >= 76
+stage >= 3
+0.78
+100%
+0.45
+29%
+0.29
+14%
+0.18
+7%
+0.4
+7%
+0.58
+15%
+0.47
+5%
+0.64
+10%
+0.91
+71%
+0.79
+17%
+0.7
+9%
+0.61
+4%
+0.79
+5%
+0.88
+9%
+0.95
+54%
+yes
+no
+stage >= 4
+stage >= 3
+EP = 1
+EP = 1
+0.59
+100%
+0.12
+29%
+0.78
+71%
+0.63
+28%
+0.42
+8%
+0.72
+19%
+0.88
+44%
+0.7
+9%
+0.93
+34%
+yes
+no
+(a)
+(b)
+(c)
+stage >= 4
+stage >= 3
+EP = 1
+EP = 1
+0.57
+100%
+0.098
+29%
+0.76
+71%
+0.6
+28%
+0.38
+8%
+0.69
+19%
+0.87
+44%
+0.67
+9%
+0.92
+34%
+yes
+no
+stage >= 4
+stage >= 3
+EP = 1
+EP = 1
+0.56
+100%
+0.092
+29%
+0.75
+71%
+0.58
+28%
+0.36
+8%
+0.68
+19%
+0.86
+44%
+0.66
+9%
+0.92
+34%
+yes
+no
+(d)
+(e)
+Figure 13: Females colon cancer data. Variable importance trees (net survival) at 2, 20, 40,
+60, and 80 months.
+45
+0.001
+0.001
+0.002
+0.012
+0.017
+0.237
+0.256
+0.475
+COPD
+dep
+Diabetes
+Renal
+CVD
+age
+stage
+EP
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+0.001
+0.003
+0.008
+0.009
+0.013
+0.106
+0.127
+0.734
+dep
+COPD
+Renal
+Diabetes
+CVD
+EP
+age
+stage
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+0.001
+0.004
+0.081
+0.915
+Renal
+age
+EP
+stage
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+(a)
+(b)
+(c)
+0.001
+0.004
+0.087
+0.908
+Renal
+age
+EP
+stage
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+0.001
+0.004
+0.090
+0.905
+Renal
+age
+EP
+stage
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Variable Importance
+(d)
+(e)
+Figure 14: Females colon cancer data. Variable importance from rpart at 2, 20, 40, 60, and
+80 months.
+46

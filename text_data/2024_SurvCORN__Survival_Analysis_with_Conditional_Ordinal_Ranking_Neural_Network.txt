@@ -1,0 +1,465 @@
+SurvCORN: Survival Analysis with Conditional
+Ordinal Ranking Neural Network
+Muhammad Ridzuan[0000−0003−0935−8466], Numan Saeed[0000−0002−6326−6434],
+Fadillah Adamsyah Maani[0000−0001−5927−7782], Karthik
+Nandakumar[0000−0002−6274−9725], and Mohammad Yaqub[0000−0001−6896−1105]
+Mohamed Bin Zayed University of Artificial Intelligence, Abu Dhabi, UAE
+{Muhammad.Ridzuan, Numan.Saeed, Fadillah.Maani, Karthik.Nandakumar,
+Mohammad.Yaqub}@mbzuai.ac.ae
+Abstract. Survival analysis plays a crucial role in estimating the likeli-
+hood of future events for patients by modeling time-to-event data, par-
+ticularly in healthcare settings where predictions about outcomes such as
+death and disease recurrence are essential. However, this analysis poses
+challenges due to the presence of censored data, where time-to-event
+information is missing for certain data points. Yet, censored data can
+offer valuable insights, provided we appropriately incorporate the cen-
+soring time during modeling. In this paper, we propose SurvCORN, a
+novel method utilizing conditional ordinal ranking networks to predict
+survival curves directly. Additionally, we introduce SurvMAE, a met-
+ric designed to evaluate the accuracy of model predictions in estimat-
+ing time-to-event outcomes. Through empirical evaluation on two real-
+world cancer datasets, we demonstrate SurvCORN’s ability to maintain
+accurate ordering between patient outcomes while improving individ-
+ual time-to-event predictions. Our contributions extend recent advance-
+ments in ordinal regression to survival analysis, offering valuable insights
+into accurate prognosis in healthcare settings. Our code is available at
+https://github.com/BioMedIA-MBZUAI/SurvCORN.
+Keywords: survival analysis · prognosis · ordinal ranking
+1
+Introduction
+Survival analysis estimates the probability of a future event occurring to pa-
+tients by modeling time-to-event data. In healthcare settings, common medical
+applications include predicting the time to death, recurrence of diseases, or re-
+hospitalization of patients using medical images and Electronic Health Records
+(EHRs). Survival analysis is a challenging problem due to the presence of cen-
+sored data; for certain data points, the time-to-event information is missing due
+to various reasons such as patients discontinuing follow-up visits, relocating, or
+withdrawing from a study [22]. However, censored data can be useful if we utilize
+the censoring time during modeling because it entails a time until which we are
+sure that the event did not happen, e.g., the patient did not die.
+arXiv:2409.19901v1  [cs.LG]  30 Sep 2024
+2
+M. Ridzuan et al.
+A commonly reported metric in survival analysis is the concordant index,
+which is used to evaluate the pairwise concordance of survival times [8,9,10].
+However, it does not provide a simple, interpretable assessment of the actual
+time-to-event predictions. Patients and clinicians alike are likely to benefit from
+saying a model has a prediction error of X number of days than simply saying
+it has a concordant index of Y .
+Deep survival methods can be broadly categorized into continuous-time and
+discrete-time methods, where the discrete methods approximate the continuous
+models by discretizing the continuous survival time scale. Continuous methods
+include DeepSurv [14], built upon the semi-parametric Cox Proportional Hazard
+(CoxPH) [5,14] model which assumes the ratio of the hazard functions for any
+two individuals is constant over time. Discrete methods include Nnet-Survival [7]
+and DeepHit [17]. DeepHit [17] parameterizes the event-time probability mass
+function, while Nnet-Survival parameterizes the hazard rate using a Bernoulli
+function. Our proposed method falls under the discrete category.
+A pivotal tool in survival analysis is the survival curve, offering a graph-
+ical representation of the fraction of patients surviving after a specific event.
+The survival curve is a decreasing function that allows healthcare profession-
+als to assess the probability of survival over time and compare survival expe-
+riences between different patient groups or treatment modalities. Recently, Shi
+et al. [21] introduced a rank-consistent ordinal regression for neural networks
+based on conditional probabilities. They provide strong theoretical guarantees
+for rank-monotonicity, where the rank of an object changes monotonically with
+its predicted probability of belonging to a higher- or lower-ranked category.
+We observe this property to be desired for survival analysis, where the pre-
+dicted probability of a patient’s survival decreases over time in the absence of an
+intervention. We thus propose an extension to this method that accounts for both
+censored and uncensored cases and directly predicts the survival curve using a
+conditional probability interpretation of the network output. Our contributions
+are two-fold:
+– We introduce SurvCORN, a Survival analysis method using Conditional
+Ordinal Ranking N etwork, that directly predicts patients’ survival curves
+using conditional probabilities
+– We propose SurvMAE, a metric that evaluates the quality of a model’s sur-
+vival predictions based on how far they are from the actual recorded time-
+to-events
+We show empirically that SurvCORN is able to maintain a correct ordering of
+patient outcomes while improving upon individual time-to-event predictions.
+2
+Method
+We aim to develop a deep neural network that directly predicts a monotonically
+decreasing function from 1 →0 to represent a patient’s survival probability over
+time. We first divide the time axis into K number of discrete intervals, or time
+Survival Analysis with Conditional Ordinal Ranking Neural Network
+3
+bins, then use logistic regression to predict the patient’s survival probability
+beyond each time bin. The K-th time bin represents a final all-encompassing
+time frame beyond the maximum time in the training set (Tmax, ∞), i.e., right-
+censored at Tmax.
+Given a training dataset D = {Xi, δi, T i}N
+i=1, where N is the number of
+patients, Xi is the patient features (e.g. MRI, CT scans, EHR), δi is the event
+indicator (with δi = 1 indicating event occurrence for uncensored patients, while
+δi = 0 indicating event unobserved for censored patients), and T i is the actual
+time-bin index of the discretized time-to-event. The objective is to train a net-
+work fθ(X) →z ∈RdK−1 to predict a patient’s survival probability beyond each
+time bin tk, denoted as S(T > t|X) = P (T > t | X). The output of the network
+is of size K −1, not K, because a patient who survives beyond tK−1 is assumed
+to experience the event at tK. In other words, a high probability of surviving
+beyond tK−1 means that the patient will likely experience the event at tK.
+2.1
+Label encodings
+Unique to survival analysis is the presence of censoring. Here, we present a
+separate label encoding for uncensored versus censored patients that is crucial
+for the minimization of the log-likelihood.
+Uncensored encoding (δi = 1). For uncensored patients, the time bin
+index T i is transformed into an ordered vector representation of K −1 binary
+labels {T i
+1, T i
+2, . . . , T i
+K−1}, where T i
+k = 1{T i > tk} ∈{0, 1} denotes whether T i
+exceeds tk, i.e. whether the patient i survives beyond the time tk, and t1 ≺t2 ≺
+. . . ≺tK−1. Figure 1 illustrates an example of K = 6 time bins and two patient
+encodings whose events are recorded at t3 and t4, respectively.
+Fig. 1. An illustration of the uncensored encodings of a batch of two patients who
+experience an event at t3 and t4, respectively, from a total of K = 6 time bins. Each
+entry represents T i
+k = 1{T i > tk}. |Ak| is the size of the conditional training subsets
+for each time bin in the batch.
+Censored encoding (δi = 0). For censored patients, only the lower bound
+of the patients’ survival times are known, i.e., that they are alive or did not ex-
+4
+M. Ridzuan et al.
+perience an event at least up until the recorded time tk. In this case, the actual
+time-to-events are unknown, and the patients have a chance of experiencing an
+event at any future time bin. Consider a third patient who is censored at t3.
+Assuming independent censoring, where the patient is equally likely to experi-
+ence an event as others with similar covariates, the patient’s encoding can be
+expanded to account for all possibilities of the event happening from the time
+of censoring to the final time bin (Figure 2). In presenting the model with all
+possible combinations of time-to-events, the model also implicitly learns that a
+patient’s survival probability decreases over time because the ratio of survival
+to event occurrence also decreases.
+Fig. 2. An illustration of the expanded censored encodings of a batch of one patient
+whose event information is unknown at t3 onwards, from a total of K = 6 time bins.
+Each entry represents T i
+k = 1{T i > tk}. |Ak| is the size of the conditional training
+subsets for each time bin in the batch. Here, the patient’s survival probability beyond
+a time bin t is P Ak/|Ak|, i.e., 100% (4/4) for t1 and t2, indicating certainty in the
+patient’s survival status, followed by 75% (3/4) for t3, 67% (2/3) for t4, and 50% (1/2)
+for t5.
+2.2
+Network output
+The output of the network is a sequence of conditional probabilities using con-
+ditional training subsets Ak at each time bin where the sigmoid output of each
+neuron is interpreted as:
+fk(Xi) = σ(zi) = P(T i > tk|T i > tk−1, Xi)
+(1)
+with nested events {T i > tk} ⊆{T i > tk−1}, where fk is the output of the
+k-th neuron, corresponding to the k-th time bin.
+The survival output at each time bin can be computed by applying the chain
+rule for probabilities to the output neurons:
+Survival Analysis with Conditional Ordinal Ranking Neural Network
+5
+S(T i > tk|Xi) =
+k
+Y
+j=1
+fj(Xi)
+(2)
+Since each probability lies between 0 and 1, as the time bin index increases,
+this cumulative product guarantees a monotonically decreasing function that is
+desired for survival curves. To obtain the time-bin index of the prediction, we
+calculate
+ˆT i = 1 +
+K−1
+X
+k=1
+1{fk(Xi) > 0.5}
+(3)
+corresponding to the median of the survival curve [20]. To maintain a condi-
+tional probability interpretation, we construct the conditional training subsets
+as proposed by [21] with sizes |Ak| equal to the number of samples in the batch
+that satisfies {T i > tk}, yielding |A1| ≥|A2| ≥... ≥|AK−1| (see Figures 1 and
+2 for illustration).
+2.3
+SurvCORN loss
+The SurvCORN loss consists of two components: a log-likelihood and a ranking
+loss. Following the above, the log-likelihood is
+lossLL = −
+1
+PK−1
+k=1 |Ak|
+K−1
+X
+k=1
+|Ak|
+X
+i=1
+[1{T i > tk}·log(fk(Xi))+1{T i ≤tk}·log(1−fk(Xi))]
+(4)
+The ranking loss directly optimizes the concordant index by penalizing in-
+correct ordering of pairs and is adapted from [17]:
+lossrank =
+X
+i,j
+δi 1{T i < T j} exp
+ ˆS(T i | Xi) −ˆS(T j | Xj)
+α
+!
+(5)
+where α is a hyperparameter set to 0.1 following [17]. The final SurvCORN
+loss is a summation of the two:
+Lfinal = lossLL + lossrank
+(6)
+The log-likelihood drives the model to learn the correct survival times of
+each patient (i.e., intra-patient predictions), while the ranking loss encourages
+the model to learn the correct ordering between patient survival times (i.e. inter-
+patient predictions).
+6
+M. Ridzuan et al.
+3
+Evaluation Metric
+We report the time-dependent concordant index (C-index) of [2] and introduce
+a new metric called SurvMAE.
+The C-index is a typical metric reported in survival analysis [8,9,10]. It com-
+pares the ordering of every pair of patients and quantifies the proportion of pairs
+in the dataset whose predicted survival times are concordant with the actual sur-
+vival times. A pair of individuals is considered concordant if the individual with
+the longer predicted survival time (or conversely, the lower predicted risk) also
+has the longer observed survival time. As Harrel’s C-index [8,9,10] was originally
+derived for the proportional hazards framework, Antolini et al. [2] extended it
+to the non-proportional cases by introducing a time-dependent variation of the
+C-index which we employ in this paper. The C-index accounts for the relative
+ordering of patients, but does not take into consideration the actual predicted
+times of a survival model.
+To this end, we propose survival mean absolute error (SurvMAE), a simple
+metric built upon MAE that accounts for different censoring mechanisms. Specif-
+ically, for censored patients whose actual time-to-events are unknown, the MAE
+is calculated as the average of the predicted times to the left of (i.e., less than)
+or equal to the actual times. For uncensored patients, the MAE is calculated
+normally for predictions to the left or right of the actual times. Mathematically,
+SurvMAE is represented by the following:
+SurvMAE =
+1
+NU
+NU
+X
+i=1
+h
+δi|| ˆT i −T i||1
+i
++ 1
+NC
+NC
+X
+j=1
+h
+(1 −δi)|| ˆ
+T j −T j||1 · 1{ ˆ
+T j ≤T j}
+i
+(7)
+where NU is the number of uncensored patients, NC is the number of censored
+patients, δ is the event indicator (0 for censored, 1 otherwise), and ˆT and T
+are the predicted and actual survival times, respectively. For continuous-time
+survival models, SurvMAE gives a directly interpretable prediction error in unit
+time (i.e., in terms of the number of days, months, etc). For discrete equidistant
+time bins, SurvMAE can be translated into an interpretable time-to-event metric
+through interpolation, where the lower the SurvMAE the better.
+Reporting both C-index and SurvMAE is crucial to give a more holistic un-
+derstanding of the performance of survival models. C-index provides insight re-
+garding the correct ordering of patients, while SurvMAE evaluates the individual
+predicted time-to-events of the patients.
+4
+Experimental Setup
+4.1
+Datasets
+We assess the prognostic ability of SurvCORN by comparing it against conven-
+tional benchmarks in analyzing two real-world cancer datasets: ChAImeleon [3]
+and HECKTOR [1,18].
+Survival Analysis with Conditional Ordinal Ranking Neural Network
+7
+ChAImeleon [3] is a lung cancer dataset comprised of CT scans and EHR
+from 320 different patients, with 59% of the data being censored. The average
+survival time of the patients is 40.5 months with a standard deviation of 20
+months. In this work, we employ a segmentation model from [12] to crop the
+lung areas, allowing the prognostic models to focus on the region of interest.
+HECKTOR [1,18] is a multi-centric, multi-modal head-and-neck cancer
+dataset consisting of 224 CT and PET scans with corresponding EHRs, with
+75% of the data being censored. The average survival time of the patients is 27.8
+months with a standard deviation of 24.3 months. The PET and CT scans are
+registered to a common origin to enable accurate integration of useful informa-
+tion from the two imaging modalities.
+We preprocess the images in each dataset to standardize the prognostic model
+input by performing resampling, cropping, and resizing to a final input size of
+112 × 112 × 130. Additionally, we use equidistant binning of the survival time
+distribution where the number of time bins for each dataset is obtained as the
+square root of the number of observations.
+4.2
+Implementation Details
+We run all experiments for 30 epochs using a five-fold cross-validation with a
+DenseNet-121 [13] architecture, a batch size of 16, Adam [15] optimizer with a
+learning rate of 1×10−3 and a weight decay of 1×10−5. We maintain a constant
+ratio of patients who experienced each event and those who were censored in each
+fold. All experiments are implemented using PyTorch [19]. Since the survival
+methods differ primarily in their loss function and treatment of the network
+output, we keep the network architecture and hyperparameters fixed to ensure
+a fair and unbiased comparison across datasets and experiments.
+5
+Results
+We compare SurvCORN against three deep baseline survival models (i.e. Nnet-
+Survival [7], DeepMTLR [6], and DeepHit [17]), all of which treat the survival
+times as discrete. These models have been shown to achieve competitive overall
+predictive performance in the survival analysis literature. We report the averages
+and standard deviations of the C-index and SurvMAE in Tables 1 and 2 for
+the ChAImeleon Lung Cancer [3] and HECKTOR [1,18] datasets, respectively.
+Our method achieves competitive performance in C-index while it consistently
+outperforms other methods in SurvMAE.
+6
+Discussion and Conclusion
+Compared to Nnet-Survival [7], DeepHit [17] performs slightly worse, consis-
+tent with the findings in literature (e.g. [16]). For censored data, Nnet-Survival
+[7] allows the model to operate without penalization beyond the recorded sur-
+vival time, while SurvCORN implicitly models a decreasing survival probability
+8
+M. Ridzuan et al.
+Table 1. Average concordance indices and SurvMAE (± standard deviations) on the
+ChAImeleon Lung Cancer [3] dataset using deep discrete-time survival models. Surv-
+MAE (time) is calculated through a linear interpolation of SurvMAE (bin) where the
+survival curves hit 0.5. All experiments are run with five-fold cross-validation. The best
+scores per dataset are bolded.
+C-index ↑
+SurvMAE (bin) ↓
+SurvMAE (time) ↓
+Nnet-Survival [7]
+0.655 ± 0.07
+4.55 ± 0.71
+62.7 ± 12.7
+DeepHit [17]
+0.625 ± 0.06
+4.62 ± 1.25
+64.0 ± 13.7
+SurvCORN (ours)
+0.633 ± 0.05
+4.27 ± 0.51
+52.9 ± 24.9
+Table 2. Average concordance indices and SurvMAE (± standard deviations) on the
+HECKTOR [1,18] dataset using deep discrete-time survival models. All experiments
+are run with five-fold cross-validation. SurvMAE (time) is calculated through a linear
+interpolation of SurvMAE (bin) where the survival curves hit 0.5. The best scores per
+dataset are bolded.
+C-index ↑
+SurvMAE (bin) ↓
+SurvMAE (time) ↓
+Nnet-Survival [7]
+0.683 ± 0.03
+6.20 ± 0.50
+38.4 ± 10.0
+DeepHit [17]
+0.674 ± 0.04
+6.02 ± 0.25
+57.3 ± 58.1
+SurvCORN (ours)
+0.705 ± 0.04
+5.06 ± 0.08
+32.6 ± 2.5
+beyond the recorded survival time. The conditional probability formulation of
+SurvCORN encourages the model to learn predictions that closely approximate
+the actual time-to-events, thus optimizing for SurvMAE. Additionally, like Deep-
+Hit [17], SurvCORN employs a ranking loss to promote the correct ordering of
+survival times, thus optimizing for C-index.
+Our model, SurvCORN, not only competes effectively with existing baselines
+in terms of C-index predictions but also demonstrates superior performance in
+SurvMAE scores. This distinction is particularly noteworthy as the C-index has
+been deemed unreliable, uninterpretable, and clinically less useful in many works
+(e.g. [4,23,11]). SurvMAE evaluates the accuracy of the predicted time-to-events
+of the patients, thus reflecting our model’s precision in estimating event occur-
+rences. This holds significance in prognosis outlook prediction as it gives clin-
+icians timely insights to make informed decisions on treatment plans, resource
+allocation, and patient management strategies.
+Limitations. Like other discrete survival methods, SurvCORN does not allow
+extrapolation or finer-grained ordering of the patients beyond the maximum
+time-to-event recorded in the train set. Another limitation is that the encoding
+for censored patients (see Section 2.1) encourages the model to learn a decreasing
+survival probability over time beyond the censored time. While this is a natural
+and reasonable assumption in many cases, it is not always true. It is possible,
+for example, that a critically ill patient with early censoring may experience an
+event sooner.
+Survival Analysis with Conditional Ordinal Ranking Neural Network
+9
+References
+1. Andrearczyk, V., Oreiller, V., Boughdad, S., Rest, C.C.L., Elhalawani, H.M.,
+Jreige, M., Prior, J.O., Vallières, M., Visvikis, D., Hatt, M., Depeursinge, A.:
+Overview of the hecktor challenge at miccai 2021: Automatic head and neck tumor
+segmentation and outcome prediction in pet/ct images. In: HECKTOR@MICCAI
+(2022), https://api.semanticscholar.org/CorpusID:245877569
+2. Antolini, L., Boracchi, P., Biganzoli, E.: A time-dependent discrimination index
+for survival data. Stat. Med. 24(24), 3927–3944 (Dec 2005)
+3. Bonmatí, L.M., Miguel, A., Suárez, A., Aznar, M., Beregi, J.P., Fournier, L., Neri,
+E., Laghi, A., França, M., Sardanelli, F., Penzkofer, T., Lambin, P., Blanquer,
+I., Menzel, M.I., Seymour, K., Figueiras, S., Krischak, K., Martínez, R., Mirsky,
+Y., Yang, G., Alberich-Bayarri, Á.: CHAIMELEON project: Creation of a pan-
+european repository of health imaging data for the development of AI-powered
+cancer management tools. Front. Oncol. 12 (Feb 2022)
+4. Cook, N.R.: Use and misuse of the receiver operating characteristic curve in
+risk prediction. Circulation 115, 928–935 (2007), https://api.semanticscholar.org/
+CorpusID:14594808
+5. Cox, D.R.: Regression models and life-tables. Journal of the Royal Statistical So-
+ciety: Series B (Methodological) 34 (1972). https://doi.org/10.1111/j.2517-6161.
+1972.tb00899.x
+6. Fotso, S.: Deep neural networks for survival analysis based on a multi-task frame-
+work. ArXiv abs/1801.05512 (2018), https://api.semanticscholar.org/CorpusID:
+13482950
+7. Gensheimer, M.F., Narasimhan, B.: A scalable discrete-time survival model for
+neural networks. PeerJ 7, e6257 (Jan 2019)
+8. Harrell, F.E., Califf, R.M., Pryor, D.B., Lee, K.L., Rosati, R.A.: Evaluating the
+yield of medical tests. JAMA: The Journal of the American Medical Association
+247 (1982). https://doi.org/10.1001/jama.1982.03320430047030
+9. Harrell, F.E., Lee, K.L., Califf, R.M., Pryor, D.B., Rosati, R.A.: Regression mod-
+elling strategies for improved prognostic prediction. Statistics in Medicine 3 (1984).
+https://doi.org/10.1002/sim.4780030207
+10. Harrell, F.E., Lee, K.L., Mark, D.B.: Multivariable prognostic models: Issues in
+developing models, evaluating assumptions and adequacy, and measuring and re-
+ducing errors. Statistics in Medicine 15 (1996). https://doi.org/10.1002/(SICI)
+1097-0258(19960229)15:4<361::AID-SIM168>3.0.CO;2-4
+11. Hartman, N., Kim, S., He, K., Kalbfleisch, J.D.: Pitfalls of the concordance index
+for survival outcomes. Statistics in Medicine 42 (2023). https://doi.org/10.1002/
+sim.9717
+12. Hofmanninger, J., Prayer, F., Pan, J., Röhrich, S., Prosch, H., Langs, G.: Auto-
+matic lung segmentation in routine imaging is primarily a data diversity problem,
+not a methodology problem. Eur. Radiol. Exp. 4(1), 50 (Aug 2020)
+13. Huang, G., Liu, Z., Van Der Maaten, L., Weinberger, K.Q.: Densely connected
+convolutional networks. In: 2017 IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR). pp. 2261–2269 (2017). https://doi.org/10.1109/CVPR.2017.
+243
+14. Katzman, J.L., Shaham, U., Cloninger, A., Bates, J., Jiang, T., Kluger, Y.:
+Deepsurv: Personalized treatment recommender system using a cox proportional
+hazards deep neural network. BMC Medical Research Methodology 18 (2018).
+https://doi.org/10.1186/s12874-018-0482-1
+10
+M. Ridzuan et al.
+15. Kingma, D., Ba, J.: Adam: A method for stochastic optimization. In: International
+Conference on Learning Representations (ICLR). San Diega, CA, USA (2015)
+16. Kvamme, H., Borgan, Ø.: Continuous and discrete-time survival prediction with
+neural networks. Lifetime Data Analysis 27(4), 710–736 (Oct 2021). https://doi.
+org/10.1007/s10985-021-09532-6, https://doi.org/10.1007/s10985-021-09532-6
+17. Lee, C., Zame, W., Yoon, J., Van der Schaar, M.: DeepHit: A deep learning ap-
+proach to survival analysis with competing risks. Proc. Conf. AAAI Artif. Intell.
+32(1) (Apr 2018)
+18. Oreiller, V., Andrearczyk, V., Jreige, M., Boughdad, S., Elhalawani, H., Castelli,
+J., Vallières, M., Zhu, S., Xie, J., Peng, Y., Iantsen, A., Hatt, M., Yuan, Y., Ma,
+J., Yang, X., Rao, C., Pai, S., Ghimire, K., Feng, X., Naser, M.A., Fuller, C.D.,
+Yousefirizi, F., Rahmim, A., Chen, H., Wang, L., Prior, J.O., Depeursinge, A.: Head
+and neck tumor segmentation in pet/ct: The hecktor challenge. Medical Image
+Analysis 77, 102336 (2022). https://doi.org/https://doi.org/10.1016/j.media.2021.
+102336, https://www.sciencedirect.com/science/article/pii/S1361841521003819
+19. Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen,
+T., Lin, Z., Gimelshein, N., Antiga, L., et al.: Pytorch: An imperative style, high-
+performance deep learning library. Advances in neural information processing sys-
+tems 32 (2019)
+20. Reid, N.: Estimating the median survival time. Biometrika 68 (1981). https://doi.
+org/10.1093/biomet/68.3.601
+21. Shi, X., Cao, W., Raschka, S.: Deep neural networks for rank-consistent ordinal
+regression based on conditional probabilities. Pattern Analysis and Applications
+26 (2023). https://doi.org/10.1007/s10044-023-01181-9
+22. Sparr, L.F., Moffitt, M.C., Ward, M.F.: Who returns and who stays away. Am J
+Psychiatry 150, 801–805 (1993)
+23. Vickers, A.J., Cronin, A.M.: Traditional statistical methods for evaluating pre-
+diction models are uninformative as to clinical value: Towards a decision an-
+alytic framework. Seminars in Oncology 37 (2010). https://doi.org/10.1053/j.
+seminoncol.2009.12.004

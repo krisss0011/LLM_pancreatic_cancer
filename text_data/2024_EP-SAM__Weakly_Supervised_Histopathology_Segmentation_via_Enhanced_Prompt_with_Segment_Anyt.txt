@@ -1,0 +1,1118 @@
+EP-SAM: Weakly Supervised Histopathology Segmentation via Enhanced Prompt with
+Segment Anything
+Joonhyeon Songa,b,1, Seohwan Yuna,1, Seongho Yoona, Joohyeok Kima, Sangmin Leea,∗
+aInformation Convergence, Kwangwoon University, Seoul, South Korea
+bQI LAB, Seoul, South Korea
+Abstract
+This work proposes a novel approach beyond supervised learning for effective pathological image analysis, addressing the chal-
+lenge of limited robust labeled data. Pathological diagnosis of diseases like cancer has conventionally relied on the evaluation of
+morphological features by physicians and pathologists. However, recent advancements in compute-aided diagnosis (CAD) sys-
+tems are gaining significant attention as diagnostic support tools. Although the advancement of deep learning has improved CAD
+significantly, segmentation models typically require large pixel-level annotated dataset, and such labeling is expensive. Existing
+studies not based on supervised approaches still struggle with limited generalization, and no practical approach has emerged yet.
+To address this issue, we present a weakly supervised semantic segmentation (WSSS) model by combining class activation map
+and Segment Anything Model (SAM)-based pseudo-labeling. For effective pretraining, we adopt the SAM—a foundation model
+that is pretrained on large datasets and operates in zero-shot configurations using only coarse prompts. The proposed approach
+transfer enhanced Attention Dropout Layer’s knowledge to SAM, thereby generating pseudo-labels. To demonstrate the superiority
+of the proposed method, experimental studies are conducted on histopathological breast cancer datasets. The proposed method
+outperformed other State-of-the-Art (SOTA) WSSS methods across three datasets, demonstrating its efficiency by achieving this
+with only 12GB of GPU memory during training. Our code is available at : https://github.com/QI-NemoSong/EP-SAM.
+Keywords: weakly supervised learning, pseudo-label, breast cancer segmentation, explicit visual prompting, class activation map,
+segment anything model
+1. Introduction
+Cancer is one of the most critical diseases in the world, pos-
+ing a significant risk to people’s health due to its high mortality
+rate [1]. Accurate diagnosis is crucial for effective treatment
+and management. Currently, the ‘gold standard’ for identify-
+ing and quantifying cancer involves histopathological analysis
+of tissue biopsies. This method relies on the visual assessment
+by pathologists and clinicians. Several computer-aided diag-
+nosis (CAD) systems based on machine learning methods have
+been developed to alleviate the burden on experts. With recent
+advances in deep learning, CAD has been applied with remark-
+able performance in several tasks in this field, including image
+∗Corresponding author
+Email addresses: thdwnsgus0706@gmail.com (Joonhyeon Song),
+dbstjghks@naver.com (Seohwan Yun), smlee5679@kw.ac.kr (Sangmin
+Lee)
+1These authors contributed equally to this work.
+classification, object localization, and semantic segmentation.
+Semantic segmentation, which aims to extract a region of inter-
+est from each patch, plays an important role in distilling infor-
+mative morphological attributes for professionals. Segmenta-
+tion performance has been enhanced with the inception of state-
+of-the-art (SOTA) methods utilizing convolutional neural net-
+works and vision transformer (ViT) backbones [2, 3, 4, 5, 6, 7].
+However, these methods require large amounts of pixel-level
+annotated data for training. Obtaining such datasets is often
+time-consuming and expensive, especially in the histopathol-
+ogy domain, due to the need for skilled domain expertise in
+labeling.
+Weakly supervised semantic segmentation (WSSS), which
+uses coarse-grained annotated data such as points and bound-
+ing boxes for supervision has emerged as an alternative ap-
+proach. Numerous WSSS methods have been proposed in the
+medical field [8, 9, 10]. Recently, WSSS methods that use less
+costly image-level labels have gained significant attention and
+Preprint submitted to Elsevier
+October 23, 2024
+arXiv:2410.13621v4  [cs.CV]  22 Oct 2024
+achieved remarkable results. Conventional algorithms are pre-
+dominantly based on class activation map (CAM) and are typi-
+cally divided into two phases, with the first being the generation
+of pseudo-labels using a classifier and CAM, followed by the
+optimization of refined masks through post-processing meth-
+ods such as dense conditional random field (DenseCRF [11]),
+and the second being the training of these refined pseudo-labels
+using an off-the-shelf segmenter.
+However, CAM suffers from some well-known problems,
+such as false activation and partial activation [12], which limits
+it from detecting the boundaries of objects accurately. These
+challenges are particularly amplified in histopathological im-
+ages that feature more blurred [13] and homogeneous bound-
+aries [14] than natural images. Moreover, the performance of
+WSSS is bounded above by the performance of a model with
+fully supervised training on pixel-level annotation data, depend-
+ing on the capability of the off-the-shelf segmenter.
+Although, SAM, a foundation model pre-trained on large-
+scale data, exhibits remarkable performance. It far surpasses
+conventional segmentation models, even in zero-shot learning
+scenarios, by utilizing prompts during inference. Numerous
+recent studies have attempted to utilize SAM in the medical
+field, demonstrating its potential [15, 16, 17, 18, 19], yet certain
+drawbacks remain unresolved. First, significant performance
+variance is observed in segmentation masks depending on the
+prompts [20]. Second, owing to the domain gap between natu-
+ral and medical images [13], the zero-shot performance is no-
+tably inferior in the latter case.
+In this context, the essential research problem is,
+How can we leverage SAM’s performance efficiently in weakly
+supervised histopathology segmentation scenarios without hav-
+ing to input additional prompts from the ground truth?
+We propose the weakly supervised pseudo-labeling method to
+address this problem.
+The main contributions of our paper are as follows:
+1.
+We have enhanced the attention dropout layer (ADL)
+by incorporating explicit visual prompting, which mitigates in-
+completeness issues such as partial and false activations in-
+herent in CAM-based approaches. Our experiments on vari-
+ous breast cancer datasets demonstrate that the enhanced mod-
+ule outperforms existing CAM-based alternatives in terms of
+generating the initial pseudo-labels. To the best of our knowl-
+edge, this study represents the first application of explicit visual
+prompting in CAM-based methods.
+2. We have devised a framework that optimizes SAM perfor-
+mance in weakly supervised breast cancer segmentation with-
+out relying on ground-truth based prompts. Our approach out-
+performs current WSSS SOTA methods and several fully super-
+vised methods.
+3.
+Our approach includes a SAM fine-tuning stage; but,
+it has been designed in a memory-efficient manner by fine-
+tuning only the lightweight decoder. This design choice reduces
+the computational requirements significantly while maintaining
+high performance and allows our framework to operate with
+only 12 GB of GPU memory.
+2. Related Work
+2.1. Explicit Visual Prompting in Computer Vision
+Explicit visual prompts extracted from input images have
+been used to guide models to focus on specific content during
+training [21, 22]. In particular, by leveraging high-frequency
+components, these approaches exhibit remarkable performance
+in tasks where distinguishing between the foreground and back-
+ground is challenging, e.g., camouflaged object detection and
+shadow detection. However, these studies primarily focused
+on parameter-efficient fine-tuning [23] with the aim of enabling
+efficient learning with fewer parameters. Other than segmenta-
+tion, research using explicit content extracted from input data to
+guide intended learning outcomes in other fields remains lim-
+ited. Inspired by these, we focused on resolving the partial ac-
+tivation problem in CAM-based methods, especially in medical
+datasets where distinguishing foreground from background is
+still challenging.
+2.2. WSSS in Histopathology
+Obtaining detailed annotations for medical images is chal-
+lenging and requires specialized expertise.
+To address this
+issue, multiple-instance learning (MIL) has been adapted for
+WSSS in medical imaging. For instance, Xu et al. [24] intro-
+duced a multiple clustered instance learning framework called
+CAMEL to differentiate between cancerous and non-cancerous
+areas. It treats histopathological images as bags and subdivided
+patches as instances. Jia et al. [25] developed DWSMIL to
+identify cancerous regions in histopathological images. Some
+alternatives to MIL have also been proposed. Han et al. [26]
+devised progressive drop out attention and classification gate
+mechanism for WSSS with H&E stained images. The afore-
+mentioned approaches yielded significant results; however, they
+remain suboptimal owing to their poor generalizability across
+various datasets. Further research is required to yield a domi-
+nant method for this purpose.
+2.3. Effective Prompts for SAM
+SAM utilizes various prompt types, such as masks, bound-
+ing boxes, and points, with performance varying significantly
+in medical images where foreground and background distinc-
+tion is often unclear. Among the various aforementioned types
+of prompts, using masks directly has been demonstrated to
+yield poor performance [27], whereas the universal utilization
+of bounding boxes is challenging, especially in sparsely anno-
+tated data, where using entire boxes is not ideal. Consequently,
+we choose to use point-type prompts for the seeds. In this work,
+to generate better seeds, we propose a seed-prompting module
+based on pixel-level entropy.
+2.4. Transferring Knowledge to SAM for WSSS
+Numerous studies have focused on developing effective
+WSSS methods by incorporating greedy algorithms with SAM.
+For instance, [28] utilized the Ground DINO Object Detection
+method [29], to generate bounding boxes, which were then
+2
+used as prompts for SAM, whereas Yang et al. [30] gener-
+ated seeds using CLIP. These studies reported methods to en-
+hance the zero-shot capabilities of SAM. However, they still
+suffer from limitations in tasks such as shadow detection, cam-
+ouflaged detection, and medical imaging, where the boundaries
+between the foreground and background are unclear, leading to
+relatively poor zero-shot performance. In this context, we con-
+clude that the most effective approach to transfer the knowledge
+of Enhanced ADL within SAM is by fine-tuning SAM directly
+using the initial mask generated by the Enhanced ADL .
+2.5. Fine-tuning SAM for Downstream Task
+SAM consists of an image encoder that embeds input im-
+ages; a prompt encoder that embeds various types of prompts,
+such as masks, points, and bounding boxes; and a lightweight
+mask decoder that combines the encoded information to gener-
+ate masks. Each module has tunable parameters. A straightfor-
+ward method to fine-tune SAM is the full fine-tuning approach,
+which involves training all parameters. However, this requires
+training an enormous number of parameters and may lead to
+inadequate performance when the available data is scarce [31].
+To address these issues, parameter efficient fine-tuning (PEFT)
+methods have been proposed [22, 32]. These approaches freeze
+the image encoder parameters while adding adapters within ViT
+blocks or incorporating parallel LoRA modules into the image
+encoder, training only a small number of parameters.
+However, despite reducing parameters, they require loading
+the entire model and using the image encoder’s values during
+both forward and backward passes because the modules are ap-
+plied within the encoder. As such, the actual GPU memory
+usage and training time were not substantially reduced [33].
+Otherwise, simple approach to SAM fine-tuning is to freeze
+parameters of some modules while training specific modules.
+Fine-tuning a mask decoder was demonstrated to be a sim-
+ple yet highly effective method in the medical domain in [34].
+Accordingly, we adopt a fine-tuning approach in which only
+the lightweight mask decoder is fine-tuned while the remain-
+ing modules are frozen. This enables the proposed approach
+to be efficient, utilizing approximately 12 GB of VRAM with
+a ViT-B model and a batch size of 4. As a result, it functions
+effectively even when hardware resources are limited.
+3. Method
+3.1. Overview
+As depicted in Figure 1, the proposed method comprises
+three phases. First, an Enhanced ADL CAM is obtained from
+the patch classifier, and an initial mask is generated using a
+post-processing module. Second, the SAM mask decoder is
+fine-tuned using the initial mask, and a SAM pseudo-label
+is generated via a pixel-level entropy-based prompting mod-
+ule. This also includes a filtering module that selects reliable
+pseudo-labels by assessing the intersection ratio between the
+SAM masks and initial masks. Finally, the selected pseudo-
+labels are used to fine-tune the re-initialized SAM mask de-
+coder in iterative fashion.
+3.2. Initial Mask Generation Phase
+3.2.1. Enhanced Attention Dropout Layer
+Generally, CAM tend to focus on the most discriminative
+part of an object rather than the entire object. On the other
+hand, ADL emphasizes broader regions by thresholding the
+attention map obtained by channel-wise pooling feature maps
+F ∈RC×H×W.
+Mdrop =
+(
+0
+if Mattij > threshold
+1
+otherwise
+,
+Mimp
+= σ(Matt). (1)
+The attention map Matt is represented by Matt ∈RH×W. At-
+tention map produces either a drop mask or an importance map.
+The drop mask hides the most discriminative regions via thresh-
+olding, whereas the importance map highlights informative re-
+gions. Each drop mask Mdrop and importance map Mimp is cal-
+culated using Eq. (1).
+Applying ADL to low-level feature maps like layer 1 and 2
+reduces accuracy due to their unrelated to the target [35]. Here,
+ADL is applied at layer 3’s first bottleneck and layer 4’s first
+bottlenecks in ResNet.
+Ei = ADL(Pi,EVPi).
+(2)
+Then, an explicit visual prompt is added to the patch im-
+age, which is subsequently used in ADL CAM, resulting in
+Enhanced ADL. In Eq. (2), Ei denotes the Enhanced ADL, Pi
+represents the patches, and EVPi represents the explicit visual
+prompts that correspond to the high-frequency components ex-
+tracted from the input data.
+The Enhanced ADL CAM obtained in this way, as you can
+see in Figure 2, enables the classifier to consider the high fre-
+quency channel during training. When the CAM is extracted,
+this leads to more uniform and higher activation not only across
+the overall area of the target but also particularly around the
+blurred boundaries.
+3.2.2. Post-processing
+We also introduce a post-processing module designed to re-
+fine more precise CAM mask. This module employs quantile-
+based thresholding where the bottom n of activation values (ex-
+cluding zeros) are set to zero, while the remaining values are
+converted to one. Additionally, we utilize the rotate and fuse
+technique along with morphological operations to achieve more
+accurate initial masks.
+Rotate & Fuse For reliable initial masks I, we employed ro-
+tation, a technique commonly used in data augmentation. For
+each enhanced image Ei, and patch Pi, four CAMs {Ek
+i }K
+k=1 are
+generated by rotating the input through angles of 0◦,90◦,180◦,
+and 270◦, corresponding to k = 1,2,3,4 respectively.
+The
+CAMs are inversely rotated to their original orientation and av-
+eraged for the final result as follows: where I denotes the final
+result (initial mask) and i represents each patch index. Ei de-
+notes the enhanced image and K indicates the rotation index
+corresponding to the angles 0◦,90◦,180◦, and 270◦.
+3
+Figure 1: Overview of our proposed method.
+Figure 2: Various CAMs for Camelyon17.
+Ii = 1
+K
+K
+∑
+k=1
+Ek
+i .
+(3)
+Morphological operation DenseCRF is commonly used as
+a post-processing algorithm; however, it is highly sensitive to
+hyperparameters, which makes the search for optimal values
+inefficient. In addition, identifying a universally optimal value
+for an entire dataset is particularly challenging for medical im-
+ages with unclear boundaries [36].
+To resolve this, we apply a simple, effective post-processing
+technique using morphological operations, specifically open-
+ing, to remove small-scale noise.
+This operation comprises
+erosion and dilation using a structuring element. The erosion
+step removes small objects such as noises, and the subsequent
+dilation step restores the size of larger objects while avoiding
+the reappearance of small noises. An opening operation is em-
+ployed to eliminate the noise generated by the threshold CAM,
+thereby yielding a more precise initial mask. The optimal con-
+figuration is then determined through a series of experiments.
+3.3. SAM Mask Generation Phase
+In this phase, we preliminarily train the SAM’s decoder us-
+ing the precise CAM mask obtained earlier, and to leverage
+the advantages of SAM, which can utilize prompts, we design
+a pixel-level entropy-based point prompting module using the
+Enhanced ADL.
+3.3.1. Pixel-level Entropy based Prompting Module (PEPM)
+As demonstrated in [37, 38], box prompts yield better re-
+sults than other prompts for SAM; however, the box-prompt
+approach has several limitations. The conversion of CAM into
+discrete bounding boxes is sensitive to threshold configurations
+and requires extensive tuning to achieve optimal results. In ad-
+dition, in cases where cancer regions are sparsely distributed
+within a pathology image, the ’best’ bounding box prompt be-
+comes a ’whole box’ prompt, which fails to provide a helpful
+prompt for SAM in practice.
+In contrast, [39] demonstrated that SAM can achieve good
+performance even with multiple point prompts instead of
+bounding boxes, and [40] showed that utilizing high entropy
+point prompts can enhance segmentation performance. In line
+with this, we have designed a pixel-level entropy-based point
+prompting module that leverages SAM’s performance by tak-
+ing advantage of the characteristic of Enhanced ADL, which
+provides uniform and high activation across the entire target
+area. If Aij denotes the activation obtained from the Enhanced
+ADL at a pixel, the entropy Sij of the pixel can be expressed as
+4
+Figure 3: Overall scenario in inference phase.
+follows:
+Si j =
+Ai j
+∑n
+i=1 ∑n
+j=1 Ai j
+.
+(4)
+3.3.2. Preliminary SAM Mask Decoder Fine-tuning
+In medical images, Utilizing SAM in a zero-shot manner to
+generate pseudo labels significantly degrades the quality of the
+pseudo labels. [15]. To address this issue, the SAM mask de-
+coder is preliminarily trained using initial masks to effectively
+transfer knowledge from the Enhanced ADL. During this train-
+ing, the SAM image encoder is frozen, and only the SAM mask
+decoder is fine-tuned.
+3.3.3. Pseudo-label Selection Module
+The pseudo-labels generated by SAM often contain noise,
+making it challenging to effectively generalize to medical im-
+ages [41]. Thus, a more suitable approach for selecting appro-
+priate pseudo-labels is required. Recent studies have utilized
+SAM for pseudo-labeling, and research has been conducted to
+produce high-quality pseudo-labels [42, 43, 44]. These studies
+achieved promising results by employing an intersection ratio
+to address the incompleteness and redundancy inherent in ini-
+tial CAM masks. Therefore, we utilized the intersection of the
+SAM mask and CAM mask divided by the SAM mask (IDS).
+Based on empirical comparisons, we set the threshold to 0.9.
+3.4. Prediction of Masks using Fine-tuned SAM
+Instead of using an off-the-shelf segmenter, the proposed
+method leverages SAM pseudo-labels to fine-tune SAM, which
+is then utilized as a mask predictor. This approach eliminates
+the need for additional training and maximizes the capability of
+SAM during inference by utilizing PEPM. The detailed infer-
+ence procedure is illustrated in Figure 3.
+3.5. Iterative Retraining Phase
+As depicted in Figure 4, following preliminary fine-tuning,
+SAM is observed to generate close to the ground truth pseudo-
+labels by leveraging the knowledge transferred from the En-
+hanced ADL. Based on this observation, we hypothesize that
+Figure 4: Zero-shot results of SAM with respect to the iterative changes in
+masks.
+Progressive refinement is observed as training progresses, with the
+white tumor region becoming closer to the ground truth as iterations increase.
+Algorithm 1 Iterative Re-Training Strategy
+Input: Initial masks {Ik}K
+k=1, Threshold t, Number of itera-
+tions N
+Output: Selected pseudo labels PL
+procedure ITERATIVERETRAINING({Ik}K
+k=1,t,N)
+PL ←{}
+▷Saves selected pseudo labels
+for n = 1 to N do
+{Sk}K
+k=1 ←SAM({Ik}K
+k=1)
+▷Generate SAM masks
+for k = 1 to K do
+IDS =
+Intersect(Ik,Sk)
+nonzero area(Sk)
+if IDS > t then
+PL ←PL ∪Sk
+end if
+end for
+SAM.decoder init()
+▷Initialize SAM decoder
+Wn ←TrainDecoder(PL)
+▷Train SAM decoder
+SAM.decoder ←Wn
+▷Update decoder weights
+end for
+return PL
+▷Return selected pseudo labels
+end procedure
+retraining SAM iteratively using the enhanced SAM masks ob-
+tained via preliminary fine-tuning can further optimize its per-
+formance. The details of the retraining process are outlined in
+Algorithm 1.
+First, the initial mask Ik, whose generation is described in
+Section 3.2, is used as an input to SAM to produce the SAM
+mask. Then, high-quality pseudo-labels are obtained by filter-
+ing SAM masks that exceed the threshold t using IDS, and
+selecting a pseudo-label PL.
+Subsequently, the SAM mask
+decoder is trained using PL, and trained SAM mask decoder
+weights Wn are utilized to generate an enhanced pseudo-label
+PL. The SAM mask decoder is initialized before each training
+session, and this process is iterated. As the iterations progress,
+the SAM mask decoder generates more robust pseudo-labels
+than the zero-shot SAM mask decoder.
+5
+Figure 5: Qualitative comparison between our proposed method and MIL-based methods across all datasets. Left: Camelyon16, Camelyon17 datasets. Right:
+internal dataset.
+4. Experimental Results and Discussion
+4.1. Datasets
+Experiments were conducted to validate the proposed
+method on three histopathological breast cancer datasets. Two
+of the datasets used are open datasets—Camelyon 16 and
+Camelyon 17—and the third is an internal dataset.
+The Camelyon16 dataset, provided by the Camelyon16 Chal-
+lenge, is an open collection sourced from the Radboud Uni-
+versity Medical Center and Utrecht University Medical Center.
+The slides are stained with hematoxylin and eosin (H&E). The
+training dataset comprises 160 normal slides and 110 whole
+slide images (WSIs) depicting metastases.
+The test dataset
+comprises 130 WSIs. All slides are scanned at a magnification
+level of 40x to providing high-resolution images for detailed
+analysis.
+The Camelyon17 dataset, provided by the Camelyon17 Chal-
+lenge, the successor to Camelyon16, is collected from five cen-
+ters: Radboud University Medical Center, Utrecht University
+Medical Center, Rijnstate Hospital, Canisius-Wilhelmina Hos-
+pital, and LabPON. It is significantly larger than the Came-
+lyon16 dataset, and offers a comprehensive collection of 1000
+WSIs. This extensive dataset enhances the potential for robust
+training and validation of machine-learning models designed
+for histopathological analysis.
+For Camelyon16 and Camelyon17, the dataset was con-
+structed by extracting patches from WSIs that were positive
+only. The patch size was uniformly set to 512 × 512 pixels,
+and both positive and negative patches were extracted using a
+sliding window with a stride of 256 pixels. From the candidate
+pool of positive patches, only those in which the tumor occu-
+pies 20% and 90% of the area were selected. From the can-
+didate pool of positive patches, only those in which the tumor
+occupies 20–90% of the area were selected.
+Table 1 lists the number of positive and negative patches in
+each dataset. To balance each dataset, an equivalent number of
+negative patches are selected to match the number of positive
+patches. The data leakage was prevented by ensuring that the
+WSIs in the train, validation, and test sets did not overlap.
+Dataset
+Camelyon16
+Camelyon17
+Internal
+Data splits
+Pos
+Neg
+Pos
+Neg
+Pos
+Neg
+Train
+6020
+6000
+6068
+6000
+3111
+3111
+Valid
+700
+700
+698
+700
+120
+120
+Test
+2002
+2000
+2000
+2000
+350
+350
+Table 1: Number of positive and negative patches in each dataset split.
+4.2. Implementation Details
+In our implementation, the SAM image encoder is based on
+ViT-B/16. The backbone of the patch classifier is taken to be
+ResNet50, which is also employed to train other classifier for
+CAM extraction during comparative evaluation. The classifier
+training employs Binary Cross Entropy loss, using the Adam
+optimizer, a learning rate of 1×10−5, weight decay of 1×10−3,
+a batch size of 16. Training is conducted over 50 epochs. To
+fine-tune the SAM mask decoder, a linear combination of Dice
+loss and intersection-over-union (IoU) loss is used as the loss
+function. AdamW is used as the optimizer, with a learning rate
+of 2×10−4, and the model is trained for 20 epochs.
+All experiments are performed using PyTorch on single
+NVIDIA TITAN Xp.
+Additionally, for comparative experi-
+ments, single NVIDIA A6000 is used.
+4.3. Comparative Evaluation
+We conducted evaluations using open datasets, including
+Camelyon16, Camelyon17, as well as an internal dataset. We
+compared the proposed method and existing MIL-based SOTA
+methods as well as fully supervised methods. Moreover, given
+the high capacity of SAM, we compared Unet and MedSAM
+6
+Model
+Backbone
+SUP
+Camelyon17
+Camelyon16
+Internel
+Dice (%)
+IoU (%)
+Dice (%)
+IoU (%)
+Dice (%)
+IoU (%)
+Full Supervision
+U-Net [2]
+ResNet50
+F
+82
+72.88
+73.21
+61.05
+86.28
+76.76
+SAM-Decoder (Whole box) [20]
+ViT-B
+F
+83.72
+73.95
+78.26
+66.56
+81.28
+69.74
+MedSAM-Decoder (Whole box) [45]
+ViT-B
+F
+81.06
+70.07
+68.69
+54.99
+81.08
+70.07
+Weak Supervision
+CAM based
+GradCAM [46]
+ResNet50
+I
+56.48
+40.24
+63.36
+47.76
+70.13
+55.09
+GradCAM++ [47]
+ResNet50
+I
+63.16
+47.06
+65.82
+50.22
+70.54
+55.55
+EigenCAM [48]
+ResNet50
+I
+56.09
+40.04
+59.4
+43.4
+66.72
+51.63
+ADL [35]
+ResNet50
+I
+79.39
+67.31
+70.6
+56.89
+69.79
+54.37
+Enhanced ADL
+ResNet50
+I
+80.1
+68.21
+69.61
+55.59
+72.76
+58.18
+WSSS Methods
+U-Net [2]
+ResNet50
+P
+79.91
+69.16
+75.85
+62.83
+72.91
+59.87
+WSSS-Tissue [26]
+ResNet38-D
+I
+33.16
+20.88
+46.92
+32.24
+68.85
+54.35
+Swin-MIL [49]
+VGG16
+I
+66.6
+60.9
+54.9
+48.6
+55.4
+48.8
+DWS-MIL [25]
+VGG16
+I
+39.3
+32.2
+32
+21.9
+38.7
+32
+SA-MIL [50]
+VGG16
+I
+58.9
+52.5
+58.7
+52.2
+57.1
+50.8
+Ours
+ViT-B
+I
+83.83
+73.74
+76.94
+64.99
+75.13
+61.5
+Table 2: Performance comparison across different models, backbones, and supervision levels on three datasets. The SUP. column indicates the form of supervision
+applied during training, encompassing full supervision (F), training with pseudo labels (P), and image-level labels (I).
+as fully supervised manner, which are widely used in the medi-
+cal domain. For MedSAM training, only the mask decoder was
+fine-tuned, while all other settings followed MedSAM’s orig-
+inal configuration. In addition, various CAM-based methods
+are evaluated. To ensure a fair comparison, the post-processing
+used to our framework is also applied to the CAM variants, and
+the hyperparameters are optimized via a grid search, with the
+best values reported. Further, the generalization performance
+of the pseudo-labels generated by our framework is evaluated
+by training a U-Net segmenter.
+As highlighted in Table 2, the proposed method significantly
+outperforms existing MIL-based SOTA and CAM-based meth-
+ods on all datasets. Notably, on the Camelyon17 and Came-
+lyon16 datasets, the proposed approach also outperforms the
+fully supervised models, MedSAM and Unet. Further, when the
+pseudo-labels generated by our framework are used for training,
+the performance gap compared with fully supervised learning
+method is observed to be less than 3%. Figure 5 illustrates a
+comparison of outputs between the MIL-based SOTA method
+used in our comparative experiments and our proposed method
+across each dataset. Through comparison with the GT mask,
+we can confirm that our proposed method demonstrates supe-
+rior performance relative to other methods. Even in the case of
+Camelyon16 and Camelyon17, which present relatively lower
+segmentation difficulty, we can observe that the output results
+of the MIL-based method differ significantly when compared to
+the GT mask. In some cases, the overall shape of the GT mask
+is identified with reasonable similarity. Howerver, we can also
+observe instances where methods like SA-MIL produce entirely
+Figure 6: Comparative results of different processing techniques on the Came-
+lyon17 dataset. (a) displays the ground truth (GT), (b) shows results from the
+Enhanced ADL without post-processing, (c) depicts the outcomes of applying
+DenseCRF to the Enhanced ADL and (d) illustrates results from our method.
+incorrect results. Furthermore, we can identify specific unin-
+tended patterns in the output results, such as horizontal lines
+in SA-MIL and rectangles in SWIN-MIL. We can also observe
+cases like DWS-MIL where only partial regions are detected,
+failing to identify the entire area of interest. In contrast, our
+proposed method demonstrates output results that are generally
+similar to the GT mask, with the exception of some inaccura-
+cies at the boundaries. For the internal dataset, SA-MIL and
+SWIN-MIL incorrectly classified almost the entire input patch
+as positive class. While DWS-MIL identified a similar over-
+all shape of the positive regions, it demonstrated difficulties in
+detecting the entire region of interest or misclassified negative
+areas as positive class, similar to its performance on the Came-
+lyon dataset. Our method, in contrast, demonstrates accurate
+identification of positive regions. Although it may not precisely
+capture small, detailed areas within the tumor, it shows excel-
+lent results when compared to other MIL-based methods.
+7
+Figure 7: Qualitative comparison of the effects of PEPM. The bottom two rows
+correspond to the internal dataset, and the top two rows to the Camelyon17
+dataset. (a) Fifty random points from the ground truth; (b) fifty random points
+from the entire area; (c) fifity random points from CAM-activated areas;, and
+(d) fifty points based on the proposed PEPM method.
+4.4. Ablation Study
+A. Effectiveness of Mask Generation Module
+We conducted an ablation study to evaluate the effectiveness
+of our post-processing technique. Additionally, we included
+denseCRF, one of the most commonly used post-processing
+methods, for comparison. As shown in Table 3, we found that
+incorporating all components resulted in the best performance
+across both datasets.
+Furthermore, denseCRF demonstrated
+lower performance compared to ADL with post-processing and
+even Enhanced ADL without post-processing. Our proposed
+post-processing technique demonstrated superior denoising ca-
+pacity compared to denseCRF, as further illustrated by the vi-
+sual comparisons in Figure 6.
+Method
+Post-Processing
+Camelyon17
+Internel
+Ours
+CRF
+Dice (%)
+IoU (%)
+Dice (%)
+IoU (%)
+ADL
+✓
+78.11
+65.70
+72.57
+57.60
+Enhanced ADL
+70.12
+56.68
+68.15
+53.53
+✓
+69.63
+56.16
+67.72
+53.15
+✓
+78.67
+66.42
+76.33
+62.69
+Table 3: The results of the ablation studies on the post-processing modules.
+Method
+Dice (%)
+IoU (%)
+GT Random points
+81.01
+69.07
+Random points
+69.24
+54.86
+w/o PEPM
+71.75
+57.65
+Ours
+76.57
+63.16
+Table 4: The results of the ablation studies to assess the effectiveness of PEPM
+on internal data.
+Iter
+Camelyon17
+Camelyon16
+Internel
+Dice (%)
+IoU (%)
+Dice (%)
+IoU (%)
+Dice (%)
+IoU (%)
+Zero-shot
+34.24
+22.63
+35.51
+23.92
+43.89
+29.34
+preliminary
+78.66
+66.41
+70.38
+56.55
+75.06
+61.16
+1
+82.16
+71.26
+75.20
+62.63
+76.57
+63.16
+2
+82.95
+72.40
+75.83
+63.77
+77.03
+63.83
+3
+82.98
+72.42
+76.41
+64.47
+77.47
+64.40
+Table 5: Quantitatively evaluated the quality of the pseudo labels generated at
+each iteration across the Camelyon17, Camelyon16, and internal datasets.
+B. Effectiveness of PEPM
+We also conducted an ablation study to evaluate the effec-
+tiveness of the PEPM module. As shown in Table 4, using the
+PEPM module outperformed other methods, such as randomly
+selecting points from the entire input patch or generating ran-
+dom points as prompts after post-processing without the PEPM
+module. This indicates that our proposed PEPM, by providing
+points around the boundary area as prompts, enables SAM to
+effectively depict blurred boundaries in histopathology images.
+Furthermore, Figure 7 illustrates that our module generates
+better seeds based on entropy, effectively capturing boundaries
+and confirming its superior performance.
+Iter
+Camelyon17
+Camelyon16
+Internel
+Dice (%)
+IoU (%)
+Dice (%)
+IoU (%)
+Dice (%)
+IoU (%)
+Preliminary
+83.19
+72.7
+75.65
+63.15
+76.97
+63.69
+1
+83.65
+73.32
+76.44
+64.40
+77.68
+64.70
+2
+84.01
+73.79
+76.84
+64.82
+78.30
+65.47
+3
+84.15
+74.09
+76.81
+64.73
+78.57
+65.85
+Table 6: Impact of retraining strategy we evaluate mIOU (&) and mDice (%)
+on the validation sets of three datasets.
+C. Effectiveness of Retraining Module
+As shown in Table 5, the preliminary fine-tuning results
+showed approximately twice the performance compared to the
+zero-shot outcomes. Furthermore, the quality of the pseudo la-
+bels continued to improve with subsequent iterations. These
+results demonstrated the effectiveness of our proposed prelim-
+inary fine-tuning strategy. We also verified the effectiveness of
+the retraining strategy by quantitatively analyzing the quality of
+the pseudo labels and the predicted masks for each iteration. In
+Table 6, the metrics consistently improved with each iteration,
+further validating the success of our retraining approach. As
+observed in Tables 5 and 6, the metrics consistently improve
+with each iteration, underscoring the overall effectiveness of
+our proposed approach. Effectiveness of the retraining module
+can also be observed in Figure 4.
+5. Conclusion
+In this paper, we propose a weakly supervised semantic seg-
+mentation framework to address the high-cost labeling problem
+commonly encountered in whole slide image (WSI) segmenta-
+tion scenarios. We utilized a classifier trained solely on patch-
+level annotations to generate CAM (Class Activation Map)
+8
+masks for each patch. These masks were then employed in
+training a Segment Anything for the creation of pseudo labels.
+To generate high-quality CAM masks, we enhanced Attention
+Dropout Layers by incorporating explicit visual promptings
+technique, and simple but effective post-processing modules.
+For the creation of high-quality pseudo labels, we utilized a
+pixel-level entropy based prompting module, preliminary mask
+decoder fine-tuning, and an iterative retraining strategy. Exper-
+imental results demonstrate that our proposed framework out-
+performs both CAM-based methods and MIL-based state-of-
+the-art methods across all datasets. In several instances, it even
+surpasses the performance of fully supervised models.
+Fur-
+thermore, an ablation study was conducted, which conclusively
+showed the effectiveness of the proposed modules. All pro-
+posed structures are executable within 12GB of GPU memory,
+allowing for efficient performance of all processes without the
+requirement of high-performance hardware. Consequently, this
+accessibility is expected to result in high applicability in real-
+world industrial settings.
+References
+[1] R. L. Siegel, A. N. Giaquinto, A. Jemal, Cancer statistics, 2024., CA: a
+cancer journal for clinicians 74 (2024).
+[2] O. Ronneberger, P. Fischer, T. Brox,
+U-net: Convolutional networks
+for biomedical image segmentation, in: Medical image computing and
+computer-assisted intervention–MICCAI 2015: 18th international con-
+ference, Munich, Germany, October 5-9, 2015, proceedings, part III 18,
+Springer, 2015, pp. 234–241.
+[3] E. Xie, W. Wang, Z. Yu, A. Anandkumar, J. M. Alvarez, P. Luo, Seg-
+former: Simple and efficient design for semantic segmentation with trans-
+formers, Advances in neural information processing systems 34 (2021)
+12077–12090.
+[4] L.-C. Chen, G. Papandreou, I. Kokkinos, K. Murphy, A. L. Yuille,
+Deeplab: Semantic image segmentation with deep convolutional nets,
+atrous convolution, and fully connected crfs, IEEE transactions on pattern
+analysis and machine intelligence 40 (2017) 834–848.
+[5] L.-C. Chen, G. Papandreou, F. Schroff, H. Adam,
+Rethinking
+atrous convolution for semantic image segmentation,
+arXiv preprint
+arXiv:1706.05587 (2017).
+[6] B. Zhang, Z. Tian, Q. Tang, X. Chu, X. Wei, C. Shen, et al., Segvit: Se-
+mantic segmentation with plain vision transformers, Advances in Neural
+Information Processing Systems 35 (2022) 4971–4982.
+[7] R. Strudel, R. Garcia, I. Laptev, C. Schmid, Segmenter: Transformer for
+semantic segmentation, in: Proceedings of the IEEE/CVF international
+conference on computer vision, 2021, pp. 7262–7272.
+[8] Y. Lin, Z. Qu, H. Chen, Z. Gao, Y. Li, L. Xia, K. Ma, Y. Zheng, K.-T.
+Cheng, Nuclei segmentation with point annotations from pathology im-
+ages via self-supervised learning and co-training, Medical Image Analy-
+sis 89 (2023) 102933.
+[9] C. L. Srinidhi, S. W. Kim, F.-D. Chen, A. L. Martel, Self-supervised
+driven consistency training for annotation efficient histopathology image
+analysis, Medical image analysis 75 (2022) 102256.
+[10] P. Pati, G. Jaume, Z. Ayadi, K. Thandiackal, B. Bozorgtabar, M. Gabrani,
+O. Goksel, Weakly supervised joint whole-slide segmentation and classi-
+fication in prostate cancer, Medical Image Analysis 89 (2023) 102915.
+[11] C. Liang-Chieh, G. Papandreou, I. Kokkinos, K. Murphy, A. Yuille, Se-
+mantic image segmentation with deep convolutional nets and fully con-
+nected crfs,
+in: International conference on learning representations,
+2015.
+[12] W. Gao, F. Wan, X. Pan, Z. Peng, Q. Tian, Z. Han, B. Zhou, Q. Ye, Ts-
+cam: Token semantic coupled attention map for weakly supervised object
+localization, in: Proceedings of the IEEE/CVF international conference
+on computer vision, 2021, pp. 2886–2895.
+[13] Y. Gu, Q. Wu, H. Tang, X. Mai, H. Shu, B. Li, Y. Chen, Lesam: Adapt
+segment anything model for medical lesion segmentation, IEEE Journal
+of Biomedical and Health Informatics (2024).
+[14] Z. Fang, Y. Chen, Y. Wang, Z. Wang, X. Ji, Y. Zhang, Weakly-supervised
+semantic segmentation for histopathology images based on dataset syn-
+thesis and feature consistency constraint, in: Proceedings of the AAAI
+Conference on Artificial Intelligence, volume 37, 2023, pp. 606–613.
+[15] M. A. Mazurowski, H. Dong, H. Gu, J. Yang, N. Konz, Y. Zhang, Seg-
+ment anything model for medical image analysis: an experimental study,
+Medical Image Analysis 89 (2023) 102918.
+[16] Y. Huang, X. Yang, L. Liu, H. Zhou, A. Chang, X. Zhou, R. Chen, J. Yu,
+J. Chen, C. Chen, et al., Segment anything model for medical images?,
+Medical Image Analysis 92 (2024) 103061.
+[17] Y. Zhang, Z. Shen, R. Jiao, Segment anything model for medical image
+segmentation: Current applications and future directions, Computers in
+Biology and Medicine (2024) 108238.
+[18] K. Zhang, D. Liu, Customized segment anything model for medical image
+segmentation, arXiv preprint arXiv:2304.13785 (2023).
+[19] J. Zhu, Y. Qi, J. Wu, Medical sam 2: Segment medical images as video
+via segment anything model 2, arXiv preprint arXiv:2408.00874 (2024).
+[20] A. Kirillov, E. Mintun, N. Ravi, H. Mao, C. Rolland, L. Gustafson,
+T. Xiao, S. Whitehead, A. C. Berg, W.-Y. Lo, et al., Segment anything,
+in: Proceedings of the IEEE/CVF International Conference on Computer
+Vision, 2023, pp. 4015–4026.
+[21] W. Liu, X. Shen, C.-M. Pun, X. Cun, Explicit visual prompting for low-
+level structure segmentations, in: Proceedings of the IEEE/CVF Con-
+ference on Computer Vision and Pattern Recognition, 2023, pp. 19434–
+19445.
+[22] T. Chen, L. Zhu, C. Deng, R. Cao, Y. Wang, S. Zhang, Z. Li, L. Sun,
+Y. Zang, P. Mao, Sam-adapter: Adapting segment anything in underper-
+formed scenes, in: Proceedings of the IEEE/CVF International Confer-
+ence on Computer Vision, 2023, pp. 3367–3375.
+[23] H. Liu, D. Tam, M. Muqeeth, J. Mohta, T. Huang, M. Bansal, C. A. Raf-
+fel, Few-shot parameter-efficient fine-tuning is better and cheaper than
+in-context learning, Advances in Neural Information Processing Systems
+35 (2022) 1950–1965.
+[24] Y. Xu, J.-Y. Zhu, E. Chang, Z. Tu, Multiple clustered instance learning for
+histopathology cancer image classification, segmentation and clustering,
+in: 2012 IEEE Conference on Computer Vision and Pattern Recognition,
+IEEE, 2012, pp. 964–971.
+[25] Z. Jia, X. Huang, I. Eric, C. Chang, Y. Xu, Constrained deep weak su-
+pervision for histopathology image segmentation, IEEE transactions on
+medical imaging 36 (2017) 2376–2388.
+[26] C. Han, J. Lin, J. Mai, Y. Wang, Q. Zhang, B. Zhao, X. Chen, X. Pan,
+Z. Shi, Z. Xu, et al., Multi-layer pseudo-supervision for histopathology
+tissue semantic segmentation using patch-level classification labels, Med-
+ical Image Analysis 80 (2022) 102487.
+[27] H. Kweon, K.-J. Yoon, From sam to cams: Exploring segment anything
+model for weakly supervised semantic segmentation, in: Proceedings of
+the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+2024, pp. 19499–19509.
+[28] T. Ren, S. Liu, A. Zeng, J. Lin, K. Li, H. Cao, J. Chen, X. Huang, Y. Chen,
+F. Yan, et al., Grounded sam: Assembling open-world models for diverse
+visual tasks, arXiv preprint arXiv:2401.14159 (2024).
+[29] S. Liu, Z. Zeng, T. Ren, F. Li, H. Zhang, J. Yang, C. Li, J. Yang, H. Su,
+J. Zhu, et al., Grounding dino: Marrying dino with grounded pre-training
+for open-set object detection, arXiv preprint arXiv:2303.05499 (2023).
+[30] X. Yang, X. Gong, Foundation model assisted weakly supervised seman-
+tic segmentation, in: Proceedings of the IEEE/CVF Winter Conference
+on Applications of Computer Vision, 2024, pp. 523–532.
+[31] Z. Kong, H. Ma, G. Yuan, M. Sun, Y. Xie, P. Dong, X. Meng, X. Shen,
+H. Tang, M. Qin, et al.,
+Peeling the onion: Hierarchical reduction of
+data redundancy for efficient vision transformer training, in: Proceedings
+of the AAAI Conference on Artificial Intelligence, volume 37, 2023, pp.
+8360–8368.
+[32] Z. Zhong, Z. Tang, T. He, H. Fang, C. Yuan, Convolution meets lora:
+Parameter efficient finetuning for segment anything model, arXiv preprint
+arXiv:2401.17868 (2024).
+[33] H. Gu, H. Dong, J. Yang, M. A. Mazurowski,
+How to build the best
+medical image segmentation algorithm using foundation models: a com-
+prehensive empirical study with segment anything model, arXiv preprint
+arXiv:2404.09957 (2024).
+9
+[34] F. Yii, T. MacGillivray, M. O. Bernabeu, Data efficiency of segment any-
+thing model for optic disc and cup segmentation, in: International con-
+ference on medical image computing and computer-assisted intervention,
+Springer, 2023, pp. 336–346.
+[35] J. Choe, H. Shim, Attention-based dropout layer for weakly supervised
+object localization, in: Proceedings of the IEEE/CVF conference on com-
+puter vision and pattern recognition, 2019, pp. 2219–2228.
+[36] H. Kervadec, J. Dolz, S. Wang, E. Granger, I. B. Ayed, Bounding boxes
+for weakly supervised segmentation: Global constraints get close to full
+supervision, in: Medical imaging with deep learning, PMLR, 2020, pp.
+365–381.
+[37] D. Cheng, Z. Qin, Z. Jiang, S. Zhang, Q. Lao, K. Li, Sam on medical
+images: A comprehensive study on three prompt modes, arXiv preprint
+arXiv:2305.00035 (2023).
+[38] Y. F. A. Gaus, N. Bhowmik, B. K. Isaac-Medina, T. P. Breckon, Per-
+formance evaluation of segment anything model with variational prompt-
+ing for application to non-visible spectrum imagery, in: Proceedings of
+the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+2024, pp. 3142–3152.
+[39] J. Cheng, J. Ye, Z. Deng, J. Chen, T. Li, H. Wang, Y. Su, Z. Huang,
+J. Chen, L. Jiang, et al., Sam-med2d, arXiv preprint arXiv:2308.16184
+(2023).
+[40] H. Dai, C. Ma, Z. Yan, Z. Liu, E. Shi, Y. Li, P. Shu, X. Wei, L. Zhao,
+Z. Wu, et al., Samaug: Point prompt augmentation for segment anything
+model, arXiv preprint arXiv:2307.01187 (2023).
+[41] X. Hu, X. Xu, Y. Shi, How to efficiently adapt large segmentation model
+(sam) to medical images, arXiv preprint arXiv:2306.13731 (2023).
+[42] T. Chen, Z. Mai, R. Li, W.-l. Chao,
+Segment anything model (sam)
+enhanced pseudo labels for weakly supervised semantic segmentation,
+arXiv preprint arXiv:2305.05803 (2023).
+[43] L. Wang, M. Zhang, W. Shi, Cs-wscdnet: Class activation mapping and
+segment anything model-based framework for weakly supervised change
+detection, IEEE Transactions on Geoscience and Remote Sensing (2023).
+[44] R. Yang, G. He, R. Yin, G. Wang, Z. Zhang, T. Long, Y. Peng, Weakly-
+semi supervised extraction of rooftop photovoltaics from high-resolution
+images based on segment anything model and class activation map, Ap-
+plied Energy 361 (2024) 122964.
+[45] J. Ma, Y. He, F. Li, L. Han, C. You, B. Wang,
+Segment anything in
+medical images, Nature Communications 15 (2024) 654.
+[46] R. R. Selvaraju, M. Cogswell, A. Das, R. Vedantam, D. Parikh, D. Batra,
+Grad-cam: visual explanations from deep networks via gradient-based
+localization, International journal of computer vision 128 (2020) 336–
+359.
+[47] A. Chattopadhay, A. Sarkar, P. Howlader, V. N. Balasubramanian, Grad-
+cam++: Generalized gradient-based visual explanations for deep convo-
+lutional networks, in: 2018 IEEE winter conference on applications of
+computer vision (WACV), IEEE, 2018, pp. 839–847.
+[48] M. B. Muhammad, M. Yeasin, Eigen-cam: Class activation map using
+principal components, in: 2020 international joint conference on neural
+networks (IJCNN), IEEE, 2020, pp. 1–7.
+[49] Z. Qian, K. Li, M. Lai, E. I.-C. Chang, B. Wei, Y. Fan, Y. Xu, Transformer
+based multiple instance learning for weakly supervised histopathology
+image segmentation,
+in:
+International Conference on Medical Im-
+age Computing and Computer-Assisted Intervention, Springer, 2022, pp.
+160–170.
+[50] K. Li, Z. Qian, Y. Han, I. Eric, C. Chang, B. Wei, M. Lai, J. Liao, Y. Fan,
+Y. Xu, Weakly supervised histopathology image segmentation with self-
+attention, Medical Image Analysis 86 (2023) 102791.
+10

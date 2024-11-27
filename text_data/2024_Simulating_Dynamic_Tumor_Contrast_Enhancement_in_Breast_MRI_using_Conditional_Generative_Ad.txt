@@ -1,0 +1,1313 @@
+Simulating Dynamic Tumor Contrast Enhancement in Breast MRI
+using Conditional Generative Adversarial Networks
+Richard Osualaa, b, c, *, Smriti Joshia, Apostolia Tsirikogloud, Lidia Garruchoa, d, Walter H.
+L. Pinayae, Daniel M. Langb, c, Julia A. Schnabelb, c, e, Oliver Diaza, f, **, Karim Lekadira, g, **
+aBarcelona Artificial Intelligence in Medicine Lab (BCN-AIM), Departament de Matem`atiques i Inform`atica,
+Universitat de Barcelona, Spain
+bInstitute of Machine Learning in Biomedical Imaging, Helmholtz Munich, Munich, Germany
+cSchool of Computation, Information and Technology, Technical University of Munich, Munich, Germany
+dDepartment of Oncology-Pathology, Karolinska Institutet, Stockholm, Sweden
+eKing’s College London, London, United Kingdom
+fComputer Vision Center, Universitat Aut`onoma de Barcelona, Bellaterra, Spain
+gInstituci´o Catalana de Recerca i Estudis Avanc¸ats (ICREA), Passeig Llu´ıs Companys 23, Barcelona, Spain
+Abstract.
+Purpose:
+Deep generative models and synthetic data generation have become essential for advancing computer-
+assisted diagnosis and treatment. We explore one such emerging and particularly promising application of deep gen-
+erative models, namely, the generation of virtual contrast enhancement. This allows to predict and simulate contrast
+enhancement in breast magnetic resonance imaging (MRI) without physical contrast agent injection, thereby unlock-
+ing lesion localization and categorization even in patient populations where the lengthy, costly and invasive process of
+physical contrast agent injection is contraindicated.
+Approach:
+We define a framework for desirable properties of synthetic data, which leads us to propose the Scaled
+Aggregate Measure (SAMe) consisting of a balanced set of scaled complementary metrics for generative model train-
+ing and convergence evaluation. We further adopt a conditional generative adversarial network to translate from
+non-contrast-enhanced T1-weighted fat-saturated breast MRI slices to their dynamic contrast-enhanced (DCE) coun-
+terparts, thus learning to detect, localize, and adequately highlight breast cancer lesions. Next, we extend our model
+approach to jointly generate multiple DCE-MRI timepoints, enabling the simulation of contrast enhancement across
+temporal DCE-MRI acquisitions. Additionally, 3D U-Net tumor segmentation models are implemented and trained
+on combinations of synthetic and real DCE-MRI data to investigate the effect of data augmentation with synthetic
+DCE-MRI volumes.
+Results:
+Conducting four main sets of experiments, (i) the variation across single metrics demonstrated the value of
+SAMe, and (ii) the quality and potential of virtual contrast injection for tumor detection and localization were shown.
+Segmentation models (iii) augmented with synthetic DCE-MRI data were more robust in the presence of domain shifts
+between pre-contrast and DCE-MRI domains. The joint synthesis approach of multi-sequence DCE-MRI (iv) resulted
+in temporally coherent synthetic DCE-MRI sequences and indicated the generative model’s capability of learning
+complex contrast enhancement patterns.
+Conclusion:
+Virtual contrast injection can result in accurate synthetic DCE-MRI images, potentially enhancing
+breast cancer diagnosis and treatment protocols. We demonstrate that detecting, localizing, and segmenting tumors
+using synthetic DCE-MRI is feasible and promising, particularly considering patients where contrast agent injection
+is risky or contraindicated. Jointly generating multiple subsequent DCE-MRI sequences can increase image quality
+and unlock clinical applications assessing tumor characteristics related to its response to contrast media injection as a
+pillar for personalized treatment planning.
+Keywords: Contrast Agent, Breast Cancer, DCE-MRI, Generative Models, Synthetic Data.
+*Corresponding author: Richard Osuala, Richard.Osuala@ub.edu
+**These authors contributed equally to this work.
+1
+arXiv:2409.18872v1  [eess.IV]  27 Sep 2024
+1 Introduction
+Deep learning progress in breast cancer imaging
+Breast cancer was the most common cancer
+diagnosis worldwide in 2020, taking people of all ages and genders into account. The staggering
+number of 2.26 million new cases and 684,996 reported deaths underline the significant global
+burden of breast cancer.1 In breast cancer imaging and medical imaging at large, deep learning has
+been gaining popularity due to its promising capabilities of sifting through image data to uncover
+hidden associations. This capacity allows trained deep learning models to recognize subtle patterns
+in unseen data, which enables solving a plethora of clinical tasks with high potential to improve
+patient care. With the emergence of deep learning, vast progress has been observed, e.g., in the
+promising development of automatic methods for the screening, diagnosis, treatment, and moni-
+toring of cancer based on dynamic contrast enhanced magnetic resonance imaging (DCE-MRI).
+Such methods include the automated tumor detection, localization, segmentation, and characteri-
+zation for preoperative planning, patient survival assessment, quantification of recurrence risk, and
+estimation of treatment response.2–7
+Usage and benefit of contrast agents
+Through the alteration of magnetic properties of tissue,
+intravenously administered contrast agents (CA), which are commonly based on gadolinium (Gd),
+manifest hyper-intense in DCE-MRI. Thus, they allow the visualization of blood flow and changes
+in permeability. Multiple DCE-MRI volumes are consecutively acquired (before, during, and after
+CA administration) to enable the time-dependent evaluation of tissue characteristics and assess-
+ment of potential abnormalities. The time-signal intensity curves of such dynamic contrast se-
+quences reflect signal intensity changes induced by the uptake and wash-out of CA over time.8–10
+DCE-MRI contrast uptake serves as an important biomarker in oncology, enabling cancer detec-
+tion, characterization, subtype determination, differentiation of malignancy, recurrence prediction,
+and treatment response assessment.2,11,12 Notably, kinetic analysis of contrast enhancement in
+breast DCE-MRI plays a crucial role in lesion characterization, with features such as peak enhance-
+ment, time-to-peak, wash-in and wash-out slopes reflecting malignancy risk. Furthermore, DCE-
+MRI reveals temporal patterns of contrast enhancement that are not only correlated with breast
+cancer presence but also offer insights into genetic alterations associated with risk of recurrence,
+response to chemotherapy, and even the underlying molecular subtypes of breast tumors.8–10,12,13
+Disadvantages of contrast agents
+Despite their undeniable value in diagnostic imaging, gadolinium-
+based contrast agents (GBCAs) involve concerns regarding their safety profile.
+For instance,
+GBCA administration has been linked to an increased risk of nephrogenic systemic fibrosis (NSF).14
+A further concern is given by the deposition of residual gadolinium and its potential bioaccu-
+mulation within the body with unknown long-term clinical significance.14–18 Following a 2016
+European Commission request for a review of GBCAs, the European Medicines Agency (EMA)
+recommended restrictions on specific intravenous linear agents to mitigate potential risks associ-
+ated with gadolinium deposition.19 Apart from that, safety concerns extend beyond deposition and
+NSF, as they also comprise well-known acute effects, such as physiologic and allergic-like reac-
+tions, as well as Symptoms Associated with Gadolinium Exposure (SAGE) for which the causal
+relationship to GBCA is still unknown.20 Furthermore, the administration process involves var-
+ious drawbacks, including lengthy protocols and scan times, significant financial costs, and the
+requirement for intravenous cannulation and injection procedures. The reliance of DCE-MRI on
+2
+Fig 1: Overview of pre- to post-contrast DCE-MRI synthesis using deep generative models,
+thereby localizing the contrast-enhanced tumor. Extending single sequence to multi-sequence
+DCE-MRI image generation further allows the characterization of tumors based on their temporal
+patterns of contrast agent uptake. The resulting synthetic images can be added as training data for
+downstream tasks (e.g., tumor segmentation), but, as shown, they can also be utilized to compute
+subtraction images commonly used in clinical settings for the diagnosis and treatment of breast
+cancer.
+multiple temporal acquisitions further exacerbates the increased costs and extended examination
+times for patients. Additionally, susceptibility to motion artifacts necessitates meticulous patient
+cooperation (e.g., breath-holding) and can be a source of discomfort. Collectively, the aforemen-
+tioned issues contribute to an undue burden on patients, encompassing both inconvenience and
+potential risks to well-being.15,18 Additionally, GBCA administration has been causing the emer-
+gence of Gadolinium as a contaminant polluting aquatic ecosystems and environments21,22 includ-
+ing drinking water supplies, where its respective degradation products can further increase the risk
+of adverse health effects.23 As a consequence, GBCA administration is contraindicated in multiple
+scenarios, which include patient populations with adverse reactions, pregnancy, kidney malfunc-
+tions, missing consent, or high-risk breast cancer screening populations where GCBA exposure
+extends recommended thresholds in accumulated dosage or frequency.24–26
+Contribution
+The aforementioned issues emphasize the necessity of alternatives that can be
+safely issued while also simulating GBCA administration in a way that still yields some of its ben-
+efits. To this end, we propose the synthetic generation of DCE-MRI using deep generative models,
+which constitutes a faster, motion artifact-free, and non-invasive alternative with improved cost-
+effectiveness that also avoids burdening patient health and well-being. Extending over Osuala et
+al. (2024),25 we provide a principled definition of trustworthy synthetic data and introduce the si-
+multaneous generation of images from multiple DCE-MRI timepoints. We further include a quan-
+titative and qualitative evaluation for jointly generated several DCE-MRI timepoints. Additionally,
+the temporal contrast enhancement is analyzed at the lesion level including a quantification of con-
+trast intensity patterns per patient case and accumulated over the entire dataset. Overall, our work
+presents the following contributions and novelties to advance the field of synthetic DCE-MRI for
+3
+breast cancer applications:
+• Pre-contrast to DCE-MRI synthesis: We implement and validate a conditional generative ad-
+versarial image synthesis model capable of translating pre-contrast to DCE breast MRI axial
+slices, which includes lesion detection, localization, and realistic contrast manifestation.
+• Generative model selection framework: We provide a principled definition of trustworthy
+synthetic data upon which we derive the Scaled Aggregate Measure (SAMe) and validate it
+by finding the optimal synthetic data generator. SAMe combines perceptual and pixel-level
+synthetic data evaluation, enabling comparisons across generative models and the selection
+of optimal training checkpoints.
+• Clinical utility validation of synthetic DCE-MRI volumes for tumor segmentation: We demon-
+strate the potential of our synthetic data by incorporating it into breast tumor segmentation
+pipelines. This approach enhances robustness across data domains by providing a wider
+range of training data while showing the coherence of our synthetic axial slices when stacked
+as 3D MRI volumes.
+• Joint synthesis of multiple DCE-MRI timepoints: We introduce and empirically validate the
+joint generation of images from multiple DCE-MRI timepoints using GANs. Further, in-
+tensity distributions are extracted from the region-of-interest to model and assess contrast
+enhancement patterns of real and synthetic data on individual and dataset level.
+2 Related Work
+Generative models such as generative adversarial networks (GANs)27 and denoising probabilistic
+diffusion models (DDPMs)28–30 and Latent Diffusion Models (LDMs)31 have been widely applied
+to medical imaging in general and breast imaging in particular.4,32–34 For example, Khader et al.
+(2023)35 use unconditional DDPMs to generate non-fat saturated T1-weighted breast DCE-MRI
+sequences. A set of models have been proposed to condition the generation process on input
+images36–42 unlocking image-to-image translation and domain-adaptation applications in medical
+imaging.43–45 Konz et al. (2024),46 for instance, conditioned LDMs on anatomical segmenta-
+tion masks to generate pre-contrast breast MRI based on 100 patient cases from the Duke-Breast-
+Cancer-MRI Dataset.47
+Furthermore, a few first studies started to condition generative models on pre-contrast images
+to generate their post-contrast counterparts.24,26,48–50 For instance, Kim et al. (2022)51 designed
+a tumor-attentive segmentation-guided GAN that synthesizes a contrast-enhanced T1 breast MRI
+image from a pre-contrast image, while being guided by the predictions of a surrogate segmentation
+network. However, with the objective of improving segmentation using GAN-generated data, it
+can become counterproductive to limit the GAN contrast translation to the tumor segmentation
+predicted by the segmentation model. Similarly, but based on a chained tumor detection model
+instead of a segmentation model, Zhao et al. (2020)52 introduced Tripartite-GAN to generate
+contrast-enhanced from non contrast-enhanced liver MRI. As high-quality annotations such as
+segmentation masks or region-of-interest bounding boxes are costly to annotate and, therefore,
+likely a scarce resource,4 it is desirable to accomplish the task of pre- to post-contrast synthesis
+without relying on such annotations. Wang et al. (2021)53 introduced a two-stage GAN that, in its
+first stage segments the contrast enhancement of the T1-weighted image based on an adversarial
+loss. Next, in its second stage, it is trained to generate post-contrast DCE images relying on
+4
+the segmentation network from the first stage using an L1-loss, an adversarial loss, and an edge
+detector based L2 loss. Xue et al. (2022)49 presented a pre- to post-contrast and post- to pre-
+contrast GAN for brain MRI images. Their bi-directional GAN encodes contrast and image in
+separate latent representations with the contrast representation producing a contrast enhancement
+map as output, which can then be subtracted from the synthetic post-contrast image to create the
+corresponding pre-contrast image.
+M¨uller-Franzes et al. (2023)48 translated T1 and T2 images to contrast-enhanced breast MRI
+images using pix2pixHD54 and conducted an observer study to test the realism of the synthetic
+images. Furthermore, M¨uller-Franzes et al. (2024)55 compare in a more recent work Diffusion
+Models and GANs for synthesizing higher-dose DCE-breast MRI subtraction images from their
+lower-dose counterparts. Han et al. (2023)56 model the translation of Diffusion Weighted Imaging
+(DWI) from breast DCE-MRI volumes as sequence-to-sequence translation task, while Zhang et
+al. (2023)24 designed a GAN to synthesize contrast-enhanced breast MRI from a combination of
+encoded T1-weighted MRI and DWI images.24,48,49,53
+However, recent promising approaches have not been used to compute synthetic subtraction
+images and have not been validated on their potential to improve tumor segmentation using syn-
+thetic data. Furthermore, these previous approaches generated images from a single post-contrast
+sequence rather than generating images from multiple temporal DCE-MRI sequences. The latter
+remains a largely underexplored research problem. To this end, Schreiter et al. (2024)57 tested the
+simultaneous generation of DCE-MRI timepoints with a U-Net architecture using multiple inputs
+(T1-weighted, T2-weighted, and diffusion-weighted MRI with multiple b-values). In Osuala et
+al. (2024),26 the generation of a single, temporally variable DCE-MRI timepoint was shown by
+conditioning a latent diffusion model on the time-passed since respective pre-contrast acquisition.
+However, jointly synthesizing DCE-MRI timepoint can be desirable to ensure coherence across
+the resulting images. While extending over U-Net architectures by adopting a multi-scale condi-
+tional GAN, we further note that some modalities are not readily available in all clinical settings
+(e.g., high-risk population DCE-MRI breast cancer screening without T2-weighted and diffusion-
+weighted MRI), prompting us to input only single T1-weighted MRI images into our model for
+contrast synthesis.
+By addressing the temporal dynamics in DCE-MRI generation, we enable a more nuanced
+radiologic analysis of tumor localization and contrast enhancement patterns required in clinical
+settings. For instance, we show that our approach is promising to achieve higher image quality and
+detection sensitivity. At the same time, it also enables the assessment of contrast kinetics, which
+comprises important clinical biomarkers for cancer characterization such as contrast wash-in and
+wash-out slopes, peak enhancement, and perfusion and permeability parameters.2,8–11
+3 Materials and Methods
+3.1 Dataset
+The Duke-Breast-Cancer-MRI Dataset,47 a single-institutional open-access dataset available on
+The Cancer Imaging Archive,58 is used in this study. The dataset was acquired at the Duke Hospital
+in the United States between 1st January 2000 and 23rd March 2014. The dataset spans 922 biopsy-
+confirmed patient cases with invasive breast cancer. It contains information about their histology
+reports, demographics, treatment records, recurrence and follow-up information, ultrasound and
+mammography screening information, alongside a set of pre-operative MRI images. Each case
+5
+involves one fat-saturated T1-weighted sequence (pre-contrast) and up to 4 corresponding fat-
+saturated T1-weighted DCE sequences (post-contrast). Between each DCE acquisition, a median
+of 131 seconds passed with scans acquired using a field strength of either 1.5 T or 3 T MRI
+machine. Out of the 922 patients, 828 were administered either Magnevist®or MultiHance®as
+CA with a contrast bolus volume ranging from 6mL to 20 mL. The axial MRI scans come in
+dimensions of either 3202, 4482 or 5122 in the coronal and sagittal planes, while consisting of a
+varying number of slices in the axial plane. After transforming the respective DICOM files into
+3D NIfTI volumes, their voxel values are min-max normalized per volume and scaled to values
+in the range [0, 255]. Next, we extract slices in axial dimension as 2D PNG files, thereby slightly
+resizing them to maintain an aspect ratio of (1,1,1).
+We further source 3D tumor segmentation masks for 254 of our cases from Caballo et al
+(2023).2 Caballo et al (2023) segmented these masks automatically using a fuzzy means algorithm
+in MATLAB. The masks were then refined by an experienced medical physicist and validated by
+a radiologist. We further manually verified these 254 cases, validating that the masks correctly
+correspond to the tumor volumes in the first phase of the DCE-MRI acquisition (timepoint 1) and,
+where necessary, adjusted the orientation.
+For the single-sequence pre- to post-contrast synthesis model, we used 668 cases without seg-
+mentation masks, out of the total of 922 cases of the dataset, as training data, while the remaining
+254 cases with masks are randomly split into validation (224 cases) and test (30 cases) sets. All
+axial slices, i.e., tumor containing and non-tumor containing slices, were extracted from 3D fat-
+saturated T1-weighted (DCE-)MRI NIfTI volumes. These slices are then used as train, validation,
+and test data to enable the model to translate any 2D slice from the 3D volumes. For the seg-
+mentation model, the same test set is used, while for training and validation, 33 multi-focal cases
+are removed from the cases with masks before applying a 5-fold cross-validation, splitting the re-
+maining 191 cases into training (80%) and validation (20%) subsets. For the multi-sequence pre to
+post-contrast synthesis model, we apply a new random split of the dataset in order to have a higher
+number of training cases, resulting in 772 train, 50 val, and 100 test cases. In this multi-sequence
+scenario, all tumor-containing axial slices were extracted and used alongside an additional 10% of
+axial slices adjacent to the tumor (i.e., 5% before the first and 5% after the last tumor-containing
+slice in axial dimension). Tumor containing slices are identified based on the bounding box anno-
+tations of the Duke Dataset. Pre- and post-contrast slices are extracted as corresponding pairs.
+3.2 Image Synthesis
+3.2.1 Generative Adversarial Networks
+GANs27 are a family of deep generative models composed of multi-hidden layer neural networks
+to implicitly learn a real data distribution from a set of real data samples to then, ultimately, sample
+unobserved new data points from that distribution. GANs are based on a two-player min-max game
+of a generator and a discriminator network. The generator (G) strives to create samples (ˆx) from
+a noise distribution (pz) that the discriminator (D) cannot distinguish from samples (x) stemming
+from the real image distribution (pdata), resulting in the value function:
+min
+G max
+D V (D, G) = min
+G max
+D [Ex∼pdata[logD(x)] + Ez∼pz[log(1 −D(G(z)))]].
+(1)
+6
+Goodfellow et al. (2014)27 define the discriminator D as a binary classifier, detecting whether a
+sample x is either real or generated. The discriminator is trained via binary-cross entropy with the
+objective of minimizing the adversarial loss function Ladv, which the generator, on the other hand,
+tries to maximise:
+Ladv = −Ex∼pdata[logD(x)] + Ez∼pz[log(1 −D(G(z)))].
+(2)
+3.2.2 Pre- to Post-Contrast DCE-MRI Synthesis
+Fig 2:
+Overview of training workflow of our pre- to post-contrast translating GAN based on
+Pix2PixHD.54 Three reconstruction losses (L1) and two least squares adversarial losses (LSGAN)59
+from two discriminators (D1 & D2) and one pre-trained VGG60 model are backpropagated into the
+generator, where lambda (λ) represents the weight of each of the different losses. Processing the
+images at two different scales inside the generator architecture balances local detail and global
+consistency,54 which is further enforced by the two different image input scales in D1 (full size)
+and D2 (downsampled). The segmentation method is based on 3D U-Nets61 from the nnU-Net62
+framework. The iteratively translated synthetic post-contrast axial slices are stacked to create 3D
+breast MRI volumes. These synthetic volumes correspond to the tumor segmentation masks, which
+were initially acquired based on the real post-contrast fat-saturated sequence.
+In the context of image-to-image (I2I) translation, instead of generating data from a noise dis-
+tribution, GANs27 receive an input sample from a source distribution (x) to generate a correspond-
+ing output sample from a target distribution (ˆy). In this research, we implement a Pix2PixHD54
+GAN for translating pre-contrast to post-contrast images. Pix2PixHD was chosen for its proven
+effectiveness in producing high-quality cancer imaging data,4 along with its network architecture
+7
+and methodological approach specifically tailored for paired image-to-image translation, fitting
+the pre-to-post-contrast transformation scenario. As illustrated in Figure 2, the GAN architec-
+ture comprises a generator network that processes images at two different scales—one to ensure
+global consistency and the other to generate fine details. Additionally, the model incorporates two
+identical discriminator networks, each operating at different image scales based on downsampled
+versions of the input images. The training of the model involves a weighted combination (λ) of
+least squares adversarial losses59 (λadv = 1), discriminator feature matching losses (λfm = 10)
+calculated as the summed L1-loss between the real and synthetic image features extracted by each
+of the two discriminators, and a VGG-based60 perceptual loss (λper = 10):
+LGAN = λadv · (Ladv(D1) + Ladv(D2)) + λfm · (Lfm(D1) + Lfm(D2)) + λper · Lper.
+(3)
+Input images are transformed into the range [−1, 1] and have a probability of 50% of being rotated
+by 90 degrees during training. The model is trained for 200 epochs using an Adam optimizer
+(β = 0.5) and a learning rate of 2e-4 that decays linearly to zero from epoch 100 to 200. The
+images in the dataset are resized to pixel dimensions of 512 × 512.
+In the case of (i) pre-contrast to phase 1 DCE-MRI image synthesis, the grayscale post-contrast
+(phase 1) image is duplicated three times and stacked into 3 channels. This model was trained on
+a single NVIDIA GeForce RTX 3090 GPU with 24GB RAM using a batch size of 1.
+For the case of (ii) pre-contrast to multi-DCE phase synthesis, the respective images of DCE
+phase 1, 2, and 3 are concatenated resulting in an output pixel dimension of 512 × 512 × 3. In
+this latter case, and despite outputting a single image, the pix2pixHD learns to synthesize the first
+three DCE-MRI acquisitions jointly. We extract the output of each of the three channel dimensions
+from these output images and store them separately as 512 × 512 × 1 image per DCE phase. We
+specifically selected the first three DCE-MRI phases, as additional acquisitions, such as DCE phase
+4 and phase 5, are not available for a considerable fraction of cases in the dataset. This model was
+trained on a single Nvidia RTX A6000 GPU with 48GB RAM and a batch size of 8 using the
+PyTorch library63 in a Python 3.11 environment.
+3.3 Synthetic Data Evaluation
+3.3.1 Defining Trustworthy Synthetic Data
+Our review of the medical image synthesis literature4,24,34,48,49,51–53 described in Section 2 reveals
+a lack of agreement on the appropriate metrics for assessing synthetic imaging data. Different
+metrics provide particular strengths such as correlation with human visual perception or usefulness
+for clinical application. In order to prioritize and select specific metrics, we note the need for a
+principled definition of what desirable trustworthy synthetic data should encompass. To this end,
+inspired by the SynTRUST framework,4 while also building upon insights from previous synthetic
+data evaluation studies and guidance provided in the literature,4,25,33,64–68 we provide a general
+definition of trustworthy synthetic data. As depicted in Fig. 3, we define trustworthy synthetic data
+as multi-dimensional framework comprising synthetic data (a) fidelity, (b) diversity, (c) condition
+adherence, (d) utility, (e) privacy, and (f) fairness.
+Fidelity (a) refers to the quality, realism, and degree to which the generated images accurately
+and convincingly replicate the characteristics of real-world images. Beyond visual similarity, fi-
+delity also requires preserving essential features, shapes, textures, and statistical properties of the
+8
+Fig 3: Depiction of the generally applicable dimensions of trustworthy synthetic data alongside
+respective examples (in blue font) for their adoption in deep generative models for medical image
+synthesis. The present study evaluates fidelity, diversity, condition adherence, and utility. Pri-
+vacy and fairness are included herein for the comprehensiveness of the dimensions encompassing
+trustworthy synthetic data.
+original data. Diversity (b) represents the objective of generating a wide range of synthetic im-
+ages, ideally capturing the full spectrum of variability present in real-world images. This includes
+variations in features such as intensities, texture, structure, and patterns, as well as domain shifts
+within the data such as differences in pathological and anatomical manifestations, viewpoints, and
+contexts. Condition adherence (c) describes the extent to which the generated images accurately
+reflect specific, predefined conditions or attributes that were set during the synthesis process. This
+ensures that the images conform to particular requirements or constraints, such as provided fea-
+tures, labels, variables, contextual details, or input images. Utility (d) represents the practical value
+and effectiveness of synthetic images, commonly tied to achieving one or multiple specific goals
+or applications. This includes how actionable synthetic images are in serving their intended pur-
+poses, such as training machine learning models, validating algorithms, translating data to another
+domain, or augmenting real-world datasets. Utility can be measured indirectly by quantifying the
+contribution and impact of synthetic images in a practical task, e.g., via ablation studies. Privacy
+(e) pertains to the ability of synthetic images to protect sensitive information to ensure confiden-
+tiality while still providing valuable data for analysis or training. On one hand, generated data
+is desired to maintain essential characteristics of the real-world dataset in order to serve specific
+applications, however, without revealing or compromising confidential or identifiable information
+such as for instance a patient’s ailments, identifying visual features or other related personal data.
+Fairness (f) involves ensuring that synthetic images represent diverse and balanced data across
+different groups or conditions, avoiding biases that could lead to undesirable outcomes. Exam-
+ples include generating synthetic images that accurately reflect specific or specifically-balanced
+demographics, conditions, or scenarios without favoring or underrepresenting any particular sub-
+population. Hence, synthetic images are not to create or reinforce biases or inequities, thereby
+promoting equitable, impartially and inclusive performance on downstream applications.
+9
+3.3.2 Synthetic Data Evaluation Metrics for DCE-MRI Synthesis
+As discussed above, it is desirable to provide a multi-faceted analysis of synthetic data while also
+automating the evaluation process to avoid laborious and costly manual human expert observer
+revisions.4,67,68 We assess our synthetic DCE-MRI using multiple metrics comparing them against
+their real counterparts hence measuring (a) fidelity, (b) diversity, and (c) condition adherence.
+To this end, we provide comparisons of real-synthetic image pairs and of real and synthetic image
+distributions. The latter is evaluated using the Fr´echet Inception Distance (FID),69 which computes
+the distance between two sets of features each extracted from one imaging datasets. These features
+are latent representations generated by passing each image in the dataset through a pretrained deep
+learning model, e.g. an Inception v370 pretrained on natural images from ImageNet71 (FIDImg)
+or pretrained on radiology images from RadImageNet72 (FIDRad). Once the latent features are
+extracted from both synthetic and real datasets, they are each fitted to a multi-variate Gaussian
+X=real and Y =synthetic having means µX and µY and covariance matrices ΣX and ΣY in order
+to compute the Fr´echet distance as FD(X, Y ) = ∥µX −µY ∥2
+2 + tr(ΣX + ΣY −2(ΣXΣY )
+1
+2).
+To evaluate corresponding real-synthetic DCE-MRI image pairs, we use a comprehensive set of
+metrics including the mean squared error (MSE), mean absolute error (MAE), peak signal-to-
+noise ratio (PSNR), multi-scale (MS) structural similarity index measure (SSIM),73 as well as
+the Learned Perceptual Image Patch Similarity (LPIPS).74 Given the presence of corresponding
+reference images in the pre- to post-contrast translation of axial MRI slices, we average metrics
+across all MRI slice image pairs, reporting each metric alongside its standard deviation across
+image pairs. Lastly, we additionally assess the generated DCE-MRI images based on their (d)
+utility by measuring their impact when included as additional breast tumor segmentation model
+training data, as described in Section 3.4.
+3.3.3 Scaled Aggregate Measure (SAMe)
+As discussed in Section 2 and Section 3.3.1, there is no consensus on methods and metrics for
+evaluating of synthetic data in general, and in image-to-image synthesis tasks specifically. Various
+metrics are employed and reported, but there is ambiguity about which metric should take prece-
+dence, particularly when different metrics yield conflicting results. This issue also complicates
+determining the optimal stopping point for training a generative model. Overall, this evident lack
+of a consistent evaluation metric underscores the necessity for our proposed unified measure of
+synthetic data quality. Given that each metric captures different facets of truth, we suggest that
+the most effective way to evaluate synthetic data is through an ensemble of metrics. Therefore,
+we propose a Scaled Aggregate Measure (SAMe) that scales and combines several metrics. These
+metrics include the SSIM, MSE, MAE, FIDImg,69,71 and FIDRad.33,72 In this work, for simplic-
+ity, we define SAMe based on the aforementioned five metrics, but note that the integration of
+further metrics, such as LPIPS or PSNR, as well as additionally distinguishing between image-
+level and lesion-level metrics, can further improve the expressiveness and comprehensiveness of
+SAMe. The metrics in SAMe are scaled to a range [0, 1] using per-metric min-max normalisation
+to achieve comparability and allow their combination. After scaling, smaller values correspond
+to increased performance for SAMe and each of its internal metrics, including SSIM which was
+reversed after scaling (i.e., the smaller, the better). Next, we compute SAMe as a non-weighted
+average between these metrics. The choice of the metrics in SAMe is flexible as we motivate re-
+searchers to adopt SAMe based on their particular image synthesis problem at hand. However, we
+10
+draw attention that our choice of metrics comprises a complementary selection balancing percep-
+tual metrics that capture global semantics of imaging features (FIDs), metrics of perceived quality
+of images (SSIM and FIDs) and metrics focusing on fine-grained pixel-level comparisons between
+generated and target images (MAE and MSE) to assess the accurateness of replication between
+an image pair. While FID is associated to a high sensitivity to small changes and high correspon-
+dence to human inspection,68 the pixel level metrics in SAMe measure objective (MSE, MAE) and
+perceived image fidelity based on a combination of luminance, contrast, and structural informa-
+tion (SSIM).75 We further combine analytical metrics (SSIM, MAE, MSE) with metrics derived
+from latent space feature representations of neural networks (FIDs), with the latter being further
+divided into domain-agnostic (FIDImg) and radiology domain-specific (FIDRad) features to capture
+different dimensions of relevant information within the synthetic data. To this end, we compress
+complementary and mutually exclusive information present in the selected image quality metrics
+into a single meaningful measure and show its application for the problem of generative model
+training stopping criterion definition and training checkpoint selection.
+3.4 Tumor Segmentation Downstream Task
+The segmentation of tumors is an important clinical task used, among others, to analyze and quan-
+tify the tumor and its volume. An accurate tumor delineation can be used for surgery and radiation
+treatment planning as well as monitoring evaluating tumor growth or decline e.g. before, during
+and after neoadjuvant chemotherapy.
+To evaluate synthetic data for automated tumor segmentation, we adopt a single 3D U-Net61
+model using the nnU-Net framework62 (i.e., nnunetv2 3d full res). nnU-Net is a versatile deep
+learning framework for medical image segmentation, which self-configures its architecture based
+on the input data. We adopt its 3D U-Net architecture to capture volumetric tumor context while
+also retaining fine details via its skip connections between encoding and decoding layers. Using
+only the 3D convolutional architecture variant of the nnU-Net framework further enables testing
+whether individually translated synthetic 2D breast MRI slices can be reassembled to useful 3D
+breast MRI volumes. We follow the vanilla nnU-Net training configuration, however, without
+applying any of nnU-Net’s post-processing techniques such as all-but-largest-component suppres-
+sion,62 which are not specifically targeted to our breast tumor segmentation task. We train one 3D
+U-Net tumor volume segmentation model for 500 epochs for each fold in a 5-fold cross-validation
+(CV). Test set performance is measured based on the averaged predictions of the ensemble of the
+five models, each of which was trained during one of the CV folds. The Dice coefficient is used
+as training loss and test set evaluation metric to measure segmentation performance. The Dice
+coefficient quantifies the overlap between the predicted tumor segmentation (A) and the ground
+truth (B) in a range [0, 1], with 0 representing no overlap and 1 indicating complete overlap.
+As shown in Fig. 2, the 2D synthetic slices are stacked to 3D synthetic volumes before being
+integrated as additional training data into our tumor segmentation pipeline. The same segmentation
+masks, which had initially been annotated in (a) the first real post-contrast DCE-MRI sequence,
+are used as labels in the segmentation model for (a) real post-contrast, (b) real pre-contrast, and
+(c) synthetic post-contrast MRI volumes, as depicted in Figure 5. Given that in the ground truth
+masks only the primary lesion was annotated, we remove multifocal cases (33 cases) from the
+segmentation dataset. We further crop the volumes to include only a single breast per image rather
+11
+than both breast to avoid any bilateral cases and apply Bias field correction.76 The segmentation
+models were trained on a single NVIDIA GeForce RTX 3090 GPU with 24GB RAM.
+4 Experiments and Results
+4.1 Selection of Generative Model
+(a) We inspect overall synthetic data fidelity, and diversity us-
+ing the Scaled Aggregate Measure (SAMe) across generative
+model training epochs, thereby enabling an informed selec-
+tion of the best training checkpoint (i.e., epoch 30, achiev-
+ing the lowest SAMe).
+Our SAMe metrics include syn-
+thetic image distribution distances (FIDImg and FIDRad),
+pixel space objective (MSE and MAE) and perception-based
+(SSIM) quality metrics. Metrics are scaled in range [0,1],
+where lower values indicated better performance.
+(b) An illustration of synthetic breast DCE-
+MRI images generated during GAN train-
+ing after epochs 30 and 90, exhibiting dis-
+cernible variances in tumor representation.
+From left to right, (i) the real pre-contrast
+image is shown (i.e., the GAN input image),
+(ii) the respective real DCE phase 1 image,
+the synthetic real DCE phase 1 counterpart
+after (iii) 30 and (iv) 90 training epochs.
+Fig 4: Quantitative (a) and qualitative (b) illustrations of SAMe applied to DCE-MRI synthesis
+As the first experiment, we apply our proposed SAMe to our single sequence DCE-MRI gen-
+erative model, which translates a T1-weighted pre-contrast image to its first sequence (phase 1)
+DCE-MRI counterpart. To this end, we demonstrate SAMe’s effectiveness as a generative model
+weight selection criterion. As shown in Fig. 4a, we compute SAMe and its internal metrics
+(FIDImg, FIDRad, MAE, MSE, SSIM) during generative model training on each 10th epoch up
+until epoch 170. The FID metrics are computed for 3000 and MSE, MAE and SSIM metrics for
+5000 synthetic-real post-contrast axial MRI slice pairs from the validation set. In Fig. 4a, epochs
+with metric values close to 0 indicate good generative model performance in comparison to values
+close to 1. For completeness, we also provide the original values of the metrics before SAMe scal-
+ing in Table 1. SAMe, as the aggregate across complementary metrics, is depicted using bar charts
+(in blue) in Fig. 4a. Hence, the shortest bar represents the generative model checkpoint which
+performs the best across metrics and epochs. We note that the generative model achieves good per-
+formance already early in training with a SAMe score of 0.087 in epoch 10. The only checkpoint
+12
+achieving a better results is the one in epoch 30, resulting in a SAMe of 0.077. Further training
+follows a trend of gradually reduced performance in SAMe (e.g., 0.682 in epoch 100) likely indi-
+cating an increasing overfitting on the training dataset. In the last row of Table 1 real post-contrast
+images are compared to their real pre-contrast counterparts. Compared to this baseline, the syn-
+thetic images from the different epochs (e.g., ep10, ep30, ep50) consistently result in overall better
+metrics (e.g., FIDImg, SSIM, MSE, albeit with the exception of MAE) when compared to real
+post-contrast images from the validation set.
+A noteworthy observation is that, both across and within training epochs, the various metrics
+yield inconsistent conclusions regarding the optimal synthesis model, highlighting the need for a
+unified measure such as SAMe. Yet, all metrics exhibit a similar overall trend, with lower (better)
+values until epoch 60, after which they increase remarkably, suggesting overfitting and diminishing
+returns from continued training. based on SAMe, epoch 30 emerges as the optimal source for a
+model checkpoint for generating synthetic post-contrast samples, which are subsequently used for
+the tumor segmentation downstream task and image synthesis test set evaluation.
+Table 1: Example of quantitative image quality results, based on SAMe and reported with standard
+deviation on the validation set where applicable, for different GAN training epochs (ep). FIDImg,
+FIDRad are based on 3000 and MSE, MAE, SSIM are based on 5000 synthetic-real DCE-MRI
+axial MRI image slice pairs. As upper bound, the Real DCE vs. Real Pre baseline compares
+corresponding real pre-contrast and real DCE pairs.
+Metric
+Comparison
+Dataset
+FIDImg ↓
+FIDRad ↓
+SSIM ↑
+MAE ↓
+MSE ↓
+SAMe ↓
+Real DCE vs. Synep10 DCE
+Val
+15.047
+0.108
+0.701 ± 0.081
+93.895 ± 41.748
+37.803 ± 9.960
+0.087
+Real DCE vs. Synep30 DCE
+Val
+17.308
+0.081
+0.699 ± 0.081
+88.733 ± 39.426
+38.334 ± 9.582
+0.077
+Real DCE vs. Synep50 DCE
+Val
+16.412
+0.089
+0.696 ± 0.090
+101.696 ± 44.672
+38.045 ± 10.985
+0.188
+Real DCE vs. Synep100 DCE
+Val
+18.778
+0.219
+0.669 ± 0.116
+113.144 ± 59.360
+42.320 ± 17.792
+0.682
+Real DCE vs. Real Pre
+Val
+34.062
+0.120
+0.660 ± 0.090
+66.146 ± 31.758
+42.933 ± 11.528
+4.2 Synthesis of First DCE-MRI Sequence
+To systematically assess the quality of image synthesis, we compare metrics between synthetic
+and real post-contrast MRI slices in the test set. After training the generative model, we generate
+T1-weighted DCE-MRI phase 1 images - often corresponding to peak enhancement in the studied
+dataset47 - for both the image synthesis test set (30 cases) and validation set (224 cases). Figures 5
+present qualitative results, illustrating the model’s translation of entire axial breast MRI slices to the
+post-contrast domain, along with corresponding subtraction images for six different patient cases.
+It is observed that some false-positive contrast regions are hallucinated (e.g., see the 4th row),
+and some tumors are only partially contrast-enhanced (e.g., see the 5th row of Figure 5). In the
+randomly chosen patient case 045, depicted in the 6th row of Figure 5, the real post-contrast image
+displays hypointense areas within the tumor, suggesting the presence of a necrotic core. As this
+feature is not clearly visible in the pre-contrast domain, it is not reproduced in the synthetic post-
+contrast image, although the synthetic subtraction image accurately identifies the tumor’s location.
+Overall, the qualitative outcomes of our model underscore its capability to proficiently translate
+pre-contrast to DCE-MRI, demonstrating strong potential in synthetic contrast localization and
+enhancement.
+13
+Table 2: Multi-metric synthetic image quality evaluation on the test set containing 5186 images.
+Synthetic images were generated after 30 GAN training epochs with SAMe score as epoch selec-
+tion criterion. FIDImg and FIDRad results are based on 2000 synthetic-real phase 1 DCE-MRI axial
+slice pairs, while 5000 pairs where used for the reminder of the metrics. Real DCE vs. Real Pre
+describes the upper bound baseline that compares paired real pre-contrast and real phase 1 DCE
+slices. Subt refers to subtraction images, where pre-contrast images are subtracted from either
+their real (Real Subt) or synthetic (Syn Subt) DCE counterparts. Splitted Test describes a random
+by-patient split of the test set (i.e. without corresponding image pairs) that allows to capture the
+variance across patient cases in distribution comparsion metrics (i.e., FID).
+Metric
+Comparison
+Dataset
+FIDImg ↓
+FIDRad
+LPIPS ↓
+PSNR ↑
+SSIM ↑
+MS-SSIM ↑
+MAE ↓
+MSE ↓
+Real DCE vs. Synep30 DCE
+Test
+28.717
+0.0385
+0.064±0.04
+32.91±1.35
+0.726±0.089
+0.798±0.08
+85.623±38.297
+34.882±10.520
+Real DCE vs. Real Pre
+Test
+59.644
+0.1556
+0.084±0.05
+32.42±1.68
+0.705±0.104
+0.780±0.07
+66.121±34.473
+40.124±16.183
+Real Subt vs. Synep30 Subt
+Test
+46.931
+0.2864
+0.062±0.03
+34.74±1.73
+0.692±0.097
+0.717±0.09
+44.896±23.403
+23.425±8.602
+Real DCE vs. Synep30 DCE
+Splitted Test
+43.865
+0.7012
+Real DCE vs. Real DCE
+Splitted Test
+49.808
+0.2060
+Table 2 presents a comparison of the 2D full axial slice image dataset, evaluating the simi-
+larity between the synthetic and real test case images. In this analysis, the synthetic DCE-MRI
+images demonstrate a significantly closer semantic and perceptual resemblance (as measured by
+FID scores, LPIPS, SSIM, MS-SSIM) to the real DCE-MRI phase 1 images compared to their
+real pre-contrast counterparts. In the comparison of splitted test datasets, it is important to note
+that the compared sets do not correspond to the same patient cases, enabling the assessment of
+variability across different patient test cases. Interestingly, based on the domain-agnostic FIDImg,
+the variability between real DCE-MRI cases is found to be higher than that between real and syn-
+thetic DCE-MRI cases. Conversely, the FIDRad indicates less variability between real DCE-MRI
+datasets than between real and synthetic ones for the same dataset split. Specifically, according to
+the radiology domain-specific FIDRad, the variability across patient cases (splitted test) is generally
+higher than the variability between the pre-, post-, and synthetic post-contrast sequences (test) of
+corresponding cases. For real vs. synthetic DCE-MRI, this also holds for FIDImg.
+Additionally, we assess subtraction images created by subtracting a pre-contrast image from
+either its real or synthetic DCE-MRI counterpart. Compared to the real vs. synthetic DCE-MRI
+images, the corresponding real (Real Subt) vs. synthetic (Synep30 Subt) subtraction images show
+improved metrics in pretrained neural network-based image-level comparisons (i.e., LPIPS) and
+reconstruction-based metrics (i.e., MSE, MAE). However, at least this latter improvement can be
+attributed to the clipping of pixel values to 0 when they become negative after subtraction. In
+terms of structural perceptual metrics (i.e., SSIM, MS-SSIM) and latent feature distribution-based
+metrics (i.e., FIDRad, FIDImg), the comparison between real and synthetic DCE-MRI images yields
+better quantitative results than the subtraction image comparison.
+4.3 Tumor Segmentation in First DCE-MRI Sequence
+Given the potential variability in data availability between pre- and post-contrast domains across
+different clinical environments, we conduct four types of tumor segmentation experiments. The
+first set of experiments, shown in the 1st block of Table 3 , assumes that ground truth post-contrast
+data is entirely unavailable for segmentation during both training and testing. In this scenario,
+14
+(a) pre-contrast MRI
+(b) real DCE-MRI
+(c) syn DCE-MRI
+(d) real subtraction
+(e) syn subtraction
+(f) ground truth mask
+Fig 5: Synthesis of breast DCE-MRI as shown for six cases.47 Two cases were manually selected
+from the validation set (1st row: Case 228 , 2nd row: Case 886), two manually selected from the
+test set (3rd row: Case 378, 4th row: Case 907), and two randomly selected from the test set (5th
+row: Case 041, 6th row: Case 045). From left to right, we illustrate axial slices of the (a) real
+T1-weighted pre-contrast MRI, (b) the real DCE-MRI sequence 1, (c) the synthetic DCE-MRI
+sequence 1, the subtraction image based on the (d) real and (e) synthetic DCE-MRI subtractions,
+and (f) the ground truth segmentation mask.
+available pre-contrast training cases (baseline 1) are augmented with their synthetic post-contrast
+counterparts. The second set of experiments assumes that pre-contrast data is available for training,
+while the test data consists of post-contrast images. Here, we evaluate tumor segmentation perfor-
+mance under a domain shift, examining the impact of adding synthetic post-contrast cases to the
+pre-contrast baseline 2. The third set in Table 3 considers a scenario where real post-contrast data
+is available and used for both training and testing, assessing whether synthetic data can enhance
+the performance of the post-contrast baseline 3. Finally, the fourth set of experiments investigates
+a situation where segmentation models are trained on real post-contrast data but tested on pre-
+contrast cases. This scenario includes instances where contrast agents are not administered, such
+as in patient sub-populations like pregnant women, patients with kidney issues, those who decline
+contrast media, or those at high risk of allergic reactions to contrast agents.
+In all data augmentation experiments, each training case is supplemented with its correspond-
+ing augmented version (e.g., real and/or synthetic post-contrast volumes). Importantly, the model
+does not receive any indication that an original training data point (e.g., a pre-contrast volume)
+and its augmented counterpart (e.g., a synthetic post-contrast volume) pertain to the same patient.
+The reported Dice coefficients are based on ensemble predictions from five segmentation models
+trained using 5-fold cross-validation,62 which is why standard deviations are not reported.
+Reviewing the results for baseline 1 in Table 3 , we observe that synthetic post-contrast aug-
+15
+Table 3: Tumor volume segmentation results across four scenarios: (1) pre-contrast domain only,
+(2) domain shift with post-contrast testing and no access to real post-contrast data during training,
+(3) combined pre- and post-contrast training with post-contrast testing, and (4) synthetic post-
+contrast data aiding models trained in the post-contrast domain but tested on pre-contrast data (e.g.,
+due to patient pregnancy or allergy). Synthetic data improves performance notably in domain shift
+and pre-contrast test cases. Reported Dice coefficients are from a model ensemble with each model
+trained via one 5-fold cross-validation fold.
+Scenario 1. Pre-contrast training data and pre-contrast test data available
+Dice ↑
+train on:
+test on: Real pre-contrast
+Real pre-contrast (baseline 1)
+0.569
+Real pre-contrast + syn post-contrast (augmentation)
+0.531
+Syn post-contrast
+0.486
+Scenario 2. Domain shift: Pre-contrast training data, but no pre-contrast test data available
+train on:
+test on: Real post-contrast
+Real pre-contrast (baseline 2)
+0.484
+Real pre-contrast + syn post-contrast (augmentation)
+0.663
+Syn post-contrast
+0.687
+Scenario 3. Post-contrast training data and post-contrast test data available
+Dice ↑
+train on:
+test on: Real post-contrast
+Real post-contrast (baseline 3)
+0.790
+Real post-contrast + syn post-contrast (augmentation)
+0.797
+Real post-contrast + real pre-contrast (augmentation)
+0.780
+Real post-contrast + real pre-contrast + syn post-contrast (augmentation)
+0.770
+Syn post-contrast
+0.687
+Scenario 4. Domain shift: Post-contrast training data, but no post-contrast test data available
+train on:
+test on: Real pre-contrast
+Real post-contrast (baseline 4)
+0.164
+Real post-contrast + syn post-contrast (augmentation)
+0.409
+Syn post-contrast
+0.486
+mentations do not enhance segmentation performance within the pre-contrast domain. However,
+in the domain shift context of baseline 2, the inclusion of synthetic DCE-MRI volumes leads to a
+marked improvement in the post-contrast domain. Specifically, augmenting real pre-contrast data
+with synthetic post-contrast images increases the post-contrast Dice coefficient by 0.179 (from
+0.484 to 0.663), while maintaining a similar performance level in the pre-contrast domain (with
+Dice scores of 0.531 compared to 0.569). This finding aligns with the image quality analysis in
+Table 2, which confirms that the GAN-generated images fall within the post-contrast domain dis-
+tribution, highlighting their effectiveness in addressing domain shift scenarios. Baseline 3 demon-
+strates strong tumor segmentation performance in the post-contrast domain, achieving a Dice score
+of 0.790. Although the improvement with synthetic DCE-MRI augmentation is modest, it still en-
+hances performance to 0.797, making it preferable over pre-contrast augmentations, which yield
+a slightly lower score of 0.780. In contrast, baseline 4 shows a more significant Dice score in-
+crease of 0.245 (from 0.164 to 0.409) in the pre-contrast test domain when synthetic post-contrast
+augmentations are used. Despite the synthetic DCE-MRI images being closely aligned with the
+DCE-MRI distribution (as indicated by an FIDRad of 0.0385 between synthetic and real post-
+contrast test data in Table 2), it nonetheless captures relevant pre-contrast signals that enable the
+16
+post-contrast segmentation model to generalize more effectively to pre-contrast test data. Notably,
+training solely on synthetic images, without real post-contrast counterparts, further boosts segmen-
+tation performance in the post-contrast domain by 0.077 (from 0.409 to 0.486).
+4.4 Joint Synthesis of Multiple DCE-MRI Sequences
+Table 4: Quantitative synthetic image quality assessment for joint synthesis of multiple DCE-MRI
+image timepoints. Results include standard deviation where applicable and are based on 100 test
+cases consisting of 4422 image pairs. Best results in bold. Real Post vs. Real Pre indicates the
+lower bound baseline comparison between corresponding real pre-contrast MRI and DCE-MRI
+images.
+512x512 breast MRI slices with tumor
+Metrics
+Set 1
+Set 2
+FIDImg ↓
+FIDRad ↓
+LPIPS ↓
+PSNR ↑
+SSIM ↑
+MS-SSIM ↑
+MSE ↓
+MAE ↓
+Real Pre-Contrast
+Real DCEP1
+39.47
+0.143
+0.201 ± 0.098
+31.88 ± 1.303
+0.712 ± 0.080
+0.785 ± 0.062
+38.98 ± 11.88
+109.55 ± 38.78
+Syn DCEP1
+Real DCEP1
+20.32
+0.097
+0.139 ± 0.071
+32.40 ± 1.153
+0.749 ± 0.059
+0.862 ± 0.042
+32.88 ± 8.331
+77.65 ± 37.50
+Real Pre-Contrast
+Real DCEP2
+36.18
+0.124
+0.182 ± 0.085
+31.92 ± 1.383
+0.718 ± 0.082
+0.811 ± 0.056
+38.80 ± 13.02
+112.61 ± 41.55
+Syn DCEP2
+Real DCEP2
+15.45
+0.062
+0.131 ± 0.065
+32.59 ± 1.121
+0.764 ± 0.059
+0.871 ± 0.041
+31.08 ± 7.686
+83.37 ± 38.74
+Real Pre-Contrast
+Real DCEP3
+33.79
+0.121
+0.175 ± 0.082
+31.95 ± 1.383
+0.721 ± 0.081
+0.821 ± 0.053
+38.59 ± 12.95
+112.67 ± 42.04
+Syn DCEP3
+Real DCEP3
+14.38
+0.079
+0.129 ± 0.066
+32.64 ± 1.122
+0.765 ± 0.060
+0.871 ± 0.043
+30.75 ± 7.495
+80.88 ± 37.31
+Based on the respective pre-contrast T1-weighted image of each patient, we jointly generate
+the images corresponding to the first three DCE-MRI sequences acquisitions using a checkpoint
+after 30 training epochs of our multi-sequence conditional GAN. As shown in Table 4, we then
+using multiple metrics to quantitatively assess each generated DCE-MRI sequence based on its
+similarity to the its respective real DCE-MRI sequence. To facilitate interpreting and evaluating
+the obtained metrics, we compute the metrics also for the similarity of pre-contrast images with
+images from each of the real DCE-MRI sequences. It is observable that across each of the three
+DCE-MRI sequences, the synthetically generated images are substantially closer to the real DCE-
+MRI images compared to the lower bound pre-contrast based baseline. This holds true across
+both image-distribution comparison metrics (FIDImg, FIDRad) and image-level comparison met-
+rics (e.g., LPIPS, SSIM, MSE). With the exception of MAE and FIDRad (DCEP2 to DCEP3),
+an improvement across metrics is observed with temporally later DCE-MRI acquisitions, indi-
+cating enhanced performance at subsequent imaging phases. The achieved FIDImg values (20.32
+in DCEP1) are notably low even when compared to the single DCE-MRI sequence experiments
+(28.71) from section 4.2 indicating that the training and joint generation using multiple DCE-MRI
+sequences is likely to positively affect model performance.
+Fig. 6 provides a respective qualitative comparison of three patient cases across the first three
+DCE-MRI sequences. In these cases, and while noting a high similarity of images across DCE-
+MRI acquisitions, both in the real as well as in the synthetic images a trend of increased lesion
+contrast enhancement towards later DCE-MRI acquisitions is noticeable. To further explore the
+differences between DCE-MRI acquisitions, we compute the mean and standard deviation of the
+pixel intensity within the tumor area, which we locate based on the bounding box information
+provided in the dataset.47 The bounding box allows to capture and assess contrast uptake within the
+lesion but also, as opposed to lesion-level delineation, its closely surrounding tissue adjacent to the
+gross tumor region. Next, we aggregate the mean tumor intensity over all test cases to get a value
+and standard deviation for intensity for each of the three analyzed temporal DCE-MRI sequences.
+17
+Fig 6: Qualitative results of joint multi-sequence DCE-MRI generation shown for 3 test cases with
+real images in each first row and respective synthetic images displayed in each second row. A
+single conditional GAN was trained to translate all test cases from pre-contrast to all three DCE-
+MRI sequences.
+Fig 7: Illustration of temporal contrast enhancement patterns based on mean pixel intensity within
+the tumor bounding box area aggregated over all tumor-containing axial slices of all test cases.
+While gray coloring represents values computed for pre-contrast (T1) and post-contrast (DCE) of
+real test case images, red denotes values extracted from their synthetic DCE-MRI counterparts.
+This process is repeated for pre-contrast and also for each synthetic DCE-MRI sequence, with the
+results being summarized and plotted in Fig. 7.
+Focusing on the differences between real and synthetic post-contrast mean intensity tempo-
+ral patterns, it is noted that the intensities generally increase towards later-stages of DCE-MRI
+acquisition, which is in line with aforedescribed visual assessment of Fig. 6. This trend in the
+real mean pixel intensity patterns is also followed by their synthetic counterparts. While the syn-
+thetic intensities have a slightly lower mean value than the real DCE-MRI ones, both synthetic
+and real intensities have comparable corresponding variances. In both cases, these variances are
+18
+Fig 8: Visualization of temporal contrast enhancement patterns based on mean pixel intensity
+within the tumor bounding box area aggregated over all tumor-containing axial slices for each
+of a randomly selected 33 (out of 100) test cases. Circles denote real images while x denotes
+synthetic counterparts. The mean pixel intensity standard deviation is represented by the marker
+size. The marker color encodes the temporal DCE-MRI sequence, with gray circles indicating the
+pre-contrast MRI sequence for comprehensiveness and comparability.
+larger than the one of the pre-contrast tumor area intensity. This indicates more variety in the
+DCE-MRI domain, which is present in the synthetic DCE-MRI images. A rational for this di-
+versity is given, for instance, by the inter- and intra-tumor heterogeneity often manifesting in a
+mixture of both hyper-intense and hypo-intense areas within the tumor in the DCE-MRI domain.
+Moving from generative model evaluation towards clinical application, where contrast kinetics are
+used as biomarkers for tumor characterization, malignancy estimation, and treatment planning, we
+assess intensity changes per individual tumor area across DCE-MRI sequences. To this end, we
+randomly select 33 test cases and visualize their mean lesion intensity value for synthetic (denoted
+as x markers) and real (denoted as circle markers) for each sequence as well as for the respective
+pre-contrast image (denoted as gray circle marker) in Fig. 8.
+The observations in Fig. 8 corroborate conclusions drawn from Fig. 7 indicating the general
+ability of the model to capture the dynamics of contrast uptake in the tumor lesion area. In the
+more detailed per-case scheme in Figure 8, the majority of the cases (22 out of 33), the syntheti-
+cally generated images feature the right order for the mean pixel intensity values, increasing over
+time. Moreover, the standard deviation value between pixel intensity values in the tumor lesion
+bounding box, depicted by the marker size, can also be seen to be captured overall correctly by the
+generative model. However, while synthetic data generally follows the trend of the real data, an
+off-set between the mean intensity values for the real and the synthetic images can be observed.
+To this end, Fig. 8 demonstrates both, the complexity of the general task at hand, which asserts
+the generative model to detect, localize, highlight accordingly, and temporally adjust the high-
+lighting for each heterogeneous tumor of each patient with variations in manufacturer, scanner,
+tumor molecular subtypes and patient characteristics. Overall, it is further indicated that the gen-
+19
+erative model is able to learn and represent this complexity reasonably well despite the differences
+between cases in contrast enhancement and tumor manifestation.
+5 Discussion and Future Work
+Based on the results described in Section 4, we confirm our initial hypothesis that (post-contrast)
+DCE-MRI imaging data can be effectively generated from pre-contrast MRI inputs. Thus, the
+pre-contrast MRI provides a signal that is learnable via extracting statistical patterns from pa-
+tient cohorts that allow the generative model to detect, localize, and enhance cancerous lesions.
+Our modeling approach can be viewed as unsupervised lesion detection method that enables to
+identify cancerous lesions without the need of respective lesion-level annotations. Our modeling
+paradigm is thus of particular interest for clinical settings considering the need for cost-effective
+deep-learning methods, where annotation conducted by clinical experts commonly represents a
+major cost-driving factor. Towards clinical application it is to be further noted that synthetic data
+can occasionally produce false-positive tumor hallucinations. Despite of that, it can still be a
+valuable tool for localizing and highlighting potential anomalies within the MRI volume, as such
+anomalies can then be flagged for clinical revision and in-depth examination by clinical experts.
+In cases where imaging of both virtual contrast and injected contrast are available, the difference
+it is to be explored whether insights can be derived from the difference between the contrast en-
+hancement in both images. For instance, if the virtual contrast prediction model is trained on only
+cancerous lesions (or e.g., tumors of a specific molecular subtype), then a different tumor man-
+ifestation in the real contrast enhancement can indicate an out-of-distribution case (e.g., benign,
+different molecular subtype). This consideration sheds light on the potential lying in research
+synthesizing multiple possible (contrast-enhanced) lesion manifestations to explore the within-
+distribution diversity and, thus, the uncertainty of a contrast prediction for a specific patient case.
+A contrast prediction marked as being uncertain (e.g. based on a variance threshold) can warrant
+the administration of contrast media in a clinical setting, where the risk-benefit tradeoff of physical
+CA injection is evaluated on a case-by-case basis.
+Apart from treatment applications, future clinical validation studies are also encouraged to
+investigate generative modeling methods as diagnostic tools in DCE-MRI as screening modality in
+high-risk populations (e.g., with change in BRCA1 or BRCA2). Validating CA-free MRI screening
+regimes with synthetic DCE-MRI requires evaluation on additional dataset, where, apart from
+cancerous lesions, a variety of benign findings are present. As compared to the present dataset
+assembled from neoadjuvant treatment cohorts, tumors in the screening regime can differ beeing
+smallerr in size, earlier in stage, while also the potentially younger median age of patients can
+affect manifestations on the imaging data.
+Going beyond unsupervised lesion detection, the prediction of contrast enhancement kinetics
+via multi-sequence DCE-MRI generation unlocks further additional clinical use-cases. As also
+indicated by our work, the progress in the field of computer vision, which rapidly expands the
+capabilities of deep generative models, narrows the gap towards wide-spread clinical application
+of such complex temporal modeling tasks. We note that multi-sequence DCE-MRI synthesis can
+potentially result in higher quality synthetic images than single-sequence synthesis, likely due to
+the generative model having to learn more nuanced patterns in the temporal synthesis task. Consid-
+ering our exploratory results for multi-sequence synthesis of DCE-MRI, such synthetic temporal
+contrast enhancement patterns can be considered a promising alternative for patients where CA
+20
+injection is too risky. In this realm, biomarkers based on contrast kinetics are to be further in-
+vestigated, particularly towards a comparison between real and synthetic biomarkers. This can
+enable future studies to define a benchmark for the research community that assesses the clinical
+meaningfulness of a generative model’s produced synthetic biomarkers. Such a benchmark can fur-
+ther be extended by assessing the usefulness of real and synthetic biomarkers for specific clinical
+downstream tasks such as lesion malignancy prediction or treatment response prognosis. We note
+additional potential for enhancement of our approach by integrating time-since-event variables26
+that condition the generative model to generate DCE-MRI images for specific moments in time e.g.
+based on milliseconds passed since pre-contrast acquisition or CA injection. This methodological
+extension introduces new possibilities of clinical application such as synthetically covering time-
+points of interest in DCE-MRI protocols that could not have been acquired, for instance due to the
+limitation of lengthy acquisition times of MRI scans. Multi-variable conditioning of the generative
+model can further allow counterfactual generation of DCE-MRI sequences, where for instance the
+malignancy level, tumor subtype, patient age, tumor staging, selected treatment, or other variables
+can be varied thereby resulting in insightful comparisons of alternative tumor manifestations.
+Further potential realms of research include the comparison of fine-tuning vs training from
+scratch of the generative model, assessing different GAN and generative model architectures such
+as denoising probabilistic diffusion models.28–30 Using larger-scale datasets will further invite
+for a stratified analysis as per tumor type, CA type, bolus volume, scanner type, field strength,
+and clinical center. A further line of research is to investigate the effect of integrating additional
+2D and 3D imaging data such as diffusion-weighted MRI, T2-weighted MRI, non-fat-saturated
+images as well as subtraction images either as (additional) inputs or as outputs of our generative
+modeling method. Another avenue to explore is to probe whether DCE-MRI synthesis quality can
+be enhanced by iteratively enlarging the proportion of tumor-containing slices during training. It
+is also plausible that adding and correctly weighting a reconstruction, perceptual, or adversarial
+loss for only the tumor area in DCE-MRI synthesis can further increase fidelity, diversity, and
+usefulness of the synthetic data. Both of these approaches can potentially allow models to better
+capture tumor features in general and in particular those that lie in the long-tail of the distribution
+such as, for instance, tumors with particular necrotic cores. Future studies can include these tumor-
+focused modifications additionally in the evaluation methods extending SAMe and its components
+by adding and weighting tumor-area restrict computation of metrics for 2D slices as well as 3D
+volumes.
+Based on tumor segmentation, we show that stacked synthetic DCE-MRI volumes can be useful
+in increasing the robustness of downstream task models. Enhancing segmentation model general-
+izability across imaging domains is particularly advantageous in DCE-MRI, especially for patient
+populations restricted to pre-contrast imaging due to CA administration contraindications such as
+allergic reactions, absence of consent, pregnancy, or compromised renal function. Additionally,
+in some cases, fat-saturated DCE-MRI sequence may closely mimic pre-contrast images due to
+small-sized tumors, low CA doses or rapid washout, emphasizing the necessity for models that
+maintain robust performance across both pre-contrast and post-contrast settings. We guide future
+work to explore pre-training on synthetic DCE-MRI as alternative to data augmentation in down-
+stream model training and further recommend analyzing the impact of concatenated corresponding
+multi-modality image inputs into the segmentation model (e.g., pre-contrast with multiple DCE-
+MRI sequences) while also evaluating bilateral and multifocal cases.
+21
+6 Conclusion
+Following the SynTRUST framework4 for trustworthy medical image synthesis studies, our work
+demonstrates that virtual contrast injection can generate high-quality synthetic DCE-MRI images,
+effectively supporting tumor detection, localization, and segmentation. Our findings highlight the
+potential of integrating deep generative models into MRI workflows as a non-invasive alterna-
+tive for patients who cannot undergo standard contrast-enhanced imaging, thereby enabling more
+accurate and personalized treatment strategies. The potential of DCE-MRI synthesis is further
+demonstrated as a training data augmentation method to enhance downstream breast tumor seg-
+mentation models, which, for instance, increases robustness across modalities. We further define
+trustworthy synthetic data based upon which we introduce the SAMe as a unified metric to eval-
+uate synthetic data quality and guide generative model training checkpoint selection, addressing
+the limitations of conventional single-metric assessments. Additionally, generating multiple sub-
+sequent DCE-MRI sequences facilitates a deeper assessment of tumor response to contrast media,
+offering critical insights for tumor characterization and individualized care planning. Overall, this
+work marks a significant step toward incorporating virtual contrast and deep generative models
+into clinical practice, paving the way for improved diagnostic accuracy and patient outcomes in
+breast cancer management.
+Disclosures
+The authors have no conflicts of interest to declare that are relevant to the content of this article.
+Acknowledgements
+This project has received funding from the European Union’s Horizon Europe and Horizon 2020
+research and innovation programme under grant agreement No 101057699 (RadioVal) and No
+952103 (EuCanImage), respectively. Also, this work was partially supported by the project FUTURE-
+ES (PID2021-126724OB-I00) and AIMED (PID2023-146786OB-I00) from the Ministry of Sci-
+ence, Innovation and Universities of Spain. We would like to thank Dr Marco Caballo (Radboud
+University Medical Center, The Netherlands) for providing 254 segmentation masks for the Duke
+Dataset. RO acknowledges a research stay grant from the Helmholtz Information and Data Science
+Academy (HIDA).
+Data, Materials, and Code Availability
+The data47 used in this study is publicly available on https://doi.org/10.7937/TCIA.e3sv-re93. The
+code is available in a Github repository on https://github.com/RichardObi/SimulatingDCE. The
+trained models are readily usable in the medigan library on https://github.com/RichardObi/medigan.
+References
+1 Global Cancer Observatory, “The global cancer observatory (gco) is an interactive web-based
+platform presenting global cancer statistics to inform cancer control and research.” https:
+//gco.iarc.fr/ (2023). Accessed: 2023-08-07.
+2 M. Caballo, W. B. Sanderink, L. Han, et al., “Four-Dimensional Machine Learning Ra-
+diomics for the Pretreatment Assessment of Breast Cancer Pathologic Complete Response
+to Neoadjuvant Chemotherapy in Dynamic Contrast-Enhanced MRI,” Journal of Magnetic
+Resonance Imaging 57(1), 97–110 (2023).
+22
+3 S. Joshi, R. Osuala, L. Garrucho, et al., “Leveraging epistemic uncertainty to improve tu-
+mour segmentation in breast mri: an exploratory analysis,” in Medical Imaging 2024: Image
+Processing, 12926, 292–300, SPIE (2024).
+4 R. Osuala, K. Kushibar, L. Garrucho, et al., “Data synthesis and adversarial networks: A
+review and meta-analysis in cancer imaging,” Medical Image Analysis , 102704 (2022).
+5 D. M. Lang, E. Schwartz, C. I. Bercea, et al., “Multispectral 3d masked autoencoders for
+anomaly detection in non-contrast enhanced breast mri,” in MICCAI Workshop on Cancer
+Prevention through Early Detection, 55–67, Springer (2023).
+6 S. Radhakrishna, S. Agarwal, P. M. Parikh, et al., “Role of magnetic resonance imaging in
+breast cancer management,” South Asian journal of cancer 7(02), 069–071 (2018).
+7 M. C. Comes, D. La Forgia, V. Didonna, et al., “Early prediction of breast cancer recurrence
+for patients treated with neoadjuvant chemotherapy: a transfer learning approach on dce-
+mris,” Cancers 13(10), 2298 (2021).
+8 S. Wu, W. A. Berg, M. L. Zuley, et al., “Breast mri contrast enhancement kinetics of nor-
+mal parenchyma correlate with presence of breast cancer,” Breast Cancer Research 18, 1–10
+(2016).
+9 R. H. El Khouli, K. J. Macura, M. A. Jacobs, et al., “Dynamic contrast-enhanced mri of
+the breast: quantitative method for kinetic curve type assessment,” American Journal of
+Roentgenology 193(4), W295–W300 (2009).
+10 C. K. Kuhl, P. Mielcareck, S. Klaschik, et al., “Dynamic breast mr imaging: are signal in-
+tensity time course data useful for differential diagnosis of enhancing lesions?,” Radiology
+211(1), 101–110 (1999).
+11 X. Tao, L. Wang, Z. Hui, et al., “Dce-mri perfusion and permeability parameters as predictors
+of tumor response to ccrt in patients with locally advanced nsclc,” Scientific reports 6(1),
+35569 (2016).
+12 Y.-C. C. Chang, E. Ackerstaff, Y. Tschudi, et al., “Delineation of tumor habitats based on
+dynamic contrast enhanced mri,” Scientific reports 7(1), 9746 (2017).
+13 V. A. Arasu, R. C. Chen, D. N. Newitt, et al., “Can signal enhancement ratio (ser) reduce
+the number of recommended biopsies without affecting cancer yield in occult mri-detected
+lesions?,” Academic radiology 18(6), 716–721 (2011).
+14 P. Marckmann, L. Skov, K. Rossen, et al., “Nephrogenic systemic fibrosis: suspected
+causative role of gadodiamide used for contrast-enhanced magnetic resonance imaging,”
+Journal of the American Society of Nephrology 17(9), 2359–2362 (2006).
+15 C. Olchowy, K. Cebulski, M. Łasecki, et al., “The presence of the gadolinium-based con-
+trast agent depositions in the brain and symptoms of gadolinium neurotoxicity-a systematic
+review,” PloS one 12(2), e0171704 (2017).
+16 J.-M. Id´ee, M. Port, I. Raynal, et al., “Clinical and biological consequences of transmetalla-
+tion induced by contrast agents for magnetic resonance imaging: a review,” Fundamental &
+clinical pharmacology 20(6), 563–576 (2006).
+17 T. Kanda, K. Ishii, H. Kawaguchi, et al., “High signal intensity in the dentate nucleus and
+globus pallidus on unenhanced t1-weighted mr images: relationship with increasing cumula-
+tive dose of a gadolinium-based contrast material,” Radiology 270(3), 834–841 (2014).
+23
+18 N. C. Nguyen, T. T. Molnar, L. G. Cummin, et al., “Dentate nucleus signal intensity increases
+following repeated gadobenate dimeglumine administrations: a retrospective analysis,” Ra-
+diology 296(1), 122–130 (2020).
+19 European Medicines Agency (EMA), “EMA’s final opinion confirms restrictions on use of
+linear gadolinium agents in body scans.” https://www.ema.europa.eu/ (2023). On-
+line; accessed 06 August 2023.
+20 R. J. McDonald, J. C. Weinreb, and M. S. Davenport, “Symptoms associated with gadolinium
+exposure (sage): a suggested term,” Radiology 302(2), 270–273 (2022).
+21 J. Rogowska, E. Olkowska, W. Ratajczyk, et al., “Gadolinium as a new emerging contaminant
+of aquatic environments,” Environmental toxicology and chemistry 37(6), 1523–1534 (2018).
+22 H. M. Dekker, G. J. Stroomberg, A. J. Van der Molen, et al., “Review of strategies to reduce
+the contamination of the water environment by gadolinium-based contrast agents,” Insights
+into Imaging 15(1), 1–14 (2024).
+23 R. Br¨unjes and T. Hofmann, “Anthropogenic gadolinium in freshwater and drinking water
+systems,” Water research 182, 115966 (2020).
+24 T. Zhang, L. Han, A. D’Angelo, et al., “Synthesis of Contrast-Enhanced Breast MRI Using
+Multi-b-Value DWI-based Hierarchical Fusion Network with Attention Mechanism,” in Med-
+ical Image Computing and Computer Assisted Intervention – MICCAI 2023, 79–88, Springer
+Nature Switzerland, (Cham) (2023).
+25 R. Osuala, S. Joshi, A. Tsirikoglou, et al., “Pre-to post-contrast breast mri synthesis for en-
+hanced tumour segmentation,” in Medical Imaging 2024: Image Processing, 12926, 226–
+237, SPIE (2024).
+26 R. Osuala, D. Lang, P. Verma, et al., “Towards learning contrast kinetics with multi-condition
+latent diffusion models,” arXiv preprint arXiv:2403.13890 (2024).
+27 I. Goodfellow, J. Pouget-Abadie, M. Mirza, et al., “Generative Adversarial Nets,” in Ad-
+vances in Neural Information Processing Systems, 2672–2680 (2014).
+28 J. Sohl-Dickstein, E. Weiss, N. Maheswaranathan, et al., “Deep unsupervised learning using
+nonequilibrium thermodynamics,” in International Conference on Machine Learning, 2256–
+2265, PMLR (2015).
+29 Y. Song and S. Ermon, “Generative modeling by estimating gradients of the data distribution,”
+Advances in Neural Information Processing Systems 32 (2019).
+30 J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,” Advances in Neural
+Information Processing Systems 33, 6840–6851 (2020).
+31 R. Rombach, A. Blattmann, D. Lorenz, et al., “High-resolution image synthesis with latent
+diffusion models,” in Proceedings of the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition, 10684–10695 (2022).
+32 W. H. Pinaya, M. S. Graham, E. Kerfoot, et al., “Generative AI for Medical Imaging: extend-
+ing the MONAI Framework,” arXiv preprint arXiv:2307.15208 (2023).
+33 R. Osuala, G. Skorupko, N. Lazrak, et al., “medigan: a Python library of pretrained generative
+models for medical image synthesis,” Journal of Medical Imaging 10(6), 061403–061403
+(2023).
+34 L. Pasquini, A. Napolitano, M. Pignatelli, et al., “Synthetic post-contrast imaging through
+artificial intelligence: clinical applications of virtual and augmented contrast media,” Phar-
+maceutics 14(11), 2378 (2022).
+24
+35 F. Khader, G. M¨uller-Franzes, S. Tayebi Arasteh, et al., “Denoising diffusion probabilistic
+models for 3D medical image generation,” Scientific Reports 13(1), 7303 (2023).
+36 P. Isola, J.-Y. Zhu, T. Zhou, et al., “Image-to-image translation with conditional adversarial
+networks,” in Proceedings of the IEEE conference on computer vision and pattern recogni-
+tion, 1125–1134 (2017).
+37 J.-Y. Zhu, T. Park, P. Isola, et al., “Unpaired image-to-image translation using cycle-
+consistent adversarial networks,” in Proceedings of the IEEE international conference on
+computer vision, 2223–2232 (2017).
+38 Y. Choi, M. Choi, M. Kim, et al., “Stargan: Unified generative adversarial networks for multi-
+domain image-to-image translation,” in Proceedings of the IEEE conference on computer
+vision and pattern recognition, 8789–8797 (2018).
+39 T. Park, M.-Y. Liu, T.-C. Wang, et al., “Semantic image synthesis with spatially-adaptive
+normalization,” in Proceedings of the IEEE/CVF conference on computer vision and pattern
+recognition, 2337–2346 (2019).
+40 V. Sushko, E. Sch¨onfeld, D. Zhang, et al., “You only need adversarial supervision for seman-
+tic image synthesis,” arXiv preprint arXiv:2012.04781 (2020).
+41 C. Saharia, W. Chan, H. Chang, et al., “Palette: Image-to-image diffusion models,” in ACM
+SIGGRAPH 2022 conference proceedings, 1–10 (2022).
+42 L. Zhang, A. Rao, and M. Agrawala, “Adding conditional control to text-to-image diffusion
+models,” in Proceedings of the IEEE/CVF International Conference on Computer Vision,
+3836–3847 (2023).
+43 J. M. Wolterink, A. M. Dinkla, M. H. Savenije, et al., “Deep mr to ct synthesis using un-
+paired data,” in Simulation and Synthesis in Medical Imaging: Second International Work-
+shop, SASHIMI 2017, Held in Conjunction with MICCAI 2017, Qu´ebec City, QC, Canada,
+September 10, 2017, Proceedings 2, 14–23, Springer (2017).
+44 L. Garrucho, K. Kushibar, R. Osuala, et al., “High-resolution synthesis of high-density breast
+mammograms: application to improved fairness in deep learning based mass detection,”
+Frontiers in Oncology 12, 1044496 (2023).
+45 E. Garc´ıa, X. Llad´o, R. Mann, et al., “Breast composition measurements from full-field digi-
+tal mammograms using generative adversarial networks,” in 17th International Workshop on
+Breast Imaging (IWBI 2024), 13174, 181–188, SPIE (2024).
+46 N. Konz, Y. Chen, H. Dong, et al., “Anatomically-controllable medical image generation with
+segmentation-guided diffusion models,” arXiv preprint arXiv:2402.05210 (2024).
+47 A. Saha, M. R. Harowicz, L. J. Grimm, et al., “A machine learning approach to radiogenomics
+of breast cancer: a study of 922 subjects and 529 dce-mri features,” British journal of cancer
+119(4), 508–516 (2018).
+48 G. M¨uller-Franzes, L. Huck, S. Tayebi Arasteh, et al., “Using Machine Learning to Reduce
+the Need for Contrast Agents in Breast MRI through Synthetic Images,” Radiology 307(3),
+e222211 (2023).
+49 Y. Xue, B. E. Dewey, L. Zuo, et al., “Bi-directional synthesis of pre-and post-contrast mri via
+guided feature disentanglement,” in International Workshop on Simulation and Synthesis in
+Medical Imaging, 55–65, Springer (2022).
+25
+50 C. Chen, C. Raymond, W. Speier, et al., “Synthesizing mr image contrast enhancement using
+3d high-resolution convnets,” IEEE Transactions on Biomedical Engineering 70(2), 401–412
+(2022).
+51 E. Kim, H.-H. Cho, J. Kwon, et al., “Tumor-attentive segmentation-guided gan for synthe-
+sizing breast contrast-enhanced mri without contrast agents,” IEEE Journal of Translational
+Engineering in Health and Medicine 11, 32–43 (2022).
+52 J. Zhao, D. Li, Z. Kassam, et al., “Tripartite-gan: Synthesizing liver contrast-enhanced mri
+to improve tumor detection,” Medical image analysis 63, 101667 (2020).
+53 P. Wang, P. Nie, Y. Dang, et al., “Synthesizing the first phase of dynamic sequences of breast
+mri for enhanced lesion identification,” Frontiers in Oncology 11, 792516 (2021).
+54 T.-C. Wang, M.-Y. Liu, J.-Y. Zhu, et al., “High-resolution image synthesis and semantic
+manipulation with conditional gans,” in Proceedings of the IEEE conference on computer
+vision and pattern recognition, 8798–8807 (2018).
+55 G. M¨uller-Franzes, L. Huck, M. Bode, et al., “Diffusion probabilistic versus generative adver-
+sarial models to reduce contrast agent dose in breast mri,” European Radiology Experimental
+8(1), 53 (2024).
+56 L. Han, T. Tan, T. Zhang, et al., “Synthesis-based imaging-differentiation representation
+learning for multi-sequence 3d/4d mri,” arXiv preprint arXiv:2302.00517 (2023).
+57 H. Schreiter, J. Eberle, L. A. Kapsner, et al., “Virtual dynamic contrast enhanced breast mri
+using 2d u-net architectures.,” medRxiv , 2024–08 (2024).
+58 K. Clark, B. Vendt, K. Smith, et al., “The cancer imaging archive (tcia): maintaining and
+operating a public information repository,” Journal of digital imaging 26, 1045–1057 (2013).
+59 X. Mao, Q. Li, H. Xie, et al., “Least squares generative adversarial networks,” in Proceedings
+of the IEEE international Conference on Computer Vision, 2794–2802 (2017).
+60 K. Simonyan and A. Zisserman, “Very deep convolutional networks for large-scale image
+recognition,” arXiv preprint arXiv:1409.1556 (2014).
+61 O. Ronneberger, P. Fischer, and T. Brox, “U-net: Convolutional networks for biomedical
+image segmentation,” in Medical Image Computing and Computer-Assisted Intervention–
+MICCAI 2015: 18th International Conference, Munich, Germany, October 5-9, 2015, Pro-
+ceedings, Part III 18, 234–241, Springer (2015).
+62 F. Isensee, P. F. Jaeger, S. A. Kohl, et al., “nnu-net: a self-configuring method for deep
+learning-based biomedical image segmentation,” Nature methods 18(2), 203–211 (2021).
+63 A. Paszke, S. Gross, F. Massa, et al., “Pytorch: An imperative style, high-performance deep
+learning library,” in Advances in Neural Information Processing Systems 32, H. Wallach,
+H. Larochelle, A. Beygelzimer, et al., Eds., 8024–8035, Curran Associates, Inc. (2019).
+64 R. Osuala, D. M. Lang, A. Riess, et al., “Enhancing the utility of privacy-preserving cancer
+classification using synthetic data,” arXiv preprint arXiv:2407.12669 (2024).
+65 X. Xing, F. Felder, Y. Nan, et al., “You don’t have to be perfect to be amazing: Unveil the
+utility of synthetic images,” in International Conference on Medical Image Computing and
+Computer-Assisted Intervention, 13–22, Springer (2023).
+66 M. Woodland, M. A. Taie, J. A. M. Silva, et al., “Importance of Feature Extraction in the Cal-
+culation of Fr´echet Distance for Medical Imaging,” arXiv preprint arXiv:2311.13717 (2023).
+26
+67 A. Borji, “Pros and cons of gan evaluation measures,” Computer vision and image under-
+standing 179, 41–65 (2019).
+68 A. Borji, “Pros and cons of gan evaluation measures: New developments,” Computer Vision
+and Image Understanding 215, 103329 (2022).
+69 M. Heusel, H. Ramsauer, T. Unterthiner, et al., “GANs Trained by a Two Time-Scale Update
+Rule Converge to a Local Nash Equilibrium,” Advances in Neural Information Processing
+Systems 30 (2017).
+70 C. Szegedy, V. Vanhoucke, S. Ioffe, et al., “Rethinking the inception architecture for computer
+vision,” in Proceedings of the IEEE conference on computer vision and pattern recognition,
+2818–2826 (2016).
+71 J. Deng, W. Dong, R. Socher, et al., “Imagenet: A large-scale hierarchical image database,”
+in 2009 IEEE conference on computer vision and pattern recognition, 248–255, Ieee (2009).
+72 X. Mei, Z. Liu, P. M. Robson, et al., “Radimagenet: an open radiologic deep learning re-
+search dataset for effective transfer learning,” Radiology: Artificial Intelligence 4(5), e210315
+(2022).
+73 Z. Wang, A. C. Bovik, H. R. Sheikh, et al., “Image quality assessment: from error visibility
+to structural similarity,” IEEE transactions on image processing 13(4), 600–612 (2004).
+74 R. Zhang, P. Isola, A. A. Efros, et al., “The unreasonable effectiveness of deep features as a
+perceptual metric,” in Proceedings of the IEEE conference on computer vision and pattern
+recognition, 586–595 (2018).
+75 T. Samajdar and M. I. Quraishi, “Analysis and evaluation of image quality metrics,” in Infor-
+mation Systems Design and Intelligent Applications, J. K. Mandal, S. C. Satapathy, M. Ku-
+mar Sanyal, et al., Eds., 369–378, Springer India, (New Delhi) (2015).
+76 N. J. Tustison, B. B. Avants, P. A. Cook, et al., “N4itk: improved n3 bias correction,” IEEE
+transactions on medical imaging 29(6), 1310–1320 (2010).
+Biographies and photographs of the other authors are not available.
+List of Figures
+3
+Depiction of the generally applicable dimensions of trustworthy synthetic data
+alongside respective examples (in blue font) for their adoption in deep generative
+models for medical image synthesis. The present study evaluates fidelity, diversity,
+condition adherence, and utility. Privacy and fairness are included herein for the
+comprehensiveness of the dimensions encompassing trustworthy synthetic data.
+4
+Quantitative (a) and qualitative (b) illustrations of SAMe applied to DCE-MRI
+synthesis
+5
+Synthesis of breast DCE-MRI as shown for six cases.47 Two cases were manually
+selected from the validation set (1st row: Case 228 , 2nd row: Case 886), two
+manually selected from the test set (3rd row: Case 378, 4th row: Case 907), and two
+randomly selected from the test set (5th row: Case 041, 6th row: Case 045). From
+left to right, we illustrate axial slices of the (a) real T1-weighted pre-contrast MRI,
+(b) the real DCE-MRI sequence 1, (c) the synthetic DCE-MRI sequence 1, the
+subtraction image based on the (d) real and (e) synthetic DCE-MRI subtractions,
+and (f) the ground truth segmentation mask.
+27
+6
+Qualitative results of joint multi-sequence DCE-MRI generation shown for 3 test
+cases with real images in each first row and respective synthetic images displayed
+in each second row. A single conditional GAN was trained to translate all test cases
+from pre-contrast to all three DCE-MRI sequences.
+7
+Illustration of temporal contrast enhancement patterns based on mean pixel inten-
+sity within the tumor bounding box area aggregated over all tumor-containing axial
+slices of all test cases. While gray coloring represents values computed for pre-
+contrast (T1) and post-contrast (DCE) of real test case images, red denotes values
+extracted from their synthetic DCE-MRI counterparts.
+8
+Visualization of temporal contrast enhancement patterns based on mean pixel in-
+tensity within the tumor bounding box area aggregated over all tumor-containing
+axial slices for each of a randomly selected 33 (out of 100) test cases. Circles de-
+note real images while x denotes synthetic counterparts. The mean pixel intensity
+standard deviation is represented by the marker size. The marker color encodes the
+temporal DCE-MRI sequence, with gray circles indicating the pre-contrast MRI
+sequence for comprehensiveness and comparability.
+List of Tables
+1
+Example of quantitative image quality results, based on SAMe and reported with
+standard deviation on the validation set where applicable, for different GAN train-
+ing epochs (ep). FIDImg, FIDRad are based on 3000 and MSE, MAE, SSIM are
+based on 5000 synthetic-real DCE-MRI axial MRI image slice pairs. As upper
+bound, the Real DCE vs. Real Pre baseline compares corresponding real pre-
+contrast and real DCE pairs.
+2
+Multi-metric synthetic image quality evaluation on the test set containing 5186 im-
+ages. Synthetic images were generated after 30 GAN training epochs with SAMe
+score as epoch selection criterion. FIDImg and FIDRad results are based on 2000
+synthetic-real phase 1 DCE-MRI axial slice pairs, while 5000 pairs where used for
+the reminder of the metrics. Real DCE vs. Real Pre describes the upper bound
+baseline that compares paired real pre-contrast and real phase 1 DCE slices. Subt
+refers to subtraction images, where pre-contrast images are subtracted from either
+their real (Real Subt) or synthetic (Syn Subt) DCE counterparts. Splitted Test de-
+scribes a random by-patient split of the test set (i.e. without corresponding image
+pairs) that allows to capture the variance across patient cases in distribution com-
+parsion metrics (i.e., FID).
+3
+Tumor volume segmentation results across four scenarios: (1) pre-contrast do-
+main only, (2) domain shift with post-contrast testing and no access to real post-
+contrast data during training, (3) combined pre- and post-contrast training with
+post-contrast testing, and (4) synthetic post-contrast data aiding models trained in
+the post-contrast domain but tested on pre-contrast data (e.g., due to patient preg-
+nancy or allergy). Synthetic data improves performance notably in domain shift
+and pre-contrast test cases. Reported Dice coefficients are from a model ensemble
+with each model trained via one 5-fold cross-validation fold.
+28
+4
+Quantitative synthetic image quality assessment for joint synthesis of multiple
+DCE-MRI image timepoints. Results include standard deviation where applica-
+ble and are based on 100 test cases consisting of 4422 image pairs. Best results
+in bold. Real Post vs. Real Pre indicates the lower bound baseline comparison
+between corresponding real pre-contrast MRI and DCE-MRI images.
+29

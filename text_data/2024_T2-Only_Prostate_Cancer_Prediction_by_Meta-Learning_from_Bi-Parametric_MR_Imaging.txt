@@ -1,0 +1,485 @@
+T2-ONLY PROSTATE CANCER PREDICTION BY META-LEARNING FROM
+BI-PARAMETRIC MR IMAGING
+Weixi Yi1,2, Yipei Wang1,2, Natasha Thorley3, Alexander Ng4, Shonit Punwani3, Veeru Kasivisvanathan4,
+Dean C. Barratt1,2, Shaheer U. Saeed1,2, Yipeng Hu1,2
+1UCL Hawkes Institute, University College London, London, UK
+2Department of Medical Physics and Biomedical Engineering, University College London, London, UK
+3Centre for Medical Imaging, University College London, London, UK
+4Division of Surgery & Interventional Science, University College London, London, UK
+ABSTRACT
+Current imaging-based prostate cancer diagnosis requires
+both MR T2-weighted (T2w) and diffusion-weighted imag-
+ing (DWI) sequences, with additional sequences for po-
+tentially greater accuracy improvement.
+However, mea-
+suring diffusion patterns in DWI sequences can be time-
+consuming, prone to artifacts and sensitive to imaging pa-
+rameters. While machine learning (ML) models have demon-
+strated radiologist-level accuracy in detecting prostate cancer
+from these two sequences, this study investigates the poten-
+tial of ML-enabled methods using only the T2w sequence as
+input during inference time. We first discuss the technical fea-
+sibility of such a T2-only approach, and then propose a novel
+ML formulation, where DWI sequences - readily available
+for training purposes - are only used to train a meta-learning
+model, which subsequently only uses T2w sequences at infer-
+ence. Using multiple datasets from more than 3,000 prostate
+cancer patients, we report superior or comparable perfor-
+mance in localising radiologist-identified prostate cancer
+using our proposed T2-only models, compared with alterna-
+tive models using T2-only or both sequences as input. Real
+patient cases are presented and discussed to demonstrate, for
+the first time, the exclusively true-positive cases from models
+with different input sequences. Open-source code is available
+at https://github.com/wxyi057/MetaT2.
+Index Terms— Prostate cancer prediction, Bi-level opti-
+misation, Meta learning, Diffusion model
+1. INTRODUCTION
+Various MR sequences are used in the image-based diagnosis
+of prostate cancer.
+Among these sequences, T2-weighted
+(T2w) images typically have shorter acquisition times, com-
+pared to other commonly used sequences such as diffusion-
+weighted imaging (DWI) with multiple b-values and dynamic
+contrast enhanced sequences. This fast acquisition is partly
+because efficient and robust T2w protocols are widely es-
+tablished and relatively standardised. For comparison, DWI
+protocols for prostate cancer diagnosis rely on specialised ex-
+perience and, currently, exhibit higher variability in terms of
+sensitivity to prostate cancer, potentially because of variable
+factors including signal-to-noise ratio, susceptibility and rec-
+tal air artifacts [1]. The adoption of a T2-only diagnostic ap-
+proach could substantially reduce the cost both in required ex-
+pertise and imaging time, considerably streamlining prostate
+cancer patient care, compared with the recently-proposed
+machine learning (ML)-based approaches that require two or
+more sequences, e.g. [2, 3].
+We argue that enabling T2-only prostate cancer diagnosis
+is not only desirable but also feasible, especially with mod-
+ern ML models. First, DWI-visible tumours that are invisi-
+ble (or challenging to identify by radiologists) on T2w were
+previously estimated to be ∼30% of all clinically significant
+cases [4, 5]. However, since no correlation has been estab-
+lished between radiologist false positives and DWI lesion in-
+visibility (and such correlation is unlikely to be perfect), the
+actual number of cases missed by omitting DWI should be
+lower. This estimate is further complicated by the different
+yet unknown number of cases in radiologist false positive and
+false negative, which may be corrected by ML models (e.g.
+by learning underutilised inter-sequence and/or T2-to-cancer
+correlations). Furthermore, It is conceivable that the use of a
+single T2-only modality circumvents a number of challenges
+in multiparametric MR diagnosis, such as ground-truth la-
+bel ambiguity due to inter-sequence spatial misalignment [6],
+variable DWI protocols and quality discussed above. There-
+fore, it is worth investigating ML models to localise prostate
+cancer on T2w images, but maintaining competitive accuracy
+over models using multiple sequences.
+This work focuses on developing a system that can best
+localize radiologist-identified cancer using only T2w images,
+in contrast to conventional diagnostic approaches that rely on
+multiple sequences. This is considered the first step to under-
+stand the feasibility of the T2-only approach, before develop-
+ing models that are trained on and predict for histopathology
+labels. This step enables us to directly assess the model’s
+arXiv:2411.07416v1  [eess.IV]  11 Nov 2024
+capability to identify and localize cancerous regions from
+T2w images using radiologist annotations, without the ad-
+ditional complexity introduced by histopathological ground-
+truth sampling uncertainty [7]. Such understanding is crucial
+for localization tasks requiring pixel-level annotations and
+may inform future development of histopathology-predicting
+models. Models developed in this work to predict radiologist
+labels can, on their own, enable a number of clinically useful
+applications including automating radiologist readings, and
+providing second opinions or assisting consensus during a
+radiology examination.
+To maximise the potential of predicting prostate cancer on
+T2w images, we propose 1) utilising existing DWI sequences
+during training - a form of learning using privileged informa-
+tion [8], 2) maximising the utilisation of the inference-omitted
+DWI sequences using conditional denoising diffusion mod-
+els [9], and 3) developing a new meta-learning framework to
+effectively train and predict prostate cancer using only T2w
+as input during inference. This concludes our contributions
+in a) proposing a new clinical application, b) developing a
+new technical ML algorithm, and c) a set of rigorous eval-
+uation experiments, with open-source code, using three co-
+horts from more than 3,000 prostate cancer patients, tested on
+both a publicly available PROMIS dataset [10] and an internal
+multicentre MR-Targeted data set from multiple clinical trials
+[11, 12, 13, 14].
+2. METHODS
+We propose a bi-level meta-learning framework that alter-
+nately optimizes two key components: a modality translator
+generating synthetic target modality ˆ
+Mt from source modal-
+ity Ms, and a cancer predictor leveraging both Ms and ˆ
+Mt
+for regions of interest (ROI) prediction. Figure 1 illustrates
+our pipeline.
+The training dataset Dtrain = (Ms, Mt, G)
+contains source modality images Ms, target modality im-
+ages Mt, and ROI ground truth G. We randomly split Dtrain
+into equal-sized subsets DT and DP for training the modality
+translator and cancer predictor respectively.
+2.1. Modality translator: T2w-conditioned diffusion
+A modality translator fT(·; θ) : Ms →Mt learns a map-
+ping from a source modality Ms to a target modality Mt,
+where θ represents the learnable parameters. In this work, we
+use the diffusion model translator (DMT) based on the dif-
+fusion probabilistic diffusion model (DDPM) [15] [9]. Once
+trained, the translator utilizes a diffusion process to generate
+a synthetic target modality ˆ
+Mt = fT(Ms; ˆθ) from the given
+source modality Ms, where the target modality Mt in this
+work is DWI with high b-values. Training is performed us-
+ing paired real images sampled from both Ms and Mt, de-
+noted as {mk
+s, mk
+t }N
+k=1, where N represents the total number
+of sample pairs. The modality translator is trained to optimize
+Fig. 1.
+Illustration of the proposed bi-level meta learning
+framework MetaT2. Details are described in Sec. 2.
+the quality of the generated
+ˆ
+mk
+t , using both the real target
+modality mk
+t and a measure of cancer predictor performance,
+detailed in Sec. 2.3.
+2.2. Cancer predictor for lesion segmentation
+The cancer localisation tasks are tested with a segmentation
+network, fP(·; ω) : (Ms, ˆ
+Mt) →G, with learnable param-
+eters ω, which takes as input the source modality Ms and
+the synthetic target modality
+ˆ
+Mt generated by the modality
+translator. In this work, we use UNet [16] as the backbone
+for the cancer predictor. The objective of the predictor is to
+predict ROI which in this work is prostate lesion, denoted as
+ˆG = fP((Ms, ˆ
+Mt); ˆω). The model is trained with ground
+truth G sampled from real data, expecting to perform well on
+the synthetic target modality
+ˆ
+Mt with good quality, further
+discussed in Sec. 2.3.
+2.3. MetaT2: a bi-level meta-learning algorithm
+Our bi-level meta learning framework iteratively optimizes
+both the modality translator and the cancer predictor in a co-
+ordinated manner, enabling each network to benefit from the
+improvements of the other. This process involves two main
+phases, also known as inner and outer loops in bi-level op-
+timization terminology: optimizing the cancer predictor and
+optimizing the modality translator.
+2.3.1. Optimizing the cancer predictor
+Let LDice denote the Dice loss, which measures the overlap
+between the prediction and the ground truth G, thus the cancer
+predictor is optimized by minimising loss LP:
+LP = E(Ms)∼DPLDice (fP((Ms, fT(Ms; θ)); ω), G)
+The network aims to improve the performance in predict-
+ing ROI with the synthetic modality fT(Ms; θ).
+2.3.2. Optimizing the modality translator
+The loss function LMSE measures the mean-squared-error
+(MSE) between the output of the modality translator fT(Ms; θ)
+and the target modality Mt. The modality translator is opti-
+mised using a joint loss that combines the LMSE and a quality
+score Q. Q = LDice (fP((Ms, fT(Ms; θ)); ω), G), is com-
+puted with respect to the cancer predictor, representing the
+accuracy of the prediction on the synthetic modality. The
+overall loss function thus is:
+LT = E(Ms,Mt)∼DT [αLMSE (fT(Ms; θ), Mt) + (1 −α) Q]
+where α is the hyperparameter balancing between the LMSE
+and the quality score Q, experimented in Sec.3.3.
+2.3.3. Bi-level optimisation of the networks
+To jointly train the cancer predictor fP and the modality trans-
+lator fT, we employ a bi-level optimization framework that
+consists of two nested optimization loops: an inner loop and
+an outer loop. The inner loop optimizes the modality transla-
+tor’s parameters θ to generate synthetic modalities that aims
+to improve the cancer predictor performance. The outer loop
+optimizes the cancer predictor’s parameters ω , aiming for ac-
+curate cancer prediction while considering the improvements
+provided by the modality translator. The optimization prob-
+lem is formulated as:
+ω∗= arg min
+ω LP(ω, θ∗(ω)),
+s.t. θ∗(ω) = arg min
+θ
+LT(ω, θ)
+Here, θ∗(ω) represents the optimal parameters of the
+modality translator obtained from the inner loop for a given
+set of cancer predictor parameters ω. Training alternates be-
+tween updating θ to minimize translator loss LT given ω in
+the inner loop, and updating ω to minimize the predictor loss
+LP using the updated θ∗(ω) in the outer loop.
+3. EXPERIMENTS
+3.1. Dataset
+MR-Targeted: This dataset includes multiparametric T2w
+and DWI MR images from 850 patients across UK clinical
+trials led by UCLH [11, 12, 13, 14]. Among these, 689 pa-
+tients with PIRADS≥3 lesions were manually annotated by
+radiologists and split into 275/275/139 for training the modal-
+ity translator, cancer predictor, and testing. All 3D images
+were resampled to 0.3mm × 0.3mm × 1mm resolution, and
+lesion-containing slices were extracted and center-cropped to
+256 × 256 pixels. Details are in [3].
+PROMIS: The PROMIS dataset is a publicly available
+multicenter study comprising multiparametric 3D MR im-
+ages from 566 patients blind to prior biopsy [10]. Lesions
+were contoured by radiologists on reports and annotated on
+T2w images by a biomedical imaging researcher. Following
+the same preprocessing as MR-Targeted dataset, we used this
+dataset exclusively to test our proposed method.
+PICAI: This dataset contains 1285 multiparametric 3D
+prostate MR images from patients who underwent MR and
+ultrasound-guided biopsy[17]. Following the same prepro-
+cessing as MR-Targeted dataset, we used DWI from this
+dataset to pre-train DDPM in the modality translator.
+3.2. Evaluation Metrics
+We evaluated performance using both voxel and lesion-level
+metrics. At voxel level, we used Dice similarity coefficient
+(DSC) for overlap and 95th percentile Hausdorff Distance
+(HD95) for boundary accuracy. At lesion level, following
+[3], we calculated: (1) Lesion-level Recall Rec.∗GT, where
+a ground-truth lesion is counted as true positive if sufficiently
+overlapping with any prediction; (2) Lesion-level Precision
+Prec.∗Pd, where a predicted lesion is counted as true positive
+if sufficiently overlapping with any ground truth.
+3.3. Implementation Details
+The DDPM was pre-trained on PICAI following Nichol et
+al.[18]’s ImageNet settings. For cancer prediction, UNet and
+nnUNet [19] served as benchmarks. The modality translator
+and cancer predictor were pre-trained on DT and DP for 60
+and 180 epochs respectively, followed by 10 epochs of bi-
+level optimization. We used Adam optimizer with learning
+rate 1 × 10−4 and set α = 0.75 for translator optimization.
+All experiments ran on NVIDIA Quadro GV100 GPUs.
+3.4. Comparison and ablation studies
+We evaluate the performance of our proposed MetaT2 frame-
+work by comparing it with the model trained under different
+modality configurations:
+(1) UNet (T2w, DWI): Trained
+and tested on both T2w and DWI images. (2) UNet (T2w):
+Trained and tested solely on T2w images. (3) nnUNet (T2w):
+Trained and tested solely on T2w images. (4) DDPM+UNet:
+A modality translator is first trained using paired T2w and
+DWI images to generate synthetic DWI. Then, a UNet is
+trained and tested using T2w images and the synthetic DWI.
+4. RESULTS
+Figure 2 shows example segmentation results from different
+methods. Table 1 summarizes quantitative results for prostate
+Table 1. Comparisons of different methods for prostate MR lesion segmentation on MR-Targeted and PROMIS datasets.
+Method
+Train
+Test
+MR-Targeted
+PROMIS
+DSC↑
+HD95↓
+Rec.∗GT ↑
+Prec.∗Pd↑
+DSC↑
+HD95↓
+Rec.∗GT ↑
+Prec.∗Pd↑
+UNet
+T2w, DWI
+T2w, DWI
+0.3322(0.2679) 23.30(22.63)
+0.3980
+0.3116
+0.3156(0.2612) 24.56(23.29)
+0.3305
+0.2391
+UNet
+T2w
+T2w
+0.2844(0.2172) 27.59(12.02)
+0.5011
+0.1324
+0.3124(0.2228) 26.22(12.20)
+0.4555
+0.1279
+nnUNet
+T2w
+T2w
+0.3035(0.2840) 29.51(31.49)
+0.3025
+0.3594
+0.3209(0.2882) 26.76(28.23)
+0.2968
+0.2947
+DDPM+UNet
+T2w, DWI
+T2w
+0.3038(0.2685) 25.92(25.81)
+0.3453
+0.2693
+0.2973(0.2639) 24.98(23.45)
+0.3198
+0.2161
+Ours(MetaT2)
+T2w, DWI
+T2w
+0.3392(0.2358) 21.46(11.76)
+0.5397
+0.2862
+0.3351(0.2359) 22.48(11.44)
+0.4786
+0.2240
+Fig. 2. Samples with segmentation from the tested methods.
+The red and green contours represent ground truth and pre-
+diction, respectively.
+lesion segmentation on the MR-Targeted and PROMIS. Our
+proposed MetaT2 framework achieves the highest perfor-
+mance on both datasets, with a larger improvement on the
+unseen PROMIS dataset. UNet and nnUNet models trained
+only on T2w images obtain worse DSC and HD95 scores
+on MR-Targeted compared to UNet trained with both T2w
+and DWI images. This suggests that relying solely on T2w
+images limits segmentation accuracy, perhaps due to the lack
+of complementary information from DWI. However, MetaT2
+achieves segmentation performance comparable to, or even
+surpassing, the UNet (T2w, DWI) method, despite requiring
+only T2w images at inference. Specifically, MetaT2 improves
+DSC by 2.1% on the MR-Targeted dataset and 6.2% on the
+PROMIS dataset compared to UNet (T2w, DWI). This may
+indicate that the proposed meta-learning effectively leverages
+multi-modal data during training to enhance segmentation
+performance in single-modality inference.
+The improve-
+ment may result from reduced false positives due to omitting
+DWI or other factors discussed in Sec. 1. Consequently, this
+suggests that a diagnostic approach using only T2-weighted
+images is feasible without compromising accuracy.
+The comparison between MetaT2 and DDPM+UNet
+serves as an ablation study on the effectiveness of the bi-
+level meta-learning framework. As shown in Table 1, incor-
+porating bi-level meta-learning strategy improves the model
+Fig. 3. Samples of T2w images, corresponding real DWI,
+and DWI images generated by different methods. The red
+contours indicate the lesion ground truth.
+performance. Compared to DDPM+UNet, which does not
+use the meta-learning framework, MetaT2 improves DSC for
+prostate lesion segmentation by 11.65% on the MR-Targeted
+dataset and 12.71% on the PROMIS dataset.
+MetaT2 provides the highest Rec.∗GT, achieving 0.5397
+on MR-Targeted and 0.4786 on PROMIS datasets, surpassing
+all other methods. However, its lower precision Prec.∗Pd is
+expected to indicate a trade-off between the improved lesion
+detection coverage and false positive predictions.
+Figure 3 shows the results of our modality translator.
+The synthesized DWI demonstrates comparable lesion sig-
+nal characteristics and contrast to real DWI, while reducing
+common artifacts and distortions.
+5. CONCLUSION
+We have presented MetaT2, a bi-level meta-learning frame-
+work that enables accurate prostate cancer lesion prediction
+using only T2-weighted MRI data at inference.
+By lever-
+aging DWI information during training and jointly optimiz-
+ing the modality translator and the cancer predictor, MetaT2
+achieves superior performance compared to tested baseline
+methods. Our results suggest that a T2-only diagnostic ap-
+proach is both feasible and beneficial, potentially improving
+efficiency and accessibility in prostate cancer prediction.
+6. COMPLIANCE WITH ETHICAL STANDARDS
+This study complies with Declaration of Helsinki. Ethics ap-
+proval and patient consent were obtained for MR-Targeted
+dataset [11, 12, 13, 14], and publicly available datasets
+(PROMIS [10], PICAI [17]) were used per their terms.
+7. ACKNOWLEDGMENTS
+This work is supported by the International Alliance for Can-
+cer Early Detection, an alliance between Cancer Research UK
+[C28070/A30912; C73666/A31378], Canary Center at Stan-
+ford University, the University of Cambridge, OHSU Knight
+Cancer Institute, University College London and the Univer-
+sity of Manchester.
+8. REFERENCES
+[1] Francesco Giganti, Clare Allen, et al., “Prostate imaging
+quality (pi-qual): a new quality control scoring system
+for multiparametric magnetic resonance imaging of the
+prostate from the precision trial,” European urology on-
+cology, vol. 3, no. 5, pp. 615–619, 2020.
+[2] Yue Lin, Enis C Yilmaz, Mason J Belue, et al., “Eval-
+uation of a cascaded deep learning–based algorithm for
+prostate lesion detection at biparametric mri,” Radiol-
+ogy, vol. 311, no. 2, pp. e230750, 2024.
+[3] Wen Yan, Bernard Chiu, Ziyi Shen, et al., “Combiner
+and hypercombiner networks: Rules to combine mul-
+timodality mr images for prostate cancer localisation,”
+Medical Image Analysis, vol. 91, pp. 103030, 2024.
+[4] Masoom A Haider, Theodorus H Van Der Kwast, et al.,
+“Combined t2-weighted and diffusion-weighted mri for
+localization of prostate cancer,”
+American journal of
+roentgenology, vol. 189, no. 2, pp. 323–328, 2007.
+[5] Hyun Kyung Lim, Jeong Kon Kim, et al., “Prostate can-
+cer: apparent diffusion coefficient map with t2-weighted
+images for detection—a multireader study,” Radiology,
+vol. 250, no. 1, pp. 145–151, 2009.
+[6] Qianye Yang, David Atkinson, Yunguan Fu, et al.,
+“Cross-modality image registration using a training-
+time privileged third modality,” IEEE Transactions on
+Medical Imaging, vol. 41, no. 11, pp. 3421–3431, 2022.
+[7] Wouter Bulten, Hans Pinckaers, et al.,
+“Automated
+deep-learning system for gleason grading of prostate
+cancer using biopsies: a diagnostic study,” The Lancet
+Oncology, vol. 21, no. 2, pp. 233–241, 2020.
+[8] Vladimir Vapnik and Akshay Vashist, “A new learning
+paradigm: Learning using privileged information,” Neu-
+ral networks, vol. 22, no. 5-6, pp. 544–557, 2009.
+[9] Mengfei Xia, Yu Zhou, Ran Yi, et al.,
+“A diffusion
+model translator for efficient image-to-image transla-
+tion,” IEEE TPAMI, 2024.
+[10] Hashim U Ahmed, Ahmed El-Shater Bosaily, Louise C
+Brown, et al., “Diagnostic accuracy of multi-parametric
+mri and trus biopsy in prostate cancer (promis): a paired
+validating confirmatory study,” The Lancet, vol. 389,
+no. 10071, pp. 815–822, 2017.
+[11] Sami Hamid, Ian A Donaldson, Yipeng Hu, et al.,
+“The smarttarget biopsy trial: a prospective, within-
+person randomised, blinded trial comparing the ac-
+curacy of visual-registration and magnetic resonance
+imaging/ultrasound image-fusion targeted biopsies for
+prostate cancer risk stratification,” European urology,
+vol. 75, no. 5, pp. 733–740, 2019.
+[12] Lucy AM Simmons, Abi Kanthabalan, Manit Arya,
+et al., “Accuracy of transperineal targeted prostate biop-
+sies, visual estimation and image fusion in men needing
+repeat biopsy in the picture trial,” The Journal of urol-
+ogy, vol. 200, no. 6, pp. 1227–1234, 2018.
+[13] Clement Orczyk, Dean Barratt, et al., “Prostate radiofre-
+quency focal ablation (proraft) trial: a prospective de-
+velopment study evaluating a bipolar radiofrequency de-
+vice to treat prostate cancer,” The Journal of Urology,
+vol. 205, no. 4, pp. 1090–1099, 2021.
+[14] Louise Dickinson, Hashim U Ahmed, et al., “A multi-
+centre prospective development study evaluating focal
+therapy using high intensity focused ultrasound for lo-
+calised prostate cancer: the index study,” Contemporary
+clinical trials, vol. 36, no. 1, pp. 68–80, 2013.
+[15] Jonathan Ho, Ajay Jain, and Pieter Abbeel, “Denoising
+diffusion probabilistic models,” NeurIPS, vol. 33, pp.
+6840–6851, 2020.
+[16] Olaf Ronneberger, Philipp Fischer, et al., “U-net: Con-
+volutional networks for biomedical image segmenta-
+tion,” in MICCAI 2015. Springer, 2015, pp. 234–241.
+[17] Anindo Saha, Joeran Bosma, Jasper Twilt, et al., “Arti-
+ficial intelligence and radiologists at prostate cancer de-
+tection in mri—the pi-cai challenge,” in MIDL, 2023.
+[18] Alexander Quinn Nichol and Prafulla Dhariwal, “Im-
+proved denoising diffusion probabilistic models,”
+in
+ICML. PMLR, 2021, pp. 8162–8171.
+[19] Fabian Isensee, Paul F Jaeger, Simon AA Kohl, et al.,
+“nnu-net: a self-configuring method for deep learning-
+based biomedical image segmentation,” Nature meth-
+ods, vol. 18, no. 2, pp. 203–211, 2021.

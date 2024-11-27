@@ -1,0 +1,1265 @@
+ 
+ 
+ 
+ 
+Page 1 of 12 
+ 
+Novel Clinical-Grade Prostate Cancer Detection and Grading Model: 
+Development and Prospective Validation Using Real World Data, with 
+Performance Assessment on IHC Requested Cases 
+Ramin Nateghi1, Ruoji Zhou2, Madeline Saft1, Marina Schnauss1, Clayton Neill1, Ridwan Alam1, 
+Nicole Handa1, Mitchell Huang1, Eric V Li1, Jeffery A Goldstein2, Edward M Schaeffer1, Menatalla 
+Nadim2, Fattaneh Pourakpour2, Bogdan Isaila2, Christopher Felicelli2, Vikas Mehta2, Behtash G 
+Nezami2, Ashley Ross1, Ximing Yang2, Lee AD Cooper2,3,4 
+1. Department of Urology, Northwestern University Feinberg School of Medicine, Chicago, IL USA 
+2. Department of Pathology, Northwestern University Feinberg School of Medicine, Chicago, IL 
+USA 
+3. Center for Computational Imaging and Signal Analytics, Northwestern University Feinberg 
+School of Medicine, Chicago, IL USA 
+4. Chan Zuckerberg Biohub, Chicago IL USA 
+ 
+Summary 
+Background Artificial intelligence may assist healthcare systems in meeting increasing demand 
+for pathology services while maintaining diagnostic quality and reducing turnaround time and 
+costs. We aimed to investigate the performance of an institutionally developed system for prostate 
+cancer detection, grading, and workflow optimization and to contrast this with commercial 
+alternatives. 
+Methods From August 2021 to March 2023, we scanned 21,396 slides from 1,147 patients with 
+positive biopsies. We developed models for cancer detection, grading, and screening of equivocal 
+cases for immunohistochemical (IHC, triple stain) ordering. We compared a task-specific models 
+trained using the PANDA dataset of prostate cancer biopsies with one built using features 
+extracted by the general-purpose histology foundation model, UNI and compare their 
+performance in an unfiltered prospectively collected dataset that reflects our patient population 
+(1737 slides, 95 patients). We also evaluated the contributions of a bespoke model designed to 
+improve sensitivity in detecting small cancer foci and scoring of broader patterns observed at 
+lower resolution. 
+Findings We found high concordance between the developed systems and pathologist reference 
+in detection (area under curve 98.5, sensitivity 95.0, and specificity 97.8), ISUP grading (quadratic 
+Cohen's kappa 0.869), grade group 3 or higher (area under curve 97.5, sensitivity 94.9, specificity 
+96.6) and comparable to published data from commercial systems. Screening could reduce 
+immunohistochemical ordering for equivocal cases by 44.5% with an overall error rate of 1.8% 
+(1.4% false positive rate and 0.4% false negative rate). No statistically significant differences were 
+observed when comparing performance of task-specific and foundation models for cancer 
+detection, although the task-specific model was more than 50 times smaller. Bespoke model 
+performance was superior to alternatives in all tasks. 
+Interpretation Institutions like academic medical centers that have high scanning volumes and 
+report abstraction capabilities can develop highly accurate computational pathology models for 
+internal use. These models have the potential to aid in quality control role and to improve resource 
+allocation and workflow in the pathology lab to help meet future challenges in prostate cancer 
+diagnosis. 
+ 
+ 
+ 
+ 
+Page 2 of 12 
+ 
+Introduction 
+Prostate cancer is the second most diagnosed malignancy in men worldwide, with over 1 million 
+new cases diagnosed per year[1]. While biomarkers and advanced imaging such as Prostate-
+Specific Antigen (PSA) and multiparametric Magnetic Resonance Imaging (mpMRI) have aided 
+in the detection and risk stratification of prostate cancer, management of this disease process 
+ultimately relies on accurate diagnosis from biopsied tissues. With an aging population worldwide, 
+the volume of prostate biopsy specimens requiring interpretation is expected to increase 
+dramatically [2, 3]. Meeting this demand will increase workload on pathologists who are also 
+facing workforce challenges [4]. Artificial intelligence has been suggested as a solution to meet 
+demand while maintaining or improving quality through efficiency gains or upskilling general 
+pathologists [5, 6]. Notably, subspecialists typically perform better than general pathologists in 
+prostate cancer detection and grading [7-9], with general pathologists achieving agreement in 
+less than 60% of cases while 90% of disagreements leading to upgrades [13]. AI tools could help 
+bridge this performance gap by where whole-slide imaging (WSI) is used, and reduce costs and 
+delays associated with consultation and immunohistochemical analysis. 
+Immunohistochemistry (IHC) is an important part of the pathology workflow in prostate cancer 
+with significant implications for costs and delays. IHC triple stain, which comprises 
+AMACR(P504S), p63, and high molecular weight cytokeratin, is mainly ordered to distinguish 
+invasive carcinoma from high-grade prostatic intraepithelial neoplasia and other benign mimickers 
+following initial review of the H&E slides. This additional tissue processing introduces delays, and 
+additional work to review the IHC slides. The cost of IHC testing can be substantial for payers and 
+the health care system, with a Medicare price of $172.76 and with approximately 1 million biopsies 
+performed annually in the United States [10, 11]. One study found that community pathologists 
+are more than twice as likely than academic pathologists to order IHC (26% vs. 11%) [12], adding 
+costs and delays to patients diagnosed in community-based practices. Few studies have analyzed 
+the impact of AI tools on IHC use and impact to costs and delays in prostate cancer [13]. 
+Multiple commercial tools intended for clinical use have been developed for prostate cancer to 
+aid detection and grading of biopsies [14, 15]. Performance of the FDA-approved Paige prostate 
+cancer detection system has been described in several studies [5, 16, 17]. The Paige system was 
+developed with a weakly-supervised method that learns from slide-level labels to avoid the need 
+for image annotation. IBEX Galen Prostate is a CE-IVD approved tool for prostate cancer 
+detection and grading that was developed using 1.3M annotations of high-power fields to train 
+field-level classifiers [6]. The performance metrics for standalone detection and grading performed 
+by these tools are presented in Tables 1-2. While these tools can be used in a standalone second 
+read capacity for quality control, they are intended to aid in primary diagnosis, and so studies also 
+report performance with interactive use, including improvements in tool-assisted read time. These 
+studies emphasize external validation since commercial tools will encounter significant 
+preanalytical variability in deployment. 
+Prostate cancer detection and grading of biopsies has been a popular research topic. Two papers 
+published in 2020 report similar performance in detection and grading, both using image 
+annotations to develop field-level classifiers and image segmentation models (see Tables 1-2) 
+[18, 19]. Data used in these studies supported the PANDA challenge that reported on the 
+performance of models from academic competitors on a large, curated dataset [20]. Internal and 
+external test data used in [18-20] include data from a population-based screening study [19] and 
+were reviewed by multiple uropathologists to achieve accurate ground truth [18, 20]. Other models 
+ 
+ 
+ 
+ 
+Page 3 of 12 
+ 
+for prostate cancer detection and grading have been reported, developed and evaluated on 
+PANDA and other data sources [21-25]. More recently, foundation models trained on datasets of 
+hundreds of thousands or millions of WSI have demonstrated strong performance in many tasks 
+including prostate cancer detection and grading [26, 27]. 
+Data from challenges and academic studies are an invaluable community resource. The selection 
+and exclusion of cases for practical reasons or to balance dataset characteristics is often 
+necessary in building datasets but may distort expectations of model performance in clinical use. 
+Adjusting the proportions of benign and malignant cases or grades can improve evaluation on 
+less common patterns like high-grade cancers but can also increase the fraction of cases where 
+models typically perform better in detection and grading. Exclusion based on discordant pathology 
+reviews, imaging or tissue processing artifacts, or selecting for slides with higher cancer extent 
+can also remove more challenging cases from evaluation that diminish sensitivity or produce false 
+alarms that require attention. 
+In this study we describe the development and validation of an institutional AI system for prostate 
+cancer detection and grading and minimization of IHC use. This system was developed and 
+validated using data collected at Northwestern Memorial Hospital over multiple years, including a 
+prospectively collected validation dataset that represents our patient population (see Figure 1). 
+We show that this model has comparable performance to published data on commercial systems 
+and can reduce immunohistochemical ordering for equivocal cases by 44.5% with an error rate 
+of 1.8%. We further compare foundation models to more efficient prostate-specific models, finding 
+equivalent performance with significant cost savings, and demonstrate the utility of a bespoke 
+model designed to improve prostate tasks. 
+ 
+ 
+Table 1. Reported performance of commercial and research tools in prostate cancer detection. 
+ 
+Ref. 
+Resolution 
+N 
+Source 
+Sensitivity (%) 
+Specificity (%) 
+AUC 
+ Paige 
+[2] 
+slide 
+232 
+external 
+96 
+98 
+- 
+[3] 
+slide 
+1876 
+external 
+97.7 
+99.3 
+- 
+[8] 
+core 
+600 
+100 
+external 
+98.9 
+93.3 
+- 
+patient 
+external 
+100 
+78.0 
+- 
+[1] 
+slide 
+113 
+external 
+98.8 
+87.9 
+- 
+ IBEX 
+[4] 
+slide 
+2501 
+internal 
+99.6 
+90.1 
+99.7 
+1627 
+external 
+98.5 
+97.3 
+99.1 
+ Radboud 
+[5] 
+core 
+535 
+internal 
+95.4 
+95.2 
+99.0 
+886 
+external 
+97.4 
+100 
+99.0 
+ Karolinska** 
+[6] 
+core 
+1631 
+internal 
+94.9 
+99.0 
+99.7 
+330 
+external 
+97.7 
+89.8 
+98.6 
+ PANDA* 
+[7] 
+slide 
+545 
+internal 
+98.1–99.7 
+91.9–96.7 
+- 
+741 
+external 
+97.6–99.3 (US) 
+66.8–80.0 (US) 
+- 
+330 
+external 
+96.2–99.2 (EU) 
+70.5–87.9 (EU) 
+- 
+ Northwestern 
+ 
+block 
+890 
+internal 
+95.0 (TSE) 
+97.76 (TSE)  
+98.5 (TSE) 
+*95% confidence interval for 15 tested models. 
+** Other operating points are available for sensitivity and specificity. 
+ 
+ 
+ 
+ 
+ 
+ 
+Page 4 of 12 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+     
+ 
+ 
+ Figure 1. Development and validation of an institutional AI system for prostate biopsy analysis. (a) We 
+developed an enterprise-scale prostate cancer dataset over several years to support model development and 
+validation. (b) Using annotated prostate data, we developed a task-specific encoder for prostate cancer detection and 
+grading, and compared its capabilities with UNI foundational encoder. (c) Reduction of immunohistochemistry (IHC) 
+ordering, which is often associated with delays, higher costs, and additional workload, such as the re-review of H&E 
+slides upon receiving IHC results. 
+Table 2. Reported performance of commercial and research tools in prostate cancer grading. 
+ 
+Ref. 
+Resolution 
+N 
+Source 
+Metric 
+Value 
+Notes 
+Paige [1] 
+slide 
+113 
+external 
+Sensitivity (%) 
+100 
+Benign, ISUP 
+Grade 1-2 vs. 
+ISUP Grade 3-5 
+Specificity (%) 
+71.4 
+κ (quadratic) 
+0.86 
+ISUP Grade 
+IBEX [4] 
+slide 
+1627 
+external 
+Sensitivity (%) 
+85.9 
+Gleason score <7 
+vs. 7-10  
+Specificity (%) 
+90.4 
+AUC 
+94.1 
+Sensitivity (%) 
+85 
+Gleason pattern 
+3 or 4 vs. 5 
+Specificity (%) 
+90.8 
+AUC 
+97.1 
+Radboud [5] 
+core 
+535 
+internal 
+Sensitivity (%) 
+91.8 
+Grade group 1-2 
+vs. 3-5 
+Specificity (%) 
+93.6 
+AUC 
+97.4 
+886 
+external 
+Sensitivity (%) 
+76.1 
+Grade group 1-2 
+vs. 3-5 
+Specificity (%) 
+78.3 
+AUC 
+85.5 
+   κ (quadratic) 
+0.723 or 0.707 
+Gleason score 
+Karolinska [6] 
+core 
+330 
+external 
+κ (linear) 
+0.62 
+ISUP Grade 
+0.7 
+PANDA [7] 
+slide 
+545 
+internal 
+κ (quadratic) 
+0.918-0.944 
+ISUP Grade 
+330 
+external 
+0.835-0.900 (EU) 
+0.840-0.884 (US) 
+Northwestern 
+ 
+block 
+890 
+internal 
+Sensitivity (%) 
+96.6 (TSE) 
+Grade group 1-2 
+vs. 3-5 
+Specificity (%) 
+94.9 (TSE) 
+AUC 
+97.46 (TSE) 
+AUC 
+98.07 (TSE) 
+ISUP Grade 
+κ (quadratic) 
+0.869 (TSE) 
+ 
+ 
+ 
+ 
+ 
+Page 5 of 12 
+ 
+Methods  
+Datasets 
+Data for model development and validation were generated at Northwestern Memorial Hospital 
+(NMH) between August 2021 and May 2023 (IRB protocol 00213676). All slide scanning was 
+performed using a Leica Systems Aperio GT 450 scanner with 40x objective magnification. In the 
+period from August 2021 to April 2023 we scanned 23,833 slides from 1,278 patients with at least 
+one positive core for model development purposes (see Figure 1a). To collect a representative 
+sample of our patient population for validation, the criteria was changed to all slides from all 
+prostate biopsies for the month of April 2023 for a total of 1,737 slides from 95 subjects. Patients 
+were stratified into internal training, validation, and testing sets (See Figure S1). Prior to scanning, 
+slides were wiped to remove any pen markings present on the coverslips. Pathology report data 
+was abstracted from the Northwestern Medicine Electronic Data Warehouse (NM EDW) and 
+normalized by the enterprise data warehouse team using a combination of database query and 
+natural language processing to obtain primary and secondary Gleason patterns for each block 
+and other diagnostic information. A workflow was developed to link scanned slides to the 
+structured pathology and clinical data tables using a combination of barcode reading and optical 
+character recognition with manual review of slide label images. This process is summarized in 
+Figure S2. A summary of all slides, blocks, specimens, and subjects is presented in Table S1. 
+For IHC model development, we utilized our entire prostate cancer cohort, excluding cases with 
+IHC staining. We identified slides from blocks where reported cancer extent was less than 20% 
+and with Gleason grades of 1 or 2 to identify the most difficult cases (this threshold was suggested 
+by our senior genitourinary pathologist to discriminate between ordering for medicolegal reasons 
+versus aiding in diagnosis). The remaining cohort was partitioned into training and validation sets 
+at a 0.9:0.1 ratio, with excluded cases reserved for model testing. This strategy ensured 
+evaluation on challenging cases that reflect real-world low-volume cancer patients typically 
+requiring additional IHC testing. 
+ 
+Histology encoders and prediction model architecture 
+PANDA data was used to develop a task-specific encoder (TSE) for embedding high-power fields. 
+The PANDA dataset comprises 12,625 fully annotated WSIs retrospectively collected from 
+patients undergoing prostate biopsy due to suspected cancer, as summarized in Supplementary 
+Table S2. We observed a significant difference in the accuracy of image annotations between the 
+Radboud Medical Center and Karolinska institute datasets, with the annotations from Karolinska 
+lacking spatial precision. We utilized only Radboud slides in our experiments, removing 312 of 
+these slides due to missing annotations or the presence of tissue processing artifacts. 
+An EfficientNetB0 convolutional network was trained to classify high-power fields using this data 
+(Figure S3a). After applying ICC correction (Figure S4), the data was split at the slide level into 
+80% for training and 20% for in-training validation. A total of 1.41 million 256x256 pixel high-power 
+fields were extracted at 20X objective magnification. Field-level annotations were derived from 
+the provided pixel mask annotations to calculate the proportions of carcinoma and stroma in each 
+tile. Tiles containing at least 25% carcinoma were labeled as carcinoma, while tiles that were 
+entirely benign were labeled as benign. Following training, the network was truncated by removing 
+the last dense classification layers to create a task-specific encoder. The encoder was applied to 
+the fields from the NMH cohort using a nonoverlapping mosaic tiling of tissue regions to generate 
+ 
+ 
+ 
+ 
+Page 6 of 12 
+ 
+an embedding for each tile. Encoded tiles from the NMH slides were aggregated by slide and then 
+block to develop and validate detection and grading models. We also evaluate the general-
+purpose UNI encoder as an alternative to the task-specific encoder trained with PANDA. UNI was 
+not fine-tuned and was applied directly to the high-power fields from the NMH cohorts in the same 
+manner as described above. Training details are provided in the supplementary materials, section 
+1.1 and Figures S5 to S7. 
+For block-level predictions we developed a model that captures both near-range and long-range 
+interactions between fields in a memory-efficient manner. The Sparse Convolutional Transformer 
+(SCT) model combines self-attention and convolution using a novel element-wise self-attention 
+(ESA) mechanism that models both spatial and channel-wise relationships (Figure S6). Fields 
+are aggregated into 3x3 neighborhoods and ESA is applied to each field, followed by a within-
+neighborhood convolution. SCT models are composed of sequences of transformer blocks of that 
+combine ESA and convolution operations with pooling, normalization, and multi-head self-
+attention that produce a multi-scale representation that combines finer details with higher-order 
+contextual information (Figure S7, Table S3). 
+ 
+Prediction models for cancer detection and grading 
+SCT models for carcinoma detection were trained to predict block-level labels for benign / 
+carcinoma and SCT models for grading were trained to predict block-level ISUP grade and 
+primary and secondary Gleason pattern. The grading model contains shared layers to learn 
+Gleason pattern morphologies followed by independent dense layers for primary and secondary 
+pattern prediction. Appendix 1.2 to 1.4 contains additional details of the models and baselines. 
+We used the pROC R package to evaluate statistical significance of model AUC measurements 
+using paired and unpaired DeLong tests [28]. McNemar’s test was also used to assess the 
+significance of model sensitivities and specificities. The 95% confidence intervals for kappa 
+statistics are also obtained for comparison. 
+ 
+Dual model detection for equivocal slides 
+For cancer detection in equivocal cases where IHC is typically ordered, we developed 
+complementary SCT models: one highly sensitive model for ruling out the presence of carcinoma 
+and one highly specific for ruling in carcinoma (Figure S3b). These models are combined to 
+identify clear negative and positive blocks, and truly equivocal blocks where the models are not 
+reliable and where IHC is required. 
+ 
+ 
+Experimental Results 
+Cancer detection performance 
+Performance for SCT detection models on the NMH prospective validation set is shown in Figure 
+2. SCT-UNI and SCT-TSE have comparable performance with no statistically significant 
+differences in AUC, sensitivity, or specificity. False negative errors were primarily associated with 
+blocks containing a small cancer extent, with the large majority occurring in blocks with <10% 
+pathologist reported cancer extent (Figure 2b). A t-SNE visualization of the block-level  
+ 
+ 
+ 
+ 
+ 
+Page 7 of 12 
+ 
+ 
+Figure 2. Cancer detection performance. (a) Comparison of TSE and UNI detection model performance on the 
+prospective validation set. No statistically significant differences were observed. (b) Distribution of false negatives by 
+cancer extent. (c) Visualization of block-level embeddings learned by SCT-TSE detection model. (d) Performance 
+differences for self-identified Black and White patients were not statistically significant. (e) Performance by age group. 
+The disparity in performance for patients aged 51–60 was not significant when compared to all others. 
+ 
+ 
+representations from SCT-TSE model shows clear clusters for benign and carcinoma blocks, and 
+a transitional zone containing blocks with a mixture of benign and carcinoma labels (Figure 2c). 
+Outliers may indicate errors in prediction or ground truth, but a pathology review of these outliers 
+was not yet completed at the time of this publication. Disparities in detection performance were 
+observed for self-identified Black patients who represent 7.3% of the NMH prospective dataset, 
+although these disparities are not statistically significant when compared to self-identified White 
+patients (Figure 2d). Performance was consistent across age groups with a small disparity for 
+patients aged 50-61 (Figure 2e). This disparity was not statistically significant when comparing 
+patients aged 50-61 to all other age groups. Benign / carcinoma classification AUC of the field-
+level classifier was 96.8% when evaluated on PANDA (see examples Figure S8). We compared 
+inference time, model size, and AUC for SCT detection model with UNI and TSE encoders in a 
+Pareto plot (Figure S9). The task-specific encoder, with approximately 50 times fewer parameters, 
+achieves 6.5 times faster inference while maintaining similar cancer detection performance (UNI: 
+98.7 AUC, TSE: 98.5 AUC). 
+We also compared the SCT detection model to Attention-Based Multiple Instance Learning 
+(ABMIL) and Vision Transformer (ViT) baselines (Figure S10) [29, 30]. For both encoders, SCT 
+model performance is significantly better than baselines for TSE models. Visualizations of t-SNE 
+embeddings for all models and encoders are presented in Figure S11 along with detailed tables 
+of errors in Table S4. Our cancer detection model also shows performance comparable to leading 
+commercial tools for prostate cancer diagnosis (Table 1). 
+ 
+ 
+ 
+ 
+Page 8 of 12 
+ 
+  
+ 
+Figure 3. Dual model classification visualized by principal component analysis. These visualizations are low-
+dimensional representations for illustration purposes and do not necessarily represent separability in the unobservable 
+higher-dimensional space. (a) Classification boundaries for the sensitive model at thresholds of 0.95, 0.5, and 0.05. 
+The shaded blue area corresponding to a strict threshold of 0.05 (1-0.95) that rules out 35.7% of benign cases with a 
+false negative rate of less than 0.4%. (b) At the threshold of 0.95, the specific model rules out 52.6% of carcinoma 
+cases (red shaded area) with a false positive rate of 1.4%.   
+ 
+Detection screening for cases with immunohistochemical analysis 
+The dual-model approach screened 44.56% of equivocal cases with a total error rate of 1.8%. 
+Using a conservative threshold of 0.05 (1-0.95), the sensitive model screens 35.7% of benign 
+cases with a false negative rate of 0.4%. A similar conservative threshold of 0.95 for the specific 
+model screened 52.5% of carcinoma cases at a false positive rate of 1.4%.  The trade-offs 
+between screening rates and errors are illustrated in Figure S12. Relaxation of these thresholds 
+will screen a larger number of slides but with increased error rates. Figure 3 visualizes 
+classification boundaries of the dual models at various thresholds plotted in 2D space by principal 
+component analysis. 
+ 
+Cancer grading performance 
+Performance of the SCT grading model is presented in Figure 4. SCT-TSE and SCT-UNI have 
+similar grading performance with significant differences observed in prediction of secondary 
+Gleason pattern (Figure 4a). The AUC for ISUP grade prediction ranges from 97.3 (SCT-UNI) to 
+98.1 (SCT-TSE) with corresponding kappa values of 0.869 (95% CI: 0.836 to 0.901) and 0.870 
+(95% CI: 0.837 to 0.902) respectively. Prediction for the clinically important threshold of GG1-2 
+versus GG3-5 has AUCs of 97.5 (SCT-TSE) and 94.8 (SCT-UNI). Larger differences between 
+TSE and UNI were observed in kappa values for direct prediction of primary and secondary 
+Gleason patterns (Figure 4b). SCT-TSE kappa values were generally higher than those of SCT-
+UNI with 0.761 (95% CI: 0.675 to 0.847) versus 0.688 (95% CI: 0.592 to 0.784) for primary pattern 
+and 0.413 (95% CI: 0.292 to 0.534) versus 0.317 (95% CI: 0.191 to 0.442) for secondary pattern. 
+A t-SNE visualization of the SCT-TSE grading model illustrates separation of blocks by primary 
+ 
+ 
+ 
+ 
+ 
+Page 9 of 12 
+ 
+  
+ 
+Figure 4. Gleason grading model performance. (a) Performance of block-level predictions for primary and secondary 
+Gleason patterns, ISUP scores, and discrimination between Gleason GG 1-2 versus GG 3-5 using the SCT grading 
+model with task-specific and universal features. (b) Kappa statistics for agreement between predicted and actual 
+primary and secondary Gleason patterns, and ISUP scores. (c) Visualization of class separability for latent features 
+learned by SCT grading model with the task-specific encoder for primary and secondary block-level patterns. 
+Significance levels are denoted by asterisks with ** for p < 0.01. 
+ 
+Gleason patterns. In contrast, although some clusters for secondary patterns were present, they 
+were less distinct and compact, suggesting due to the higher degree of subjectivity in secondary 
+pattern prediction (Figure 4c). 
+A grading performance comparison between SCT and baselines is shown in Figure S13. SCT 
+models perform better than baselines in grading tasks with the exception of SCT-UNI for 
+secondary pattern prediction. The SCT-TSE and SCT-UNI grading models attained AUCs of 
+95.2% and 96.4% for primary patterns and 90.6% and 88.49% for secondary patterns, 
+respectively, outperforming ViT (94.56%, 89.93%) and ABMIL (93.54%, 88.54%). Additionally, 
+SCT-TSE and SCT-UNI grading models achieved higher quadratic Cohen's kappa scores of 
+(0.761, 0.688) for primary Gleason pattern, showcasing better performance compared to ViT 
+ 
+ 
+ 
+ 
+Page 10 of 12 
+ 
+(0.676, 0.532) and ABMIL (0.695, 0.643) models. For the secondary Gleason pattern, SCT 
+grading models also showed better performance, achieving kappa scores (0.413, 0.317) with 
+task-specific and UNI encoders. As presented in Table 2, our model also exhibits grading 
+performance equivalent to that of prominent commercial tools for prostate cancer grading.  
+ 
+Discussion 
+Pathologists face increasing challenges delivering timely diagnosis for prostate biopsies. AI offers 
+a possible solution to reduce turnaround times, to improve accuracy, and to reduce costs by 
+improving pathologist efficiency, upskilling general pathologists, and reducing utilization of 
+immunohistochemical staining. Our study investigated the development of an institutional AI 
+system for prostate cancer detection, grading, and optimization of IHC ordering. This work 
+presents novel modeling approaches, a comparison of large foundation encoder with smaller and 
+more efficient task-specific alternatives, and real-world validation. We demonstrate that this 
+system could potentially eliminate a significant fraction of immunohistochemical staining and has 
+comparable performance with published validations of commercial systems. 
+Our main contribution is an approach combining complementary sensitive and specific models to 
+reduce ordering of costly immunohistochemistry for equivocal cases, avoiding 44.57% overall IHC 
+ordering needs that occurred at our institution with a 95% confidence threshold. Looking at IHC 
+requests in our institution from 2005 to 2024, there is an increasing demand for IHC with a yearly 
+overall rate of 18.73%, being about 9% in 2005 and reaching 32% in 2024. This study 
+demonstrated that our system could augment the diagnostic capability of pathologists and reduce 
+the need for IHC ordering, which can help reduce costs, delays in care, and unnecessary anxiety 
+for patients who undergo biopsy. 
+We developed SCT to address the specific challenges of cancer detection and grading in prostate 
+biopsies. Detection of small cancer foci and Gleason pattern grading should benefit from 
+modelling relationships between high-power fields. Gleason patterns are more apparent over 
+larger areas at lower power, and adjacency of fields with suspicious glands raises the likelihood 
+of cancer. While ABMIL lacks the capacity to model interactions, ViT models interactions between 
+all fields. In contrast, SCT uses an efficient neighborhood processing approach that progressively 
+expands the scope of modeled interactions, reducing computation and trainable parameters 
+compared to ViT. This results in superior performance for SCT in almost all comparisons we 
+examined. 
+Our comparison of a small TSE with the UNI foundation encoder shows indistinguishable 
+performance in cancer detection, but some marginal advantage for TSE in grading. TSE 
+development was non-trivial involving supervised training using a large public dataset containing 
+carcinoma annotations. A foundation encoder avoids this step, but significantly increases 
+computational burden for inference. We also note that the TSE produces a visualization by 
+classifying individual fields as carcinoma or benign, where obtaining this from a foundation 
+encoder requires additional effort. 
+Our study has important limitations. Our goal was to develop models for internal use, and to 
+understand their performance if deployed within our hospital, and so we did not validate on 
+external datasets. However, our validation data were collected prospectively without filtering or 
+enrichment of cases based on grade or cancer burden and represent an unbiased sample of our 
+patient population. We expect that similar results could be obtained by other institutions 
+developing and validating models internally, however, performance may vary with the degree of 
+preanalytical variability or differences in patient populations. An analysis of racial disparities in 
+ 
+ 
+ 
+ 
+Page 11 of 12 
+ 
+cancer grading performance was not possible due to the size of our validation dataset. Our 
+analysis of foundation model encoders did not include models beyond UNI or perform additional 
+fine tuning. Future research will study this system prospectively over a longer period to analyze 
+potential impacts on quality, efficiency, and costs. 
+ 
+Acknowledgements 
+This work was funded by the National Institutes of Health National Library of Medicine award 
+R01LM013523 and the Northwestern Polsky Urological Cancer Institute. We would like to 
+acknowledge the Information Technology team at Northwestern University and the Electronic 
+Data Warehouse team at Northwestern Medicine for their support. 
+ 
+References  
+ 
+1. 
+Sekhoacha, M., et al., Prostate Cancer Review: Genetics, Diagnosis, Treatment Options, 
+and Alternative Approaches. Molecules, 2022. 27(17). 
+2. 
+Quon, H., A. Loblaw, and R. Nam, Dramatic increase in prostate cancer cases by 2021. 
+BJU Int, 2011. 108(11): p. 1734-8. 
+3. 
+James, N.D., et al., The Lancet Commission on prostate cancer: planning for the surge in 
+cases. Lancet, 2024. 403(10437): p. 1683-1722. 
+4. 
+Rozario, S.Y., et al., Responding to the healthcare workforce shortage: A scoping review 
+exploring anatomical pathologists' professional identities over time. Anat Sci Educ, 2024. 
+17(2): p. 351-365. 
+5. 
+Raciti, P., et al., Novel artificial intelligence system increases the detection of prostate 
+cancer in whole slide images of core needle biopsies. Mod Pathol, 2020. 33(10): p. 2058-
+2066. 
+6. 
+Pantanowitz, L., et al., An artificial intelligence algorithm for prostate cancer diagnosis in 
+whole slide images of core needle biopsies: a blinded clinical validation and deployment 
+study. Lancet Digit Health, 2020. 2(8): p. e407-e416. 
+7. 
+Sooriakumaran, P., et al., Gleason scoring varies among pathologists and this affects 
+clinical risk in patients with prostate cancer. Clin Oncol (R Coll Radiol), 2005. 17(8): p. 
+655-8. 
+8. 
+Al-Maghrabi, J.A., N.A. Bakshi, and H.M. Farsi, Gleason grading of prostate cancer in 
+needle core biopsies: a comparison of general and urologic pathologists. Ann Saudi Med, 
+2013. 33(1): p. 40-4. 
+9. 
+Goodman, M., et al., Frequency and determinants of disagreement and error in gleason 
+scores: a population-based study of prostate cancer. Prostate, 2012. 72(13): p. 1389-98. 
+10. 
+Bhanji, Y., M.J. Allaway, and M.A. Gorin, Recent Advances and Current Role of 
+Transperineal Prostate Biopsy. Urol Clin North Am, 2021. 48(1): p. 25-33. 
+11. 
+Services, 
+C.f.M.M. 
+Physician 
+Fee 
+Schedule. 
+2024; 
+Available 
+from: 
+https://www.cms.gov/medicare/payment/fee-schedules/physician. 
+12. 
+Shah, A.A., H.F. Frierson, Jr., and H.P. Cathro, Analysis of immunohistochemical stain 
+usage in different pathology practice settings. Am J Clin Pathol, 2012. 138(6): p. 831-6. 
+13. 
+Chatrian, A., et al., Artificial intelligence for advance requesting of immunohistochemistry 
+in diagnostically uncertain prostate biopsies. Mod Pathol, 2021. 34(9): p. 1780-1794. 
+14. 
+Faryna, K., et al., Evaluation of Artificial Intelligence-Based Gleason Grading Algorithms 
+"in the Wild". Mod Pathol, 2024. 37(11): p. 100563. 
+ 
+ 
+ 
+ 
+Page 12 of 12 
+ 
+15. 
+Zhu, L., et al., Harnessing artificial intelligence for prostate cancer management. Cell Rep 
+Med, 2024. 5(4): p. 101506. 
+16. 
+Perincheri, S., et al., An independent assessment of an artificial intelligence system for 
+prostate cancer detection shows strong diagnostic accuracy. Mod Pathol, 2021. 34(8): p. 
+1588-1595. 
+17. 
+Kanan, C., et al., Independent validation of paige prostate: Assessing clinical benefit of an 
+artificial intelligence tool within a digital diagnostic pathology laboratory workflow. Journal 
+of Clinical Oncology, 2020. 38(15_suppl): p. e14076-e14076. 
+18. 
+Bulten, W., et al., Automated deep-learning system for Gleason grading of prostate cancer 
+using biopsies: a diagnostic study. Lancet Oncol, 2020. 21(2): p. 233-241. 
+19. 
+Strom, P., et al., Artificial intelligence for diagnosis and grading of prostate cancer in 
+biopsies: a population-based, diagnostic study. Lancet Oncol, 2020. 21(2): p. 222-232. 
+20. 
+Bulten, W., et al., Artificial intelligence for diagnosis and Gleason grading of prostate 
+cancer: the PANDA challenge. Nat Med, 2022. 28(1): p. 154-163. 
+21. 
+Pinckaers, H., et al., Detection of Prostate Cancer in Whole-Slide Images Through End-
+to-End Training With Image-Level Labels. IEEE Trans Med Imaging, 2021. 40(7): p. 1817-
+1826. 
+22. 
+Singhal, N., et al., A deep learning system for prostate cancer diagnosis and grading in 
+whole slide images of core needle biopsies. Sci Rep, 2022. 12(1): p. 3383. 
+23. 
+Irmakci, I., et al., Tissue Contamination Challenges the Credibility of Machine Learning 
+Models in Real World Digital Pathology. Mod Pathol, 2024. 37(3): p. 100422. 
+24. 
+Ferrero, A., et al., HistoEM: A Pathologist-Guided and Explainable Workflow Using 
+Histogram Embedding for Gland Classification. Mod Pathol, 2024. 37(4): p. 100447. 
+25. 
+Behzadi, M.M., et al., Weakly-supervised deep learning model for prostate cancer 
+diagnosis and Gleason grading of histopathology images. Biomedical Signal Processing 
+and Control, 2024. 95. 
+26. 
+Chen, R.J., et al., Towards a general-purpose foundation model for computational 
+pathology. Nat Med, 2024. 30(3): p. 850-862. 
+27. 
+Vorontsov, E., et al., A foundation model for clinical-grade computational pathology and 
+rare cancers detection. Nat Med, 2024. 
+28. 
+Robin, X., et al., pROC: an open-source package for R and S+ to analyze and compare 
+ROC curves. BMC Bioinformatics, 2011. 12: p. 77. 
+29. 
+Ilse, M., J.M. Tomczak, and M. Welling, Attention-based Deep Multiple Instance Learning. 
+International Conference on Machine Learning, Vol 80, 2018. 80. 
+30. 
+Lu, M.Y., et al., Data-efficient and weakly supervised computational pathology on whole-
+slide images. Nat Biomed Eng, 2021. 5(6): p. 555-570. 
+ 
+1 Supplementary methods 
+ 
+1.1 Field-wise carcinoma delineation and Gleason mapping. 
+To develop a task-specific encoder for prostate cancer, we first train a high power field classifier 
+of benign/carcinoma using PANDA data which comprises of 10616 biopsy slides obtained from  
+Radboud University Medical Center and Karolinska Institute (Table S1). The PANDA images were 
+tiled into 256x256 pixel high-power fields at 20X objective magnification. The CNN encoder, 
+parameterized by 𝛼, is learned to extract high-level d-dimensional features 𝑓(") =  ∅$(𝑡(")) from 
+input tiles 𝑡("), which enables the classification layers 𝜑%*𝑓(")+ parameterized by 𝛽 to identify 
+carcinoma across slides. As the NU dataset lacks detailed region-level annotations, we utilize tiles 
+from the PANDA dataset for training. The encoder and classification layers are trained based on 
+the training samples 𝐷&  = .𝑠(") = *𝑡("), 𝑦(")+ | 𝑖= 1, 2, 3, … , 𝑁9, where 𝑠(") is the 𝑖'( training 
+sample, and 𝑦(") is the tile-level label. To make the model better at ignoring benign mimickers in 
+our dataset, we proceed with a fine-tuning phase following the initial training of the classification 
+layers and encoder. First, we apply the model to purely benign slides in NU dataset to identify 
+misclassified benign tiles. Given that all the tiles from benign slides are expected to be entirely 
+benign, we employ the misclassified benign tiles for targeted refinement in a process known as 
+hard mining. To retain the general knowledge learned in the pre-trained model, we only make the 
+last three convolution layers of the encoder trainable, which helps in tuning the model against 
+false detections while preserving generalizability. 
+The NMH dataset lacks image annotations, and so we evaluated the quality of encodings by 
+visualizing the benign / carcinoma classifications on NMH whole-slide images. We also trained a 
+similar high-power field classifier for Gleason patterns but did not use this for purposes other than 
+visualization. 
+ 
+1.2 Tile indexing layer 
+Following the feature extraction step, where features from individual tiles across all slides within 
+a block are extracted and subsequently concatenated into a 2D sparse matrix, given that SCT 
+integrates convolutional operations and local attention mechanisms, the model needs to know the 
+spatial arrangement of tiles within each slide of a block. Therefore, we integrate three inputs into 
+the model: features extracted from tiles 𝐹∈ℝ)×+, their corresponding  coordinates 𝐶 =
+{(𝑥", 𝑦") |  𝑖: 1, 2, … 𝑁} ∈ℝ)×,, and unique indices 𝐼= {𝑠" | 𝑖: 1, 2, … 𝑁} ∈ℝ)×- representing the 
+originating slide for each tile containing values starting at 1, with 1 representing the first slide, 2 
+for the second slide, and so on. The tile indexing layer plays a crucial role in our model ensuring 
+that the coordinates of tiles across all slides within a tissue block are uniquely encoded, 
+addressing the potential ambiguity that arises when multiple tiles from different slides share the 
+same coordinates. Figure S5 represents the pseudo-code for tile indexing. First, we organize the 
+tiles based on which slide they come from. Given tile coordinates 𝐶 and tile indices 𝐼, we group 
+tiles by slide using 𝐶.  = {(𝑥", 𝑦") | 𝑠" = 𝑗} where 𝐶. represents the set of the tile coordinates 
+belonging to 𝑗'(slide. For each slide j, we find the maximum coordinates *𝑋., 𝑌.+  in both the x and 
+y directions, where 𝑋. = max{𝑥" | (𝑥", 𝑦") ∈𝐶.}, and 𝑌. = max{𝑦" | (𝑥", 𝑦") ∈𝐶.}. This means we find 
+the farthest right and farthest down that any tile goes on that slide. After finding the maximum 
+coordinates for each slide, we adjust the coordinates of subsequent slides based on the maximum 
+coordinates of the previous slide as 𝐶.
+/  = {(𝑥", 𝑦") | 𝑠" = 𝑗} + *𝑋.0-, 𝑌.0-+, where 𝐶.
+/ is the adjusted 
+coordinates for 𝑗'(slide. By doing this, we make sure that no two tiles have the same coordinates 
+across all slides in a tissue block. 
+ 
+1.3 Sparse Convolutional Transformer (SCT)  
+We introduce the Sparse Convolutional Transformer (SCT), an innovative memory-efficient model 
+tailored for the processing of gigapixel digital pathology slides. Unlike conventional vision 
+transformer models, SCT seamlessly integrates localized details and global patterns through its 
+adept utilization of local and global self-attention modules. This section provides a comprehensive 
+overview of the SCT architecture and its distinctive features. 
+The SCT block takes adjusted tile coordinates 𝐶/ ∈ℝ)×, and extracted features tokens 𝐹∈ℝ)×+ 
+as inputs.  Initially, the tiles level features tokens are projected to a lower dimension 𝑍 using a 
+linear fully connected layer parameterized by 𝑊∈ℝ1×+ and then normalized by a layer 
+normalization to prevent unbiased training due to unexpected higher value features. The resulting 
+features and corresponding coordinates are then pass through a Spatially Sparse Convolutional 
+Self-Attention (SSC-SA) block, which combines the efficiency of convolutional operations with the 
+relationship-modeling capability of self-attention and effectively captures localized spatial and 
+channel-wise dependencies within the token receptive fields. A receptive field defines a 2D region 
+of neighboring tokens determined by a kernel with a size of 𝑘× 𝑘, and a stride ratio of 𝑠, which 
+defines how the model looks at neighboring tokens when performing convolutional and self-
+attention operations. A skip connection is applied from the input to the output of the SSC-SA block 
+to help the model learn more complex representations while maintaining efficient gradient flow. 
+We introduce a Spatially Sparse Pooling (SSP) block is then employed to reduce the number of 
+tokens. It aggregates information from neighboring tokens with receptive fields, which helps in the 
+extraction of key information while reducing computational complexity. After normalizing the 
+resulting feature tokens, they are then passed through a global multi-head self-attention layer 
+After normalizing the resulting feature tokens, the feature query, key, and value are then passed 
+through a global multi-head self-attention layer, enabling interaction between feature tokens 
+across all slides of a block. Finally, after the features are normalized, they proceed through a 
+Multi-Layer Perceptron (MLP) layer, consisting of two fully connected layers. These layers are 
+characterized by 𝑊- ∈ℝ1×1 and 𝑊, ∈ℝ1×1 and utilize the Gaussian Error Linear Unit (GELU) 
+activation function. to facilitate the flow of information and gradients throughout the network, we 
+also added two skip connections between the inputs and outputs of both MLP and the global 
+multi-head self-attention layers. 
+ 
+ 
+ 
+ 1.3.1 Spatially Sparse Convolutional Self-Attention (SSC-SA)  
+The sparse convolutional operation is applied to capture local spatial dependencies between 
+neighboring tokens within receptive fields, which is summarized in Figure S6a Given a set of 
+feature tokens 𝐹∈ℝ)×+ and corresponding coordinates 𝐶/  = {(𝑥", 𝑦") |  𝑖: 1, 2, … 𝑁} ∈ℝ)×,,  we 
+initially generate receptive fields for each token by considering its neighboring tokens within the 
+specified kernel with size of 𝑘× 𝑘. This generates a 2D region of neighboring tokens centered 
+around each token of interest. Given a feature token 𝑓(") ∈ℝ-×1 and corresponding coordinates 
+(𝑥", 𝑦"), the receptive field 𝑅" is defined as the set of tokens located within neighboring 𝑘× 𝑘 
+kernel. 
+𝑅" ∈ℝ2!×1 = O𝑓(.)P Q𝑥. −𝑥"Q < T𝑘
+2U , Q𝑦. −𝑦"Q < T𝑘
+2U , 𝑗= 1, 2, 3, … 𝑁V 
+We introduce an Element-wise Self-Attention (ESA) mechanism that is applied to the receptive 
+fields to further refine the representations and capture local spatial and feature dependencies 
+across tokens within receptive fields, which is summarized in Figure S6b Given receptive field 
+𝑅" ∈ℝ2!×1, we initially leverage a trainable fully connected layer with a weight 𝑊3 ∈ℝ1×4 to 
+reduce the dimensionality of 𝑅", where 𝐶 is the embedded feature dimension. Considering the 
+resulting receptive field as query 𝑄" ∈ℝ2!×4 , key 𝐾" ∈ℝ2!×4, and value 𝑉" ∈ℝ2!×4 we calculate 
+the attended spatial representations 𝑌" ∈ℝ2!×4 using a softmax normalization as below: 
+𝐴" ∈ℝ2!×2! = 𝑠oftmax ^𝑄" . 𝐾"
+√𝐶a 
+𝑌" = 𝐴" . 𝑉" 
+Where 𝐴" represents the attention weights between local feature tokens within a receptive field 
+𝑅". The next step is to apply attention in the channel direction. To achieve this, we first transpose 
+the input receptive field matrix to ensure that the attention mechanism operates along the channel 
+dimension. Transposing the input receptive field matrix reorganizes the features such that the 
+channels become the new rows and the spatial dimensions become the new columns. This 
+transformation allows the attention mechanism to compute relationships between features across 
+different channels. Considering the transposed receptive field as query 𝑄"
+/ ∈ℝ4×2!, key 𝐾"
+/ ∈
+ℝ4×2!, and value 𝑉"
+/ ∈ℝ4×2! we compute the attended feature representation  𝑌"
+/ ∈ℝ2!×4 as 
+below. 
+𝐴"
+/ ∈ℝ4×4 = 𝑠oftmax b𝑄"
+/ . 𝐾"
+/
+√𝑘, c 
+𝑌"
+/ = 𝐴"
+/ . 𝑉"
+/ 
+The resulting 𝑌"
+/ is then transposed and combined with the attended spatial representations 𝑌", 
+and subsequently, a trainable fully connected layer with a weight 𝑊5 ∈ℝ4×1 is employed to return 
+the dimension back to the input dimension as 𝑅"
+/ ∈ℝ2!×1 = (𝑌"
+/ + 𝑌") 𝑊5. We also added a skip 
+connection between the input and output of the ESA block to ensure generalizability. 
+Once the attended receptive field is obtained, the next step involves the application of convolution 
+to each receptive field using a convolution weight 𝑊6 ∈ℝ+×2!×1. 
+𝑓/(") = conv (𝑅"
+/ , 𝑊6) =
+g
+𝑓(.) .
+2!
+.7-
+8(#)∈ ;%
+&
+ 𝑊6  
+where 𝐷 is the output dimension (the number of filters in the convolution) and 𝑓/(") represents the 
+resulting token obtained from SSC-SA block for the 𝑖'( receptive field centered around (𝑥", 𝑦"). 
+ 
+1.3.2 Spatially Sparse Pooling (SSP)  
+The SSP layer is a key component of the SCT block, as it gathers information from neighboring 
+tokens through receptive fields and enables the extraction of important details while minimizing 
+computational complexity and providing multi-scale representations. In the SSP layer, the pooling 
+operation aggregates information from neighboring tokens within receptive fields. These receptive 
+fields are constructed based on the specified pool size and stride. We define a receptive field as 
+neighboring tokens centered around each token within a specified spatial range. Given the pooling 
+size of 𝑝 and stride of 𝑠, a receptive field 𝑅" ∈ℝ2!×1is calculated as below. 
+𝑅" ∈ℝ2!×1 = O𝑓(.)P Q𝑥. −𝑥"Q < T𝑝
+2U , Q𝑦. −𝑦"Q < T𝑝
+2U , 𝑗= 1, 2, 3, … 𝑁 , 𝑖∈𝑆V 
+𝑆= {𝑖| 𝑥" ∈𝑋 with stride 𝑠 , 𝑦" ∈𝑌 with stride 𝑠} 
+Where 𝑋 represents the set of possible 𝑥-coordinates and 𝑌 represents the set of possible 𝑦-
+coordinates, and S contains the indices 𝑖 where both the 𝑥" and 𝑦" coordinates lie within the 2D 
+space defined by 𝑋 and 𝑌, with a stride 𝑠. 
+Once the receptive fields are formed, we perform pooling to aggregate information from the tokens 
+within each receptive field. The pooling operation typically aggregates tokens through a maximum 
+or average operation across the tokens in a receptive field. For instance, if we consider max 
+pooling, the 𝑚'( element of pooled feature 𝑓<
+(") for token 𝑖 located at (𝑥", 𝑦") can be calculated as 
+below. 
+𝑓<
+(")[𝑚] = max
+ 𝑓<
+(3)[𝑚]
+37-
+2!
+ 
+ 
+1.4 Network architecture 
+We build models called tiny-SCT, small-SCT, and large-SCT with different parameters by 
+modifying the number of Transformer blocks and the embedding feature dimensions, as detailed 
+in Table S3. 
+ 
+ 
+ 
+2 Supplementary figures and tables 
+ 
+ 
+Figure S1. Patient selection flowchart.  Our dataset involved 24,968 prostate biopsy slides from 1,242 patients 
+collected at Northwestern Memorial Hospital (NMH) between 2021-2023. After excluding 749 slides due to missing 
+Gleason scores or non-scanned status and removing 1,086 non-H&E stained slides, 23,133 H&E-stained slides from 
+1,242 patients remained. From this, 1,737 slides collected in March and April of 2023 were designated for the 
+prospective evaluation. The final dataset was randomized and stratified by patient into training (18,990 slides), and 
+validation (2,406 slides) groups. 
+ 
+ 
+Figure S2. Our data scanning, archiving and linking pipeline. 
+ 
+ 
+ 
+ 
+Table S1. Overview of the PANDA dataset sources. 
+Site 
+Dataset 
+Size 
+Data Source 
+Staining Scanning 
+Class Distribution Training Label 
+Source 
+Annotations 
+Radboud 
+University 
+Medical 
+Center 
+5160 
+WSIs 
+Pathology archives 
+with a pathologist 
+report between 
+2012 and 2017. 
+H&E 
+3DHistech Panoramic Flash II 
+250 scanner 
+GG0: 967 
+GG1: 852 
+GG2: 675 
+GG3: 925 
+GG4: 768 
+GG5: 973 
+semi-automatic 
+labelling 
+technique 
+Performed by 
+trained students. 
+Karolinska 
+Institute 
+5456 
+WSIs 
+STHLM3 study with 
+participants from 
+the Stockholm 
+County, Sweden, 
+during the years 
+2013-2015. 
+H&E 
+Hamamatsu C9600-12 scanner 
+(Hamamatsu Photonics, 
+Hamamatsu, Japan) and an 
+Aperio ScanScope AT2 
+scanner (Leica Biosystems, 
+Wetzlar, Germany). 
+GG0: 1925 
+GG1: 1814 
+GG2: 668 
+GG3: 317 
+GG4: 481 
+GG5: 251 
+Pathologists’ 
+annotations. 
+Performed by 
+single 
+experienced 
+pathologist 
+following routine 
+clinical workflow. 
+ 
+ 
+Table S2. NMH cohort, including internal training, validation, and prospective testing sets. 
+ 
+ 
+NMH Internal 
+Training Set 
+NMH Internal 
+Validation Set 
+Prospective Test 
+Set 
+Slides 
+18,990 
+2,406 
+1,737 
+Blocks 
+9,922 
+1,258 
+890 
+Specimens 
+1,019 
+128 
+95 
+Subjects 
+1,019 
+128 
+95 
+ 
+Figure S3.  Modeling approaches. (a) A task-specific encoder based on the EfficientNetB0 network was trained 
+to classify high-power fields using the PANDA dataset. Features from this encoder were used as inputs for block-
+level cancer detection and grading prediction models. (b) We use a dual modeling approach that combines highly 
+specific and highly sensitive models to identify cases where IHC is not required with the goal of improving 
+diagnostic efficiency and cost. 
+ 
+ 
+Figure S4.  ICC color profile correction. (a) Original image, (b) ICC corrected image. 
+ 
+ 
+ 
+ 
+a 
+b 
+Algorithm: Tile indexing 
+Inputs  
+ 
+ 
+ 
+ 
+Output 
+ 
+ 
+Procedure 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+tile coordinates: 𝐶 = {(𝑥', 𝑦') |  𝑖: 1, 2, … 𝑁} ∈ℝ(×*  
+tile indices: 𝐼= {𝑠' | 𝑖: 1, 2, … 𝑁} ∈ℝ(×+  
+features: 𝐹∈ℝ(×, 
+𝑁-: number of slides within the block 
+ 
+adjusted unique coordinates 𝐶. ∈ℝ(×* 
+features are outputted unchangeably. 
+ 
+1. Initialize slide index 𝑗= 0  
+2. Initialize maximum coordinate lists in 𝑥 and y 
+direction: 𝑋= 𝑌= [] 
+3. repeat 
+4.       𝑗 ←𝑗+ 1 
+5.      group tiles by slide: 𝐶/  = {(𝑥', 𝑦') | 𝑠' = 𝑗} 
+6.      𝑋[𝑗] = max{𝑥' | (𝑥', 𝑦') ∈𝐶/} 
+7.      𝑌[𝑗] = max{𝑦' | (𝑥', 𝑦') ∈𝐶/} 
+8.      If 𝑗= 1 then 
+9.           𝐶/ = 𝐶/ 
+10.      else 
+11.           𝐶/ = 𝐶/ + (𝑋[𝑗−1], 𝑌[𝑗−1]) 
+12.     end If 
+13. until 𝑗= 𝑁- 
+ 
+ 
+ 
+Figure S5. Pseudo code of the proposed tile indexing method. 
+ 
+ 
+Figure S6.  Spatially sparse convolutional self-attention operation. (a) SSC-SA Block. (b) Element-wise Self-Attention 
+(ESA). 
+ 
+ 
+Figure S7.  SCT models for block-level prediction. The detection and grading models built using SCT blocks that 
+combine the efficiency of convolutional operations with a novel self-attention method to learn localized spatial and 
+channel-wise relationships. (a) Block-level processing using SCT blocks. (b) Sparse Convolution Transformer (SCT) block. 
+ 
+Table S3.  Architecture of SCT model. 
+Model 
+Layers 
+SCT 
+Stage 1 
+Linear projection 
+linear, 64 
+SSC-SA, SSP 
+Multi-head attention 
+MLP 
+E𝐶: 64,   𝑘: 3 × 3
+𝑝: 3, 𝑠: 3, 𝑛!: 4 N × 1 
+gelu , 128 
+Stage 2 
+ 
+Linear projection 
+linear, 64 
+SSC-SA, SSP 
+Multi-head attention 
+MLP 
+E𝐶: 64,   𝑘: 3 × 3
+𝑝: 3, 𝑠: 3, 𝑛!: 4 N × 1 
+gelu , 128 
+Stage 3 
+ 
+Linear projection 
+linear, 128 
+SSC-SA, SSP 
+Multi-head attention 
+MLP 
+E𝐶: 128,   𝑘: 3 × 3
+𝑝: 3, 𝑠: 3, 𝑛!: 4 N × 1 
+gelu , 128 
+ 
+Linear projection 
+linear, 128 
+Stage 4 
+ 
+SSC-SA, SSP 
+Multi-head attention 
+MLP 
+E𝐶: 128,   𝑘: 3 × 3
+𝑝: 3, 𝑠: 3, 𝑛!: 4 N × 1 
+gelu , 128 
+Parameters 
+1.38 M 
+Flops 
+863694 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure S8. Delineation of carcinoma for four sample whole slide images of NMH testing dataset. (a) overlay of 
+carcinoma on three whole slides. (b) Zoomed-in regions of interest (ROIs). (c) Corresponding carcinoma and benign 
+tiles. 
+ 
+Figure S9. Pareto plot comparing inference time, parameter count, and AUC for the UNI and TSE encoders. The 
+TSE exhibits approximately 50 times fewer parameters and achieves four times faster inference while maintaining 
+comparable cancer detection performance (UNI: 98.7 AUC, TSE: 98.5 AUC). 
+a 
+b 
+c 
+ 
+ 
+Figure S10. Cancer detection performance comparison. DeLong’s test was used to determine the statistical 
+significance, where significance levels were denoted by asterisks * for p < 0.05, ** for 0.01, and *** for p < 0.001. (a) 
+AUCs obtained by SCT, ViT and ABMIL models with TSE and UNI. (b) Specificity at 95% sensitivity achieved by the 
+models with the task-specific and UNI encoders.   
+ 
+ 
+ 
+ 
+ 
+ 
+Figure S11. T-SNE visualization of class separation from block-level feature embeddings.  
+Table S4. Performance comparison of the SCT, ViT, and ABMIL models with UNI and task-specific encoders.  
+Model 
+SCT 
+ABMIL 
+ViT 
+Encoder 
+Task-spec. 
+Uni 
+Task-spec. 
+Uni 
+Task-spec. 
+Uni 
+True positives (TPR) 
+209 (95.0) 
+211 (95.9) 
+209 (95.0) 
+204 (92.7) 
+211 (95.9) 
+205 (93.2) 
+True negatives (TNR) 
+655 (97.8) 
+653 (97.5) 
+642 (95.8) 
+646 (96.4) 
+637 (95.0) 
+653 (97.5) 
+False positives (FPR) 
+15 (2.2) 
+17 (2.5) 
+28 (4.2) 
+24 (3.6) 
+33 (5.0) 
+17 (2.5) 
+False negatives (FNR) 
+11 (5.0) 
+9 (4.0) 
+9 (4.0) 
+16 (7.2) 
+9 (4.0) 
+15 (6.8) 
+ 
+ 
+ 
+Figure S12. Performance of dual models for IHC screening. (a) TPR and FPR against the threshold for the specific 
+model. (b) TNR and FNR against the threshold for the sensitive model. 
+ 
+ 
+Figure S13. Gleason grading performance comparison. (a) AUCs of primary and secondary patterns prediction 
+obtained by SCT, ViT and ABMIL models with the task-specific and UNI encoders. (b) Quadratic Cohen’s kappa values 
+of primary and secondary patterns achieved by the models with the task-specific and UNI encoders. 
+ 
+ 
+   
+ 
+ 
+ 
+ 
+ 

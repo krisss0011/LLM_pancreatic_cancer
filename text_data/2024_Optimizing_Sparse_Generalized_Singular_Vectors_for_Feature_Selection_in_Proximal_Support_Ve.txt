@@ -1,0 +1,1245 @@
+Optimizing Sparse Generalized Singular Vectors for Feature Selection in Proximal Support
+Vector Machines with Application to Breast and Ovarian Cancer Detection
+Ugochukwu O. Ugwu∗1 and Michael Kirby2
+1Department of Electrical and Computer Engineering, Tufts University, Medford, MA 02155, USA
+2Department of Mathematics, Colorado State University, CO 80523, USA
+Abstract
+This paper presents approaches to compute sparse solutions of Generalized Singular Value
+Problem (GSVP). The GSVP is regularized by ℓ1-norm and ℓq-penalty for 0 < q < 1, result-
+ing in the ℓ1-GSVP and ℓq-GSVP formulations. The solutions of these problems are determined
+by applying the proximal gradient descent algorithm with a fixed step size. The inherent spar-
+sity levels within the computed solutions are exploited for feature selection, and subsequently,
+binary classification with non-parallel Support Vector Machines (SVM). For our feature se-
+lection task, SVM is integrated into the ℓ1-GSVP and ℓq-GSVP frameworks to derive the
+ℓ1-GSVPSVM and ℓq-GSVPSVM variants. Machine learning applications to cancer detection
+are considered. We remarkably report near-to-perfect balanced accuracy across breast and
+ovarian cancer datasets using a few selected features.
+Key words: binary classification, data integration, feature selection, machine learning, opti-
+mization, sparse generalized singular vectors, support vector machine, regularization
+1
+Introduction
+We are concerned with the iterative solutions of large-scale minimization problem
+min
+zi∈Rm
+∥Aizi∥2
+2
+∥Ajzi∥2
+2
+,
+i, j ∈{1, 2},
+i ̸= j,
+(1.1)
+where A1 ∈Rℓ×m, and A2 ∈Rp×m. We will refer to (1.1) as the Generalized Singular Value Problem
+(GSVP). Problems of this kind were first considered in [7], and referred to as the variational
+formulation of the Generalized Singular Value Decomposition [11, GSVD]. Here, we are interested
+in the extrema of the objective function in (1.1).
+In contrast to [7], our goal in this paper is to determine sparse solutions of (1.1) for ℓ≥p ≫m
+and m ≫ℓ≥p. In both situations, zi, i = 1, 2, are approximations of the generalized singular
+vectors corresponding to the smallest and largest generalized singular values of the GSVD of
+Ai and Aj. We will exploit inherent sparsity levels in the computed solutions to carry out feature
+(gene) selection, and subsequently, perform binary class classification using non-parallel or proximal
+support vector machines [19].
+We begin with the overdetermined case, where ℓ≥p ≫m. Without loss of generality, let i = 1
+and j = 2. Then the GSVD [11] of A1 and A2 is defined by
+U T
+1 A1X = diag[α1, α2, . . . , αm],
+U T
+2 A2X = diag[β1, β2, . . . , βm],
+(1.2)
+where U1 ∈Rℓ×ℓand U2 ∈Rp×p are orthogonal matrices, and their columns correspond to the left
+generalized singular vectors of A1 and A2, respectively. Throughout this paper, the superscript T
+denotes transposition.
+The square matrix, X = [x1, x2, . . . , xm] ∈Rm×m, is nonsingular, and is shared by A1 and A2.
+The column vectors, xk, k = 1, 2, . . . , m, are referred to as the right generalized singular vectors of
+A1 and A2. They satisfy:
+β2
+kAT
+1 A1xk = α2
+kAT
+2 A2xk,
+k = 1, 2, . . . , m,
+(1.3)
+∗Corresponding author: Ugochukwu.Ugwu@tufts.edu, uugobinnah@gmail.com
+arXiv:2410.03978v1  [cs.LG]  4 Oct 2024
+where the ratios {α1/β1, α2/β2, . . . , αm/βm} are the generalized singular values of the matrix pair
+{A1, A2} such that α2
+k + β2
+k = 1,
+k = 1, 2, . . . , m. The smallest generalized singular values of
+{Ai, Aj} are the stationary values of (1.1), and the corresponding right singular vectors are the
+stationary vectors [11].
+An advantage of the GSVP is that it eliminates the need to form symmetric matrices, AT
+1 A1
+and AT
+2 A2 [11]. This is particularly beneficial for large-scale problems, with more columns than
+rows (ℓ≥p ≫m), as often encountered in biological settings, such as gene expression studies,
+where computing both matrix-matrix products is quite prohibitive, and moreso, impractical even
+with enormous computational power. However, when explicit formation of AT
+1 A1 and AT
+2 A2 can
+be afforded, and the denominator of (1.1) is positive definite, we may refer to (1.1) as the Gener-
+alized Eigenvalue Problem (GEP); see [24]. In this case, the solutions of (1.1) correspond to the
+generalized eigenvectors associated with the smallest generalized eigenvalues, λi of {AT
+i Ai, AT
+j Aj},
+i, j ∈{1, 2}, i ̸= j.
+The connections between the GSVP and GEP are straightforward to establish [11] for ℓ≥
+p ≫m. This follows, since the generalized eigenvalues of {AT
+1 A1, AT
+2 A2} are the square of the
+generalized singular values of {A1, A2}, i.e., λk = α2
+k/β2
+k, k = 1, 2, . . . , m. Moreover, the right
+generalized singular vectors of {A1, A2} are the generalized eigenvectors of {AT
+1 A1, AT
+2 A2}.
+When m ≫ℓ≥p, the minimization problem (1.1) is underdetermined. Therefore, establishing
+a connection between the GSVP and GEP becomes very challenging. This is due to the non-
+uniqueness of the solutions of (1.1). Specifically, (1.1) can have infinitely many solutions since
+N(Ai) ∩N(Aj) ̸= 0, where N(M) is the null space of the matrix M and 0 is the zero vector [14].
+This makes determining accurate and stable optimal solutions of (1.1) that are less sensitive to
+noise and errors in the data matrices infeasible.
+To remedy the challenges associated with solving (1.1), we introduce regularization by replacing
+(1.1) with nearby problems that can be solved stably. This leads to the following regularized
+problems:
+min
+zi∈Rm
+∥Aizi∥2
+2
+∥Ajzi∥2
+2
++ δi∥zi∥1,
+i, j ∈{1, 2},
+i ̸= j,
+(1.4)
+where δi is the regularization parameter that influences the accuracy and stability of the solutions
+of (1.1). It is well known that different values of δi have varying impact on the solutions of (1.1),
+and the optimal parameter choices depend on the data matrices and applications of interest. Here
+and below, we will refer to the first and second terms in (1.4) as the fidelity and regularization
+terms, respectively.
+We also will refer to the minimization problems (1.4) as the ℓ1-GSVP. The use of ℓ1-norm in
+(1.4) is to promote sparsity in the computed (approximate) generalized singular vectors. As such,
+only the non-zero elements of zi are utilized for feature selection. The sparsity enhancing property
+of ℓ1 penalty has been widely adopted in the literature; see, e.g., [31, 5], but the novelty of our
+contributions lie in its application in the context of (1.4).
+It is the purpose of this paper to develop new strategies for computing sparse solutions of
+(1.1), and then discuss how sparsity in the computed solutions can be exploited to carry out
+feature selection and binary classification tasks. In our specific applications, such as microarray
+data analysis, the number of non-zero elements in the solutions of (1.4) directly correspond to
+the most relevant and informative genes in A1 and A2, while genes associated with “near-zero”
+coefficients are considered irrelevant or redundant. When the solutions of (1.4) are very sparse,
+only a small number of features will be selected. This drastically reduces the dimensionality of the
+data matrices, resulting in improved robustness to noise, as well as the accuracy and efficiency of
+subsequent analyses, such as breast and ovarian cancer classification.
+The GSVD (without ℓ1 penalty) has been extensively employed for gene selection purposes
+in the literature; see, e.g., [1, 3]. In particular, a gene shaving [16] approach described in [3]
+focuses on selecting the most variant genes across several cancer cell lines and tumor samples.
+This method iteratively projects each gene onto a chosen projection direction determined by the
+generalized singular values. Then progressively shaves off the least variant group of genes with the
+smallest positive and negative projection scores. It is noteworthy that the utilization of the GSVD
+projections in a non-iterative manner, for gene selection and simultaneous low-rank reconstruction
+of gene expression datasets, was first proposed in [1]. An extension of this idea to higher-order
+GSVD for gene selection is presented in, e.g., [26, 22].
+2
+We are also interested in computing approximate solutions of (1.1) with a greater degree of
+sparsity than in (1.4). This is motivated by our desire to determine a parsimonious set of predictive
+features (genes) that will provide better insight into the biological mechanism at play in the host
+response to infections. To achieve this, we will regularize (1.1) with the ℓq-norm for 0 < q < 1.
+This results in the minimization problems
+min
+zi∈Rm
+∥Aizi∥2
+2
+∥Ajzi∥2
+2
++ δi∥zi∥q
+q,
+i, j ∈{1, 2},
+i ̸= j,
+0 < q < 1,
+(1.5)
+where
+∥y∥q =
+ m
+X
+i=1
+|yi|q
+!1/q
+,
+y = [y1, y2, . . . , ym]T ∈Rm.
+Unless otherwise stated, |y| denotes the absolute value of y ∈R.
+The quantity ∥y∥q is referred to as the ℓq-norm of y. For 0 < q < 1, the mapping y 7→∥y∥q is
+not a norm since the triangle inequality is not satisfied. Nevertheless, this is of interest since the
+ℓq-norm for 0 < q < 1 tends to “shrink” entries of y more rapidly to zero and can be more robust
+to outliers than the ℓ1-norm. We will refer to the minimization problems (1.5) as the ℓq-GSVP.
+The ℓq-GSVP allows for q to be flexibly adjusted to attain a desired sparsity level in the computed
+solutions. Thus, different levels of sparsity can be adapted to different datasets; see, e.g., [30, 29]
+for applications of ℓq-norm in a closely related context.
+We note that the minimization problems (1.1) and (1.4) are non-convex optimization problems.
+While (1.1) is differentiable, its regularized counterparts in (1.4) and (1.5) are non-differentiable.
+This is due to the presence of ℓq penalty terms for 0 < q ≤1; see [32, 12] for related discussions
+when q = 1. The main drawback for 0 < q < 1 is that the minimization problems (1.5) are
+purely non-convex, whereas (1.4) have both non-convex and convex parts. In these situations, our
+objective functions have differentiable and non-differentiable parts. Thus, optimization algorithms,
+such as Proximal Gradient Descent (PGD), can be applied to determine approximate solutions of
+(1.1) and (1.5) that are sparse; see, e.g., [23, 2] for discussions.
+We remark that application of PGD to (1.4) and (1.5) provides the ℓ1-PGD-GSVP and ℓq-
+PGD-GSVP methods, respectively. In the ℓq-PGD-GSVP method, ∥zi∥q
+q is first approximated by
+a weighted ℓ2-norm, then the PGD algorithm applied to solve the resulting problems. Details of
+these methods will be provided in Sections 2 and 3.
+Our major contributions in this paper are as follows:
+1. We develop novel algorithms that apply the PGD to compute sparse generalized singular
+vectors associated with the smallest generalized singular values of the matrix pairs in (1.1).
+This leads to the ℓq-PGD-GSVP method for 0 < q ≤1.
+2. We integrate Support Vector Machines [8, SVM] into the ℓq-PGD-GSVP framework to carry
+out dimensionality reduction and feature selection in high-dimensional feature space, such as
+gene expression dataset associated with ovarian cancer. The resulting sparse technique will be
+referred to as the ℓq-PGD-GSVPSVM method. We mention that SVM has a well-established
+history in the analysis of gene expression data; see, e.g., [15, 21, 10, 4], and the incorporation
+of SVM into the framework of (1.1) was first proposed in [19]; see Section 4 for details.
+3. Finally, we discuss the binary classification of breast and ovarian cancer datasets described
+in Section 5, Table 1, with proximal SVM. The classification process uses a parsimonious
+set of features selected by the ℓ1-PGD-GSVPSVM and ℓq-PGD-GSVPSVM methods; see
+Algorithm 3. Different choices of q are adapted to select a broad range of features from
+each dataset. The ℓ0.1-PGD-GSVPSVM method is quite competitive and results in 100%
+classification accuracy with ovarian cancer dataset. This result is consistent with the most
+recent baseline accuracy in the literature; see, e.g., [9]. Moreover, the superiority of ℓ0.1-PGD-
+GSVPSVM method lies in its ability to select the least number of informative genes. Overall,
+our approaches are seen to handle imbalanced data effectively.
+In the following subsection, we will explore relevant literature that focuses on the application
+of SVM in the context of (1.1).
+3
+1.1
+A Review of Related Methods
+To the best of our knowledge, we are the first to develop and apply the ℓq-PGD-GSVPSVM
+framework for the solutions of (1.4) and (1.5). However, the integration of SVM into the generalized
+Rayleigh quotients (1.1) is not new. The idea was first proposed in a seminal work by Mangasarian
+and Wild [19] and referred to as the Generalized Eigenvalue Proximal SVM (GEPSVM).
+The GEPSVM regularizes the numerator of (1.1) with a squared ℓ2-norm. This shifts the
+spectrum of AT
+i Ai in (1.3) by δiI, where I is an identity matrix of compatible size. The solutions
+of the GEPSVM determine two non-parallel separating hyperplanes for binary classification tasks
+while the GEPSVM demands that each hyperplane be closest to the samples of one class and
+further from the samples of the other class. The classification of new input data depends on their
+proximity to either of the hyperplanes.
+Several different formulations of the GEPSVM have been described in the literature; see, e.g.,
+[30, 33, 18, 6, 32, 12, 28, 27] and references therein. In particular, the methods presented in
+[30, 33, 18] replace the ℓ2-norm in (1.1) with the ℓ1-norm, and solve the resulting minimization
+problems iteratively. These methods, commonly referred to as the Non-Parallel Proximal SVM
+(NPSVM), differ from the GEPSVM and the methods described in [6, 32, 12, 28, 27] since they
+do not involve solving a pair of generalized eigenvalue problems. While [18] does not employ
+regularization terms, [30] and [33] introduce ℓq-norm, q > 0, and ℓ2-norm regularization terms,
+respectively, in the numerator of the NPSVM formulation.
+Yet another closely related approach, but again different from our ℓ1-GSVPSVM, is the Regu-
+larized Generalized Eigenvalue Classifier [13, ReGEC] with ℓ1-norm regularization, proposed and
+applied in [32, 12, ℓ1-ReGEC]. The ReGEC-type methods are analogous to the GEPSVM, in
+that, they handle singularity issues that may arise in (1.3), by shifting the spectrum of AT
+i Ai
+and AT
+j Aj by δiAT
+j Aj and δjAT
+i Ai, respectively. One advantage of the ReGEC-type techniques
+over the GEPSVM is that only a single GEP needs to be solved to determine the two separating
+hyperplanes [13].
+Differently from the ℓq-GSVPSVM, 0 < q ≤1, both the GEPSVM and NPSVM incorporate
+regularization terms into the numerator of their fidelity terms. Moreover, the practicability of
+the GEPSVM, NPSVM, and ReGEC approaches is significantly limited due to their enormous
+computational and memory requirements for large-scale problems. Specifically, their reliance on
+computing the generalized eigenvalue decomposition make them less attractive for large-scale prob-
+lems, such as the ovarian cancer classification, where the number of columns, m, greatly exceeds
+the number of rows, ℓand p (m ≫ℓ≥p). We remark that these methods have been seen to
+perform exceptionally well on small-size problems for which ℓ≥p ≫m. Additionally, the ℓ1-norm
+sparse method proposed in [25] for feature selection in high-dimensional datasets requires explicit
+computation of AT
+1 A1 and AT
+2 A2, as well as their Cholesky factorizations.
+The organization of this paper is as follows. Section 2 provides an overview of the PGD algorithm
+and discusses how it can be applied to solve (1.4). This leads to the ℓ1-PGD-GSVP method.
+The ℓq-PGD-GSVP method for the solutions of (1.5) is presented in Section 3. This method
+requires approximating the ℓq-norm for 0 < q < 1 by a weighted ℓ2-norm before applying the PGD
+algorithm. Section 4 focuses on the formulation of the ℓq-GSVPSVM for 0 < q ≤1 and outlines how
+the PGD algorithm is employed to derive the ℓq-PGD-GSVPSVM method. In Section 5, numerical
+experiments with the breast and ovarian cancer datasets are used to illustrate the performance of
+the proposed methods for ℓ≥p ≫m and m ≫ℓ≥p, respectively. Section 6 presents concluding
+remarks.
+2
+The ℓ1-PGD-GSVP method for the solutions of (1.4)
+This section discusses the solution method for (1.4) by applying the Proximal Gradient Descent
+[23, PGD] algorithm, and will be referred to as the ℓ1-PGD-GSVP method. We begin by briefly
+reviewing the PGD algorithm.
+The PGD algorithm can be applied to solve minimization problems of the form
+min
+z∈Rm r(z) + g(z),
+4
+where r : Rm →R is a smooth (convex) function that is differentiable and g : Rm →R is a
+nonsmooth (convex) function that typically incorporates a regularization term. The PGD algorithm
+iteratively alternates between the Gradient Descent (GD) and the proximal steps.
+The GD step at the kth iteration is given by
+y(k) = z(k) −α∇r(z(k)),
+(2.6)
+where α > 0 is a step size that can be fixed or determined at each iteration using the backtracking
+technique; see, e.g., [23, pg. 148] for discussion. The quantity ∇r(z(k)) is the gradient of r at z(k).
+The PGD algorithm computes the gradient of r at each iteration, takes a step in the direction of
+the steepest descent, which is given by −∇r(z(k)), then applies the proximal operator, denoted by
+z(k+1) := proxαg(y(k)), to each iterate y(k), in other to integrate the non-smooth function g into
+the optimization process. The proximal operator is defined by
+proxαg(y(k)) := argmin
+z
+n
+∥z −y(k)∥2
+2 + g(z)
+o
+.
+(2.7)
+The goal of the proximal step (2.7) is to determine a new point z(k+1) that is “close” to y(k). The
+PGD algorithm continues to iterate between the GD and proximal steps until a set convergence
+criterion is met. A notable property of the proximal operator is that z∗is a minimizer of r if and
+only if z∗= proxαg(z∗).
+For the minimization problems in (1.4), we let h(zi) = r(zi) + g(zi), where
+r(zi) = ∥Aizi∥2
+2
+∥Ajzi∥2
+2
+,
+and g(zi) = δi∥zi∥1,
+i, j ∈{1, 2},
+i ̸= j.
+Since r is differentiable, its gradient is given by
+∇r(z(k)
+i
+) =
+2
+∥Ajz(k)
+i
+∥2
+2
+
+AT
+i (Aiz(k)
+i
+) −r(z(k)
+i
+)AT
+j (Ajz(k)
+i
+)
+
+,
+i, j ∈{1, 2},
+i ̸= j.
+(2.8)
+Hence, the GD step (2.6) is expressed as
+y(k)
+i
+= z(k)
+i
+−α∇r(z(k)
+i
+),
+i = 1, 2.
+(2.9)
+The proximal operator that is associated with g(zi) = δi∥zi∥1 is readily expressed as a soft-
+thresholding operator. To see this, consider the explicit form of (2.7) with g(zi) = δi∥zi∥1. Then
+proxαg(y(k)
+i
+) = argmin
+zi
+( m
+X
+l=1
+(zil −y(k)
+il )2 + αδi|zil|
+)
+,
+(2.10)
+where we denote xi ∈Rm as xi := [xi1, xi2, . . . , xil]T , l = 1, 2, . . . , m. Let
+f(zil) =
+m
+X
+l=1
+(zil −y(k)
+il )2 + αδi|zil| =
+m
+X
+l=1
+(zil −y(k)
+il )2 + αδisign(zil)zil,
+where sign(·) is the sign operator. Taking element-wise partial derivative of f with respect to zil > 0
+and zil < 0, and setting the results to zero gives
+zil > 0 :
+zil = y(k)
+il
+−αδi
+2 ,
+and
+zil < 0 :
+zil = y(k)
+il
++ αδi
+2 .
+Thus,
+zil =
+
+
+
+
+
+y(k)
+il
++ αδi
+2 ,
+y(k)
+il
+< −αδi
+2 ,
+0
+−αδi
+2 ≤y(k)
+il
+≤αδi
+2 ,
+y(k)
+il
+−αδi
+2 ,
+y(k)
+il
+> αδi
+2 .
+(2.11)
+Equation (2.11) is a piece-wise representation of zil in terms of y(k)
+il , and it leads to the soft-
+thresholding operator
+z(k+1)
+i
+= sign(y(k)
+i
+) · max
+
+|y(k)
+i
+| −αδi
+2 , 0
+
+, i = 1, 2,
+(2.12)
+5
+where · denotes the usual scalar multiplication.
+The solution method so described is the ℓ1-PGD-GSVP method. Its implementation is carried
+out by Algorithm 1. Lines 6 and 7 of this algorithm represent updates for the GD and proximal
+steps, respectively. Notice that the ℓ1-PGD-GSVP algorithm avoids explicit formation of AT
+1 A1 and
+AT
+2 A2 at each iteration to enhance computational efficiency and minimize storage requirements.
+Algorithm 1: The ℓ1-PGD-GSVP method for the solution of (1.4)
+Input: A1 ∈Rℓ×m, A2 ∈Rℓ×m, α > 0, maxiter, δ1 > 0, δ2 > 0, z(0)
+1 , z(0)
+2
+1 for k = 1 : maxiter do
+2
+k := k −1
+3
+Compute
+r(z(k)
+i
+) = (Aiz(k)
+i
+)T Aiz(k)
+i
+(Ajz(k)
+i
+)T Ajz(k)
+i
+,
+i, j ∈{1, 2},
+i ̸= j
+(2.13)
+4
+Compute ∇r(z(k)
+i
+) by using (2.8)
+5
+Compute y(k)
+i
+by using (2.9)
+6
+Update z(k+1)
+i
+by using (2.12)
+7
+if
+∥h(z(k+1)
+i
+)−h(z(k)
+i
+)∥2
+∥h(z(k)
+i
+)∥2
+< 10−4 then
+8
+break
+9
+end
+10 end
+3
+The ℓq-PGD-GSVP, 0 < q < 1, method for the solutions of (1.5)
+This section describes the ℓq-PGD-GSVP method for the solution of non-convex minimization
+problems (1.5). Our strategy is to first transform (1.5) into equivalent differentiable problems by
+approximating the ℓq-norm with a weighted ℓ2-norm. Thereafter, apply the PGD algorithm to
+solve the resulting problems. The use of weighted ℓ2-norm to approximate ℓq-norm for 0 < q ≤1
+is quite ubiquitous in the literature. Refer to [34] for a recent discussion on the proximal operator
+of the ℓq-norm for 0 ≤q < 1.
+Let zi = [zi1, zi2, . . . , zim]T , and define ϕϵ(zik) :=
+ z2
+ik + ϵ2 1
+2 for ϵ > 0. Then
+∥zi∥q
+q ≈
+m
+X
+k=1
+ z2
+ik + ϵ2(q−2)/2 z2
+ik = zT
+i
+ m
+X
+k=1
+ϕϵ(zik)(q−2)
+!
+zi = zT
+i Dϵ,q(zi)z = ∥D
+1
+2ϵ,q(zi)zi∥2
+2,
+(3.14)
+where
+Dϵ,q(zi) = diag
+
+ϕϵ(zi1)(q−2), ϕϵ(zi2)(q−2), . . . , ϕϵ(zim)(q−2)
+∈Rm×m.
+(3.15)
+Substitution of (3.14) into (1.5) yields the transformed ℓq-regularized problems
+min
+zi∈Rm
+∥Aizi∥2
+2
+∥Ajzi∥2
+2
++ δi∥D
+1
+2ϵ,q(zi)zi∥2
+2,
+i, j ∈{1, 2},
+i ̸= j,
+0 < q < 1.
+(3.16)
+The minimization problems (3.16) are the equivalent versions of (1.5) that are differentiable with
+convex regularization parts. We will follow a similar approach described in Section 2 to derive
+the ℓq-PGD-GSVP method. Here, only the derivation of the proximal step of the ℓq-PGD-GSVP
+method will be presented while the GD step is given by (2.9).
+For a given point z(k)
+i
+, let g(zi) = δi∥D
+1
+2ϵ,q(z(k)
+i
+)zi∥2
+2. Then the approximate solutions of (3.16)
+can be computed as
+z(k+1)
+i
+= argmin
+zi∈Rm
+n
+∥zi −y(k)
+i
+∥2
+2 + αδi∥D
+1
+2ϵ,q(z(k)
+i
+)zi∥2
+2
+o
+,
+i = 1, 2.
+Let s(zi) = ∥zi −y(k)
+i
+∥2
+2 + αδi∥D
+1
+2ϵ,q(z(k)
+i
+)zi∥2
+2. Computing the gradient of s with respect to zi and
+setting the results to zero provides the following update rule for the proximal step:
+z(k+1)
+i
+= (I + αδiDϵ,q(z(k)
+i
+))−1y(k),
+i = 1, 2.
+(3.17)
+6
+Equation (3.17) represent the proximal steps of the ℓq-PGD-GSVP method, which is described by
+Algorithm 2 below. In our implementation of Algorithm 2, the diagonal matrices (I+αδiDϵ,q(z(k)
+i
+))
+and their inverses are not formed or computed explicitly. Rather, (3.17) are cheaply computed as
+element-wise products of two vectors.
+Algorithm 2: The ℓq-PGD-GSVP method for the solution of (1.5)
+Input: A1 ∈Rℓ×m, A2 ∈Rℓ×m, α > 0, maxiter, δ1 > 0, δ2 > 0, z(0)
+1 , z(0)
+2
+1 for k = 1 : maxiter do
+2
+k := k −1
+3
+Compute Dϵ,q(z(k)
+i
+) by using (3.15)
+4
+Compute r(z(k)
+i
+) by using (2.13)
+5
+Compute ∇r(z(k)
+i
+) by using (2.8)
+6
+Compute y(k)
+i
+by using (2.9)
+7
+Update z(k+1)
+i
+by using (3.17)
+8
+if
+∥h(z(k+1)
+i
+)−h(z(k)
+i
+)∥2
+∥h(z(k)
+i
+)∥2
+< 10−4 then
+9
+break
+10
+end
+11 end
+4
+The ℓq-GSVPSVM for 0 < q ≤1
+This section describes the integration of the SVM framework into the ℓq-GSVP for 0 < q ≤1 (cf.
+(1.4) and (1.5)). The resulting problems will be referred to as the ℓq-GSVPSVM, 0 < q ≤1, where
+q = 1 refers to both weighted and unweighted ℓ1 penalty.
+Let A1 ∈Rℓ×m represent a training dataset of interest with n1 (Class 0) samples, and n2 (Class
+1) samples, in that order, such that ℓ= n1 + n2. Suppose the class matrices, C1 ∈Rn1×m and
+C2 ∈Rn2×m, represent all the training data points from A1 that correspond to Class 0 and Class
+1, respectively.
+Also, let
+˜C1 := [C1 e1] ∈Rn1×(m+1) and
+˜C2 := [C2 e2] ∈Rn1×(m+1),
+(4.18)
+where e1 ∈Rn1 and e2 ∈Rn2 are vectors of ones. Then the ℓq-GSVPSVM for 0 < q ≤1 can be
+formulated as
+min
+˜wi∈Rm
+∥˜Ci ˜wi∥2
+2
+∥˜Cj ˜wi∥2
+2
++ δi∥˜wi∥q
+q,
+i, j ∈{1, 2},
+i ̸= j, 0 < q ≤1.
+(4.19)
+Notably, the use of the ℓq penalty in (4.19) distinguishes our work from [19] and others described
+in the literature. The vectors ˜w1 and ˜w2 determine two non-parallel separating hyperplanes:
+xT w1 + b1 = 0,
+and
+xT w2 + b2 = 0,
+w1, w2 ∈Rm,
+(4.20)
+where b1, b2 ∈R are the bias terms; and the vectors w1 and w2 represent the normal to their
+respective hyperplane. The first hyperplane in (4.20) is closest to the samples of Class 0 and furthest
+from the samples of Class 1 while the second hyperplane is closest to the samples of Class 1 and
+furthest from the samples of Class 0. We will apply the PGD algorithm to solve the ℓq-GSVPSVM
+(4.19). This leads to the ℓq-PGD-GSVPSVM methods, for 0 < q ≤1. The performance of these
+methods will be illustrated in Section 5. Note that when Algorithm 1 is employed to compute
+the solutions of (4.19) for q = 1, we will refer to the resulting method as the ℓ1-PGD-GSVPSVM
+method.
+Analogously to [30, 33, 18, 6, 19, 13, 32, 12, 28, 27], we will utilize w1 and w2 to define a
+proximal classifier that exploits the sparsity levels in both weights to carry out feature selection and
+binary classification. Specifically, w1 and w2 are first arranged in descending order of magnitude
+to obtain the vectors ˆw1 and ˆw2. The near-zero coefficients of ˆw1 and ˆw2 correspond to the less
+informative features, while the most significant non-zero elements indicate more relevant features.
+7
+Once the most relevant features have been identified, a proximal SVM classifier is employed for
+binary classification. A new sample point x is classified to either Class 1 or Class 0 by using
+Class(x) :=
+(
+0
+if |xT w1+b1|
+∥w1∥2
+≤|xT w2+b2|
+∥w2∥2
+1
+if otherwise.
+(4.21)
+Note that the non-zero coefficients of ˆw1 and ˆw2 with the highest magnitude correspond to the
+top features in C1 and C2, while features that are associated with the near-zero coefficients of ˆw1
+and ˆw2 are discarded. This process of eliminating the less informative features leads to reduction
+in dimensions of the feature spaces of C1 and C2. The entire procedure so described is summarized
+by Algorithm 3 below.
+Algorithm 3: The ℓq-PGD-GSVPSVM, 0 < q ≤1, method for feature selection and
+binary classification
+Input: A1 :=
+C1
+C2
+
+, A2 :=
+ ˆC1
+ˆC2
+
+, where Ci ∈Rni×m and ˆCi ∈Rˆni×m, i = 1, 2, are class
+matrices, and A1 and A2 are the training and validation data matrices. ni, ˆni
+denote the number of class samples, and m is the number of features in each class
+1 Solve the minimization problems (4.19) for ˜w1 and ˜w2 by using Algorithms 1 and 2,
+respectively, with ˜C1 ∈Rn1×(m+1) and ˜C2 ∈Rn2×(m+1) defined by (4.18)
+2 Set ˜w1 := [wT
+1 b1]T and ˜w2 := [wT
+2 b2]T
+3 Sort w1 and w2 in descending order of magnitude, and denote the sorted analogues as ˆw1
+and ˆw2. Let the rank indices associated with ˆw1 and ˆw2 be denoted by R1 and R2,
+respectively
+4 Plot ˆw1 and ˆw2 on the same graph to determine the elbow points, (x1, y1) and (x2, y2),
+respectively
+5 Denote the first x1 and x2 indices in R1 and R2 as R1(x1) and R2(x2), respectively
+6 Set entries of w1 and w2 to zero if that do not have corresponding indices in R1(x1) and
+R2(x2), respectively
+7 Use (4.21) to classify the samples in A2
+5
+Numerical Experiments
+In this section, all computations are carried out on a Dell computer running Windows 11 with 13th
+Gen Intel(R) Core(TM) i9-13900H @ 2.60GHz and 64 GB RAM. The ℓq-PGD-GSVPSVM methods
+are implemented and analyzed using Jupyter Notebook running on VSCode. For reproducibility of
+the results presented herein, we set random state = 42. The implementation of the methods can be
+found https://github.com/Obinnah/Sparse-GSVP/blob/main/gsvp/demos/gsvp-demo.ipynb
+We will compute sparse solutions of the ℓq-GSVPSVM (cf. (4.19)) by applying Algorithms 1
+and 2. Then utilize the computed solutions for feature selection and binary classification purposes.
+5.1
+Datasets
+The performance of the ℓq-PGD-GSVPSVM, 0 < q ≤1, methods for ℓ≫m and m ≫ℓwill be
+examined using the Breast Cancer and Ovarian Cancer datasets, respectively.
+The breast cancer dataset has fewer attributes than observations, and thus, corresponds to the
+situation where ℓ≫m, i.e., there are far more samples ℓthan features m. For this dataset, we will
+focus on accurately classifying benign and malignant breast cancer subjects.
+The ovarian cancer dataset consists of transcriptional gene expression from ovarian cancer
+screening. This dataset has significantly more genes m than samples ℓ, i.e., m ≫ℓ, and it involves
+classifying normal and cancer subjects. While the breast cancer dataset can be found on www.
+kaggle.com, the ovarian cancer dataset can be downloaded from https://csse.szu.edu.cn/
+staff/zhuzx/Datasets.Html.
+Table 1 presents a detailed description of the datasets, highlighting random splits of the class
+samples. Specifically, 70% of the class samples are used for training, and the remaining 30% are
+8
+Dataset
+Size (ℓ× m)
+Class
+Training Samples
+Validation Samples
+Test Samples
+Breast Cancer
+569 × 30
+Benign
+249
+64
+44
+Malignant
+148
+38
+26
+Ovarian Cancer
+253 × 15154
+Normal
+63
+19
+9
+Cancer
+113
+34
+15
+Table 1: Description of the datasets for numerical experiments
+split into validation and test sets in the ratio of 60 : 40 for the breast cancer dataset and 70 : 30 for
+the ovarian cancer dataset. The validation set is used to determine the model parameters below.
+5.2
+Evaluation Metrics
+The evaluation metric for the ℓq-PGD-GSVPSVM methods is the Balanced Accuracy (Bal. Acc.).
+This metric is well-suited for datasets with imbalanced classes and is defined by
+Balanced Accuracy := 1
+2
+
+TP
+TP + FN +
+TN
+TN + FP
+
+= Recall + Specificity
+2
+,
+where the True Negative (TN) represents the number of C1 or ˆC1 (cf. Algorithm 3) samples that
+are correctly classified, and True Positive (TP) represents the number of C2 or ˆC2 (cf. Algorithm 3)
+samples that are correctly classified. Furthermore, False Positive (FP) corresponds to the number of
+incorrectly classified C1 or ˆC1 samples, while False Negative (FN) denotes the number of incorrectly
+classified C2 or ˆC2 samples. Note that
+Precision :=
+TP
+TP + FP
+To measure the stability of the selected set of features across different q, we compute the Avg.
+Jaccard Similarity Index (JSI), where for any two sets S1 and S2, the JSI is defined as
+JSI(S1, S2) := |S1 ∩S2|
+|S1 ∪S2|,
+where |S| denotes the cardinality of a set S. Define Sq := {S1, S2, . . . , SN}, and let the subsets Si,
+i = 1, 2, . . . , N, denote the set of features selected for each q. Then the Avg. JSI is given by
+Total JSI
+ N
+2
+
+=
+2 P
+1≤i,j≤N JSI(Si, Sj)
+(N −2)!
+,
+i ̸= j.
+An Avg. JSI of 1 indicates strong similarity among the subsets of features associated with each q.
+However, an Avg. JSI close to zero indicates weak similarity among subsets of features in Sq.
+5.3
+Model Parameters
+Unless otherwise stated, the model parameters for the ℓ1-PGD-GSVPSVM, and ℓq-PGD-GSVPSVM,
+0 < q ≤1, methods are as follows:
+1. The algorithms are terminated once a set convergence criterion (cf. step 8, Algorithm 1) is met
+or the maximum number of iterations (maxiter) is reached. Here, we set maxiter = 10, 000
+and remark that the maxiter can affect the accuracy of the methods as well as the number
+of features selected.
+2. The regularization parameters, δ1 and δ2, are determined using grid search over the intervals
+[10−4, 1] and [2 · 10−4, 1], respectively.
+3. The step size, α, is determined using grid search over the set
+β · {10−0.5, 10−1, 10−1.5, 10−2, 10−2.5, 10−3, 10−3.5},
+β > 0.
+9
+Table 2 shows the model parameters determined for the ℓq-PGD-GSVPSVM methods. The best
+parameters are expected to result in sparse solutions, i.e., solutions with steep slopes characterized
+by non-oscillating objective function values and relative errors (cf. Figure 1 below). Generally, the
+methods drive the solutions to near zero, but the induced sparsity level and the observed steep
+slopes may depend on q and other parameters, such as ϵ, step size, and maxiter. Below, we examine
+the sensitivity of the computed solutions to q and ϵ using the ovarian cancer dataset.
+Method
+Dataset
+δ1
+δ2
+α
+ℓ1-PGD-GSVPSVM
+Breast Cancer
+20627
+23750
+20627
+23750
+10−3
+Ovarian Cancer
+2259
+47500
+2259
+47500
+4 · 10−3
+ℓq-PGD-GSVPSVM, q = 1
+Breast Cancer
+3 · 10−1
+4 · 10−1
+3 · 10−3
+Ovarian Cancer
+3 · 10−3
+3 · 10−3
+10−0.5
+ℓ0.1-PGD-GSVPSVM
+Breast Cancer
+2 · 10−2
+2 · 10−2
+2.5 · 10−3
+Ovarian Cancer
+6 · 10−2
+6 · 10−2
+10−0.5
+Table 2: Model parameters.
+5.4
+The Sensitivity of the Solutions to q
+Consider q := {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1} and take ϵ = 10−2.5. We demonstrate with
+the ovarian cancer dataset that smaller values of q often result in sparser solutions than larger
+values of q. Specifically, Figure 1 shows that the solutions determined by the ℓq-PGD-GSVPSVM
+method for q = 0.2 have steeper slopes than those of q = 0.9. This behavior is consistent with
+other values of q. Analogously, Figure 2 shows that the ℓ1-PGD-GSVPSVM method also promote
+sparsity in the computed solutions.
+Figure 1: The ℓq-PGD-GSVPSVM method yields sparser solutions for q = 0.2 than q = 0.9.
+5.5
+The Sensitivity of Feature Selection to q and ϵ
+The feature selection process is delineated in steps 3-6 of Algorithm 3. This process proceeds by
+first sorting the weights, w1 and w2, in descending order of magnitude, then subsequently, plots
+10
+Figure 2: The ℓ1-PGD-GSVPSVM method promote sparsity in the computed solutions.
+the sorted weights to identify the elbow points, as depicted in Figures 1 and 2. A python library
+called Knee Finder1 is employed to determine the elbow points. The determined elbow points in
+Figures 1 and 2, represent the maximum distance from a line that connects the first and last points
+of each curve. The number of informative features selected for each q, corresponds to the smallest
+x-coordinate of the elbow points.
+Figure 3: The number of features selected for different q values with ϵ = 10−2.5 (left), ϵ = 10−2 (middle)
+and ϵ = 10−1.5 (right).
+Figure 3 shows that the smaller the q, the smaller the number of features (genes) selected. This
+trend is consistent across different choices of ϵ considered in Figure 3. Moreover, larger ϵ values
+tend to result in fewer number of features than smaller ϵ values. We report Avg. JSI of 0.6976,
+0.6303, and 0.4260 for the ℓq-PGD-GSVPSVM, 0 < q ≤1, method with ϵ = 10−1.5, ϵ = 10−2, and
+ϵ = 10−2.5, respectively. These results suggest that the selected features across different q exhibit
+greater similarity when ϵ = 10−1.5 is used, compared to ϵ = 10−2 and ϵ = 10−2.5.
+5.6
+Model Performance on Sequestered Test Set
+We examine the performance of the ℓ1-PGD-GSVPSVM, and ℓq-PGD-GSVPSVM, 0 < q ≤1,
+methods for ℓ≫m and m ≫ℓ. For simplicity, we consider q = 0.1 and q = 1 for weighted
+and unweighted ℓ1 penalty. The training and validation processes are carried out by Algorithm 3,
+alongside Algorithms 1 and 2, respectively.
+5.6.1
+Case 1: ℓ≫m
+We analyze the breast cancer dataset, which contains more samples ℓthan features m. Figure 4
+illustrates that the weights determined by the ℓ0.1-PGD-GSVPSVM method are sparse. Table 3
+presents the elbow points and selected features corresponding to the ℓ1-PGD-GSVPSVM and ℓq-
+PGD-GSVPSVM (q = 0.1 and q = 1) methods. These methods select 7, 8 and 10 unique features,
+respectively. The selected features include those determined to be exclusive and common to the
+weights, w1 and w2. For the breast cancer dataset, the elbow points of w1 and w2 identify the
+most significant features for the benign and malignant cancer classes, respectively.
+The most informative features corresponding to both classes are displayed in Figure 5 for the ℓ1-
+PGD-GSVPSVM, ℓ0.1-PGD-GSVPSVM, and ℓq-PGD-GSVPSVM (q = 1) methods. The selected
+features in Figure 5, with the exclusion of smoothness worst and area se, are subsets of the 18
+most significant features for breast cancer diagnosis presented in [20] using a modified recursive
+1https://pypi.org/project/kneefinder/
+11
+feature elimination approach. Using 18 features, [20] achieved a 99% classification accuracy, and
+with only 7 features, they achieved 96% accuracy.
+Table 4 presents the classification results for the breast cancer dataset on a sequestered test
+set. The ℓ1-PGD-GSVPSVM method yields a balanced accuracy of 96.15% with only 7 features,
+which is 1.13% higher than those of the ℓq-PGD-GSVPSVM method for q = 0.1 and q = 1.
+Figure 4: The solutions of the ℓq-PGD-GSVPSVM method for q = 0.1.
+Dataset
+Methods
+Elbow Points
+Features Selected
+w1
+w2
+w1 (Excl.)
+w2 (Excl.)
+w1/w2 (Common)
+Breast Cancer
+ℓ1-PGD-GSVPSVM
+4
+4
+3
+3
+1
+ℓq-PGD-GSVPSVM (q = 1)
+7
+3
+7
+3
+0
+ℓ0.1-PGD-GSVPSVM
+5
+3
+5
+3
+0
+Ovarian Cancer
+ℓ1-PGD-GSVPSVM
+67
+42
+60
+35
+7
+ℓq-PGD-GSVPSVM (q = 1)
+101
+94
+83
+76
+18
+ℓ0.1-PGD-GSVPSVM
+2
+2
+2
+2
+0
+Table 3: The elbow points and features selected by the weights of the ℓ1-PGD-GSVPSVM, and ℓq-PGD-
+GSVPSVM methods for q = 0.1 and q = 1.
+Dataset
+Methods
+Bal. Acc.
+Specificity
+Recall
+Precision
+TN
+FP
+FN
+TP
+Breast Cancer
+(Validation)
+ℓ1-PGD-GSVPSVM
+98.68
+100
+97.37
+100
+64
+0
+1
+37
+ℓq-PGD-GSVPSVM (q = 1)
+98.68
+100
+97.37
+100
+64
+0
+1
+37
+ℓ0.1-PGD-GSVPSVM
+96.59
+98.44
+94.74
+97.30
+63
+1
+2
+36
+Breast Cancer
+(Test)
+ℓ1-PGD-GSVPSVM
+96.15
+100
+92.31
+100
+44
+0
+2
+24
+ℓq-PGD-GSVPSVM (q = 1)
+95.02
+97.73
+92.31
+96.00
+43
+1
+2
+24
+ℓ0.1-PGD-GSVPSVM
+95.02
+97.73
+92.31
+96.00
+43
+1
+2
+24
+Table 4: Classification reports for breast cancer dataset.
+5.6.2
+Case 2: m ≫ℓ
+Here, we demonstrate the effectiveness of the ℓ1-PGD-GSVPSVM, ℓ0.1-PGD-GSVPSVM, and ℓq-
+PGD-GSVPSVM (q = 1) methods on ovarian cancer dataset, which has significantly more genes
+m than samples ℓ.
+Figure 6 illustrates that weights determined by these methods are sparse, with the ℓ0.1-PGD-
+GSVPSVM method resulting in sparser weights than the other methods considered. Table 3 shows
+that the ℓ0.1-PGD-GSVPSVM method selects 4 genes while ℓ1-PGD-GSVPSVM and ℓq-PGD-
+GSVPSVM (q = 1) methods yield 102 and 177 informative genes, respectively. The most significant
+genes selected by these methods are displayed in Figure 7. Among the top 20 genes selected by
+the ℓ1-PGD-GSVPSVM and ℓq-PGD-GSVPSVM (q = 1) methods, 14 genes are consistent with
+the top genes selected in [9] by using filter-based methods, namely, chi-squared, F-statistic, and
+mutual information.
+The last two columns of Figure 6 illustrate the discriminating power of the selected features.
+The fourth column of Figure 6 shows the two-dimensional Principal Component Analysis [17, PCA]
+embedding of the ovarian cancer dataset using all the genes. The PC plots with the selected genes
+12
+Figure 5: Top breast cancer features corresponding to the ℓ1-PGD-GSVPSVM (top), and ℓq-PGD-
+GSVPSVM methods for q = 0.1 (middle) and q = 1 (bottom).
+are displayed in the last column of Figure 6 for the different methods. We see from Figure 6 that
+the selected genes can separate normal and cancer classes into distinct blobs in low-dimensional
+subspaces.
+Figure 6: The solutions of the ℓ0.1-PGD-GSVPSVM, ℓq-PGD-GSVPSVM (q = 1), and ℓ1-PGD-GSVPSVM
+methods with PCA plots.
+13
+Figure 7: Top ovarian cancer genes corresponding to the ℓ0.1-PGD-GSVPSVM (top), and ℓq-PGD-
+GSVPSVM, q = 1 (middle) and ℓ1-PGD-GSVPSVM (bottom) methods.
+Dataset
+Methods
+Bal. Acc.
+Specificity
+Recall
+Precision
+TN
+FP
+FN
+TP
+Ovarian Cancer
+(Validation)
+ℓ1-PGD-GSVPSVM
+97.06
+100
+94.12
+100
+19
+0
+2
+32
+ℓq-PGD-GSVPSVM (q = 1)
+95.59
+100
+91.18
+100
+19
+0
+3
+31
+ℓ0.1-PGD-GSVPSVM
+100
+100
+100
+100
+19
+0
+0
+34
+Ovarian Cancer
+(Test)
+ℓ1-PGD-GSVPSVM
+96.67
+100
+93.33
+100
+9
+0
+1
+14
+ℓq-PGD-GSVPSVM (q = 1)
+93.33
+100
+86.67
+100
+9
+0
+2
+13
+ℓ0.1-PGD-GSVPSVM
+100
+100
+100
+100
+9
+0
+0
+15
+Table 5: Classification reports for the ovarian cancer dataset.
+It is noteworthy that [9] utilized 6 genes to achieve 100% classification accuracy on a test
+set, whereas Table 5 and Figure 7 shows that the ℓ0.1-PGD-GSVPSVM method achieved 100%
+balanced accuracy with only 4 genes. This demonstrates that the proposed approach can result in
+fewer genes while achieving superior classification accuracy.
+6
+Conclusions
+We have demonstrated that the ℓq-PGD-GSVPSVM methods for 0 < q ≤1 are viable feature se-
+lection and classification techniques that can achieve perfect to near-perfect classification accuracy.
+The performance of the methods are illustrated using the breast and ovarian cancer datasets. The
+sparsity levels in the computed solutions are exploited to select a parsimonious set of informative
+features. For the ℓq-PGD-GSVPSVM method, smaller values of q often result in fewer features
+14
+being selected. More often than not, the smaller the q, the sparser the solutions determined by the
+methods. We recommend 0 < q < 0.4 if a small set of features is desired.
+References
+[1] O. Alter, Orly, P. O. Brown, and D. Botstein, Generalized singular value decomposition for
+comparative analysis of genome-scale expression data sets of two different organisms, Proceed-
+ings of the National Academy of Sciences 100 (2003), pp. 3351-3356.
+[2] A. Beck, and M. Teboulle, A fast iterative shrinkage-thresholding algorithm for linear inverse
+problems. SIAM journal on imaging sciences, 2 (2009), pp. 183-202.
+[3] J. A. Berger, S. Hautaniemi, S. K. Mitra and J. Astola, Jointly analyzing gene expression and
+copy number data in breast cancer using data reduction models, in IEEE/ACM Transactions
+on Computational Biology and Bioinformatics, 3 (2006), pp. 2-16. doi: 10.1109/TCBB.2006.10
+[4] M. P. Brown, W. N. Grundy, D. Lin, N. Cristianini, C. W. Sugnet, T. S. Furey, M. Ares Jr, and
+D. Haussler, Knowledge-based analysis of microarray gene expression data by using support
+vector machines. Proceedings of the National Academy of Sciences, 97 (2000), pp.262-267.
+[5] E. J. Candes, M. B. Wakin, and S. P. Boyd, Enhancing sparsity by reweighted ℓ1 minimization,
+Journal of Fourier Analysis and Applications, 14 (2008), pp. 877–905.
+[6] Y. Chen, and Z. Yang, Generalized eigenvalue proximal support vector machine for functional
+data classification, Symmetry, 13 (2021), 833. https://doi. org/10.3390/sym13050833
+[7] M. T. Chu, R. E. Funderlic, and G. H. Golub, On a variational formulation of the generalized
+singular value decomposition, SIAM Journal on Matrix Analysis and Applications 18 (1997),
+pp. 1082-1092.
+[8] C. Cortes and V. Vapnik, Support-vector networks, Machine Learning, 20 (1995), pp. 273–297.
+[9] T. Elemam, and M. Elshrkawey, A highly discriminative hybrid feature selection algorithm
+for cancer diagnosis. The Scientific World Journal, 1 (2022), pp. 1056490.
+[10] T. S. Furey, N. Cristianini, N. Duffy, D. W. Bednarski, M. Schummer, and D. Haussler,
+Support vector machine classification and validation of cancer tissue samples using microarray
+expression data, Bioinformatics, 16 (2000), pp. 906-914.
+[11] G. H. Golub, and C. F. Van Loan, (1996) Matrix Computation, Johns Hopkins Univ. Press,
+Baltimore, 4th Ed.
+[12] M. R. Guarracino, M. Sangiovanni, G. Severino, G. Toraldo, and M. Viola, On the regular-
+ization of generalized eigenvalues classifiers, in Proc. AIP Conf., 2016, vol. 1776. no. 1, p.
+040005.
+[13] M. R. Guarracino, C. Cifarelli, O. Seref, and P. M. Pardalos, A classification method based
+on generalized eigenvalue problems. Optim Methods Softw, 22 (2007), pp. 73–81.
+[14] M. R. Guarracino, Mario Rosario, A. Irpino, and R. Verde, Multiclass generalized eigenvalue
+proximal support vector machines, In 2010 International Conference on Complex, Intelligent
+and Software Intensive Systems, (2010) pp. 25-32. IEEE.
+[15] I. Guyon, J. Weston, S. Barnhill, and V. Vapnik, Gene selection for cancer classification using
+support vector machines. Machine Learning, 46 (2002), pp. 389-422.
+15
+[16] T. Hastie, R. Tibshirani, M. B. Eisen, A. Alizadeh, R. Levy, L. Staudt, W. C. Chan, D.
+Botstein, and P. Brown, ’Gene shaving’ as a method for identifying distinct sets of genes with
+similar expression patterns, Genome Biology, 1 (2000), pp. 1-21.
+[17] I. T. Jollife, Principal Component Analysis, Springer, (1986), pp. 129–155.
+[18] C. N. Li, Y. H. Shao, and N. Y. Deng, Robust ℓ1-norm non-parallel proximal support vector
+machine, Optimization 65 (2016), pp. 169–183.
+[19] O. L. Mangasarian, and E. W. Wild, Multisurface proximal support vector machine clas-
+sification via generalized eigenvalues, IEEE Trans Pattern Anal Mach Intell 28 (2006), pp.
+69-74.
+[20] M. H. Memon, P. L. Jian, A. U. Haq, M. H. Memon, and W. Zhou, Breast cancer detection
+in the IOT health environment using modified recursive feature selection. Wireless Commu-
+nications and Mobile Computing 2019, 1 (2019), pp. 5176705.
+[21] S. O’Hara, K. Wang, R. A. Slayden, A. R. Schenkel, G. Huber, C. S. O’Hern, M. D. Shattuck,
+and M. Kirby, Iterative feature removal yields highly discriminative pathways, BMC Genomics,
+14 (2013), pp. 1-15.
+[22] L. Omberg, G. H. Golub, and O. Alter, A tensor higher-order singular value decomposition
+for integrative analysis of DNA microarray data from different studies, Proceedings of the
+National Academy of Sciences, 104 (2007), pp. 18371-18376.
+[23] N. Parikh, and S. Boyd, Proximal algorithms. Foundations and Trends in Optimization, 1
+(2014), pp. 127-239.
+[24] B. N. Parlett, The symmetric eigenvalue problem, SIAM, Philadelphia, PA, (1998), pp. 357.
+[25] V. Pappu, O. P. Panagopoulos, P. Xanthopoulos, and P. M. Pardalos, Sparse proximal sup-
+port vector machines for feature selection in high dimensional datasets, Expert Systems with
+Applications, 42 (2015), pp. 9183-9191.
+[26] S. P. Ponnapalli, M. A. Saunders, C. F. Van Loan, and O. A. Alter, higher-order general-
+ized singular value decomposition for comparison of global mRNA expression from multiple
+organisms, PloS, 6 (2011), e28072.
+[27] P. W. Ren, C. N. Li, and Y. H. Shao, Capped-Norm Proximal Support Vector Machine.
+Mathematical Problems in Engineering 2022 (2022).
+[28] Y. H. Shao, N. Y. Deng, W. J. Chen, and Z. Wang, Improved Generalized Eigenvalue Proximal
+Support Vector Machine, in IEEE Signal Processing Letters, 20 (2013), pp. 213-216, doi:
+10.1109/LSP.2012.2216874.
+[29] J. Song, P. Babu, and D. P. Palomar, Sparse generalized eigenvalue problem via smooth
+optimization, IEEE Transactions on Signal Processing, 63 (2015), pp. 1627-1642.
+[30] X. Q. Sun, Y. J. Chen, Y. H. Shao, C. N. Li, and C. H. Wang, Robust nonparallel proximal
+support vector machine with ℓp-norm regularization, in IEEE Access, 6 (2018), pp. 20334-
+20347, doi: 10.1109/access.2018.2822546.
+[31] R. Tibshirani, Regression shrinkage and selection via the lasso, Journal of the Royal Statistical
+Society: Series B (Methodological), 58 (1996), pp. 267-288.
+[32] M. Viola, M. Sangiovanni, G. Toraldo, and M. R. Guarracino, A generalized eigen-
+values classifier with embedded feature selection. Optim Lett, 11 (2017), pp. 299-311.
+https://doi.org/10.1007/s11590-015-0955-7
+[33] H. Yan, Q. Ye, T. Zhang, D. J. Yu, and Y. Xu, ℓ1-norm GEVPSVM classifier based on an
+effective iterative algorithm for classification, Neural Process. Lett., (2017), pp. 1–26.
+[34] S. Zhou, X. Xiu, Y. Wang, and D. Peng, Revisiting ℓq (0 ≤q < 1) Norm Regularized Opti-
+mization, (2023). https://arxiv.org/pdf/2306.14394.pdf
+16

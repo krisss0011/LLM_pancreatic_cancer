@@ -1,0 +1,2018 @@
+Benchmarking Domain Generalization Algorithms in Computational Pathology
+Neda Zamanitajeddina,1, Mostafa Jahanifara,1, Kesi Xua, Fouzia Sirajc, Nasir Rajpoota,b,∗
+aTissue Image Analytics centre, Department of Computer Science, University of Warwick, Coventry, UK,
+bHistofy Ltd, Coventry, UK,
+cICMR-National Institute of Pathology, New Delhi, India,
+Abstract
+Deep learning models have shown immense promise in computational pathology (CPath) tasks, but their performance often suffers
+when applied to unseen data due to domain shifts. Addressing this requires domain generalization (DG) algorithms. However,
+a systematic evaluation of DG algorithms in the CPath context is lacking. This study aims to benchmark the effectiveness of 30
+DG algorithms on 3 CPath tasks of varying difficulty through 7,560 cross-validation runs. We evaluate these algorithms using a
+unified and robust platform, incorporating modality-specific techniques and recent advances like pretrained foundation models. Our
+extensive cross-validation experiments provide insights into the relative performance of various DG strategies. We observe that self-
+supervised learning and stain augmentation consistently outperform other methods, highlighting the potential of pretrained models
+and data augmentation. Furthermore, we introduce a new pan-cancer tumor detection dataset (HISTOPANTUM) as a benchmark
+for future research. This study offers valuable guidance to researchers in selecting appropriate DG approaches for CPath tasks.
+Keywords: Domain Generalization, Computational Pathology, Domain Shift, Deep Learning, Benchmarking
+1. Introduction
+Deep learning (DL) models have shown great potential in
+addressing fundamental problems in computational pathology
+(CPath) [1, 2] such as histology image classification [3, 4, 5],
+tissue segmentation [6, 7, 8], and nuclei detection [9, 10, 11].
+Furthermore, leveraging DL, more advanced problems are be-
+ing tackled in the field, such as gene expression prediction
+[12, 13, 14] and biomarker discovery [15, 16, 17]. Regardless
+of the versatility and accuracy of DL models on the training do-
+main data, it has also been shown that testing on unseen data
+can degrade the performance metrics considerably [18] (see
+Fig. 1A) which is a phenomenon usually caused by domain shift
+(DS) [19].
+Defining a data ‘domain’ as the joint distribution of feature
+(X) and label (Y) spaces, domain shift can be characterized
+by discrepancies in the joint distribution of features and labels
+across source (s) and target (t) domains, that is, Ps
+XY , Pt
+XY.
+According to the Bayes’ theorem, the joint distribution is given
+by PXY = PX|YPY = PY|XPX which can be leveraged to describe
+DS manifested in various ways [18]:
+• Covariate Shift: The feature distributions differ between
+the source and target domains, i.e., Ps
+X , Pt
+X. Example:
+Tissue samples scanned using different scanners exhibit
+distinct colors and features.
+• Prior Shift: The label distributions vary between the
+source and target domains, i.e., Ps
+Y , Pt
+Y. Example: A
+∗Corresponding authors: n.m.rajpoot@warwick.ac.uk
+1Joint first authors, contributed equally.
+model trained on a dataset with a specific proportion of
+cancerous to non-cancerous samples is applied to a new
+dataset with a different ratio of these classes.
+• Posterior Shift: The conditional label distributions differ,
+i.e., Ps
+Y|X , Pt
+Y|X. Example: Subjective labeling in mitosis
+detection where different annotators assign different labels
+to the same data due to varying interpretations.
+• Class-Conditional Shift: The data characteristics for a
+specific class differ between the source and target domains,
+i.e., Ps
+X|Y=y , Pt
+X|Y=y. Example: Morphological traits of
+cancer cells in early-stage cancers differ from those in late-
+stage cancers, leading to variations in the same class across
+datasets.
+A schematic presentation of different DS types is adopted
+from [18] and shown in Fig. 1B.
+An ideal way of, addressing domain shifts would involve
+training models across all conceivable data distributions. How-
+ever, this approach is typically infeasible due to the limited
+availability of comprehensive, multi-domain data during the
+training phase. Consequently, there is an urgent need for al-
+gorithms specifically designed to improve domain generaliza-
+tion (DG). DG refers to the capability of a model trained on
+data from source domains Ds to perform well on unseen tar-
+get domains Dt despite distributional differences (Ps
+XY , Pt
+XY).
+It is important to note that, unlike domain adaptation tech-
+niques [20], DG algorithms enhance generalization to novel tar-
+get domains without access to target domain data during train-
+ing [21, 18].
+There remains a critical gap in the utilization of existing DG
+algorithms within CPath. Many sophisticated DG algorithms
+Preprint submitted to Elsevier
+September 26, 2024
+arXiv:2409.17063v1  [cs.CV]  25 Sep 2024
+BC Metastasis 
+Detection
+Pan-cancer 
+Tumour Detection
+Pan-tumour 
+Mitosis Detection
+(C) Three Tasks
+(D) 30 DG Algorithms
+Run 1
+Run 2
+Run 3
+Run 4
+(E) Robust Cross-validation
+Domains:
+Train
+Validation
+Test
+Sets:
+Domain 1
+95% 
+Accuracy
+65% 
+Accuracy
+Domain 2
+Feature Distribution
+Domain 1
+Domain 2
+(A) Domain Shift Example
+Covariate Shift
+Prior Shift
+Posterior Shift
+Class-conditional Shift
+(B) Domain Shift Types
+Classes
+Sources
+Total Runs
+= 
+෍
+𝑑 ∈ datasets
+9 × 30 × 𝑁domains
+𝑑
+= 7560.
+Figure 1: Domain shift in computational pathology can cause degradation in performance when testing on an unseen dataset (A). Different types of DS are illustrated
+in (B) with shapes as classes, colors as features, and each circle as a domain. In (B), covariate shift is presented by changing the color of objects in two different
+domains, prior shift happens when the distribution of classes differs between the two domains, and posterior shift is shown when the same objects are labeled
+differently by the observers (highlighted shapes), and in class-conditional shift, the color of only one class is changing between domains. Leveraging three different
+tasks (C) in this work, we benchmark the performance of 30 domain generalization algorithms (D) in a series of robust cross-validation experiments (E).
+have not been systematically explored in this field. Motivated
+by this gap, we present a rigorous evaluation of DG methods in
+the CPath context. This research aims to benchmark the effec-
+tiveness of 30 different DG algorithms (Fig. 1D) on three differ-
+ent CPath tasks of various difficulties (Fig. 1C) in a unified and
+robust platform through extensive cross-validation experiments
+(Fig. 1E). Our goal is to fairly compare existing DG algorithms
+to provide insights that could help researchers to select a bet-
+ter strategy for their DG needs. To this end, we build on the
+DomainBed platform [22] as our main repository of DG algo-
+rithms, by including new DG algorithms (CPath-specific algo-
+rithms such as stain normalization and stain augmentation, and
+more recent approaches such as a pretrained foundation model),
+more robust evaluation metric (F1 score), and two new multi-
+domain histology image classification datasets.
+This work’s
+main contributions can be summarized as follows:
+• Presentation of a unified and robust framework for bench-
+marking DG algorithms in the area of CPath;
+• Benchmarking 30 DG algorithms on 3 different tasks in
+CPath using the proposed framework;
+• Comprehensive and robust cross-validation experiments,
+covering 7,560 training-validation runs;
+• Making recommendations for selecting effective DG
+strategies in CPath; and
+• Releasing
+a
+large-scale
+tumor
+patch
+dataset
+(that
+we
+term
+HISTOPANTUM)
+comprising
+280K+
+im-
+ages in 4 different cancer types and capturing three
+types of DG and making the benchmarking frame-
+work HistoDomainBed publicly available at: https://
+github.com/mostafajahanifar/HistoDomainBed.
+In the remainder of the paper, datasets, algorithms, and cross-
+validation procedure are described in Section 2, results are pre-
+sented and discussed in sections 3 and 4, and finally, paper is
+concluded in Section 5.
+2. Material and Methods
+2.1. Datasets and tasks
+In this study, we examine three datasets — CAMELYON17
+[23], MIDOG22 [24], and HISTOPANTUM — each chosen for
+its specific challenges and domain shifts to facilitate a compre-
+hensive evaluation of DG algorithms applied to various classi-
+fication tasks in CPath.
+2.1.1. CAMELYON17
+With the CAMELYON17 grand challenge on the detection
+of breast cancer metastases in sentinel lymph nodes, a dataset
+with the same name has been released which comprises Whole
+Slide Images (WSIs) of lymph node resections in breast cancer
+patients and their corresponding lesion-level annotations [23].
+The provided annotations have been leveraged for the extrac-
+tion of a patch-level dataset of metastatic and normal images
+of breast cancer. In particular, we used the CAMELYON17
+dataset part of the WILDS toolbox [25] (which is designed
+to test machine-learning models against significant distribution
+shifts) to allow for the reproducibility of the results.
+2
+(A) CAMELYON17
+Metastasis
+Normal
+(B) MIDOG22
+Mitosis
+Mimicker
+(C) HISTOPANTUM
+Tumour
+Normal
+Figure 2: Tasks and datasets used in the benchmarking process: (A) Breast cancer metastasis detection leveraging Camleyon17 dataset [23], (B) Mitosis detection in
+MIDOG22 dataset [24], and (C) tumor detection in our proposed HISTOPANTUM dataset. For every dataset, an example from each domain and class is provided.
+All the tasks are designed as a binary classification task, where the name and population of positive and negative classes are shown in red and blue color bars,
+respectively. The hatched region in each bar represents the fraction of samples used to generate small datasets (see Section 2.1.4).
+CAMELYON17 is gathered from various medical centers in
+the Netherlands, including Radboud University Medical Cen-
+ter (RUMC), Canisius-Wilhelmina Hospital (CWZ), University
+Medical Center Utrecht (UMCU), Rijnstate Hospital in Arn-
+hem (RST), and the Laboratory of Pathology East-Netherlands
+(LPON), each representing a unique domain. CAMELYON17
+comprises 455,953 image patches, categorized into metastasis
+and non-metastasis (normal) classes, with each patch measuring
+96 × 96 pixels at a resolution of 0.5 microns per pixel (mpp).
+A major challenge presented by CAMELYON17 is the co-
+variate shift, primarily caused by variations in imaging equip-
+ment and procedures across different centers. These variations
+are evident in the noticeable differences in color and texture
+among images from various sources as shown in Fig. 2A. De-
+spite covariate shift, the dataset is well balanced in label space,
+with an equal number of tumor and non-tumor patches in each
+domain, effectively eliminating any potential prior shift in label
+distribution. The objective nature of the classification task en-
+sures that there is no posterior shift, focusing the analysis solely
+on addressing the implications of covariate shifts.
+2.1.2. MIDOG22
+The second task, mitosis detection, involves classifying mi-
+totic figures versus mimickers (cells of other types that are
+very similar to mitotic figures in appearance), which is a bi-
+nary classification task previously explored in the literature
+[18, 11, 26, 27].
+For this purpose, we utilize the MIDOG22 dataset [24],
+which comprises five domains: Canine Lung Cancer, Human
+Breast Cancer, Canine Lymphoma, Canine Cutaneous Mast
+Cell Tumor, and Human Neuroendocrine Tumor.
+From the
+original MIDOG22 dataset and based on the annotations pro-
+vided, we extract 20,552 image patches, each sized 128 × 128
+pixels at a resolution of 0.25 mpp, and categorize them into mi-
+tosis and mimicked classes.
+MIDOG22 is particularly challenging for achieving DG due
+to the presence of all four types of DS: covariate shift is evident
+as the images come from different centers using various scan-
+ners, leading to variations in color schemes. There is a prior
+shift, as different labels are distributed variably across domains,
+clearly shown in the dataset Fig. 2B. The task also involves a
+posterior shift due to the highly subjective nature of mitosis
+labeling. Additionally, class-conditional shifts occur because
+different tumor types and species influence the appearance of
+non-mitotic regions in the images, significantly varying from
+one domain to another. The complexity of this dataset makes it
+a rigorous test bed for assessing the DG capabilities of different
+algorithms in CPath.
+2.1.3. HISTOPANTUM
+The last task we address is pan-cancer tumor detection, lever-
+aging the HISTOPANTUM dataset that we were releasing in
+this study. This dataset captures four different cancer types:
+Colorectal (CRC), Uterus (UCEC), Ovary (OV), and Stomach
+(STAD), collectively referred to as four domains. During data
+curation, we source 40 WSIs for each cancer type from its
+related study in The Cancer Genome Atlas Program (TCGA)
+[28]. For sampling, we make sure to include a variety of tumor
+subtypes (adenocarcinoma and mucinous carcinoma), genders,
+ethnicities, and centers in order to make the dataset as diverse as
+possible. Then, an experienced pathologist (FS) meticulously
+annotates tumor and non-tumor regions in the slides, which are
+used to extract tumor and non-tumor patches from the WSIs to
+form the HISTOPANTUM dataset.
+The HISTOPANTUM dataset includes 281,142 patches,
+each 512 × 512 pixels at a resolution of about 0.5 mpp which
+are subsequently resized to 224×224 pixels during training and
+evaluation. HISTOPANTUM patches are classified into two
+3
+classes: tumor and non-tumor (normal). This dataset presents
+three significant types of DS. Firstly, a covariate shift arises
+due to images being sourced from different centers using differ-
+ent slide preparation and scanning devices, introducing notable
+variations in color and stain schemes. Secondly, a prior shift is
+observed with a distinct distribution of classes across domains,
+as depicted in Fig. 2C. Lastly, the class-conditional shift is evi-
+dent as different cancer types influence the appearance of tumor
+region in the images (morphology of tumor cells varies signif-
+icantly from one tumor to another), while non-tumor regions
+remain relatively consistent across domains (for example, the
+morphology of stromal and inflammatory regions are very sim-
+ilar across different cancer types). Notably, this dataset does not
+suffer from the posterior shift, thanks to the objective nature of
+the labeling process, eliminating subjectivity in tumor detec-
+tion. We are making the HISTOPANTUM publicly available as
+a benchmark for pan-cancer tumor detection 2.
+2.1.4. Subsampled datasets
+In addition to the primary experiments, we conduct a series
+of tests to understand how different DG algorithms perform un-
+der a low-data budget scenario. This analysis is crucial for ap-
+plications where data availability is limited. For this purpose,
+we create smaller versions of the original datasets, maintaining
+similar distributions but significantly smaller populations.
+The reduced (small) datasets are generated by randomly sam-
+pling the following percentages of each class in the original
+datasets (as hatched regions shown in the bar plots of Fig. 2):
+• sCAMELYON17: 1% of the original CAMELYON17
+dataset (N=4,560).
+• sHISTOPANTUM: 3% of the original HISTOPANTUM
+dataset (N=8,434).
+• sMIDOG22 : 30% of the original MIDOG22 dataset
+(N=6,166).
+The sampling percentage in each dataset is set to consid-
+erably reduce dataset size while keeping enough samples for
+convergence of DG algorithms. The same experimental setup,
+model selection strategy, and algorithms used in the original ex-
+periments are applied to these smaller datasets. This approach
+allows us to directly compare the performance and general-
+ization capability of the algorithms in both ‘large dataset’ and
+‘small dataset’ scenarios.
+2.2. Algorithms
+We utilize DomainBed [22] as our main benchmarking tool
+because it offers a robust and well-tested platform for fair and
+reproducible comparison of different DG algorithms. Further-
+more, DomainBed is well maintained and contains the most
+number of state-of-the-art DG algorithms implemented in com-
+parison to other DG benchmarking tools (such as DeepDG
+2Data is being uploaded to a web server. Please check this link for updates:
+https://github.com/mostafajahanifar/HistoDomainBed
+Figure 3: Benchmarked algorithms categorized into different domain general-
+ization methodologies, as introduced in [18]
+[29]).
+Using DomainBed, we can test different DG algo-
+rithms while also controlling algorithms and training hyper-
+parameters.
+As well as the DomainBed implemented algo-
+rithms, we also investigate the two CPath-specific algorithms,
+namely stain normalization and stain augmentation, and a self-
+supervised learning (SSL) based algorithm in the same struc-
+tured experimental setup of DomainBed. Furthermore, we have
+also added the F1-score evaluation metric to the platform which
+originally included only the Accuracy metric. The code base
+for our updated DomainBed platform, called HistoDomainBed,
+is available at: https://github.com/mostafajahanifar/
+HistoDomainBed.
+All the algorithms in our experiments use a standard
+ResNet50 [30] model for feature extraction due to its proven
+generalization capabilities and popularity. The preferred model
+selection strategy in our work is the “training-domain validation
+set”, recognized for its effectiveness in different scenarios and
+datasets as shown previously in [22]. More information on how
+we performed cross-validation experiments using DomainBed
+is given in Section 2.3.
+In the rest of this section, we introduce the DG algorithms
+investigated in this work. Explaining the methodology of each
+algorithm is outside of the scope of this work, although we
+have categorized these algorithms into 6 distinct categories of
+DG methods based on their working principles and the intro-
+duction of the categories in [18].
+Domain alignment tech-
+niques bridge domain gaps by harmonizing feature representa-
+tions, employing methods like stain normalization and genera-
+tive models. Data augmentation enhances model generalization
+through image transformations and generative networks. Meta-
+learning enables quick adaptation to new domains or tasks us-
+ing techniques like MAML [31]. Tailored model design strate-
+4
+gies leverage the unique characteristics of histopathology im-
+ages with specialized network architectures and loss functions.
+Pretraining strategies use self-supervised, unsupervised, and
+semi-supervised learning to enhance feature encoding and gen-
+eralizability. Regularization strategies prevent overfitting and
+improve performance on unseen data by introducing constraints
+and penalties. Domain separation learns disentangled domain-
+specific and domain-agnostic features.
+A chart showing the investigated DG algorithms and their
+related category is presented in Fig. 3. For more information on
+these categories or related methods, please refer to [18] or the
+respective cited articles.
+2.2.1. DomainBed algorithms
+DomainBed [22], developed by the Facebook Research
+group, is a comprehensive PyTorch suite. At the time of writing
+this manuscript, it encompassed support for 27 DG algorithms,
+10 computer vision datasets, and one CPath dataset (Came-
+lyon17 WILDS [25]). The toolkit includes algorithms such as
+Empirical Risk Minimization (ERM) [32], Interdomain Mixup
+(Mixup) [33], Group Distributionally Robust Optimization
+(GroupDRO) [34], Conditional Domain Adversarial Neural
+Network (CDANN) [35], Learning Explanations that are Hard
+to Vary (AND-Mask) [36], Deep CORAL (CORAL) [37], Self-
+supervised Contrastive Regularization (SelfReg) [38], Marginal
+Transfer Learning (MATL) [39], and Adaptive Risk Mini-
+mization (ARM) [40].
+It also supports Invariant Risk Min-
+imization (IRM) [41], Domain Adversarial Neural Network
+(DANN) [42], Style Agnostic Networks (SagNet) [43], Learn-
+ing Representations that Support Robust Transfer of Predic-
+tors (TRM) [44], Optimal Representations for Covariate Shift
+(CAD and CondCAD) [45], Representation Self-Challenging
+(RSC) [46], Maximum Mean Discrepancy (MMD) [47], Out-
+of-Distribution generalization with Maximal Invariant Predic-
+tor (IGA) [48], Variance Risk Extrapolation (VREx) [49], and
+Invariance Principle Meets Information Bottleneck for Out-of-
+Distribution generalization (IB-ERM) [50]. Additional algo-
+rithms include Empirical Quantile Risk Minimization (EQRM)
+[51], Spectral Decoupling (SD) [52], Quantifying and Improv-
+ing Transferability in Domain generalization (Transfer) [53],
+Smoothed-AND mask (SAND-mask) [54], Meta-Learning Do-
+main generalization (MLDG) [55], and Invariant Causal Mech-
+anisms through Distribution Matching (CausIRL with CORAL
+or MMD) [56].
+2.2.2. CPath-specific algorithms
+Ideally, the same tissue specimens, stained in different lab-
+oratories, should yield identical results, but this ideal is often
+unattainable. Stain variation can arise from differences in slide
+scanners, stain quality and concentration, and staining proce-
+dure [57]. Pathologists can easily disregard irrelevant features
+(such as stain variation) in a WSI that do not impact their diag-
+nosis. However, deep learning models sometimes struggle with
+this task [58].
+Stain Normalization. A preprocessing step that aligns the color
+distributions of histology images to a reference image, counter-
+ing discrepancies from varied staining procedures and scanners.
+Stain normalization techniques range from linear scaling and
+histogram matching to advanced methods by Ruifrok [59], Ma-
+cenko [60], and Vahadane [61]. These methods adjust the stain
+matrix of source images while maintaining their stain concen-
+trations, ensuring color consistency without altering structural
+details. In this work, we compare Macenko [60] stain normal-
+ization algorithm implemented in TIAToolbox [62]. To this end,
+we normalize the stain of all images in all datasets offline, uti-
+lizing the same reference image, to maintain training efficiency.
+Stain Augmentation (StainAug). A method that involves de-
+composing RGB histology images into stain components, per-
+turbing them, and recomposing the images to introduce vari-
+ability. This technique has proven effective in numerous tasks
+and helps improve model generalizability [18, 58, 63].
+In
+HistoDomainBed, stain augmentation was randomly done on
+the fly using TIAToolbox [62].
+To this end, the Macenko
+method [60] was used to extract the stain matrix and compo-
+nents from the RGB image.
+It is important to note that both Macenko and StainAug al-
+gorithms are employed on top of the Empirical Risk Minimiza-
+tion (ERM) [32] approach. In other words, Macenko refers to
+the scenario where we use ERM on stain-normalized images
+and StainAug is the scenario where the stain augmentation tech-
+nique is used during the training of the ERM model on original
+images.
+2.2.3. Self-supervised learning (SSL)
+For our SSL experiments, we use a ResNet50 model pre-
+trained on histology images to start each run instead of ini-
+tializing the model with ImageNet weights. In particular, we
+choose a foundation model from the work of Kang et al. [64]
+which has a ResNet50 architecture and is pretrained on 19M
+image patches from different studies of TCGA using Barlow
+Twin self-supervised learning algorithm [65]. The utilized SSL
+algorithm also works on top of the ERM algorithm in our
+HistoDomainBed platform.
+2.3. Cross-validation and model selection
+Gulrajani et al. [22] meticulously examined three distinct
+model selection scenarios, which are crucial for determining
+how the performance of a model on a validation set can guide
+the selection of the best training epoch for application on un-
+seen test sets. The scenarios we explore are:
+1. Training-domain validation set: This involves pooling a
+validation set from all training domains, a standard prac-
+tice of training/validation split across domains. The best-
+performing model of the validation set is then tested on
+hold-out test domains.
+2. Leave-one-domain-out validation: In this scenario, one
+of the training domains is reserved for validation. The
+model that performs best on this holdout domain is then
+re-trained on all domains before being applied to the test
+domains.
+5
+3. Test-domain validation set (oracle): This scenario selects
+the model that maximizes accuracy on a validation set mir-
+roring the test domain’s distribution, albeit with limited
+queries. Although this is theoretically not a valid model
+selection method due to its reliance on access to the test
+domain, in the original DomainBed [22] it was included
+for comparative analysis.
+Based on findings of the DomainBed study [22], the
+“training-domain validation set” model selection scenario con-
+sistently yielded the best results on different datasets and using
+different algorithms. Thus, we have chosen to adopt this model
+selection strategy for our experiments to allow us to minimize
+computational demands and focus our resources on evaluating
+the effectiveness of the DG algorithms themselves, rather than
+delving into various model selection techniques. In our model
+selection strategy, we allocate 20% of the training data for val-
+idation purposes.
+For robust cross-validation, one domain was systematically
+left out for testing, and this process was repeated across the
+number of domains available in each task (Run 1, 2, 3, ...). An
+illustration of the utilized cross-validation process is given in
+Fig. 1E, where there are 4 domains and therefore 4 runs, and
+in each run data from three domains are used for training and
+validation (80%-20%), and 1 domain is left out for testing. All
+the metrics reported in this work are based on results of experi-
+ments on unseen test domains.
+To ensure the reliability of our results, we varied the hyper-
+parameters (such as batch size, learning rate, and algorithm-
+specific parameters) randomly three times for each experiment.
+Each set of hyperparameters was then used to conduct three
+independent runs, leading to a total of nine training runs for
+each domain and method combination. The working range of
+algorithms’ hyperparameters is selected based on convergence
+experiments done for each algorithm beforehand. In summary,
+this comprehensive cross-validation approach resulted in a to-
+tal of 7,560 training-validation runs for both full and small
+datasets (P
+d∈datasets 9 × 30 × Nd
+domains), illustrating the extensive
+scale and rigorous nature of our experimental design.
+In all the runs, we utilize an ImageNet-pretrained ResNet50
+model [30] (except for SSL algorithm which uses histology-
+pretrained weights as a starting point), trained for approxi-
+mately 30 epochs using an Adam optimizer. All the experi-
+ments are performed using 8 NVidia Tesla V100 GPUs on a
+DGX2 machine.
+3. Results
+This section presents the performance metrics of different
+algorithms across various datasets. The metrics reported are
+binary F1 score and accuracy.
+We added the F1 score to
+HistoDomainBed to account for the scenarios where the data
+is significantly imbalanced, rendering accuracy a sub-optimal
+metric. Using Accuracy and F1 Score, we can comprehensively
+understand our models’ performance across different domains,
+ensuring that our evaluation is robust and reliable.
+3.1. Results for full datasets
+We present the performance metrics of various algorithms
+across full-scale datasets in Table 1. Accuracy and F1 metrics
+are reported for each dataset (task) separately as well as for the
+average performance across all the tasks. The rows in Table 1
+are ordered by the average F1 score across all tasks. In each
+column, cells are colored from red to green based on the perfor-
+mance values, red indicating worse and green indicating better
+performance.
+The majority of methods exhibited similar performance, with
+average F1 scores ranging from 81% to 85%, except for the
+top 2 algorithms. SSL [64] and StainAug [58] methods consis-
+tently outperform all other methods on average, both in terms
+of F1 score (87.7%, 86.5%) and accuracy (88.9%, 87.4%).
+This advantage is particularly pronounced in the MIDOG22 and
+HISTOPANTUM datasets. The third-ranking algorithm, ARM
+[40], has done relatively worse on the MIDOG22 dataset. Fur-
+thermore, the Macenko stain normalization algorithm ranked
+6th, outperforming 24 other DG algorithms, but not as good as
+StainAug.
+All algorithms performed exceptionally well on the CAME-
+LYON17 dataset (F1>90%), which can be attributed to the
+abundance of data to help the model generalize better and the
+relatively simpler nature of the problem. The high performance
+across algorithms indicates that the CAMELYON17 dataset
+poses fewer challenges in terms of DS. The DS in CAME-
+LYON17 is primarily stain variation between different hospi-
+tals, making StainAug one of the best candidates to improve
+DG in this dataset (as Table 1 shows the highest F1 96.1% for
+StainAug).
+The tasks associated with the MIDOG22 and HISTOPAN-
+TUM datasets are more challenging, involving more significant
+domain shifts. Specifically, the performance metrics in the MI-
+DOG22 task are generally lower compared to other tasks, re-
+flecting the increased difficulty.
+Notably, the baseline algorithm, ERM[32], demonstrated
+strong performance (ranked 17th), comparable to other SOTA
+methods. This suggests that combining simple augmentations
+with the ERM approach is sufficient to train a robust classi-
+fier. On the other hand, SANDMask [54] and IGA [48] al-
+gorithms struggled to converge on the CAMELYON17 and all
+datasets, respectively, indicating potential issues in handling
+domain shifts or complexities in these tasks.
+3.2. Results for Sub-sampled (small) datasets
+To investigate how DG algorithms perform under a low-data
+budget scenario, we subsample each dataset at different rates
+to create smaller datasets (as explained in Section 2.1.4) and
+repeat the experiments. The results for these experiments are
+reported in Table 2.
+Interestingly, SSL and StainAug algorithms are still among
+the top 3 performing algorithms with Transfer algorithm [53]
+place on the second rank and achieving F1 of 82.8% (almost on
+a par with StainAug, F1=82.7%). However, SSL considerably
+outperforms other algorithms by gaining the F1 score of 85.4%,
+showing an advantage in small-dataset scenarios as has been
+6
+Table 1: Benchmarking results for full-scale datasets. In each column, cells are colored from red to green representing worst to best performance.
+CAMELYON17
+MIDOG22
+HISTOPANTUM
+Average
+Algorithm
+ACC
+F1
+ACC
+F1
+ACC
+F1
+ACC
+F1
+SSL
+95.4±0.2
+95.2±0.2
+79.9±0.2
+76.1±0.6
+91.2±0.6
+91.7±0.5
+88.9
+87.7
+StainAug
+96.4±0.9
+96.1±0.9
+79.9±0.3
+76.0±0.4
+85.9±0.0
+87.3±0.0
+87.4
+86.5
+ARM
+94.7±0.3
+94.5±0.3
+78.5±0.3
+73.4±0.2
+87.6±0.8
+88.6±0.8
+87.0
+85.5
+CausIRL CORAL
+93.3±0.6
+92.8±0.6
+78.9±0.3
+74.9±0.5
+85.4±0.2
+87.1±0.2
+85.9
+84.9
+SelfReg
+94.6±0.3
+94.3±0.4
+79.2±0.3
+74.6±0.4
+83.0±0.4
+85.2±0.4
+85.6
+84.7
+Macenko
+93.3±0.3
+92.9±0.2
+77.8±0.3
+73.9±0.1
+84.4±0.0
+86.2±0.0
+85.2
+84.3
+Transfer
+93.7±0.4
+93.6±0.7
+78.5±0.3
+74.2±0.6
+82.6±1.2
+83.9±0.8
+84.9
+83.9
+TRM
+93.5±0.3
+93.2±0.4
+79.4±0.4
+74.4±0.3
+83.5±1.6
+84.2±1.9
+85.5
+83.9
+IB ERM
+94.0±0.1
+94.0±0.2
+79.5±0.2
+74.2±0.3
+81.4±0.6
+82.8±0.5
+85.0
+83.7
+CondCAD
+93.5±0.1
+93.3±0.1
+78.7±0.3
+74.6±0.6
+80.9±0.7
+82.7±1.2
+84.3
+83.6
+ANDMask
+93.7±0.2
+93.5±0.3
+78.6±0.2
+74.5±0.3
+78.1±1.0
+81.8±0.6
+83.5
+83.2
+Mixup
+94.8±0.2
+94.5±0.2
+79.4±0.3
+74.7±0.3
+78.5±0.8
+80.4±0.0
+84.2
+83.2
+EQRM
+95.3±0.1
+95.1±0.1
+80.2±0.1
+75.2±0.1
+77.4±0.2
+78.9±0.4
+84.3
+83.1
+CausIRL MMD
+94.4±0.1
+94.2±0.1
+78.7±0.6
+72.9±1.9
+79.0±2.3
+81.8±1.8
+84.0
+83.0
+CORAL
+96.0±0.3
+95.9±0.3
+79.2±0.4
+74.9±0.2
+77.1±0.3
+78.0±0.9
+84.1
+82.9
+VREx
+94.2±0.6
+93.8±0.7
+79.3±0.2
+74.3±0.2
+79.7±0.7
+80.4±0.8
+84.4
+82.8
+ERM
+95.6±0.0
+95.4±0.0
+79.1±0.2
+74.7±0.2
+76.8±0.1
+77.6±0.9
+83.8
+82.6
+GroupDRO
+94.6±0.6
+94.4±0.8
+78.8±0.1
+74.5±0.4
+77.8±0.3
+78.6±0.1
+83.7
+82.5
+CAD
+93.7±0.2
+93.4±0.3
+77.6±0.2
+73.5±0.3
+77.7±3.1
+80.2±2.8
+83.0
+82.4
+MTL
+93.8±0.0
+93.4±0.0
+78.9±0.4
+73.9±0.7
+78.1±1.7
+79.9±2.3
+83.6
+82.4
+MLDG
+95.2±0.3
+94.9±0.4
+78.9±0.3
+74.2±0.4
+75.5±0.2
+77.6±0.4
+83.2
+82.3
+RSC
+94.1±0.1
+93.7±0.2
+78.8±0.4
+75.7±0.2
+76.6±1.2
+77.3±0.4
+83.2
+82.2
+SD
+95.5±0.3
+95.3±0.4
+78.5±0.6
+73.9±0.3
+78.1±0.9
+77.3±0.9
+84.0
+82.2
+IRM
+94.9±0.4
+94.7±0.5
+78.1±0.5
+72.9±0.5
+77.6±0.4
+78.9±0.3
+83.5
+82.1
+CDANN
+91.6±1.2
+90.9±1.4
+78.8±0.6
+74.3±0.3
+80.1±1.9
+80.2±2.1
+83.5
+81.8
+SagNet
+93.6±0.0
+93.2±0.0
+78.7±0.2
+74.8±0.3
+76.2±1.0
+77.0±0.9
+82.8
+81.6
+DANN
+91.8±1.8
+91.5±1.8
+79.2±0.3
+74.2±0.4
+78.1±0.5
+77.0±0.8
+83.0
+80.9
+MMD
+94.2±0.4
+94.3±0.2
+75.3±1.8
+69.0±2.7
+77.8±0.1
+78.8±0.1
+82.4
+80.7
+IGA
+55.5±0.9
+67.7±0.3
+49.4±3.5
+60.9±0.0
+52.8±2.5
+67.1±0.9
+52.6
+65.2
+SANDMask
+44.6±4.9
+37.1±13.7
+79.4±0.6
+74.7±0.4
+77.9±0.3
+79.0±0.9
+67.3
+63.6
+shown before for other algorithms based on self-supervised
+learning [66].
+The majority of SSL superiority is owed to
+the performance of sCAMELYON17 and sHISTOPANTUM
+datasets.
+However, on the hardest DG task using the sMI-
+DOG22 dataset, Transfer algorithm [53] gains the highest F1
+of 77.9%, considerably outperforming SSL. StainAug does not
+perform as high as SSL on sHISTOPANTUM, nevertheless, it
+keeps a good performance on sMIDOG22 and sCAMELYON.
+On the sHISTOPANTUM dataset, except for the SSL algo-
+rithm, most of the other algorithms perform on par.
+The baseline ERM algorithm archives impressive results in
+the small-scale dataset, outperforming all other algorithms on
+the sHISTOPANTUM dataset excluding SSL (F1=87.1%) and
+very good performance in the other small datasets. On the other
+hand, IGA [48] still struggles to converge on small datasets
+whereas the SANDMask [54] algorithm works relatively well
+on sCAMELYON17 dataset although it could not converge on
+large-scale CAMELYON17 dataset.
+3.3. Domain-level performance
+We comprehensively evaluate the performance of various al-
+gorithms across different domains, the results of which are pre-
+sented in Fig. 4 in the form of bar plots. In Fig. 4, each do-
+main in every dataset is represented by a uniquely colored bar.
+The average performance of all algorithms over each domain
+is indicated by horizontal dashed lines in the same color as the
+domain. In Fig. 4, algorithms ”IGA” and ”SANDMask” are
+excluded due to poor performance and to better visualize the
+working performance range of other algorithms.
+CAMELYON17. Performance across centers is generally high,
+with average F1 scores around 93% to 96%. This is highlighted
+by the closely clustered bars and the horizontal dashed lines
+at the top of the graph (only a 3.5% difference between the
+best and worst domains). Results for CWZ and RUMC cen-
+ters are consistently among the highest scores, presumably be-
+cause slides from these two centers were scanned using the
+same scanner (at RUMC center) and there is a lower domain
+shift between these two datasets, hence a model trained on the
+data from one of these domains will perform reasonably good
+7
+Table 2: Benchmarking results for small-scale datasets. In each column, cells are colored from red to green representing worst to best performance.
+sCAMELYON17
+sMIDOG22
+sHISTOPANTUM
+Average
+Algorithm
+ACC
+F1
+ACC
+F1
+ACC
+F1
+ACC
+F1
+SSL
+94.9±0.3
+93.2±1.0
+76.6±0.7
+71.1±0.7
+91.6±0.5
+92.0±0.5
+87.7
+85.4
+Transfer
+90.1±0.8
+88.7±0.7
+77.9±0.3
+73.7±0.6
+85.1±0.2
+86.0±0.1
+84.3
+82.8
+StainAug
+90.2±0.0
+88.4±0.8
+77.0±0.2
+72.2±1.0
+86.4±0.1
+87.4±0.1
+84.5
+82.7
+Macenko
+92.0±0.5
+90.3±0.7
+75.7±0.7
+70.5±0.7
+85.6±0.2
+86.9±0.1
+84.5
+82.6
+VREx
+90.2±0.7
+88.4±1.4
+75.7±0.2
+71.8±0.3
+86.6±1.1
+87.3±1.0
+84.2
+82.5
+SagNet
+90.1±0.3
+88.9±0.2
+75.6±0.7
+72.2±0.5
+84.7±0.4
+85.5±0.3
+83.5
+82.2
+IB ERM
+87.9±1.0
+88.3±0.6
+76.9±0.5
+71.1±1.7
+86.2±0.4
+87.1±0.3
+83.7
+82.1
+ERM
+88.2±0.4
+85.8±0.4
+77.3±0.3
+72.6±0.5
+87.1±0.1
+87.3±0.3
+84.2
+81.9
+GroupDRO
+88.1±1.6
+87.7±1.0
+77.0±0.2
+71.1±0.1
+85.8±0.2
+86.0±0.6
+83.7
+81.6
+ANDMask
+90.9±0.6
+89.2±0.6
+75.8±0.1
+71.5±1.0
+82.6±0.2
+83.7±0.0
+83.1
+81.5
+TRM
+87.9±0.7
+86.0±0.7
+77.6±0.2
+71.1±0.6
+86.8±0.3
+87.2±0.1
+84.1
+81.4
+CDANN
+88.9±0.2
+88.0±0.2
+76.0±0.8
+70.1±0.0
+84.5±0.2
+85.7±0.9
+83.1
+81.3
+ARM
+88.3±0.8
+85.7±0.7
+77.1±1.0
+71.3±0.6
+86.1±0.6
+86.3±1.0
+83.8
+81.1
+EQRM
+87.3±0.1
+85.0±0.2
+77.1±0.2
+71.7±0.2
+85.0±1.1
+86.2±0.7
+83.1
+81.0
+SelfReg
+87.2±1.7
+84.4±2.8
+76.8±0.2
+71.6±0.1
+86.1±0.4
+87.1±0.5
+83.4
+81.0
+MTL
+89.3±1.1
+87.5±1.6
+77.6±0.1
+71.4±1.1
+83.5±1.1
+83.9±0.5
+83.5
+80.9
+MLDG
+87.4±0.6
+86.6±0.5
+76.4±0.3
+71.5±1.4
+82.5±1.5
+84.2±0.7
+82.1
+80.8
+CausIRL CORAL
+86.8±0.9
+84.8±1.5
+76.8±0.2
+69.8±0.6
+86.4±0.8
+87.2±0.8
+83.3
+80.6
+SANDMask
+88.0±0.6
+86.8±0.1
+76.0±0.3
+70.8±1.2
+83.3±0.2
+84.1±0.5
+82.4
+80.6
+SD
+86.0±1.1
+82.9±1.5
+76.8±0.6
+72.8±0.0
+85.4±0.5
+86.2±0.3
+82.7
+80.6
+CondCAD
+87.0±0.0
+84.8±0.1
+77.5±0.2
+70.1±0.7
+85.7±1.6
+86.6±1.4
+83.4
+80.5
+Mixup
+86.8±0.6
+84.5±1.1
+76.7±0.4
+70.7±1.4
+85.1±0.2
+86.0±0.0
+82.9
+80.4
+RSC
+87.0±2.0
+84.6±2.8
+77.2±0.6
+70.2±0.4
+85.9±1.9
+86.1±0.9
+83.4
+80.3
+CAD
+87.7±2.0
+85.7±2.8
+74.6±0.4
+69.8±0.1
+84.3±0.4
+84.9±0.1
+82.2
+80.1
+CORAL
+85.3±0.5
+83.2±1.8
+77.5±0.6
+69.9±0.1
+86.0±0.1
+85.9±0.3
+82.9
+79.7
+IRM
+88.1±0.4
+86.8±1.2
+76.0±0.2
+66.0±1.7
+85.3±1.9
+85.8±1.9
+83.1
+79.5
+DANN
+84.9±1.7
+79.7±1.3
+74.6±0.9
+67.7±1.8
+83.2±0.6
+84.4±0.4
+80.9
+77.3
+CausIRL MMD
+86.6±0.7
+83.8±1.5
+64.3±8.8
+59.2±7.7
+85.5±0.9
+86.3±1.2
+78.8
+76.4
+MMD
+89.7±0.7
+88.6±1.0
+62.9±5.6
+43.0±14.4
+85.0±0.2
+86.6±0.7
+79.2
+72.7
+IGA
+52.9±0.3
+63.9±1.0
+49.3±1.1
+60.9±0.2
+57.1±0.8
+67.9±0.6
+53.1
+64.2
+for the other domain too. Furthermore, from Fig. 4B it is evi-
+dent that StainAug [58], SD [52], and ERM [32] are among the
+most consistent algorithms over different domains whereas the
+performance of DAN [42], CDANN [35], CausIRL MMD [56],
+and Macenko [60] changes considerably for different CAME-
+LYON17 domains.
+MIDOG22. In this dataset, performance varies more signifi-
+cantly across the different domains (11% difference between
+highest and lowest average performance). In particular, based
+on the F1 score, the human endocrine cancer is the hardest do-
+main (F1=66%) and the canine cutaneous mast cell tumor is
+the easiest (F1=77%) for out-of-domain mitosis detection. In-
+terestingly, the patterns of different algorithms’ performances
+over different domains are similar, i.e., best to worst performing
+domains being canine cutaneous mast cell, human breast, ca-
+nine lung, canine lymphoma, and human neuroendocrine. The
+worst performance on human neuroendocrine can be justified
+by three reasons: the tumor type is completely different from
+all other domains (class-conditional shift), slides in this do-
+main were scanned with a Hamamatsu NanoZoomer XR scan-
+ner unlike other datasets that used Aperio or 3DHistech scan-
+ners (covariate shift), and the label distribution in this domain
+is significantly different from other domains (prior shift). On
+the other hand, the performance on the canine cutaneous mast
+cell domain is higher because in that case 2 other similar tu-
+mor types from the same species and scanner are utilized for
+model training, hence model seeing similar data can general-
+ize better to this unseen domain. In terms of consistency over
+different domains, although the accuracy metric shows consis-
+tency for most algorithms (such as SSL in Fig. 4A), F1 score
+values tell another story where consistency over different do-
+mains drastically decreases for all algorithms. This is mostly
+due to an imbalanced class population across different domains
+in the MIDOG22 dataset (see Fig. 2B).
+HISTOPANTUM. Average accuracy over different domains in
+around the same range for CRC, OV, and STAD domains
+(around 81%) with a notable accuracy drop for the UCEC do-
+main (77%). The F1 score on the UCEC domain is also the
+worst among all domains (77% compared to 80-85% for other
+domains). This can be accounted for by a prior shift in the
+8
+label distribution when comparing the UCEC domain with oth-
+ers. CRC domain gets the highest performance over because it
+shares a similar label distribution and tissue phenotypes appear-
+ance (especially with the STAD domain). In HISTOPANTUM,
+the SSL algorithm is the best performing and consistent algo-
+rithm across all domains, mostly because the utilized SSL al-
+gorithm has already seen TCGA slide during its pertaining pro-
+cedure. Furthermore, StainAug, ARM [40], CausIRL CORAL
+[56] and Transfer [53] algorithms also show decent consistency
+and performance over different domains.
+4. Discussion
+Benchmarking DG algorithms is essential for evaluating their
+performance across diverse datasets and scenarios to provide
+insights that can increase model robustness in real-world appli-
+cations. In this study, we benchmarked various DG algorithms
+with different working principles, including SOTA algorithms
+from DomainBed collection [22], self-supervised learning [64],
+and pathology-specific techniques [60, 58], on datasets with dif-
+ferent DS and size properties. Our unified and fair benchmark-
+ing process reported both accuracy and F1 scores for compre-
+hensive evaluation through robust cross-validation experiments.
+At a glance, the average best-performing algorithms are
+SSL and StainAug. SSL methods excelled especially on the
+HISTOPANTUM dataset, which is the main reason SSL ranked
+first in the full-scale dataset (Table 1) and small-scale dataset
+(Table 2) scenarios. This is mostly because SSL pertaining was
+done on an extensive set of patches extracted from TCGA, the
+same source used to curate the HISTOPANTUM dataset. Al-
+though the same image patches and labels are not shared be-
+tween HISTOPANTUM and the dataset used during pertain-
+ing of SSL, the SSL has indirect access to the test data in
+HISTOPANTUM and already has seen the possible variation of
+image data within HISTOPANTUM. Therefore, the evaluation
+of SSL on HISTOPANTUM is more of a “domain adaptation”
+exercise rather than “domain generalization” and comparing its
+performance (F1=91.7%) with the rest of the algorithms (such
+as ARM and StainAug with F1 scores of 88.6% and 87.3%,
+respectively) is not fair.
+Nevertheless, SSL shows excellent
+performance in CAMELYON17, MIDOG22, and the low-data-
+budget scenario of the sCAMELYON17 dataset. However, that
+is not the case with the sMIDOG22 dataset where there are all
+sorts of DS and data shortage problems.
+CPath-specific algorithms–stain augmentation (StainAug)
+and stain normalization (Macenko)–outperform most complex
+DG algorithms in the literature while being simple and easy
+to implement. In particular, StainAug excelled in the CAME-
+LYON17 and MIDOG22 datasets. StainAug helps the model
+to learn more stain-invariant feature representations from the
+image during the training by randomly tweaking the stain in-
+formation on the fly.
+Considering stain variation as a con-
+founding factor, StainAug can be thought of as a causal ap-
+proach for DG in CPath as it helps to learn features that are
+irrelevant to stain variation, hence achieving outstanding re-
+sults on the CAMELYON17 dataset where the main DS is co-
+variate shift (or changes in stain appearance). Macenko stain
+normalization algorithm has also shined in the CAMELYON17
+and HISTOPANTUM tasks where stain variation is the domi-
+nant DS. Specifically, in the small dataset scenario of sCAME-
+LYON, Macenko outperforms all other algorithms (except SSL)
+and ranks second. However, we should note that stain normal-
+ization methods add another preprocessing step to every CPath
+pipeline that uses them and sometimes are not stable in practice
+[67, 18]. Therefore, we suggest using stain augmentation over
+stain normalization when training models on H&E images.
+To gain a deeper understanding of how algorithm perfor-
+mance varies between small and full dataset regimes, we plot
+their rankings based on F1 and Accuracy metrics over small
+and full datasets in Fig. 5. Each point on the plot represents an
+algorithm, with its x-axis position indicating its rank in the full
+dataset regime and its y-axis position indicating its rank in the
+small dataset regime. The color of each point reflects the per-
+formance difference between the two dataset sizes. Algorithms
+located along the diagonal line performed similarly in both the
+full and small dataset regimes. Examples of such algorithms
+based on F1 score in Fig. 5 include SSL [64], StainAug [58],
+Macenko [60], ANDMask [36], EQRM [51], and RSC [46]
+among others. Conversely, some algorithms showed improved
+performance rankings on smaller datasets, evident from their
+positions below the diagonal line. Notable examples include
+Transfer [53], VREx [49], and SagNet [43]. Ideally, algorithms
+that are versatile and perform consistently across different data
+conditions are desirable. Therefore, algorithms close to the di-
+agonal line and lower left corner of plots in Fig. 5 (such as SSL
+and StainAug) are more suitable ones to investigate regardless
+of the size of the dataset at hand.
+As mentioned before, in CAMELYON17 and HISTOPAN-
+TUM, most algorithms perform well due to the large amount of
+data and simpler domain shifts. However, the level of perfor-
+mance for all algorithms drops on MIDOG22, which encom-
+passes all kinds of DS. In the large-scale MIDOG22 dataset,
+SSL and StainAug showed the best performance in terms of
+F1 score, whereas in the small-scale sMIDOG22 dataset, SSL
+is not among the top-performing algorithms. Instead, Transfer
+[53] and SD [52] algorithms achieve high F1 scores along with
+StainAug. Alternatively, focusing on the accuracy metrics ob-
+tained for the MIDOG22 dataset, we can see that the EQRM
+algorithm [51] is very promising. Although we have found that
+SSL and StainAug are generally good options to consider for
+DG applications, there is no one “best” algorithm that fits all
+the situations. Depending on the dataset size, the types of DS
+in the dataset, and the difficulty of the task different DG algo-
+rithms can perform differently.
+Notably, the baseline ERM algorithm [32] (which simply
+uses data from different domains in the mini-batches with stan-
+dard data augmentation during training) performed consistently
+better than most DG algorithms, indicating that simple meth-
+ods can be effective if implemented properly. This is in line
+with the findings of other works that investigated various DG
+algorithms [68, 22]. This underscores the importance of careful
+experiment design and incorporating well-performing baseline
+algorithms when looking for an optimal DG algorithm in any
+application.
+9
+(a) Accuracy over different domains
+80
+85
+90
+95
+100
+Accuracy
+Camelyon
+CWZ
+RST
+UMCU
+RUMC
+LPON
+60
+70
+80
+90
+Accuracy
+MIDOG
+Canine Lung
+Canine Lymphoma
+Canine Cutaneous Mast Cell 
+Human Breast
+Human Neuroendocrine
+ANDMask
+ARM
+CAD
+CDANN
+CORAL
+CausIRL_CORAL
+CausIRL_MMD
+CondCAD
+DANN
+EQRM
+ERM
+GroupDRO
+IB_ERM
+IRM
+MLDG
+MMD
+MTL
+Macenko
+Mixup
+RSC
+SD
+SSL
+SagNet
+SelfReg
+StainAug
+TRM
+Transfer
+VREx
+60
+70
+80
+90
+Accuracy
+HistoPanTum
+CRC (Colorectal)
+OV (Ovarian)
+STAD (Stomach)
+UCEC (Uterus)
+(b) F1 Score over different domains
+80
+85
+90
+95
+100
+F1 Score
+Camelyon
+CWZ
+RST
+UMCU
+RUMC
+LPON
+60
+70
+80
+90
+F1 Score
+MIDOG
+Canine Lung
+Canine Lymphoma
+Canine Cutaneous Mast Cell
+Human Breast
+Human Neuroendocrine
+ANDMask
+ARM
+CAD
+CDANN
+CORAL
+CausIRL_CORAL
+CausIRL_MMD
+CondCAD
+DANN
+EQRM
+ERM
+GroupDRO
+IB_ERM
+IRM
+MLDG
+MMD
+MTL
+Macenko
+Mixup
+RSC
+SD
+SSL
+SagNet
+SelfReg
+StainAug
+TRM
+Transfer
+VREx
+60
+70
+80
+90
+F1 Score
+HistoPanTum
+CRC (Colorectal)
+OV (Ovarian)
+STAD (Stomach)
+UCEC (Uterus)
+Figure 4: Benchmarking results for different algorithms, (A) Accuracy and (B) F1 Score. Each domain is presented by a unique color and the average performance
+of all algorithms over each domain is presented with a horizontal dashed line with the same color.
+4.1. DG guidelines
+While we cannot pinpoint a single best algorithm for all
+scenarios, we can suggest general guidelines that help narrow
+down the number of DG algorithms to investigate for a spe-
+cific application. First and foremost, ensure that the experi-
+ments are designed properly. For example, if cross-validation
+is implemented, make sure there is no data leakage and use
+domain-level stratification of cases between the train and test
+sets. Then, it is recommended to fine-tune a pretrained model
+(such as SSL [64]), instead of learning from scratch or start-
+ing with ImageNet weights. Furthermore, implementing data
+augmentation as much as possible is recommended, especially
+modality-specific techniques such as stain augmentation (or at
+least HSV color augmentation) and generic data augmentation
+techniques (like image blurring, rotation, etc.). Incorporating
+augmentations has been shown to improve the generalizability
+of the model in many studies [69, 63, 70, 71, 10, 58, 72, 73] by
+learning more robust feature representations that are invariant
+to confounding factors such as stain, sharpness, or rotations of
+the images.
+10
+0
+5
+10
+15
+20
+25
+30
+Overall Rank on Full Datasets
+0
+5
+10
+15
+20
+25
+30
+Overall Rank on Small Datasets
+ANDMask
+ARM
+CAD
+CausIRL_CORAL
+CausIRL_MMD
+CDANN
+CondCAD
+CORAL
+DANN
+EQRM
+ERM
+GroupDRO
+IB_ERM
+IGA
+IRM
+Macenko
+Mixup
+MLDG
+MMD
+MTL
+RSC
+SagNet
+SANDMask
+SD
+SelfReg
+SSL
+StainAug
+Transfer
+TRM
+VREx
+15
+10
+5
+0
+5
+10
+15
+Accuracy Diff. from Full to Small Datasets
+(A) Algorithm Rankings based on Accuracy
+0
+5
+10
+15
+20
+25
+30
+Overall Rank on Full Datasets
+0
+5
+10
+15
+20
+25
+30
+Overall Rank on Small Datasets
+SSL
+Transfer
+StainAug
+Macenko
+VREx
+SagNet
+IB_ERM
+ERM
+GroupDRO
+ANDMask
+TRM
+CDANN
+ARM
+SelfReg
+EQRM
+MTL
+MLDG
+CausIRL_CORAL
+SD
+SANDMask
+CondCAD
+Mixup
+RSC
+CAD
+CORAL
+IRM
+DANN
+CausIRL_MMD
+MMD
+IGA
+15
+10
+5
+0
+5
+10
+15
+F1 Diff. from Full to Small Datasets
+(B) Algorithm Rankings based on F1
+Figure 5: Comparative analysis of algorithm performance in small vs. full dataset regimes, showcasing Accuracy (A) and F1 score (B) metrics. The plots illustrate
+how each algorithm’s effectiveness varies with dataset size. Algorithms close to the bottom-left corner are desirable.
+After that, if desirable results are not achieved, a combina-
+tion of the following algorithms can be investigated in con-
+junction with the suggested techniques above:
+ARM [40],
+CausIRL CORAL [56], Transfer [53], and EQRM [51]. These
+algorithms have shown promise for DG and a high likelihood of
+convergence, and are less sensitive to parameter selection. On
+the other hand, based on our experience, investigation of IGA
+[48] and SANDMask [54] can be ignored due to their sensitiv-
+ity to parameter selection and low likelihood of convergence in
+CPath applications. For more universal guidelines on how to
+achieve DG in CPath, please refer to [18].
+4.2. Limitations
+This study uses a ResNet50 model [30] as the feature extrac-
+tor with all DG algorithms. While ResNet50 is known for its ro-
+bust performance in various tasks, the choice of model capacity
+and architecture can have a significant impact on the generaliz-
+ability [74, 75]. A larger or alternative model architecture could
+potentially enhance performance. Our focus is specifically on
+the DG algorithm and the ResNet model due to its properties
+is considered to be well-suited for this study. Furthermore, one
+of the best-performing algorithms is SSL which is a ResNet50
+model pretrained on TCGA image patches [64]. However, there
+are many more recent foundation models released for CPath
+that have shown DG capability [76, 77, 78, 79]. We could not
+include any of these models as a DG algorithm in our com-
+parison due to their considerable difference in model size and
+architecture from other algorithms, however, we expect that re-
+placing the SSL [64] with foundation models and also using
+them in conjunction with other recommended DG algorithms
+may further improve the results. This is an interesting question
+to investigate in future foundation model research areas.
+Furthermore, despite our efforts to determine the optimal
+working range for each algorithm, there remains the possibil-
+ity that further tuning could yield improved performance. The
+results presented should be considered as initial findings from
+an out-of-the-box application of these methods. Future work
+could explore additional parameter adjustments to refine per-
+formance and potentially achieve better outcomes for some of
+the algorithms.
+Admittedly, all of our benchmarking tasks are restricted to
+binary classification tasks. This choice is made to maintain a
+clear and focused evaluation framework, and also due to the
+limited availability of multi-labeled datasets. Moreover, this
+study does not explore other machine-learning tasks, such as se-
+mantic segmentation or bounding-box detection. This is partly
+because most DG algorithms have been tailored toward clas-
+sification tasks. Although there are some DG algorithms sug-
+gested for other applications [18], it is hard to benchmark them
+mostly because there is no suitable platform or dataset in CPath
+to enable it. Nevertheless, investigating these additional tasks
+could reveal how the DG algorithms perform across a broader
+range of applications and potentially uncover different insights
+or challenges.
+5. Conclusions
+This study reports a comprehensive benchmarking of vari-
+ous domain generalization algorithms on three diverse compu-
+tational pathology tasks. We evaluated 30 algorithms, includ-
+ing SOTA methods, self-supervised learning, and pathology-
+specific techniques, using a robust cross-validation framework.
+Our findings reveal that self-supervised learning and stain aug-
+mentation were consistently among the best-performing algo-
+rithms, emphasizing their effectiveness in addressing domain
+shifts. The baseline ERM algorithm also demonstrated compet-
+itive performance, highlighting the importance of careful exper-
+iment design and proper implementation of baseline algorithms.
+The results underscore that no single “best DG algorithm”
+exists for all scenarios. The choice of the DG algorithm should
+be guided by factors like dataset size and diversity, domain
+shift types, and task complexity. Nevertheless, our study of-
+fers recommendations that may be useful for selecting effective
+DG strategies in CPath. We suggest fine-tuning a pretrained
+11
+model, incorporating stain augmentation, and considering algo-
+rithms like ARM [40], CausIRL CORAL [56], Transfer [53],
+and EQRM [51] for optimal performance. We hope that this
+study will trigger further development of robust and generaliz-
+able deep learning models for CPath applications.
+References
+[1] G. Litjens, T. Kooi, B. E. Bejnordi, A. A. A. Setio, F. Ciompi, M. Ghafoo-
+rian, J. A. Van Der Laak, B. Van Ginneken, C. I. S´anchez, A survey
+on deep learning in medical image analysis, Medical image analysis 42
+(2017) 60–88.
+[2] J. Van der Laak, G. Litjens, F. Ciompi, Deep learning in histopathology:
+the path to the clinic, Nature medicine 27 (5) (2021) 775–784.
+[3] M. Bilal, Y. W. Tsang, M. Ali, S. Graham, E. Hero, N. Wahab, K. Dodd,
+H. Sahota, S. Wu, W. Lu, et al., Development and validation of artifi-
+cial intelligence-based prescreening of large-bowel biopsies taken in the
+uk and portugal: a retrospective cohort study, The Lancet Digital Health
+5 (11) (2023) e786–e797.
+[4] S. Graham, F. Minhas, M. Bilal, M. Ali, Y. W. Tsang, M. Eastwood,
+N. Wahab, M. Jahanifar, E. Hero, K. Dodd, et al., Screening of normal
+endoscopic large bowel biopsies with interpretable graph learning: a ret-
+rospective study, Gut 72 (9) (2023) 1709–1721.
+[5] T. T. L. Vuong, Q. D. Vu, M. Jahanifar, S. Graham, J. T. Kwak, N. Ra-
+jpoot, IMPaSh: A novel domain-shift resistant representation for colorec-
+tal cancer tissue classification, in: European Conference on Computer
+Vision, Springer, 2022, pp. 543–555.
+[6] S. Graham, Q. D. Vu, M. Jahanifar, S. E. A. Raza, F. Minhas, D. Snead,
+N. Rajpoot, One model is all you need: Multi-task learning enables simul-
+taneous histology image segmentation and classification, Medical Image
+Analysis 83 (2023) 102685. doi:10.1016/j.media.2022.102685.
+URL http://dx.doi.org/10.1016/j.media.2022.102685
+[7] M. Jahanifar, N. Z. Tajeddin, N. A. Koohbanani, N. Rajpoot, Robust in-
+teractive semantic segmentation of pathology images with minimal user
+input, in: 2021 IEEE/CVF International Conference on Computer Vision
+Workshops (ICCVW), IEEE Computer Society, 2021, pp. 674–683.
+[8] A. J. Shephard, S. Graham, S. Bashir, M. Jahanifar, H. Mahmood,
+A. Khurram, N. M. Rajpoot, Simultaneous nuclear instance and layer seg-
+mentation in oral epithelial dysplasia, in: Proceedings of the IEEE/CVF
+international conference on computer vision, 2021, pp. 552–561.
+[9] S. Graham, Q. D. Vu, M. Jahanifar, M. Weigert, U. Schmidt, W. Zhang,
+J. Zhang, S. Yang, J. Xiang, X. Wang, et al., Conic challenge: Pushing the
+frontiers of nuclear detection, segmentation, classification and counting,
+Medical image analysis 92 (2024) 103047.
+[10] N. Alemi Koohbanani, M. Jahanifar, N. Zamani Tajadin, N. Rajpoot,
+NuClick: A deep learning framework for interactive segmentation of
+microscopic images, Medical Image Analysis 65 (2020) 101771. doi:
+10.1016/j.media.2020.101771.
+URL http://dx.doi.org/10.1016/j.media.2020.101771
+[11] M. Jahanifar, A. Shephard, N. Zamanitajeddin, S. Graham, S. E. A. Raza,
+F. Minhas, N. Rajpoot, Mitosis detection, fast and slow: robust and ef-
+ficient detection of mitotic figures, Medical Image Analysis 94 (2024)
+103132.
+[12] M. Dawood, M. Eastwood, M. Jahanifar, L. Young, A. Ben-Hur, K. Bran-
+son, L. Jones, N. Rajpoot, et al., Cross-linking breast tumor transcrip-
+tomic states and tissue histology, Cell Reports Medicine 4 (12) (2023).
+[13] N. Zamanitajeddin, M. Jahanifar, M. Bilal, M. Eastwood, N. Rajpoot,
+Social network analysis of cell networks improves deep learning for pre-
+diction of molecular pathways and key mutations in colorectal cancer,
+Medical Image Analysis 93 (2024) 103071.
+[14] M. Bilal, S. E. A. Raza, A. Azam, S. Graham, M. Ilyas, I. A. Cree,
+D. Snead, F. Minhas, N. M. Rajpoot, Development and validation of
+a weakly supervised deep learning framework to predict the status of
+molecular pathways and key mutations in colorectal cancer from routine
+histology images: a retrospective study, The Lancet Digital Health 3 (12)
+(2021) e763–e772.
+[15] W. Lu, A. G. Lashen, N. Wahab, I. M. Miligy, M. Jahanifar, M. Toss,
+S. Graham, M. Bilal, A. Bhalerao, N. M. Atallah, et al., Ai-based intra-
+tumor heterogeneity score of ki67 expression as a prognostic marker for
+early-stage er+/her2- breast cancer, The Journal of Pathology: Clinical
+Research 10 (1) (2024) e346.
+[16] N. Wahab, M. Toss, I. M. Miligy, M. Jahanifar, N. M. Atallah, W. Lu,
+S. Graham, M. Bilal, A. Bhalerao, A. G. Lashen, et al., Ai-enabled routine
+h&e image based prognostic marker for early-stage luminal breast cancer,
+npj Precision Oncology 7 (1) (2023) 122.
+[17] A. Ibrahim, M. Jahanifar, N. Wahab, M. S. Toss, S. Makhlouf, N. Atal-
+lah, A. G. Lashen, A. Katayama, S. Graham, M. Bilal, et al., Artificial
+intelligence-based mitosis scoring in breast cancer: Clinical application,
+Modern Pathology 37 (3) (2024) 100416.
+[18] M. Jahanifar, M. Raza, K. Xu, T. Vuong, R. Jewsbury, A. Shephard,
+N. Zamanitajeddin, J. T. Kwak, S. E. A. Raza, F. Minhas, et al., Domain
+generalization in computational pathology: survey and guidelines, arXiv
+preprint arXiv:2310.19656 (2023).
+[19] K. Stacke, G. Eilertsen, J. Unger, C. Lundstrom, Measuring Domain Shift
+for Deep Learning in Histopathology, IEEE Journal of Biomedical and
+Health Informatics 25 (2) (2021) 325–336. doi:10.1109/jbhi.2020.
+3032060.
+URL http://dx.doi.org/10.1109/jbhi.2020.3032060
+[20] H. Guan, M. Liu, Domain Adaptation for Medical Image Analysis: A
+Survey, IEEE Transactions on Biomedical Engineering 69 (3) (2022)
+1173–1185. doi:10.1109/TBME.2021.3117407.
+URL
+https://ieeexplore.ieee.org/abstract/document/
+9557808
+[21] J. Wang, C. Lan, C. Liu, Y. Ouyang, T. Qin, Generalizing to Unseen
+Domains: A Survey on Domain Generalization, in: Proceedings of the
+Thirtieth International Joint Conference on Artificial Intelligence, Inter-
+national Joint Conferences on Artificial Intelligence Organization, Cali-
+fornia, 2021. doi:10.24963/ijcai.2021/628.
+URL http://dx.doi.org/10.24963/ijcai.2021/628
+[22] I. Gulrajani, D. Lopez-Paz, In search of lost domain generalization, in:
+International Conference on Learning Representations, 2021.
+URL https://openreview.net/forum?id=lQdXeXDoWtI
+[23] P. Bandi, O. Geessink, Q. Manson, M. Van Dijk, M. Balkenhol,
+M. Hermsen, B. Ehteshami Bejnordi, B. Lee, K. Paeng, A. Zhong, Q. Li,
+F. G. Zanjani, S. Zinger, K. Fukuta, D. Komura, V. Ovtcharov, S. Cheng,
+S. Zeng, J. Thagaard, A. B. Dahl, H. Lin, H. Chen, L. Jacobsson, M. Hed-
+lund, M. cetin, E. Halici, H. Jackson, R. Chen, F. Both, J. Franke,
+H. Kusters-Vandevelde, W. Vreuls, P. Bult, B. van Ginneken, J. van der
+Laak, G. Litjens, From Detection of Individual Metastases to Classifi-
+cation of Lymph Node Status at the Patient Level: The CAMELYON17
+Challenge, IEEE Transactions on Medical Imaging 38 (2) (2019) 550–
+560. doi:10.1109/tmi.2018.2867350.
+URL http://dx.doi.org/10.1109/tmi.2018.2867350
+[24] M. Aubreville, N. Stathonikos, T. A. Donovan, R. Klopfleisch, J. Ammel-
+ing, J. Ganz, F. Wilm, M. Veta, S. Jabari, M. Eckstein, et al., Domain gen-
+eralization across tumor types, laboratories, and species—insights from
+the 2022 edition of the mitosis domain generalization challenge, Medical
+Image Analysis 94 (2024) 103155.
+[25] P. W. Koh, S. Sagawa, H. Marklund, S. M. Xie, M. Zhang, A. Balsub-
+ramani, W. Hu, M. Yasunaga, R. L. Phillips, I. Gao, T. Lee, E. David,
+I. Stavness, W. Guo, B. Earnshaw, I. Haque, S. M. Beery, J. Leskovec,
+A. Kundaje, E. Pierson, S. Levine, C. Finn, P. Liang, WILDS: A Bench-
+mark of in-the-Wild Distribution Shifts, in: Proceedings of the 38th Inter-
+national Conference on Machine Learning, PMLR, 2021, pp. 5637–5664.
+URL https://proceedings.mlr.press/v139/koh21a.html
+[26] S. Kotte, V. Saipradeep, N. Sivadasan, T. Joseph, H. Sharma, V. Walia,
+B. Varma, G. Mukherjee, A deep learning based ensemble model for gen-
+eralized mitosis detection in h &e stained whole slide images, in: MIC-
+CAI Challenge on Mitosis Domain Generalization, Springer, 2022, pp.
+221–225.
+[27] X. Wang, J. Zhang, S. Yang, J. Xiang, F. Luo, M. Wang, J. Zhang,
+W. Yang, J. Huang, X. Han, A generalizable and robust deep learning
+algorithm for mitosis detection in multicenter breast histopathological
+images, Medical Image Analysis 84 (2023) 102703. doi:10.1016/j.
+media.2022.102703.
+URL http://dx.doi.org/10.1016/j.media.2022.102703
+[28] J. N. Weinstein, E. A. Collisson, G. B. Mills, K. R. Shaw, B. A. Ozen-
+berger, K. Ellrott, I. Shmulevich, C. Sander, J. M. Stuart, The cancer
+genome atlas pan-cancer analysis project, Nature genetics 45 (10) (2013)
+1113–1120.
+12
+[29] J. Wang,
+W. Lu,
+DeepDG: Deep domain generalization toolkit,
+https://github.com/jindongwang/transferlearning/tree/
+master/code/DeepDG, accessed: 31-07-2023.
+[30] K. He, X. Zhang, S. Ren, J. Sun, Deep residual learning for image recog-
+nition, in: Proceedings of the IEEE conference on computer vision and
+pattern recognition, 2016, pp. 770–778.
+[31] C. Finn, P. Abbeel, S. Levine, Model-agnostic meta-learning for fast
+adaptation of deep networks, in: International conference on machine
+learning, PMLR, 2017, pp. 1126–1135.
+[32] V. Vapnik, The nature of statistical learning theory, Springer science &
+business media, 1999.
+[33] S. Yan, H. Song, N. Li, L. Zou, L. Ren, Improve unsupervised domain
+adaptation with mixup training, arXiv preprint arXiv:2001.00677 (2020).
+[34] S. Sagawa, P. W. Koh, T. B. Hashimoto, P. Liang, Distributionally robust
+neural networks for group shifts: On the importance of regularization for
+worst-case generalization, arXiv preprint arXiv:1911.08731 (2019).
+[35] Y. Li, X. Tian, M. Gong, Y. Liu, T. Liu, K. Zhang, D. Tao, Deep Domain
+Generalization via Conditional Invariant Adversarial Networks, in: Com-
+puter Vision – ECCV 2018, Springer International Publishing, Cham,
+2018, pp. 647–663.
+URL http://dx.doi.org/10.1007/978-3-030-01267-0_38
+[36] G. Parascandolo, A. Neitz, A. Orvieto, L. Gresele, B. Sch¨olkopf, Learn-
+ing explanations that are hard to vary, arXiv preprint arXiv:2009.00329
+(2020).
+[37] B. Sun, K. Saenko, Deep coral: Correlation alignment for deep domain
+adaptation, in: Computer Vision–ECCV 2016 Workshops: Amsterdam,
+The Netherlands, October 8-10 and 15-16, 2016, Proceedings, Part III 14,
+Springer, 2016, pp. 443–450.
+[38] D. Kim, Y. Yoo, S. Park, J. Kim, J. Lee, Selfreg: Self-supervised con-
+trastive regularization for domain generalization, in:
+Proceedings of
+the IEEE/CVF International Conference on Computer Vision, 2021, pp.
+9619–9628.
+[39] G. Blanchard, A. A. Deshmukh, ¨U. Dogan, G. Lee, C. Scott, Domain gen-
+eralization by marginal transfer learning, The Journal of Machine Learn-
+ing Research 22 (1) (2021) 46–100.
+[40] M. Zhang, H. Marklund, N. Dhawan, A. Gupta, S. Levine, C. Finn, Adap-
+tive risk minimization: Learning to adapt to domain shift, Advances in
+Neural Information Processing Systems 34 (2021) 23664–23678.
+[41] M. Arjovsky, L. Bottou, I. Gulrajani, D. Lopez-Paz, Invariant risk mini-
+mization, arXiv preprint arXiv:1907.02893 (2019).
+[42] Y. Ganin, E. Ustinova, H. Ajakan, P. Germain, H. Larochelle, F. Lavio-
+lette, M. Marchand, V. Lempitsky, Domain-adversarial training of neural
+networks, The journal of machine learning research 17 (1) (2016) 2096–
+2030.
+[43] H. Nam, H. Lee, J. Park, W. Yoon, D. Yoo, Reducing domain gap by re-
+ducing style bias, in: Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition, 2021, pp. 8690–8699.
+[44] Y. Xu, T. Jaakkola, Learning representations that support robust transfer
+of predictors, arXiv preprint arXiv:2110.09940 (2021).
+[45] Y. Dubois, Y. Ruan, C. J. Maddison, Optimal representations for covari-
+ate shifts, in: NeurIPS 2021 workshop on distribution shifts: connecting
+methods and applications, 2021.
+[46] Z. Huang, H. Wang, E. P. Xing, D. Huang, Self-challenging improves
+cross-domain generalization, in: Computer Vision–ECCV 2020: 16th Eu-
+ropean Conference, Glasgow, UK, August 23–28, 2020, Proceedings, Part
+II 16, Springer, 2020, pp. 124–140.
+[47] H. Li, S. J. Pan, S. Wang, A. C. Kot, Domain generalization with adversar-
+ial feature learning, in: Proceedings of the IEEE conference on computer
+vision and pattern recognition, 2018, pp. 5400–5409.
+[48] M. Koyama, S. Yamaguchi, When is invariance useful in an out-of-
+distribution generalization problem?, arXiv preprint arXiv:2008.01883
+(2020).
+[49] D. Krueger, E. Caballero, J.-H. Jacobsen, A. Zhang, J. Binas, D. Zhang,
+R. Le Priol, A. Courville, Out-of-distribution generalization via risk ex-
+trapolation (rex), in: International Conference on Machine Learning,
+PMLR, 2021, pp. 5815–5826.
+[50] K. Ahuja, E. Caballero, D. Zhang, J.-C. Gagnon-Audet, Y. Bengio,
+I. Mitliagkas, I. Rish, Invariance principle meets information bottleneck
+for out-of-distribution generalization, Advances in Neural Information
+Processing Systems 34 (2021) 3438–3450.
+[51] C. Eastwood, A. Robey, S. Singh, J. Von K¨ugelgen, H. Hassani, G. J.
+Pappas, B. Sch¨olkopf, Probable domain generalization via quantile risk
+minimization, Advances in Neural Information Processing Systems 35
+(2022) 17340–17358.
+[52] M. Pezeshki, O. Kaba, Y. Bengio, A. C. Courville, D. Precup, G. Lajoie,
+Gradient starvation: A learning proclivity in neural networks, Advances
+in Neural Information Processing Systems 34 (2021) 1256–1272.
+[53] G. Zhang, H. Zhao, Y. Yu, P. Poupart, Quantifying and improving trans-
+ferability in domain generalization, Advances in Neural Information Pro-
+cessing Systems 34 (2021) 10957–10970.
+[54] S. Shahtalebi, J.-C. Gagnon-Audet, T. Laleh, M. Faramarzi, K. Ahuja,
+I. Rish, Sand-mask:
+An enhanced gradient masking strategy for
+the discovery of invariances in domain generalization, arXiv preprint
+arXiv:2106.02266 (2021).
+[55] D. Li, Y. Yang, Y.-Z. Song, T. Hospedales, Learning to generalize: Meta-
+learning for domain generalization, in: Proceedings of the AAAI confer-
+ence on artificial intelligence, Vol. 32, 2018.
+[56] M. Chevalley, C. Bunne, A. Krause, S. Bauer, Invariant causal mech-
+anisms through distribution matching, arXiv preprint arXiv:2206.11646
+(2022).
+[57] B. E. Bejnordi, N. Timofeeva, I. Otte-H¨oller, N. Karssemeijer, J. A.
+van der Laak, Quantitative analysis of stain variability in histology slides
+and an algorithm for standardization, in: Medical Imaging 2014: Digital
+Pathology, Vol. 9041, SPIE, 2014, pp. 45–51.
+[58] D. Tellez, G. Litjens, P. B´andi, W. Bulten, J.-M. Bokhorst, F. Ciompi,
+J. van der Laak, Quantifying the effects of data augmentation and stain
+color normalization in convolutional neural networks for computational
+pathology, Medical Image Analysis 58 (2019) 101544. doi:10.1016/
+j.media.2019.101544.
+URL http://dx.doi.org/10.1016/j.media.2019.101544
+[59] A. C. Ruifrok, D. A. Johnston, et al., Quantification of histochemical
+staining by color deconvolution, Analytical and quantitative cytology and
+histology 23 (4) (2001) 291–299.
+[60] M. Macenko, M. Niethammer, J. S. Marron, D. Borland, J. T. Woosley,
+X. Guan, C. Schmitt, N. E. Thomas, A method for normalizing histology
+slides for quantitative analysis, in: 2009 IEEE international symposium
+on biomedical imaging: from nano to macro, IEEE, 2009, pp. 1107–1110.
+[61] A. Vahadane, T. Peng, A. Sethi, S. Albarqouni, L. Wang, M. Baust,
+K. Steiger, A. M. Schlitter, I. Esposito, N. Navab, Structure-preserving
+color normalization and sparse stain separation for histological images,
+IEEE transactions on medical imaging 35 (8) (2016) 1962–1971.
+[62] J. Pocock, S. Graham, Q. D. Vu, M. Jahanifar, S. Deshpande, G. Hadjige-
+orghiou, A. Shephard, R. M. S. Bashir, M. Bilal, W. Lu, et al., Tiatoolbox
+as an end-to-end library for advanced tissue image analytics, Communi-
+cations medicine 2 (1) (2022) 120.
+[63] K. Faryna, J. van der Laak, G. Litjens, Automatic data augmentation to
+improve generalization of deep learning in h&e stained histopathology,
+Computers in Biology and Medicine 170 (2024) 108018.
+[64] M. Kang, H. Song, S. Park, D. Yoo, S. Pereira, Benchmarking self-
+supervised learning on diverse pathology datasets, in: Proceedings of
+the IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2023, pp. 3344–3354.
+[65] J. Zbontar, L. Jing, I. Misra, Y. LeCun, S. Deny, Barlow twins: Self-
+supervised learning via redundancy reduction, in: International confer-
+ence on machine learning, PMLR, 2021, pp. 12310–12320.
+[66] N. A. Koohbanani, B. Unnikrishnan, S. A. Khurram, P. Krishnaswamy,
+N. Rajpoot, Self-Path: Self-Supervision for Classification of Pathology
+Images With Limited Annotations, IEEE Transactions on Medical Imag-
+ing 40 (10) (2021) 2845–2856. doi:10.1109/tmi.2021.3056023.
+URL http://dx.doi.org/10.1109/tmi.2021.3056023
+[67] Q. D. Vu, R. Jewsbury, S. Graham, M. Jahanifar, S. E. A. Raza, F. Minhas,
+A. Bhalerao, N. Rajpoot, Nuclear Segmentation and Classification: On
+Color and Compression Generalization, in: Machine Learning in Medical
+Imaging, Springer Nature Switzerland, Cham, 2022, pp. 249–258.
+URL http://dx.doi.org/10.1007/978-3-031-21014-3_26
+[68] H. Gouk, O. Bohdal, D. Li, T. Hospedales, On the limitations of gen-
+eral purpose domain generalisation methods, arXiv e-prints (2022) arXiv–
+2202.
+[69] P. Chlap, H. Min, N. Vandenberg, J. Dowling, L. Holloway, A. Haworth,
+A review of medical image data augmentation techniques for deep learn-
+ing applications, Journal of Medical Imaging and Radiation Oncology
+65 (5) (2021) 545–563.
+13
+[70] J. Pohjonen, C. St¨urenberg, A. F¨ohr, E. Pitk¨anen, A. Rannikko, T. Mirtti,
+Exposing and addressing the fragility of neural networks in digital pathol-
+ogy, arXiv preprint arXiv:2206.15274 (2022).
+[71] A. Kleppe, O.-J. Skrede, S. De Raedt, K. Liestøl, D. J. Kerr,
+H. E. Danielsen, Designing deep learning studies in cancer diagnos-
+tics, Nature Reviews Cancer 21 (3) (2021) 199–211.
+doi:10.1038/
+s41568-020-00327-9.
+URL http://dx.doi.org/10.1038/s41568-020-00327-9
+[72] M. Jahanifar, A. Shephard, N. Zamanitajeddin, S. Graham, S. E. A. Raza,
+F. Minhas, N. Rajpoot, Mitosis detection, fast and slow: Robust and
+efficient detection of mitotic figures, arXiv preprint arXiv:2208.12587
+(2023).
+[73] M. Jahanifar, A. Shephard, N. Zamanitajeddin, R. M. S. Bashir, M. Bi-
+lal, S. A. Khurram, F. Minhas, N. Rajpoot, Stain-robust mitotic figure
+detection for the mitosis domain generalization challenge, in: M. Aubre-
+ville, D. Zimmerer, M. Heinrich (Eds.), Biomedical Image Registration,
+Domain Generalisation and Out-of-Distribution Analysis, Springer Inter-
+national Publishing, Cham, 2022, pp. 48–52.
+[74] X. Jiang, J. Huang, S. Jin, S. Lu, Domain generalization via balancing
+training difficulty and model capability, in: Proceedings of the IEEE/CVF
+International Conference on Computer Vision, 2023, pp. 18993–19003.
+[75] M. Tan, Q. Le, Efficientnet: Rethinking model scaling for convolu-
+tional neural networks, in: International conference on machine learning,
+PMLR, 2019, pp. 6105–6114.
+[76] A. Filiot, R. Ghermi, A. Olivier, P. Jacob, L. Fidon, A. Mac Kain, C. Sail-
+lard, J.-B. Schiratti, Scaling self-supervised learning for histopathology
+with masked image modeling, medRxiv (2023) 2023–07.
+[77] E. Vorontsov, A. Bozkurt, A. Casson, G. Shaikovski, M. Zelechowski,
+K. Severson, E. Zimmermann, J. Hall, N. Tenenholtz, N. Fusi, et al.,
+A foundation model for clinical-grade computational pathology and rare
+cancers detection, Nature Medicine (2024) 1–12.
+[78] R. J. Chen, T. Ding, M. Y. Lu, D. F. Williamson, G. Jaume, A. H. Song,
+B. Chen, A. Zhang, D. Shao, M. Shaban, et al., Towards a general-purpose
+foundation model for computational pathology, Nature Medicine 30 (3)
+(2024) 850–862.
+[79] G. Campanella, S. Chen, R. Verma, J. Zeng, A. Stock, M. Croken,
+B. Veremis, A. Elmas, K.-l. Huang, R. Kwan, et al., A clinical benchmark
+of public self-supervised pathology foundation models, arXiv preprint
+arXiv:2407.06508 (2024).
+14

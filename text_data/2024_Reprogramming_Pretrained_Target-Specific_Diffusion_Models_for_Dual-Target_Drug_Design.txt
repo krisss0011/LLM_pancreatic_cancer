@@ -1,0 +1,1799 @@
+Reprogramming Pretrained Target-Specific Diffusion
+Models for Dual-Target Drug Design
+Xiangxin Zhou1,2
+Jiaqi Guan3
+Yijia Zhang4
+Xingang Peng5
+Liang Wang1,2
+Jianzhu Ma4,6,∗
+1School of Artificial Intelligence, University of Chinese Academy of Sciences
+2New Laboratory of Pattern Recognition (NLPR),
+State Key Laboratory of Multimodal Artificial Intelligence Systems (MAIS),
+Institute of Automation, Chinese Academy of Sciences (CASIA)
+3Department of Computer Science, University of Illinois Urbana-Champaign
+4Department of Electronic Engineering, Tsinghua University
+5Institute for Artificial Intelligence, Peking University
+6Institute for AI Industry Research, Tsinghua University
+Abstract
+Dual-target therapeutic strategies have become a compelling approach and attracted
+significant attention due to various benefits, such as their potential in overcoming
+drug resistance in cancer therapy. Considering the tremendous success that deep
+generative models have achieved in structure-based drug design in recent years, we
+formulate dual-target drug design as a generative task and curate a novel dataset
+of potential target pairs based on synergistic drug combinations. We propose to
+design dual-target drugs with diffusion models that are trained on single-target
+protein-ligand complex pairs. Specifically, we align two pockets in 3D space with
+protein-ligand binding priors and build two complex graphs with shared ligand
+nodes for SE(3)-equivariant composed message passing, based on which we derive
+a composed drift in both 3D and categorical probability space in the generative
+process. Our algorithm can well transfer the knowledge gained in single-target
+pretraining to dual-target scenarios in a zero-shot manner. We also repurpose
+linker design methods as strong baselines for this task. Extensive experiments
+demonstrate the effectiveness of our method compared with various baselines.
+1
+Introduction
+A promising paradigm of rational drug design is structure-based drug design (SBDD) [1], which uses
+computational chemistry tools in which the 3D structure of a protein target is used as the basis to
+identify or design new chemical entities. The foundation of structure-based drug design has been
+grounded in the lock-and-key hypothesis, positing that an optimal ligand molecule should possess
+a structure that is complementary to the target site. Recently, dual-target drug design, which aims
+to design “one key” for “two locks”, has attracted significant attention. Precisely, dual-target drug
+design [4] is a strategy in pharmaceutical research that aims to design single ligand molecules capable
+of interacting with two different biological targets simultaneously. A dual-target drug can potentially
+lower the odds of resistance developing [62] and effectively manage the disease which involve
+complex biological pathways with multiple proteins [49]. Recent years have witnessed a noticeable
+∗Correspondence to: Jianzhu Ma <majianzhu@tsinghua.edu.cn>.
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+arXiv:2410.20688v2  [cs.LG]  26 Nov 2024
+increase in the FDA’s approval of dual-target drugs [32, 34]. Please refer to Appendix A for a more
+comprehensive understanding of motivation, significance, and current practices of dual-target drug
+design.
+Deep learning, particularly deep generative models [63] and geometric deep learning [46], has been
+introduced to SBDD and achieved promising results. Peng et al. [45], Zhang et al. [65] proposed
+to sequentially generate atoms or fragments using auto-regressive generative models conditioned
+on a specific protein binding site. Guan et al. [19], Lin et al. [33], Schneuing et al. [53] proposed
+to generate ligand molecules with diffusion models and achieved high binding affinity. However,
+due to the scarcity of data resources and high computational complexity, there is limited progress
+on introducing powerful generative models into dual-target drug design. Besides, there also lacks a
+comprehensive benchmark and dataset for evaluating the dual-target drug design, which also hinders
+the community from developing AI-powered computational tools for dual-target drug design.
+To overcome the aforementioned challenges, we first propose a dataset for dual-target drug design.
+The design of dual-target drugs for arbitrary target pairs lacks substantive purpose. Inspired by the
+concept of drug synergism [58], where the combined effect of two drugs surpasses the effects of
+each drug when used individually, we carefully select pairs of targets from combinations of drugs
+that demonstrate significant synergistic interactions. The effectiveness of such combination therapy
+[39, 50, 44] has demonstrate significant efficacy in tumor eradication at both cellular level and in
+vivo study. Designing dual-target drugs for the paired targets may further improve the efficacy and
+reduce side effects. Additionally, we also provide a reference ligand for each target and the 3D
+structure of each protein-ligand complex in our dataset. Besides, we formulate the dual-target drug
+design as a generative task, based on which we further propose to reprogram pretrained target-specific
+diffusion models as introduced by Guan et al. [19] for the dual-target setting in zero-shot manner.
+More specifically, we first align dual pockets in 3D space with protein-ligand interaction priors that
+encapsulate the intricate features of the pockets. We compose the predicted drift terms in both 3D
+and categorical probability space in the reverse generative process of the diffusion model to generate
+dual-target drugs. We name this method as COMPDIFF. We further improve this method by building
+two complex graphs with shared ligand nodes for SE(3)-equivariant composed message passing.
+In this method, we compose the SE(3)-equivariant message at each layer of the equivariant neural
+network instead of only on the output level. We name this method as DUALDIFF. Our approach
+effectively transfers the knowledge acquired from pretraining on single-target datasets, circumventing
+the challenging demand for extensive training data required for dual-target drug design. We also
+repurpose linker design methods [22, 17] as a strong baseline for this task. We outline strategies to
+identify potential fragments from the synergistic drug combinations, serving as input for these linker
+design methods. We highlight our main contributions as follows:
+• We present a meticulously curated dataset derived from synergistic drug combinations for dual-
+target drug design, offering new opportunities for AI-driven drug discovery.
+• We propose SE(3)-equivariant composed message for compositional generative sampling to repro-
+gram pretrained single-target diffusion models for dual-target drug design in a zero-shot way.
+• We propose fragment selection methods from synergistic drug combinations for repurposing linker
+design methods as strong baselines for dual-target drug design.
+• Our method can be viewed as a general framework where any pretrained generative models for
+SBDD can be applied to dual-target drug design without any fine-tuning. We select TargetDiff as a
+demonstrative demo in our work.
+2
+Related Work
+Structure-based Drug Design
+Structure-based drug design (SBDD) aims to design ligand
+molecules that can bind to specific protein targets. The introduction of deep generative models
+has marked a paradigm shift, yielding noteworthy outcomes. Ragoza et al. [48] utilized a variational
+autoencoder to generate 3D molecules within atomic density grids. Luo et al. [42], Peng et al.
+[45], Liu et al. [36] employed an autoregressive model to sequentially construct 3D molecules atom
+by atom, while Zhang et al. [65] introduced a method for generating 3D molecules by successively
+predicting molecular fragments in an auto-regressive way. Guan et al. [19], Schneuing et al. [53], Lin
+et al. [33] introduced diffusion models [21] to SBDD, which first generate the types and positions
+of atoms by iteratively denoising with an SE(3)-equivariant neural network [52, 18] and then de-
+termine bond types by post-processing. Some recent studies have endeavored to further improve
+2
+the aforementioned methods through the integration of biochemical prior knowledge. Guan et al.
+[20] proposed decomposed priors, bond diffusion and validity guidance to improve the quality of
+ligand molecules generated by diffusion models. Zhang and Liu [64] augmented molecule generation
+through global interaction between subpocket prototypes and molecular motifs. Huang et al. [23]
+incorporated protein-ligand interaction prior into both forward and reverse processes to improve the
+diffusion models. Zhou et al. [66] integrated conditional diffusion models with iterative optimization
+to optimize properties of generated molecules. The above works focus on structure-based single-target
+drug design, while our work aims at dual-target drug design.
+Molecular Linker Design
+Molecular linker design, which enables the connection of molecular
+fragments to form potent compounds, is an effective approach in rational drug discovery. Approaches
+like DeLinker [26] and Develop [27] design linkers by utilizing molecular graphs with distance and
+angle information between anchor atoms, but they lack 3D structural information of molecules. More
+recent techniques, such as 3DLinker [22] and DiffLinker [25], generate linkers directly in 3D space
+using conditional VAEs and diffusion models, respectively, but they assume known fragment poses.
+LinkerNet [17] relaxes this assumption by co-designing molecular fragment poses and the linker,
+making it applicable in cases where fragment poses are unknown, such as in the linker design of
+PROTACs (PROteolysis TArgeting Chimeras). Since pharmacophore combination is a traditional
+strategy to design dual-target drugs, we repurpose linker design methods as strong baselines for
+dual-target drug design. Please refer to Appendix B for extended related works.
+3
+Method
+In this section, we will present the pipeline of our work, from dataset curation to method. In
+Section 3.1, we will introduce how we curate the dual-target dataset based on synergistic drug
+combinations and how we derived the protein-ligand complex structures. In Section 3.2, we will show
+how we reprogram the pretrained target-specific diffusion models for dual-target drug design and
+introduce two methods, COMPDIFF and DUALDIFF. In Section 3.3, we will show how we repurpose
+linker design methods for dual-target drug design.
+N
+C
+C
+O
+C
+C
+C
+N
+C
+C
+O
+N
+C
+C
+O
+C
+C
+C
+N
+C
+C
+O
+N
+C
+C
+O
+C
+C
+N
+C
+C
+O
+…
+Drift
+Protein-Ligand Binding Prior
+C
+N
+C
+O
+C
+C
+C
+C
+O
+C
+N
+O
+C
+N
+C
+C
+C
+C
+N
+C
+C
+O
+N
+C
+C
+O
+C
+C
+C
+C
+C
+C
+Aligned Dual Targets
+Align Protein 
+by Prior
+P1
+P2
+Compositional 
+Reverse Sampling
+Composed SE(3)-Equivariant Message
+Equivariant 
+NN
+P1
+P2
+Dock
+Selected Fragments
+…
+Designed Drug
+Linker Design
+P1
+N
+C
+C
+C
+C
+C
+O
+C
+O
+C
+P2
+N
+C
+C
+C
+C
+C
+O
+C
+O
+C
+(a)
+(b)
+N
+C
+C
+C
+C
+C
+O
+C
+O
+C
+C
+N
+O
+O
+C
+Figure 1: Overview of our method for dual-target drug design. (a) Illustration of COMPDIFF and
+DUALDIFF. We first align two pockets in 3D space with protein-ligand binding prior and build two
+complex graph with shared ligand nodes. We then compose the SE(3)-equivariant message to derive
+the drift on output level (COMPDIFF) or at each layer of the equivariant neural network (DUALDIFF).
+Based on the composed drift, we can generate dual-target ligand molecules by compositional reverse
+sampling. (b) Illustration of repurposing linker design methods for dual-target drug design. We first
+identity binding-related fragments from the reference molecules for each of the dual targets and then
+apply linker design methods to link the fragments and derive a complete molecule that can bind to
+the dual targets separately.
+3
+3.1
+Data Curation
+Designing dual-target drugs for random pairs of targets lacks significant intent. However, by taking
+cues from drug synergy, where two drugs together deliver an impact greater than the sum of their
+separate effects [58], we carefully select target pairs to ensure the dataset holds practical significance
+for drug discovery.
+Drug Synergy
+To collect drug combination pairs, we start from DrugCombDB2 [35]. Drug-
+CombDB is a comprehensive database devoted to the curation of drug combinations from various
+data sources including high-throughput screening (HTS) assays, manual curations from the literature,
+FDA Orange Book and external databases. DrugCombDB comprises a total of 448,555 combinations
+of drugs, encompassing 2,887 unique drugs and 124 human cancer cell lines. Particularly, Drug-
+CombDB has more than 6,000,000 quantitative dose responses, from which we determine whether a
+drug combination is synergistic or not. Specifically, a drug combination with positive zero interaction
+potency (ZIP), Bliss, Loewe and the highest single agent (HSA) scores simultaneously in at least
+one cell line is supposed to be a synergistic one. Please refer to Appendix C for a comprehensive
+understanding of these scores.
+Drug Information
+After collecting synergistic drug combinations, we need to collect other neces-
+sary information (e.g., SMILES and targets) according to their drug names provided by DrugCombDB.
+Before this procedure, we collect synonyms and cross-matching ID (e.g., CAS Number and ChEBI
+ID) mainly from DrugBank3 [30] and Therapeutic Target Database (TTD)4 [67]. This step facilitates
+comprehensive literature reviews, ensuring that all relevant data sources that may use alternate names
+for a drug is considered. We then collect SMILES or structures (if possible) also mainly from
+DrugBank and TTD. To identify drug targets, we also utilize DrugBank and TTD as the primary
+data sources, and supplement these with manual curation from the literature (e.g., [28]). For drugs
+for which we cannot find either SMILES or targets, we exclude them from our previously collected
+dataset of positive drug combinations.
+Complex Structures
+For certain drug-target pairs, we incorporate their complex structures directly
+into our dataset if they are available in PDBBind [38], a repository of protein-ligand binding structures
+sourced from the Protein Data Bank (PDB) [2]. For drug-target pairs not present in PDBBind, we
+initially attempt to retrieve the target structures from PDB; if the structures are unavailable, we
+then source them from the AlphaFold Protein Structure Database (AlphaFold DB) [59] and exclude
+those whose confidence scores, referred to as pLDDT which provide an assessment of the structures
+predicted by AlphaFold 2 [29], are less than 70. For these protein targets with structures from PDB
+or AlphaFold DB, we first utilize P2Rank [31], a program that precisely predicts ligand-binding
+pockets from a protein structure, to find the most possible pocket given the target structure, and use
+AutoDock Vina [12] to obtain the protein-ligand complex structures. For each drug, there may exist
+more than one targets, in which case we use AutoDock Vina to measure the binding affinity and
+selected the target with the best binding affinity. Finally, we obtain 12,917 postive drug combinations
+with protein-ligand complex structures, among which there are 438 unique drugs. The 12,917 pairs
+of targets can be used to evaluate the ability of methods for dual-target drug design. And the binding
+ligands can be used for reference molecules.
+3.2
+Reprogramming Target-Specific Diffusion Models for Dual-Target Drug Design
+Diffusion models [21, 8, 56, 54] have been introduced to structure-based drug design and achieved
+promising results [19, 53, 33, 20]. We will first revisit the background of diffusion models for SBDD
+[19] and then introduce how we apply diffusion models trained on single-target protein-ligand datasets
+to dual-target drug design in a zero-shot manner. Our method is illustrated in Figure 1 (a).
+Diffusion Models for single-target SBDD
+In this following, we denote the type of an atom as
+v ∈RK and the coordinate of an atom as x ∈R3, where K is the number of atom types of
+our interest. For single-target drug design, given a protein binding site denoted as a set of atoms
+2http://drugcombdb.denglab.org/main
+3https://go.drugbank.com/
+4https://idrblab.net/ttd/
+4
+P = {(x(i)
+P , v(i)
+P )}NP
+i=1, where NP is the number of protein atoms, our goal is to generate binding
+molecules M = {(x(i)
+L , v(i)
+L )}NM
+i=1. For brevity, we denote the molecule as M = [x, v], where [·, ·]
+denotes the concatenation operator and x ∈RNM×3, x ∈RNM×K denote the coordinates in 3D
+space and one-hot atom types, respectively. So we can use generative models to model the conditional
+distribution p(M|P).
+In the forward diffusion process of the diffusion model, noises are gradually injected into the data sam-
+ple (i.e., small molecule M0 ∼p(M|P)) and lead to a sequence of latent variable M1, M2, . . . , MT .
+The final distribution p(MT |P), also known as prior distribution, is approximately standard normal
+distribution for atom positions and uniform distribution for atom types. The reverse generative process
+learns to recover data distribution from the noise distribution with a neural network parameterized by
+θ. The forward and reverse processes are both Markov chains defined as follows:
+q(M1:T |M0, P) =
+T
+Y
+t=1
+q(Mt|Mt−1, P)
+and
+pθ(M0:T −1|MT , P) =
+T
+Y
+t=1
+pθ(Mt−1|Mt, P). (1)
+More specifically, the forward transition kernel in Guan et al. [19] are defined as follows:
+q(Mt|Mt−1, P) = N(xt;
+p
+1 −βtxt−1, βtI) · C(vt|(1 −βt)vt−1 + βt/K),
+(2)
+where {βt}T
+t=1 are fixed noise schedule. The above diffusion process can be efficiently sampled
+directly from time step 0 to t as follows:
+q(xt|x0) = N(xt; √¯αtx0, (1 −¯αt)I)
+and
+q(vt|v0) = C(vt|¯αtv0 + (1 −¯αt/K),
+(3)
+where αt := 1 −βt and ¯αt := Qt
+s=1 αs. The posterior can be easily computed via Bayes theorem as:
+q(xt−1|xt, x0) = N(xt−1; ˜µt(xt, x0), ˜βtI)
+and
+q(vt|v0) = C(vt|¯αtv0 + (1 −¯αt)/K), (4)
+where ˜βt = 1−¯αt−1
+1−¯αt βt, ˜µt(xt, x0) =
+√¯αt−1βt
+1−¯αt
+, ˜ct(vt, v0) = c∗/ PK
+k=1 c∗
+k and c∗(vt, v0) = [αtvt +
+(1 −αt)/K] ⊙[¯αt−1v0 + (1 −¯αt−1)/K].
+Accordingly, the reverse transition kernel are defined as follows:
+pθ(Mt−1|Mt, P) = N(xt−1; µθ([xt, vt], t, P), σ2
+t I) · C(vt−1|cθ([xt, vt], t, P)).
+(5)
+Guan et al. [19] use SE(3)-equivariant neural networks [52, 18] to parameterize µθ([xt, vt], t, P)
+and cθ([xt, vt], t, P). More specifically, the [x0, v0] are first predicted using neural network fθ, i.e.,
+[ˆx0, ˆv0] = fθ([xt, vt], t, P) and then substitute in the posterior as in Equation (4). At the l-th layer
+of fθ, the hidden embedding h and coordinates x of each atom are updated alternately as follows:
+hl+1
+i
+= hl
+i +
+X
+j∈V,i̸=j
+fθh(hl
+i, hl
+j, dl
+ij, eij),
+(6)
+xl+1
+i
+= xl
+i +
+X
+j∈V,i̸=j
+(xl
+i −xl
+j)fθx(hl+1
+i
+, hl+1
+j
+, dl
+ij, eij) · 1ligand,
+(7)
+where V is a k-nearest neighbors (knn) graph, dij = ∥xi −xj∥is the Euclidean distance between
+two atoms i and j, eij is an additional feature that indicates the connection is between protein atoms,
+ligand atoms or protein atom and ligand atom, and 1ligand is a mask for ligand nodes since only
+coordinates of ligand atoms are supposed to be updated.
+The diffusion model is trained to minimize the KL-divergence between the ground-truth posterior
+q(Mt−1|M0, Mt, P) and the estimated posterior pθ(Mt−1|Mt, P). After being trained, given a
+specific pocket, the ligand molecule can be generated by first sampling from prior distribution and
+sequentially applying the reverse generative process defined above.
+Problem Definition of Dual-Target Drug Design
+The goal of dual-target drug design is to design
+a ligand molecule M that can bind to both given pocket P1 and pocket P2. The problem can be also
+formulated as a generative task which models the conditional distribution p(M|P1, T P2). Notebly,
+we introduce a transformation operator T here. This is because protein pockets exhibit a wide variety
+of shapes and chemical characteristics and it is necessary to achieve spatial alignment of the dual
+pockets when modeling the conditional distribution with both of them as conditions. To maintain a
+neat but siginificant setting, we restrict the transformation T to encompass solely translations TT and
+rotations TR, i.e., T = TT ◦TR. To be more precise, (TT ◦TR)P2 = {(Rx(i)
+P2 + t), v(i)
+P2}
+NP2
+i=1 , where
+R ∈SO(3) represents the rotation and t ∈R3 represents the translation.
+5
+Aligning Dual Targets with Protein-Ligand Binding Priors
+Protein pockets can have intricate
+3D structures with varying depths, widths, and surface contours, and distinct chemical properties,
+including differences in surface electron potentials, hydrophobicity, and the distribution of functional
+groups. The complex nature of pocket characteristics hinder us from directly aligning two pockets.
+Nevertheless, the binding mode is determined by the complex nature of pocket information, thus
+the protein-binding priors can effectively summarize the essential information needed for aligning
+the two pockets. This motivate us to propose to use a ligand molecule as a prober to implicitly
+reflect the spatial arrangement of the two pockets and then align them with the protein-ligand binding
+priors. More specifically, we first dock a ligand molecule to pocket P1 and pocket P2 separately. We
+can then compute R and t by aligning the two docked poses of the ligand molecule. Experiments
+have demonstrated that even ligand molecules capable of approximate binding to the two pockets
+can effectively indicate a specific spatial alignment between them. Further details are provided in
+Section 4.
+SE(3)-Equivariant Composed Message and Compositional Generative Sampling
+Inspired by
+compositional visual generation [9, 37], we can model the dual-target drug design with the following
+composed distribution:
+p(M|P1, T P2) ∝pθ(M|P1)pθ(M|T P2).
+(8)
+Following Liu et al. [37], for the atom position prediction, we can reparameterize µθ([xt, vt], t, P)
+with xt −ϵθ([xt, vt], t, P), so that we can rewrite the transition kernel of the reverse generative
+process as follows:
+pθ(xt−1|xt, P) = N(xt−1; µθ([xt, vt], t, P), σ2
+t I) = N(xt−1; xt −ϵθ([xt, vt], t, P), σ2
+t I). (9)
+The reversed transition kernel corresponds to a step as follow:
+xt−1 = xt −ϵθ([xt, vt], t, P) + N(0, σ2
+t I).
+(10)
+where ϵθ([xt, vt], t, P) can be viewed as a drift term and N(0, σ2
+t I) can be viewed as a diffusion
+term. As Liu et al. [37] points out, this is analogous to the Langevin dynamics [11] that used to
+sample from Energy-Based Models (EBMs) [10, 55], which can be formulated as follows:
+xt−1 = xt −λ
+2 ∇xEθ([xt, vt], t, P) + N(0, σ2
+t I).
+(11)
+The sampling procedure produces samples from the probability density pθ(x|P) ∝exp (−Eθ(x|P))
+where Eθ(x|P) is a energy function parameterized by model θ. Thus, accordingly, the composed
+distribution of atom positions can be written as:
+p(x|P1, T P2) ∝pθ(x|P1)pθ(x|T P2) ∝exp
+
+−
+ Eθ([xt, vt], t, P1) + Eθ([xt, vt], t, T P2)
+
+.
+This composed distribution corresponds to Langevin dynanmics as follows:
+xt−1 = xt −λ
+2 ∇x
+
+−
+ Eθ([xt, vt], t, P1) + Eθ([xt, vt], t, T P2)
+
+.
+(12)
+Accordingly, each step in the compositional reverse generative sampling process can be defined as:
+xt−1 = xt −η
+ ϵθ([xt, vt], t, P1) + ϵθ([xt, vt], t, P2)
+
+,
+(13)
+where we additionally introduce a hyperparameter η here to control the strength of the drift.
+In theory, this is equivalent to making a more flexible assumption that p(x|P1, T P2)
+∝
+[pθ(x|P1)pθ(x|T P2)]η. In this case the transition kernel is defined as pθ(xt−1|xt, P1, T P2) =
+[pθ(xt−1|xt, P1)pθ(xt−1|xt, T P2)]η. In practice, we set η = 1/2 by default. This composition
+operation is equivalent to averaging two ˆx0 predicted on two complex graphs, i.e. V1 and V2. Sim-
+ilarly, for the atom types which are discrete variables, we can also compose the transition kernel
+as follows: pθ(vt−1|vt, P1, T P2) ∝pθ(vt−1|vt, P1)pθ(vt−1|vt, T P2). Note that pθ(vt−1|vt, P1)
+is categorical distribution and its dimension (i.e., the number of atom types of our interest) is K,
+which is small in practice. So pθ(vt−1|vt, P1, T P2) can be computed analytically. We name the
+compositional reverse sampling with composed transition kernel (i.e., composed drift) as COMPDIFF.
+6
+We further improve the compositional reverse sampling by introducing the composition into each
+layer of the equivariant neural network in the pretrained diffusion model. For brevity, we denote the
+SE(3)-equivariant message at the l-th layer for the i-th atom of the complex graph Vv (v = 1, 2) as
+introduced in Equation (7) as follows:
+∆hl
+i(Vv) :=
+X
+j∈Vv,i̸=j
+fθh(hl
+i, hl
+j, dl
+ij, eij),
+(14)
+∆xl
+i(Vv) :=
+X
+j∈Vv,i̸=j
+(xl
+i −xl
+j)fθx(hl+1
+i
+, hl+1
+j
+, dl
+ij, eij) · 1ligand.
+(15)
+The above SE(3)-equivariant message can also be interpreted as drift in 3D and latent space. Thus we
+can also compose them as follows:
+hl+1
+i
+= hl
+i +
+ ∆hl
+i(V1) + ∆hl
+i(V2)
+
+/2
+and
+xl+1
+i
+= xl
+i + (∆xl
+i(V1) + ∆xl
+i(V2))/2.
+(16)
+We name the compositional reverse sampling with the above SE(3)-equivariant message at each layer
+as DUALDIFF. The proof of SE(3)-equivariance can be found in Appendix G. This more meticulous
+composition is supposed to lead to higher-quality samples.
+3.3
+Repurposing Linker Design Methods for Dual-Target Drug Design
+Pharmacophore combination is a prevalent strategy in traditional dual-target drug design, requiring
+the specialized knowledge of chemists. To automate this procedure, We design a strategy to identity
+crucial fragments from reference molecules of dual targets in our dataset and apply linker design
+methods [25, 17] to link the fragments and obtain complete molecules. Please refer to Appendix D
+for a more detailed justification for the choice of baselines.
+Specifically, we break all rotatable bonds of reference molecule M1 (resp. M2) of target P1 (resp.
+P2) to obtain fragments. Since DiffLinker [25] requires relative positions of fragments as input, we
+dock all fragments derived from M1 and M2 to P2 (or P1) and select the pair of fragments which
+has the best sum of binding affinity and no physical conflicts (i.e., the minimum between atoms
+from the two fragments is large than 1.4Å). We then apply DiffLinker to link the two fragments,
+considering the existence of the pocket P2 (or P1). Since LinkerNet [17] models the translation
+and rotation of fragments by neural networks and does not require relative position of fragments as
+input, we directly dock all fragments derived from M1 (resp. M2) to P1 (resp. P2) and select their
+respective fragment with the best binding affinity. And we then link them using LinkerNet to obtain
+complete molecules.
+4
+Experiment
+4.1
+Experimental Setup
+Dataset
+We use our dataset introduced in Section 3.1. All 12,917 pairs of targets (including 438
+unique targets) are used for evaluation. For each target, there is an associated reference molecule
+that can be considered a benchmark for high-quality ligand molecules and utilized in linker design
+methods.
+Baselines
+We compare our method with various baselines: Pocket2Mol [45] generates 3D
+molecules atom by atom in an autoregressive manner given a specific protein binding site. Tar-
+getDiff [19] is a diffusion-based method which generates atom coordinates and atom types in a
+non-autoregressive way. Note that Pocket2Mol and TargetDiff are both proposed for structure-based
+single-target drug design. DiffLinker [25] is a diffusion-based model for linker design with given frag-
+ment poses. LinkerNet [17] is a diffusion-based model for co-designing molecular fragment poses
+and the linker. DiffLinker and LinkerNet are repurposed for dual-target drug design as we introduced
+in Section 3.3. The code is available at https://github.com/zhouxiangxin1998/DualDiff.
+Evaluation
+We evaluate generated ligand molecules from the perspectives of target binding affinity
+and molecular properties. We employ AutoDock Vina [12] to estimate the target binding affinity,
+following Peng et al. [45], Guan et al. [19]. We first evaluate Pocket2Mol and TargetDiff under the
+7
+Table 1: Summary of different properties of reference molecules and molecules generated by baselines
+and our methods under the dual-target setting. (↑) / (↓) denotes a larger / smaller number is better.
+Top 2 results are highlighted with bold text and underlined text, respectively.
+Methods
+P-1 Vina Dock (↓)
+P-2 Vina Dock (↓)
+Max Vina Dock (↓)
+Dual High Aff. (↑)
+QED (↑)
+SA (↑)
+Diversity (↑)
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Reference
+-7.60
+-7.80
+-6.02
+-7.30
+-5.46
+-7.09
+-
+-
+0.53
+0.54
+0.74
+0.77
+-
+-
+Pocket2Mol
+-4.82
+-4.76
+-4.63
+-4.64
+-4.40
+-4.42
+0.2%
+0.0%
+0.49
+0.48
+0.88
+0.90
+0.82
+0.83
+TargetDiff
+-8.62
+-8.61
+-6.89
+-7.67
+-6.57
+-7.39
+29.0%
+20.0%
+0.50
+0.51
+0.58
+0.58
+0.70
+0.71
+DiffLinker
+-7.05
+-7.87
+-7.27
+-7.92
+-5.87
+-7.18
+24.6%
+0.0%
+0.43
+0.42
+0.30
+0.29
+0.52
+0.54
+LinkerNet
+-8.20
+-8.37
+-8.13
+-8.38
+-7.17
+-7.72
+35.7%
+0.0%
+0.61
+0.63
+0.72
+0.73
+0.37
+0.34
+COMPDIFF
+-8.32
+-8.42
+-8.37
+-8.47
+-7.50
+-7.78
+35.9%
+30.0%
+0.55
+0.57
+0.59
+0.59
+0.72
+0.72
+DUALDIFF
+-8.41
+-8.51
+-8.48
+-8.55
+-7.66
+-7.88
+36.3%
+30.2%
+0.56
+0.58
+0.59
+0.59
+0.67
+0.67
+single-target setting as a preliminary verification (see Appendix E). For dual-target drug design, we
+use each method to design 10 molecules for each pair of targets, denoted as P1 and P2. (For reference
+molecule, Pocet2Mol and TargetDiff, the ligand molecule is generated for P1 but the target binding
+affinity is evaluated on both P1 and P2.) We then collect all generated molecules across 12,917
+pairs of targets and report the mean and median (denoted as “Avg.” and “Med.” respectively) of
+affinity-related metrics (P-1 Vina Dock, P-2 Vina Dock, Max Vina Dock, and Dual High Affinity) and
+property-related metrics (drug-likeness QED [3], synthesizability SA [14], and diversity). Vina Dock
+incorporates a re-docking step to assess the highest binding affinity achievable. Here we introduce P-1
+Vina Dock and P-2 Vina Dock to represent the Vina Dock score evaluated on P1 and P2, respectively.
+Besides, we introduce Max Vina Dock, which represents the maximum Vina Dock of a given molecule
+towards P1 and P2. The Vina Dock will be low if and only if the molecule can bind to both targets
+simultaneously, which is the goal of dual-target drug design. Additionally, we report Dual High
+Affinity (abbreviated as Dual High Aff.) which represents the proportion of generated molecules that
+exhibit binding affinity that exceeds that of the reference molecules on both the respective targets.
+This reflects the success rate in achieving higher binding affinities simultaneously on both targets in
+dual-target drug design. We also evaluate the RMSD between docked poses towards dual targets.
+4.2
+Main Results
+[5, 10)
+[10, 15)
+[15, 20)
+[20, 25)
+[25, 30)
+[30, 35)
+[35, 40)
+[40, 45)
+[45, 50)
+Number of atoms
+0
+1
+2
+3
+4
+5
+6
+RMSD
+Method
+LinkerNet
+DualDiff
+Figure 2: RMSD between docked poses to-
+wards dual targets of different methods.
+We compare all methods under the dual-target set-
+ting. The results are reported in Table 1. Our meth-
+ods, COMPDIFF and DUALDIFF, significantly out-
+performs other methods, especially in terms of bind-
+ing affinity. Notably, DUALDIFF achieves the high-
+est Dual High Affinity among all methods. In line
+with our expectations, for the single-target drug de-
+sign methods (e.g., Pocket2Mol and TargetDiff), we
+observe a significant decline in performance accord-
+ing to P-2 Vina Dock compared to P-1 Vina Dock,
+which shows their inability in dual-target drug de-
+sign. LinkerNet also achieves promising results ex-
+cept diversity. Note that DiffLinker and LinkerNet
+are provided with reference molecules while COM-
+PDIFF and DUALDIFF are not. This indicates the
+strong generative abilities of our methods. Finally,
+DUALDIFF outperforms COMPDIFF, which shows
+that composition of SE(3)-equivariant message at
+each layer is more effective than only at the output
+level.
+As shown in Figure 2, DUALDIFF performs better than LinkerNet the RMSD between docked poses
+towards dual targets. This indicates that the molecules generated by DUALDIFF can bind to dual
+targets with smaller conformation change. We also benchmark the inference time of baslines and our
+methods in Appendix H. Additionally, we provide visualization of examples of generated molecules
+in Figure 3. See more examples in Appendix F.
+8
+P18507
+Q9UBS5
+Reference
+TargetDiff
+LinkerNet
+DualDiff
+Vina: -7.971
+Vina: -8.809
+Vina: -7.998
+Vina: -9.206
+Vina: -6.318
+Vina: -1.972
+Vina: -8.027
+Vina: -8.056
+Figure 3: Reference molecules and examples of ligand molecules by different methods generated for
+the dual targets (UniProt ID: P18507 (top) and Q9UBS5 (bottom)).
+Table 2: Ablation on different ways of aligning dual targets.
+Methods
+P-1 Vina Dock (↓)
+P-2 Vina Dock (↓)
+Max Vina Dock (↓)
+Dual High Aff. (↑)
+QED (↑)
+SA (↑)
+Diversity (↑)
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+COMPDIFF-Center
+-8.10
+-8.26
+-8.08
+-8.26
+-7.23
+-7.60
+30.8%
+22.0%
+0.52
+0.53
+0.60
+0.59
+0.73
+0.73
+COMPDIFF-RMSD
+-8.29
+-8.44
+-8.35
+-8.46
+-7.47
+-7.78
+35.6%
+30.0%
+0.55
+0.56
+0.59
+0.59
+0.72
+0.72
+COMPDIFF-Score
+-8.32
+-8.42
+-8.37
+-8.47
+-7.50
+-7.78
+35.9%
+30.0%
+0.55
+0.57
+0.59
+0.59
+0.72
+0.72
+DUALDIFF-Center
+-8.12
+-8.29
+-8.12
+-8.28
+-7.32
+-7.66
+30.0%
+22.2%
+0.52
+0.54
+0.59
+0.59
+0.69
+0.69
+DUALDIFF-RMSD
+-8.40
+-8.51
+-8.45
+-8.53
+-7.63
+-7.87
+35.8%
+30.0%
+0.55
+0.57
+0.59
+0.59
+0.67
+0.67
+DUALDIFF-Score
+-8.41
+-8.51
+-8.48
+-8.55
+-7.66
+-7.88
+36.3%
+30.2%
+0.56
+0.58
+0.59
+0.59
+0.67
+0.67
+Table 3: Ablation on different strategies of identifying fragments for linker design methods.
+Methods
+P-1 Vina Dock (↓)
+P-2 Vina Dock (↓)
+Max Vina Dock (↓)
+Dual High Aff. (↑)
+QED (↑)
+SA (↑)
+Diversity (↑)
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+DiffLinker-5
+-6.74
+-6.74
+-6.85
+-6.81
+-6.21
+-6.32
+9.4%
+0.0%
+0.58
+0.60
+0.32
+0.31
+0.57
+0.62
+DiffLinker-pocket-5
+-7.35
+-7.74
+-7.20
+-7.75
+-6.25
+-7.14
+20.2%
+0.0%
+0.45
+0.45
+0.31
+0.30
+0.58
+0.62
+DiffLinker-8
+-7.22
+-7.32
+-7.49
+-7.49
+-6.65
+-6.86
+15.7%
+0.0%
+0.61
+0.63
+0.32
+0.32
+0.49
+0.51
+DiffLinker-pocket-8
+-7.05
+-7.87
+-7.27
+-7.92
+-5.87
+-7.18
+24.6%
+0.0%
+0.43
+0.42
+0.30
+0.29
+0.52
+0.54
+LinkerNet-5
+-7.54
+-7.54
+-7.56
+-7.58
+-6.98
+-7.05
+19.9%
+0.0%
+0.69
+0.72
+0.77
+0.79
+0.46
+0.46
+LinkerNet-self-5
+-7.54
+-7.55
+-7.55
+-7.56
+-6.98
+-7.05
+20.0%
+0.0%
+0.69
+0.72
+0.77
+0.79
+0.46
+0.46
+LinkerNet-8
+-8.09
+-8.23
+-8.23
+-8.31
+-7.29
+-7.63
+34.0%
+0.0%
+0.62
+0.65
+0.72
+0.74
+0.38
+0.35
+LinkerNet-self-8
+-8.20
+-8.37
+-8.13
+-8.38
+-7.17
+-7.72
+35.7%
+0.0%
+0.61
+0.63
+0.72
+0.73
+0.37
+0.34
+4.3
+Ablation Studies
+Effects of Alignment of Dual Targets
+We perform different methods to align the pockets of dual
+targets for COMPDIFF and DUALDIFF. See the results in Table 2. Naively, we can align two pockets
+by their geometric centers (denoted as “-Center”). In our method, we propose to align pockets with
+protein-ligand binding priors. We select the ligand with minimum RMSD between docked poses
+(resp. minimum sum of Vina Dock scores) towards dual targets as the anchor to align the dual targets,
+which is denoted as “-RMSD” (resp. “-Score”). DUALDIFF-Score achieved the best performance
+among all variants, demonstrating the effectiveness of the alignment method.
+Different Strategies of Identifying Fragments for Linker Design Methods
+We conduct ablation
+on different strategies of identifying fragments for DiffLinker and LinkerNet for dual-target drug
+design. Since we use Vina Dock to select fragments, we have tried different box sizes for docking,
+i.e., 5Å and 8Å. For DiffLinker, since the relative poses of fragments are required as input, we dock
+fragments derived from M1 and M2 to target P1 (or P2). We then apply DiffLinker both with and
+without considering the pocket. The corresponding methods are denoted as “DiffLinker-5/-8/-pocket-
+5/-pocket-8”. For LinkerNet, the relative poses of fragments are not required. So we try two setting:
+dock fragments from M1 and M2 to target P1 (or P2); dock fragments from M1 (resp. M2) to
+target P1 (resp. P2). The difference is that all fragments are docked to the same pocket in the former
+setting while the fragments from two ligand molecules are docked to their respective pockets. The
+9
+corresponding methods are denoted as “LinkerNet-5/-8/-self-5/-self-8”. The results are reported in
+Table 3. The results show that a larger docking box size allows for better selection of fragments.
+As we expected, DiffLinker with consideration of pockets achieves better performance. Among all
+variants, “LinkerNet-self-8” achieves best performance, which implies that adjusting relative poses of
+fragments may play a crutial role in linker deisgn. This feature of LinkerNet allows for selecting the
+most important fragments for each pockets of the dual targets.
+5
+Conclusion
+In this work, we introduced a novel dataset for dual-target drug design. We formulate this problem as
+a generative task and propose compositional reverse sampling to reprogram pretrained target-specific
+model for dual-target drug design, which can successfully generate dual-target ligands and outperform
+all baselines, including repurposed linker design methods. Our research lays the groundwork for
+dual-target drug design using generative methods, with future progress expected.
+Acknowledgments
+This work is supported by the National Science and Technology Major Project (2023ZD0120901)
+and the National Natural Science Foundation of China No. 62377030. We also thank the reviewers
+for their valuable feedback.
+10
+References
+[1] Amy C Anderson. 2003. The process of structure-based drug design. Chemistry & biology,
+10(9):787–797.
+[2] Helen Berman, Kim Henrick, and Haruki Nakamura. 2003. Announcing the worldwide protein
+data bank. Nature structural & molecular biology, 10(12):980–980.
+[3] G Richard Bickerton, Gaia V Paolini, Jérémy Besnard, Sorel Muresan, and Andrew L Hopkins.
+2012. Quantifying the chemical beauty of drugs. Nature chemistry, 4(2):90–98.
+[4] Maria Laura Bolognesi and Andrea Cavalli. 2016. Multitarget drug discovery and polypharma-
+cology.
+[5] Aislyn DW Boran and Ravi Iyengar. 2010. Systems approaches to polypharmacology and drug
+discovery. Current opinion in drug discovery & development, 13(3):297.
+[6] Yosef Buganim, Dina A Faddah, Albert W Cheng, Elena Itskovich, Styliani Markoulaki, Kibibi
+Ganz, Sandy L Klemm, Alexander Van Oudenaarden, and Rudolf Jaenisch. 2012. Single-
+cell expression analyses during cellular reprogramming reveal an early stochastic and a late
+hierarchic phase. Cell, 150(6):1209–1222.
+[7] Di Chen, Xi Liu, Yiping Yang, Hongjun Yang, and Peng Lu. 2015. Systematic synergy modeling:
+understanding drug synergy from a systems biology perspective. BMC Systems Biology.
+[8] Prafulla Dhariwal and Alexander Nichol. 2021. Diffusion models beat gans on image synthesis.
+Advances in neural information processing systems, 34:8780–8794.
+[9] Yilun Du, Shuang Li, and Igor Mordatch. 2020. Compositional visual generation with energy
+based models. Advances in Neural Information Processing Systems, 33:6637–6647.
+[10] Yilun Du, Shuang Li, Joshua Tenenbaum, and Igor Mordatch. 2020. Improved contrastive
+divergence training of energy based models. arXiv preprint arXiv:2012.01316.
+[11] Yilun Du and Igor Mordatch. 2019. Implicit generation and modeling with energy based models.
+Advances in Neural Information Processing Systems, 32.
+[12] Jerome Eberhardt, Diogo Santos-Martins, Andreas F Tillack, and Stefano Forli. 2021. AutoDock
+Vina 1.2. 0: New docking methods, expanded force field, and python bindings. Journal of
+chemical information and modeling, 61(8):3891–3898.
+[13] Gamaleldin F. Elsayed, Ian Goodfellow, and Jascha Sohl-Dickstein. 2019. Adversarial Repro-
+gramming of Neural Networks. In International Conference on Learning Representations.
+[14] Peter Ertl and Ansgar Schuffenhauer. 2009. Estimation of synthetic accessibility score of
+drug-like molecules based on molecular complexity and fragment contributions. Journal of
+cheminformatics, 1(1):1–11.
+[15] Michael A Fischbach. 2011. Combination therapies for combating antimicrobial resistance.
+Current opinion in microbiology, 14(5):519–523.
+[16] Silvia Giordano and Alessio Petrelli. 2008. From single-to multi-target drugs in cancer therapy:
+when aspecificity becomes an advantage. Current medicinal chemistry, 15(5):422–432.
+[17] Jiaqi Guan, Xingang Peng, PeiQi Jiang, Yunan Luo, Jian Peng, and Jianzhu Ma. 2023. LinkerNet:
+Fragment Poses and Linker Co-Design with 3D Equivariant Diffusion. In Thirty-seventh
+Conference on Neural Information Processing Systems.
+[18] Jiaqi Guan, Wesley Wei Qian, Wei-Ying Ma, Jianzhu Ma, and Jian Peng. 2021. Energy-inspired
+molecular conformation optimization. In international conference on learning representations.
+[19] Jiaqi Guan, Wesley Wei Qian, Xingang Peng, Yufeng Su, Jian Peng, and Jianzhu Ma. 2023.
+3D Equivariant Diffusion for Target-Aware Molecule Generation and Affinity Prediction. In
+International Conference on Learning Representations.
+11
+[20] Jiaqi Guan, Xiangxin Zhou, Yuwei Yang, Yu Bao, Jian Peng, Jianzhu Ma, Qiang Liu, Liang
+Wang, and Quanquan Gu. 2023. DecompDiff: Diffusion Models with Decomposed Priors for
+Structure-Based Drug Design. In Proceedings of the 40th International Conference on Machine
+Learning, volume 202 of Proceedings of Machine Learning Research, pages 11827–11846.
+PMLR.
+[21] Jonathan Ho, Ajay Jain, and Pieter Abbeel. 2020. Denoising diffusion probabilistic models.
+Advances in neural information processing systems, 33:6840–6851.
+[22] Yinan Huang, Xingang Peng, Jianzhu Ma, and Muhan Zhang. 2022. 3DLinker: an E (3) equiv-
+ariant variational autoencoder for molecular linker design. arXiv preprint arXiv:2205.07309.
+[23] Zhilin Huang, Ling Yang, Xiangxin Zhou, Zhilong Zhang, Wentao Zhang, Xiawu Zheng, Jie
+Chen, Yu Wang, CUI Bin, and Wenming Yang. 2023. Protein-ligand interaction prior for
+binding-aware 3d molecule diffusion models. In The Twelfth International Conference on
+Learning Representations.
+[24] Bliss Chester I. 1939. The toxicity of poisons applied jointly 1. Annals of applied biology,
+26(3):585–615.
+[25] Ilia Igashov, Hannes Stärk, Clément Vignac, Victor Garcia Satorras, Pascal Frossard, Max
+Welling, Michael Bronstein, and Bruno Correia. 2022. Equivariant 3d-conditional diffusion
+models for molecular linker design. arXiv preprint arXiv:2210.05274.
+[26] Fergus Imrie, Anthony R Bradley, Mihaela van der Schaar, and Charlotte M Deane. 2020.
+Deep generative models for 3D linker design. Journal of chemical information and modeling,
+60(4):1983–1995.
+[27] Fergus Imrie, Thomas E Hadfield, Anthony R Bradley, and Charlotte M Deane. 2021. Deep
+generative design with 3D pharmacophoric constraints. Chemical science, 12(43):14577–14589.
+[28] Francesco Iorio, Theo A Knijnenburg, Daniel J Vis, Graham R Bignell, Michael P Menden,
+Michael Schubert, Nanne Aben, Emanuel Gonçalves, Syd Barthorpe, Howard Lightfoot, et al.
+2016. A landscape of pharmacogenomic interactions in cancer. Cell, 166(3):740–754.
+[29] John Jumper, Richard Evans, Alexander Pritzel, Tim Green, Michael Figurnov, Olaf Ron-
+neberger, Kathryn Tunyasuvunakool, Russ Bates, Augustin Žídek, Anna Potapenko, et al. 2021.
+Highly accurate protein structure prediction with AlphaFold. Nature, 596(7873):583–589.
+[30] Craig Knox, Mike Wilson, Christen M Klinger, Mark Franklin, Eponine Oler, Alex Wilson,
+Allison Pon, Jordan Cox, Na Eun Chin, Seth A Strawbridge, et al. 2024. Drugbank 6.0: the
+drugbank knowledgebase for 2024. Nucleic Acids Research, 52(D1):D1265–D1275.
+[31] Radoslav Krivák and David Hoksza. 2018. P2Rank: machine learning based tool for rapid and
+accurate prediction of ligand binding sites from protein structure. Journal of cheminformatics,
+10:1–12.
+[32] Ying Hong Li, Pan Pan Wang, Xiao Xu Li, Chun Yan Yu, Hong Yang, Jin Zhou, Wei Wei
+Xue, Jun Tan, and Feng Zhu. 2016. The human kinome targeted by FDA approved multi-target
+drugs and combination products: A comparative study from the drug-target interaction network
+perspective. PloS one, 11(11):e0165737.
+[33] Haitao Lin, Yufei Huang, Meng Liu, Xuanjing Li, Shuiwang Ji, and Stan Z Li. 2022.
+Diffbp: Generative diffusion of 3d molecules for target protein binding.
+arXiv preprint
+arXiv:2211.11214.
+[34] Hui-Heng Lin, Le-Le Zhang, Ru Yan, Jin-Jian Lu, and Yuanjia Hu. 2017. Network analysis
+of drug–target interactions: a study on FDA-approved new molecular entities between 2000 to
+2015. Scientific reports, 7(1):12230.
+[35] Hui Liu, Wenhao Zhang, Bo Zou, Jinxian Wang, Yuanyuan Deng, and Lei Deng. 2020. Drug-
+CombDB: a comprehensive database of drug combinations toward the discovery of combinato-
+rial therapy. Nucleic acids research, 48(D1):D871–D881.
+12
+[36] Meng Liu, Youzhi Luo, Kanji Uchino, Koji Maruhashi, and Shuiwang Ji. 2022. Generating 3d
+molecules for target protein binding. arXiv preprint arXiv:2204.09410.
+[37] Nan Liu, Shuang Li, Yilun Du, Antonio Torralba, and Joshua B Tenenbaum. 2022. Com-
+positional visual generation with composable diffusion models. In European Conference on
+Computer Vision, pages 423–439. Springer.
+[38] Zhihai Liu, Minyi Su, Li Han, Jie Liu, Qifan Yang, Yan Li, and Renxiao Wang. 2017. Forging
+the basis for developing protein–ligand interaction scoring functions. Accounts of chemical
+research, 50(2):302–309.
+[39] Georgina V Long, Daniil Stroyakovskiy, Helen Gogas, Evgeny Levchenko, Filippo de Braud,
+James Larkin, Claus Garbe, Thomas Jouary, Axel Hauschild, Jean Jacques Grob, et al. 2014.
+Combined BRAF and MEK inhibition versus BRAF inhibition alone in melanoma. New
+England Journal of Medicine, 371(20):1877–1888.
+[40] Cheng Lu, Yuhao Zhou, Fan Bao, Jianfei Chen, Chongxuan Li, and Jun Zhu. 2022. Dpm-solver:
+A fast ode solver for diffusion probabilistic model sampling in around 10 steps. Advances in
+Neural Information Processing Systems, 35:5775–5787.
+[41] Jin-Jian Lu, Wei Pan, Yuan-Jia Hu, and Yi-Tao Wang. 2012. Multi-target drugs: the trend of
+drug research and development. PloS one, 7(6):e40262.
+[42] Shitong Luo, Jiaqi Guan, Jianzhu Ma, and Jian Peng. 2021. A 3D generative model for structure-
+based drug design. Advances in Neural Information Processing Systems, 34:6229–6239.
+[43] Igor Melnyk, Vijil Chenthamarakshan, Pin-Yu Chen, Payel Das, Amit Dhurandhar, Inkit Padhi,
+and Devleena Das. 2023. Reprogramming pretrained language models for antibody sequence
+infilling. In International Conference on Machine Learning, pages 24398–24419. PMLR.
+[44] Reza Bayat Mokhtari, Tina S Homayouni, Narges Baluch, Evgeniya Morgatskaya, Sushil Kumar,
+Bikul Das, and Herman Yeger. 2017. Combination therapy in combating cancer. Oncotarget,
+8(23):38022.
+[45] Xingang Peng, Shitong Luo, Jiaqi Guan, Qi Xie, Jian Peng, and Jianzhu Ma. 2022. Pocket2mol:
+Efficient molecular sampling based on 3d protein pockets. In International Conference on
+Machine Learning, pages 17644–17655. PMLR.
+[46] Alexander S Powers, Helen H Yu, Patricia Suriana, Rohan V Koodli, Tianyu Lu, Joseph M
+Paggi, and Ron O Dror. 2023. Geometric deep learning for structure-based ligand design. ACS
+Central Science, 9(12):2257–2267.
+[47] Lauren N Puls, Matthew Eadens, and Wells Messersmith. 2011. Current status of SRC inhibitors
+in solid tumor malignancies. The oncologist, 16(5):566–578.
+[48] Matthew Ragoza, Tomohide Masuda, and David Ryan Koes. 2022. Generating 3D molecules
+conditional on receptor binding sites with deep generative models.
+Chemical science,
+13(9):2701–2713.
+[49] Rona R Ramsay, Marija R Popovic-Nikolic, Katarina Nikolic, Elisa Uliassi, and Maria Laura
+Bolognesi. 2018. A perspective on multi-target drug discovery and design for complex diseases.
+Clinical and translational medicine, 7:1–14.
+[50] Caroline Robert, Boguslawa Karaszewska, Jacob Schachter, Piotr Rutkowski, Andrzej Mack-
+iewicz, Daniil Stroiakovski, Michael Lichinitser, Reinhard Dummer, Florent Grange, Laurent
+Mortier, et al. 2015. Improved overall survival in melanoma with combined dabrafenib and
+trametinib. New England Journal of Medicine, 372(1):30–39.
+[51] Loewe S. 1953. The problem of synergism and antagonism of combined drugs. Arzneimit-
+telforschung, 3(6):285–90.
+[52] Vıctor Garcia Satorras, Emiel Hoogeboom, and Max Welling. 2021. E (n) equivariant graph
+neural networks. In International conference on machine learning, pages 9323–9332. PMLR.
+13
+[53] Arne Schneuing, Yuanqi Du, Charles Harris, Arian Jamasb, Ilia Igashov, Weitao Du, Tom
+Blundell, Pietro Lió, Carla Gomes, Max Welling, Michael Bronstein, and Bruno Correia.
+2022.
+Structure-based Drug Design with Equivariant Diffusion Models.
+arXiv preprint
+arXiv:2210.13695.
+[54] Jascha Sohl-Dickstein, Eric Weiss, Niru Maheswaranathan, and Surya Ganguli. 2015. Deep
+unsupervised learning using nonequilibrium thermodynamics. In International conference on
+machine learning, pages 2256–2265. PMLR.
+[55] Yang Song and Diederik P Kingma. 2021. How to train your energy-based models. arXiv
+preprint arXiv:2101.03288.
+[56] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Abhishek Kumar, Stefano Ermon, and
+Ben Poole. 2020. Score-Based Generative Modeling through Stochastic Differential Equations.
+In International Conference on Learning Representations.
+[57] Dejuan Sun, Yuqian Zhao, Shouyue Zhang, Lan Zhang, Bo Liu, and Liang Ouyang. 2020. Dual-
+target kinase drug design: Current strategies and future directions in cancer therapy. European
+Journal of Medicinal Chemistry, 188:112025.
+[58] Ronald J Tallarida. 2001. Drug synergism: its detection and applications. Journal of Pharma-
+cology and Experimental Therapeutics, 298(3):865–872.
+[59] Mihaly Varadi, Stephen Anyango, Mandar Deshpande, Sreenath Nair, Cindy Natassia, Galabina
+Yordanova, David Yuan, Oana Stroe, Gemma Wood, Agata Laydon, et al. 2022. AlphaFold
+Protein Structure Database: massively expanding the structural coverage of protein-sequence
+space with high-accuracy models. Nucleic acids research, 50(D1):D439–D444.
+[60] Bhagwan Yadav, Krister Wennerberg, Tero Aittokallio, and Jing Tang. 2015. Searching for
+Drug Synergy in Complex Dose–Response Landscapes Using an Interaction Potency Model.
+BMC Systems Biology.
+[61] Chao-Han Huck Yang, Yun-Yun Tsai, and Pin-Yu Chen. 2021. Voice2series: Reprogramming
+acoustic models for time series classification. In International conference on machine learning,
+pages 11808–11819. PMLR.
+[62] Jing Ye, Junhao Wu, and Bo Liu. 2023. Therapeutic strategies of dual-target small molecules to
+overcome drug resistance in cancer therapy. Biochimica et Biophysica Acta (BBA)-Reviews on
+Cancer, 1878(3):188866.
+[63] Xiangxiang Zeng, Fei Wang, Yuan Luo, Seung-gu Kang, Jian Tang, Felice C Lightstone,
+Evandro F Fang, Wendy Cornell, Ruth Nussinov, and Feixiong Cheng. 2022. Deep generative
+molecular design reshapes drug discovery. Cell Reports Medicine, 3(12).
+[64] Zaixi Zhang and Qi Liu. 2023. Learning Subpocket Prototypes for Generalizable Structure-based
+Drug Design. arXiv preprint arXiv:2305.13997.
+[65] Zaixi Zhang, Yaosen Min, Shuxin Zheng, and Qi Liu. 2022. Molecule generation for target
+protein binding with structural motifs. In The Eleventh International Conference on Learning
+Representations.
+[66] Xiangxin Zhou, Xiwei Cheng, Yuwei Yang, Yu Bao, Liang Wang, and Quanquan Gu. 2024.
+DecompOpt: Controllable and Decomposed Diffusion Models for Structure-based Molecular
+Optimization. In The Twelfth International Conference on Learning Representations.
+[67] Ying Zhou, Yintao Zhang, Donghai Zhao, Xinyuan Yu, Xinyi Shen, Yuan Zhou, Shanshan
+Wang, Yunqing Qiu, Yuzong Chen, and Feng Zhu. 2024. TTD: Therapeutic Target Database
+describing target druggability information. Nucleic acids research, 52(D1):D1465–D1477.
+14
+A
+Motivation, Significance, and Current Practices of Dual-Target Drug
+Design
+Motivation and significance of dual-target drug design
+The reviewers and audience can refer to
+Giordano and Petrelli [16], Boran and Iyengar [5] and [41] for the concept of dual-target (or multi-
+target) drugs. Dual-target drugs have various advantages, especially in aspects such as anti-tumor and
+overcoming drug resistance.
+It has been revealed that single-target drugs may not always induce the desired effect on the entire
+biological system even if they successfully inhibit or activate a specific target [47]. One reason is that
+organisms can affect effectiveness through compensatory ways. Another reason is the development
+of resistance either by self-modification of the target through mutation or by the adoption of new
+pathways by a cancer cell, for the growth and multiplication [47]. Cancer and those nervous and
+cardiovascular system diseases are complicated, thereby promoting the multi-targeted therapies as a
+better pathway to achieve the desired treatment. For example, the multiple tyrosine kinase inhibitor
+imatinib5 induces better anti-cancer effects compared with that of gefitinib6, which involves a single
+target, further indicating that drugs with multiple targets may exhibit a better chance of affecting the
+complex equilibrium of whole cellular networks than drugs that act on a single target. Refer to Lu
+et al. [41] for more examples. Notably, combination therapy also performs well in overcoming drug
+resistance [15]. However, under some circumstances, the combination therapy might have additive
+and even synergistic effects in theory; however, it often leads to some unpredictable side effects, such
+as increased toxicity. Thus, multi-target drugs are a better choice.
+Current practices for dual-target drug design
+Refer to Sun et al. [57] for a comprehensive review.
+The mainstream strategies are drug repurposing, skeleton modification, and linked/merged/fused
+pharmacophores, which involve complicated pipelines and require domain knowledge from experts.
+To the best of our knowledge, we are the first one to formulate dual-target drug design as a generative
+task and provide simple yet effective solutions.
+B
+Extended Related Works
+Our work is also relevant to neural model reprogramming7. We will discuss the connections as
+follows:
+Elsayed et al. [13] proposed adversarial reprogramming. Specifically, given a model trained on a task
+which maps x to f(x), the adversary aims to repurpose the model for a new task which maps g(˜x)
+for inputs ˆx, by learning mapping functions hf(·; θ) and hg(·; θ) to make hg(f(hf(ˆx))) approximate
+g(ˆx). They successfully demonstrated their methods on image classification tasks. For example, a
+trained adversarial program can cause a classifier trained on ImageNet to an MNIST classifier.
+Yang et al. [61] reprograms acoustic models for time series classification, through input transformation
+learning and output label mapping, which are similar to hf(·) and hg(·), respectively. The motivation
+is that data scarcity hinders researchers from using large-scale deep learning models for time-series
+tasks while many large-scale pre-trained speech processing models are available. Melnyk et al. [43]
+also follows this paradigm to reprogram pretrained language models, BERT trained on English corpus,
+for the antibody sequence infilling task.
+The above works all aim to reprogram a model trained on a task to perform a new task. Our work
+also falls into this paradigm, since we focus on reprogramming models trained for single-target drug
+design to design dual-target drugs. And we also have a similar motivation of Yang et al. [61] and
+Melnyk et al. [43], because there is no training data for dual-target drug design. Differently, we focus
+on reprogramming a diffusion model equipped with SE(3)-equivariance which has not been widely
+explored in previous works due to its complex sampling process during inference. And, notably, all
+the above works require additional training to learn the additional parameters of input transformation
+(i.e., hf(·; θ) in Elsayed et al. [13]) for reprogramming. However, our framework works in a zero-shot
+manner, which means we only need to modify the sampling process of the diffusion model to perform
+5https://en.wikipedia.org/wiki/Imatinib
+6https://en.wikipedia.org/wiki/Gefitinib
+7Note that the reprogramming here is not relevant to the biological concept “cell reprogramming” [6].
+15
+the novel task without any additional training. Specifically, our proposed pocket alignment resembles
+the “input transformation”, i.e., hf(·), and the compositional sampling resembles the “output label
+mapping”, i.e., hg(·), but no learnable parameters are introduced for reprogramming. Yang et al. [61]
+provided theoretical results on selecting a pre-trained model for reprogramming, but it is not easy to
+directly apply the results to our case due to the intricate properties of diffusion models.
+C
+Term Definitions in Drug Synergy
+Drug Synergy
+Drug synergy refers to the phenomenon where two or more drugs used in com-
+bination, produce a more therapeutic effect than the sum of their individual effects. When drugs
+with distinct binding targets are strategically paired, they can leverage each other’s strengths and
+compensate for respective weaknesses, which enables lower individual drug doses, thereby reducing
+the risk of adverse effects. This characteristic is usually used in cancer and HIV treatments, and has
+been proven to be a new but promising way to combat complex diseases [7].
+Zero Interaction Potency (ZIP)
+Yadav et al. [60] proposed ZIP score to describe the drug interac-
+tion by comparing the alteration in the potency of dose-response curves in the context of single drug
+administration versus their concurrent use in combinations. In the two-drug combination scenario,
+we will refer to drug A and drug B, respectively. The effects of these drugs are defined as EAB for
+combination, EA and EB for individual situations (0 ≤E ≤1). The ZIP score can be defined as
+follows:
+SZIP = ¯EAB −( ¯EA + ¯EB −¯EA · ¯EB).
+(17)
+The ¯EAB in Equation (17) is the average response values obtained by fitting dose-response curves
+independently in each dimension of the measured combinatorial data sub-tensor, the explanation for
+the other variables are the same.
+Bliss
+The Bliss independence model [24] assumes a stochastic process where the two drugs elicit
+their effects independently. In this model, the expected combination effect can be calculated based on
+the probability of the independent events occurring:
+SBliss = EAB −(1 −(1 −EA)(1 −EB)).
+(18)
+Equation (18) is similar to Equation (17), the difference between which is that Equation (17) employs
+fitted drug responses instead of observed ones.
+Loewe
+The Loewe score [51] forecasts the dose combination that will produce a specific effect, it
+calculates the expected response as if both drugs are the same. Assume drug A can produce effect
+EA at dose xA, and drug B can produce effect EB at dose xB, then the loewe affinity states that the
+expected effect ELoewe can be determined by:
+xA
+XA
++ xB
+XB
+= 1,
+(19)
+where XA and XB are the doses drug A or B alone that produces effect ELoewe. The Loewe score is
+then defined as follows:
+SLoewe = EAB −ELoewe.
+(20)
+Highest Single Agent (HSA)
+The HSA is a straightforward scoring system for estimating drug
+synergy, which determines the incremental effect of combining drugs by comparing the enhanced
+combined effect to their individual effects [60]. The HSA score can be calculated as follows:
+SHSA = EAB −max(EA, EB)
+(21)
+The ZIP score is the most prevalently utilized metric in the assessment of drug synergy. Furthermore,
+these scores can be collectively analyzed to identify optimal drug combinations for targeted therapy.
+D
+Justification for the Choice of Baselines
+One of the traditional strategies for dual-target drug design (refer to Sun et al. [57] as a comprehensive
+review) is linking pharmacophores by domain experts, such as chemists or pharmaceutical scientists.
+16
+We use SOTA deep-learning-based linker design methods (DiffLinker [25] and LinkerNet [19]) to
+mimic this procedure. Since each target pocket has a corresponding ligand molecule in our curated
+dataset, we can break the ligand molecule into fragments and select the ones critical for binding as
+pharmacophores. In this case, given respective critical fragments of dual pockets, we can design
+linkers and resemble them into complete molecules. Ideally, the designed molecules contain critical
+pharmacophores that account for binding to dual targets and serve as a potential candidate for
+dual-target drugs.
+E
+Preliminary Verification on Single-Target Setting
+We evaluate Pocket2Mol and TargetDiff under the setting of single-target drug design on 438 unique
+targets in our dataset as a preliminary verification. We use each method generates 10 molecules for
+each target and collect all generated molecules across 438 proteins and report the mean, trimmed
+mean (i.e., averaging that removes 10% of the largest and smallest values before calculating the
+mean) and median (denoted as “Avg.”, “T-Avg.” and “Med.” respectively) of affinity-related metrics
+(Vina Score, Vina Min, Vina Dock, and High Affinity) and property-related metrics (drug-likeness
+QED [3], synthesizability SA [14], and diversity). Vina Score assesses binding affinity directly based
+on the generated 3D molecules. Vina Min carries out a energy minimization over the local structure
+before estimation. Vina Dock incorporates a re-docking step to assess the highest binding affinity
+achievable. Meanwhile, High Affinity evaluates the proportion of generated molecules that have
+stronger binding affinity than the reference molecule for each protein tested.
+The results are shown in Table 4, where molecules generated by TargetDiff exhibits binding affinities
+that are either comparable to or slightly greater than those of the reference molecules. Pocket2Mol
+achieves strong performance in terms of QED, SA, and diversity but fails in Vina-related metrics.
+Therefore, TargetDiff can be regarded as an effective molecular generative model on our dataset.
+Table 4: Summary of different properties of reference molecules and molecules generated by baselines
+under the single-target setting. (↑) / (↓) denotes a larger / smaller number is better. Considering
+outliers significantly affect the mean, we ignore some abnormal values of Vina Score and Vina Min.
+Methods
+Vina Score (↓)
+Vina Min (↓)
+Vina Dock (↓)
+High Affinity (↑)
+QED (↑)
+SA (↑)
+Diversity (↑)
+Avg.
+T-Avg.
+Med.
+Avg.
+T-Avg.
+Med.
+Avg.
+T-Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Avg.
+Med.
+Reference
+-
+-8.02
+-7.96
+-
+-8.07
+-8.04
+-8.09
+-8.37
+-8.25
+-
+-
+0.54
+0.55
+0.74
+0.78
+-
+-
+Pocket2Mol
+-3.14
+-3.19
+-3.16
+-3.81
+-3.77
+-3.76
+-4.87
+-4.86
+-4.85
+2.1%
+0.0%
+0.49
+0.49
+0.87
+0.89
+0.83
+0.85
+TargetDiff
+-
+-7.38
+-7.38
+-
+-7.89
+-7.86
+-8.77
+-8.78
+-8.75
+56.0%
+55.6%
+0.51
+0.53
+0.58
+0.58
+0.69
+0.70
+F
+Visualization of More Examples
+Here we provide visualization of more examples as shown in Figure 4.
+17
+P11388
+Reference
+TargetDiff
+LinkerNet
+DualDiff
+P42345
+Vina: -9.730
+Vina: -7.714
+Vina: -8.800
+Vina: -5.467
+Vina: -10.132
+Vina: -8.747
+Vina: -10.360
+Vina: -9.541
+Q16739
+P48735
+Vina: -8.380
+Vina: -5.466
+Vina: -8.978
+Vina: -2.611
+Vina: -7.875
+Vina: -7.565
+Vina: -9.133
+Vina: -8.846
+Figure 4: Visualization of more reference molecules and examples designed by TargetDiff, LinkerNet
+and DUALDIFF.
+G
+Proof of SE(3)-Equivariance
+We denote the global SE(3) transformation as Tg, and which means the transformation as Tg(xi) =
+Rgxi + b, where Rg ∈R3×3 is the rotation matrix and b ∈R3 is the translation vector. In line with
+Section 3.2, we define the composed message passing as follows:
+∆hl
+i(Vv) :=
+X
+j∈Vv,i̸=j
+fθh(hl
+i, hl
+j, dl
+ij, eij)
+(22)
+∆xl
+i(Vv) :=
+X
+j∈Vv,i̸=j
+(xl
+i −xl
+j)fθx(hl+1
+i
+, hl+1
+j
+, dl
+ij, eij) · 1ligand
+(23)
+hl+1
+i
+= hl
+i + 1
+2
+ ∆hl
+i(V1) + ∆hl
+i(V2)
+
+(24)
+xl+1
+i
+:= ϕ(xl
+i) = xl
+i + 1
+2(∆xl
+i(V1) + ∆xl
+i(V2))
+(25)
+It is easy to see that the atomic distance dl
+ij = ∥xi −xj∥and eij feature are both invariant to
+SE(3) transformation The hidden embedding hl
+i is also invariant since the its updates (as shown in
+Equation (22) and Equation (24)) are only related to invariant features.
+18
+We define ∆Tg
+ xl
+i(Vv)
+
+as
+∆Tg
+ xl
+i(Vv)
+
+:=
+X
+j∈Vv,i̸=j
+ Tg(xl
+i) −Tg(xl
+i)
+
+fθx(hl+1
+i
+, hl+1
+j
+, dl
+ij, eij) · 1ligand
+=
+X
+j∈Vv,i̸=j
+ Rgxl
+i + b −Rgxl
+j −b
+
+fθx(hl+1
+i
+, hl+1
+j
+, dl
+ij, eij) · 1ligand
+=
+X
+j∈Vv,i̸=j
+Rg
+ xl
+i −xl
+j
+
+fθx(hl+1
+i
+, hl+1
+j
+, dl
+ij, eij) · 1ligand
+After applying Tg to xl
+i, the updated position xl+1
+i
+= ϕ(xl
+i) can be written as (using the above results):
+ϕ
+ Tg(xl
+i)
+
+= Tg(xl
+i) + 1
+2
+ ∆Tg(xl
+i(V1)) + ∆Tg(xl
+i(V2)
+
+= Rgxl
+i + b + 1
+2
+ X
+v∈1,2
+X
+j∈Vv,i̸=j
+Rg
+ xl
+i −xl
+j
+
+fθx(hl+1
+i
+, hl+1
+j
+, dl
+ij, eij) · 1ligand
+
+= Rgxl
+i + 1
+2Rg
+ X
+v∈1,2
+X
+j∈Vv,i̸=j
+ xl
+i −xl
+j
+
+fθx(hl+1
+i
+, hl+1
+j
+, dl
+ij, eij) · 1ligand
+
++ b
+= Rgxl
+i + 1
+2Rg
+ ∆xl
+i(V1) + ∆xl
+i(V2)
+
++ b
+= Rg
+
+xl
+i + 1
+2
+ ∆xl
+i(V1) + ∆xl
+i(V2)
+
++ b
+= Tg
+
+xl
+i + 1
+2
+ ∆xl
+i(V1) + ∆xl
+i(V2)
+
+= Tg
+ ϕ(xl
+i)
+
+The above equation shows the SE(3)-equivariance of the atom position update formula Equation (25).
+Based on the fact that Equation (24) is SE(3)-invariant and Equation (25) is SE(3)-equivariant, we
+can say that the composition operation of our method is SE(3)-equivariant.
+H
+Computational Efficiency
+We test the time for generating 10 molecules by TargetDiff (single-target drug design) and DiffLinker,
+LinkerNet, CompDiff, and DualDiff (dual-target drug design). The results are shown in Table 5.
+Table 5: Time Cost for generating 10 molecules by TargetDiff (single-target drug design) and
+DiffLinker, LinkerNet, CompDiff, and DualDiff (dual-target drug design).
+Setting
+Method
+Time (seconds)
+Single-Target
+TargetDiff
+220
+Dual-Target
+DiffLinker
+31
+LinkerNet
+30
+COMPDIFF
+395
+DUALDIFF
+493
+Linker design methods (DiffLInker and LinkerNet) are faster than de novo design methods. The
+reasons are twofold: 1. For linker design, parts of the molecules are provided; thus, it is only
+necessary to generate the remaining part (i.e., the linker). 2. For DiffLinker, only one of the dual
+targets can serve as the input of the model. For linkerNet, it cannot use pockets as conditions. Thus,
+the computational cost is lower.
+As the table shows, the inference time of CompDiff and DualDiff (dual-target drug design) is about
+twice as that of TargetDiff (single-target drug design). This is as expected because there are two
+heterogeneous graphs and the messages on the two graphs are processed and aggregated separately
+19
+(sequentially in our implementation) and then composed as described in our paper. There is space
+for optimizing the inference speed of CompDiff and DualDiff by parallelling the message-passing
+operations over the two graphs (when GPU memory is sufficient). This code optimization will only
+speed up the inference and not change the generated results. Ideally, this will make the inference
+time of CompDiff and DualDiff almost the same as that of TargetDiff.
+Though the computational cost of our method is higher than the baselines, it is still acceptable in
+practice.
+General acceleration methods (e.g., pruning, quantization, and distillation) for deep learning models
+can be applied to the models used in our framework. Besides, fast diffusion sampling solvers can also
+be applied to our framework, with DPM-Solver [40] as one of the most representative works, which
+can significantly reduce the number of sampling steps without sacrificing the quality of generated
+samples.
+I
+Discussion, Limitation, and Future Work
+Our work provides a novel dataset and a general framework for dual-target drug design to the
+community. And our method can be easily adapted to the multi-target scenario. Our work is the first
+step towards generative dual-target drug design. There are still limitations in our work. For example,
+we do not consider flexibility of proteins in our work, which is a more practical setting, though this
+is also an issue for most works in SBDD. Another limitation of our work is the lack of validation
+through wet-lab experiments. We will leave these as future work.
+J
+Societal Impacts
+Our research holds the promise of significantly advancing the pharmaceutical industry by aiding
+in the development of potent dual-target drugs. This could potentially streamline the path to new
+treatments, making efficient drug discovery a more attainable goal. Moreover, emphasizing the ethical
+implementation of our methods is of paramount importance. It is also needed to ensure that these
+scientific achievements are utilized for social good, safeguarding against any misuse that could lead
+to negative consequences for society.
+20

@@ -1,0 +1,797 @@
+Robust estimation of the intrinsic dimension of
+data sets with quantum cognition machine learning
+Luca Candelori1,2,*, Alexander G. Abanov3,+, Jeffrey Berger1,+, Cameron J.
+Hogan4,+, Vahagn Kirakosyan1,+, Kharen Musaelian1,+, Ryan Samson1,+, James E.
+T. Smith1,+, Dario Villani1,+, Martin T. Wells4,+, and Mengjia Xu5,6,+
+1Qognitive, Inc., Miami Beach, FL 33139, USA
+2Wayne State University, Department of Mathematics, Detroit, MI 48202
+3Stony Brook University, Department of Physics and Astronomy, Stony Brook, NY 11790
+4Cornell University, Department of Statistics and Data Science, Ithaca, NY 14853
+5New Jersey Institute of Technology, Department of Data Science, Newark, NJ 07102
+6Massachusetts Institute of Technology, Center for Brains, Minds and Machines, Cambridge, MA 02139
+*luca.candelori@qognitive.io, candelori@wayne.edu
++these authors contributed equally to this work and are listed alphabetically
+Abstract
+We propose a new data representation method based on Quantum Cognition Machine
+Learning and apply it to manifold learning, specifically to the estimation of intrinsic dimen-
+sion of data sets. The idea is to learn a representation of each data point as a quantum
+state, encoding both local properties of the point as well as its relation with the entire data.
+Inspired by ideas from quantum geometry, we then construct from the quantum states a point
+cloud equipped with a quantum metric. The metric exhibits a spectral gap whose location
+corresponds to the intrinsic dimension of the data. The proposed estimator is based on the
+detection of this spectral gap. When tested on synthetic manifold benchmarks, our estimates
+are shown to be robust with respect to the introduction of point-wise Gaussian noise. This
+is in contrast to current state-of-the-art estimators, which tend to attribute artificial “shadow
+dimensions” to noise artifacts, leading to overestimates. This is a significant advantage when
+dealing with real data sets, which are inevitably affected by unknown levels of noise. We show
+the applicability and robustness of our method on real data, by testing it on the ISOMAP
+face database, MNIST, and the Wisconsin Breast Cancer Dataset.
+Introduction
+When data is characterized by a large number of features (e.g., zip code, annual income, age, credit
+card spend, etc. for borrowers; cholesterol, blood pressure, BMI, blood pressure, etc. for patients;
+or the latent and dependent variables), it tends to lie on a surface that has a smaller dimensionality
+than the full feature space [Bis95]. Finding this low-dimensional surface is often referred to as
+manifold learning.
+The smaller dimensionality reflects the underlying latent structures in the
+arXiv:2409.12805v1  [stat.ML]  19 Sep 2024
+data, correlations, and a variety of nonlinear relationships [JL84, Don00].
+Furthermore, data
+points whose feature vectors are close together should possess similar properties. For example, in
+a supervised regression problem the output/target variables are expected to depend smoothly on
+the input variables. These characteristics of real data suggest that any given dataset consisting
+of D features lies entirely on a smooth manifold M ⊆RD of dimension d ≪D, the intrinsic
+dimension of the data [Bis95]. This number represents the minimal number of parameters required
+to characterize the data. Knowledge of the intrinsic dimension d can be used to effectively choose
+a target space for dimension-reduction models (such as PCA, Isomap, t-SNE, etc.) or to compress
+deep neural networks while maintaining the performance [LFLY18]. Intrinsic dimension estimation
+is also widely used in network analysis [MML24, XWZ+20], complex materials [ZTP+21] and health
+sciences [VSFD+23].
+One of the main challenges for manifold learning is the inevitable presence of noise in real
+data. A typical “global” approach is to impose a functional form (e.g. PCA where the manifold
+is assumed to be linear) and to assume that the error between the manifold approximation and
+the actual data is noise, which is then analyzed. Imposing a functional relation immediately gives
+estimates for the intrinsic dimension, which tend to be robust to the introduction of additional
+noise. However, when the data manifold M has a lot of curvature, linear methods will fail. The
+problem can be somewhat alleviated by sampling locally around each data point, assuming that
+at a sufficiently small scale all manifolds are close to being linear [FO71, CG07, LLJM09]. Indeed,
+all current state-of-the-art intrinsic dimension estimators (some of which we describe below) are
+“local”, producing estimates that are based on a local sampling around each data point. Such
+techniques are designed and benchmarked against highly dimensional, highly curved manifolds.
+While they perform reasonably well in this ideal setup, they often tend to fall apart when noise
+is re-introduced into the data. Indeed, local methods cannot distinguish shadow dimensions that
+are transversal to the data manifold, and that are only artifacts created by the noise, leading to
+significant overestimates of intrinsic dimension.
+In this paper, we propose a new data representation and manifold learning technique based on
+Quantum Cognition Machine Learning (QCML) [MAB+24] and quantum geometry [Ish15, SS16,
+Ste21]. The main idea is to create a (non-commutative) quantum model for the data manifold itself,
+from which we can estimate important geometric features, such as intrinsic dimension. Picking a
+quantum model is similar to what is done in linear methods, in the sense that a functional relation
+is imposed on the data. But in contrast to linear methods we learn the model from the data, and
+we make no assumptions about the underlying distribution. Our method gives local estimates of
+intrinsic dimension at every data point, but it also takes into account the global geometry of the
+data manifold M. To this end, we are able to develop a manifold approximation method that
+is both robust to noise and flexible enough to capture non-linear geometric features of the data
+manifold.
+In addition to the aforementioned local PCA methods, current state-of-the-art intrinsic dimen-
+sion estimators measure statistics related to the density of neighbors lying within a certain radius
+r from a data point x, and express these statistics as functions of intrinsic dimension (CorrInt
+[GP83], MLE [LB04], DANCo [CBR+14], TwoNN [FdRL17]). These methods do not make any
+linearity assumption about the data, but do require the data to be dense in small patches around
+any given point. As is well-known, this requirement is fundamentally incompatible with the curse
+of dimensionality[ER92], usually occurring in dimensions d ≫10, and indeed these methods tend
+to underestimate the intrinsic dimension d when d is large. The overestimation effect induced
+2
+by noise combined with the underestimation effect induced by the curse of dimensionality often
+results in completely unreliable intrinsic dimension estimates.
+Compared to existing intrinsic dimension estimators, which are all based on local sampling of
+the data, our method first learns a model for the entire data manifold M, as a semi-classical limit
+of a quantum matrix configuration (in the sense of quantum geometry [Ish15, SS16, Ste21]). In
+particular, given a data set X containing D features, we propose to train D quantum observables
+A = {A1, . . . , AD} (i.e.
+a matrix configuration) as it is done in QCML [MAB+24].
+We then
+calculate from A a point cloud approximation XA to the actual data manifold M. Each element
+x ∈XA of the point cloud represents the expected position in feature space of its corresponding
+data point, and it comes with a “cloud” of uncertainty around its actual position whose shape
+is determined by the quantum fluctuations of the matrix configuration. The point x is further
+equipped with a quantum metric g(x), which is a D × D real symmetric positive semi-definite
+matrix. This metric, already considered by physicists [Ish15, SS16], encodes much of the local
+geometry of the data manifold; it can be shown that its rank in particular is approximately equal
+to the intrinsic dimension of M, and that its non-zero eigenvalues are all close to 1. Therefore,
+intrinsic dimension estimates can be given by detecting the spectral gap of the quantum metric,
+separating the zero eigenvalues from the non-zero eigenvalues that are close to 1.
+We test our intrinsic dimension estimator on both synthetic and real data sets, following the
+benchmarking framework proposed in ref. [CCCR15] and implemented in the scikit-dimension
+Python package [BMG+21]. In addition to this standard framework, we stress-test our estimates by
+introducing increasing levels of Gaussian noise into the data, and compare the results with other
+state-of-the-art techniques. In all of our testing, higher levels of noise increasingly degrade the
+quality of the point cloud approximation XA, and the spectral gap detection in the quantum metric
+becomes increasingly difficult. However, they do not qualitatively alter the intrinsic dimension
+estimation. This stands in marked contrast to other intrinsic dimension estimators that we tested,
+whose estimates are highly sensitive to even small amounts of noise.
+Results
+Quantum geometry in data analysis
+Consider a t × D data set X containing t data points x1, . . . , xt, where each data point xi consists
+of D-dimensional vector of data features xi = (a1
+i , . . . , aD
+i ). We assume that X lies entirely on a
+smooth manifold M, called the data manifold, of intrinsic dimension d < D. We further assume
+that the D features of the data extend to smooth functions in C∞(M), giving the coordinates of an
+embedding ak : M ,→RD of the data manifold into D-dimensional Euclidean space. In quantum
+geometry, the commutative algebra C∞(M) of smooth functions on a manifold is replaced by the
+non-commutative algebra of Hermitian operators on a N-dimensional Hilbert space [Ste24, FS24].
+For the purposes of this work, any set A = {A1, . . . , AD} consisting of D Hermitian N × N
+matrices is called a matrix configuration, and can be viewed as a non-commutative avatar of the
+D coordinate functions ak on a manifold M ,→RD. Typically in physics, the matrix configuration
+A is given by a quantum theory and the goal is to construct a symplectic manifold M ,→RD, so
+that A represents a quantization of the coordinate functions xk giving the embedding; that is, a
+compatibility between the Poisson bracket on M and the commutator bracket on A is required,
+3
+among other conditions.
+In the context of data analysis, the situation is reversed: M is given by the data manifold, and
+we propose instead to learn a suitable matrix configuration A, reflecting as much of the geometry
+of M as possible. We do so through the formalism of quasi-coherent states [Ish15, SS16]. Recall
+that in quantum mechanics a state is a vector of unit norm in a Hilbert space, and is represented in
+bra-ket notation by a ket |ψ⟩. The inner product of two states |ψ1⟩, |ψ2⟩is represented by a bra-ket
+⟨ψ1|ψ2⟩. The expectation value of a Hermitian operator A on a state |ψ⟩is denoted by ⟨ψ|A|ψ⟩=
+⟨Aψ|ψ⟩= ⟨ψ|Aψ⟩, representing the expected outcome of the measurement corresponding to A on
+the state |ψ⟩. For any state |ψ⟩in N-dimensional Hilbert space and an N ×N matrix configuration
+A = {A1, . . . , AD}, define the state’s position vector by
+A(ψ) = ( ⟨ψ|A1|ψ⟩, . . . , ⟨ψ|AD|ψ⟩) ∈RD
+and the state’s variance (or quantum fluctuation) σ2(ψ) by
+σ2
+k(ψ) = ⟨ψ|A2
+k|ψ⟩−⟨ψ|Ak|ψ⟩2 ,
+σ2(ψ) =
+D
+X
+k=1
+σ2
+k(ψ) ∈R.
+Intuitively, the matrix configuration A assigns to each quantum state |ψ⟩a point A(ψ) in Euclidean
+space RD, together with a “cloud” around it representing the uncertainty of the measurement of
+the point’s position in space. In this picture, A(ψ) represents the center of the cloud, while σ(ψ)
+is a statistical measure of the cloud’s size.
+Now for any data point x = (ak) ∈RD, we want to construct a quantum state ψ0(x) reflecting
+not only the absolute position of x within feature space, but also its relation to all the other points
+in the data set X. To do so, consider the error Hamiltonian
+H(x) = 1
+2
+D
+X
+k=1
+(Ak −ak · IN)2,
+(1)
+a positive semi-definite Hermitian operator. We will assume throughout the article that all the
+eigenvalues of H(x) are distinct, so that all the eigenspaces are one-dimensional.
+Practically,
+when dealing with real numerical data degeneracies of H(x) do not play any role. Denote by
+E0(x), . . . , En(x) the eigenvalues of H(x), listed in increasing order, and let |ψ0(x)⟩, . . . , |ψn(x)⟩
+be corresponding choices of normalized eigenvectors, or eigenstates. By assumption, all eigenstates
+are uniquely defined up to multiplication by a phase factor eiθ, θ ∈R. For each x, an eigenstate
+|ψ0(x)⟩associated to the lowest eigenvalue of H(x) is called a quasi-coherent state of x. A simple
+calculation shows that
+E0(x) = 1
+2∥A(ψ0(x)) −x∥2 + 1
+2σ2(ψ0(x)),
+(2)
+so that the lowest eigenvalue (i.e. the ground state energy) of the error Hamiltonian can be broken
+down into two contributions: the squared distance between x and the position of its correspond-
+ing quasi-coherent state, and the quantum fluctuation of the quasi-coherent state itself. This is
+analogous to the bias-variance breakdown of the mean-squared error loss function. We can now
+train a matrix configuration A so as to minimize the combined loss function (2) for all data points
+x ∈X. In this way, the matrix configuration captures global features of the data, which are then
+reflected into the ground state ψ0(x), for each x ∈X.
+4
+From the trained matrix configuration A, we may then calculate the point cloud
+XA = {A(ψ0(x)) : x ∈X} ⊆RD,
+(3)
+which can be viewed as an approximate sampling of the data manifold M. The original data points
+x ∈X may contain noise, missing features, or otherwise deviate substantially from the idealized
+underlying data manifold M.
+By choosing an appropriate matrix configuration A, capturing
+enough global information about the data, the set XA turns out to be much closer to M than the
+original data set X. Key geometric features of the data manifold, such as the intrinsic dimension
+d, can be recovered from XA in a way that is robust to noise and other artifacts.
+Quantum Cognition Machine Learning
+Training a matrix configuration A on a data set X is the optimization problem forming the basis
+of Quantum Cognition Machine Learning (QCML) [MAB+24]. QCML has been developed inde-
+pendently of quantum geometry, and this is the first work pointing out the relation between the
+two. In the original formulation of QCML, a matrix configuration A is trained so as to mini-
+mize the aggregate energy loss function (2) across all data. In the present context, minimizing
+energy sometimes has the undesired effect of training A so that the aggregate quantum fluctuation
+P
+x∈X σ2(ψ(x)) goes to zero, forcing all the matrices A1, . . . , AD in the matrix configuration to
+commute. A commutative matrix configuration is highly undesirable. It produces a point cloud
+approximation XA consisting of N points, corresponding to the positions of the N common eigen-
+states of the matrix configuration, with no point cloud around them. Indeed, it can be shown
+that XA in this case consists of a N-means clustering of the data set X, and is therefore entirely
+classical[CPR12].
+Instead, in this work we train the matrix configuration A = {A1, . . . , AD} on the data set X
+by minimizing the mean squared distance between the data set X and the point cloud XA, i.e. by
+finding
+A = argminB={B1,...,BD}
+ X
+x∈X
+∥B(ψ0(x)) −x∥2
+!
+,
+(4)
+where the minimum is taken over the space of all D-tuples of N × N Hermitian matrices. The
+optimization (4) can be tackled efficiently using gradient descent methods, similar to those em-
+ployed in the state-of-the-art machine learning models. In our study, we find A by implementing
+the optimization problem as a custom layer in PyTorch [PGM+19].
+Note that the choice of loss function in (4) corresponds to the “squared-bias” term in the bias-
+variance decomposition of the energy functional E0(x) in (2). We do not minimize the quantum
+fluctuation, or “variance” term. Indeed, while the bias term is in general unbounded, the quantum
+fluctuation σ2(x) has a simple bound in terms of the matrix configuration A only (i.e. independent
+of x), given by
+σ2(x) ≤
+D
+X
+k=1
+(µk −mk)2 ≤D
+4 (µ −m)2,
+where µk (resp.
+mk) is the highest (resp.
+lowest) eigenvalue of Ak and µ = maxk µk (resp.
+m = mink mk). This bound has an elementary proof similar to Popoviciu’s inequality [Pop35] on
+variances. Note that the eigenvalues of Ak correspond to possible measurement outcomes of the
+5
+k-th coordinate of the position of a point x. Therefore, if we train A so that the positions XA are
+close to a compact data set X, we expect the quantum fluctuation to be commensurate with the
+average noise level in the data X. This is indeed what we observe in practice.
+It is also possible to modify the loss function in (4) by adding back the quantum fluctuation
+term with a weight w ∈R≥0, a tunable hyperparameter,
+A = argminB={B1,...,BD}
+ X
+x∈X
+∥B(ψ0(x)) −x∥2 + w · σ2(x)
+!
+.
+(5)
+In this way, the choice w = 0 recovers the bias-only loss function (4) while w = 1 corresponds to
+the original energy loss (2). In applications, small non-zero values of w may lead to more robust
+point cloud approximations XA, especially in the presence of significant amounts of noise.
+It is also possible in principle to replace the error Hamiltonian (1) with the Dirac operator
+defined in ref. [SS16]. The advantage of using the Dirac operator is that the energy loss is allowed
+to reach zero without the matrix configuration A being necessarily commutative. Equivalently, the
+quasi-coherent states in this case are zero modes. However, the Hilbert space dimension required
+by the Dirac operator scales exponentially in the number of features D, and this is not practical
+when dealing with data sets containing a large number of features.
+Intrinsic dimension estimation
+Suppose now that a matrix configuration A has been trained from a data set X as in (4), so that
+the data manifold M, by construction, lies within a region of RD where the energy functional
+E0(x) is near-minimal and it has minimal variation (assuming that the quantum fluctuation term
+in (2) is not too large). We may then apply the technique described in ref. [SS16] to calculate the
+intrinsic dimension of M. In particular, from formula (2), we see that as x moves away from the
+manifold M then the energy E0(x) increases like the squared distance from x to M, while in the
+directions tangent to M the energy is approximately constant. This means that the Hessian matrix
+of the energy functional at x should exhibit a clear spectral gap between the lowest d = dim M
+eigenvalues, corresponding to the directions tangent to M and near zero, and the highest D −d
+eigenvalues, of order one and corresponding to the directions that point away from M. Detecting
+the exact location of the spectral gap is therefore equivalent to estimating the intrinsic dimension
+of M.
+This observation can be turned into an algorithm for estimating intrinsic dimension. First, the
+Hessian matrix of the energy functional can be computed in terms of the matrix configuration A,
+using perturbation theory. Its entries are given by the formula
+∂2E0
+∂xµ∂xν
+= δµν −2
+N−1
+X
+n=1
+Re
+ ⟨ψ0(x)|Aµ|ψn(x)⟩⟨ψn(x)|Aν|ψ0(x)⟩
+En(x) −E0(x)
+
+,
+µ, ν = 1, . . . , D
+(6)
+where, as before, we write ψn(x) and En(x) for the eigenstates and energies of the error Hamiltonian
+H(x) given by (1). Notice that (6) is exact, despite being derived using perturbation theory. In
+detecting the spectral gap, it is more convenient to consider the second term of (6) only, a real
+symmetric D × D matrix g(x) whose entries are given by
+6
+gµν(x) = 2
+N−1
+X
+n=1
+Re
+ ⟨ψ0(x)|Aµ|ψn(x)⟩⟨ψn(x)|Aν|ψ0(x)⟩
+En(x) −E0(x)
+
+,
+µ, ν = 1, . . . , D.
+(7)
+It can be easily shown that the matrix g(x) is positive semi-definite, and in the context of
+matrix geometry it is called the quantum metric[SS16, Ste21, FS24]. Indeed, it can be viewed as
+an approximate Riemannian metric on the data manifold M, and dimx M ≈rank g(x). We could
+in principle apply this formula to estimate intrinsic dimension, by training a matrix configuration
+A on the data set X and then estimate the ranks of g(x), without making use of the point cloud
+XA defined in (3). However, as noted in ref. [SS16], much clearer spectral gaps emerge in practice
+when calculating the quantum metric on XA. This is because XA, as noted earlier, is much more
+robust to noise and to small perturbations of the data manifold.
+Note that since the matrix
+configuration A was trained in such a way as to minimize the squared distance between X and
+XA, it is reasonable to assume that the intrinsic dimensions of both data sets are equal.
+The algorithm for estimating intrinsic dimension can be summarized as follows.
+Algorithm 1: Quantum Cognition Machine Learning intrinsic dimension estimator
+Data: Data set X ⊆RD lying on a data manifold M ⊆RD
+Result: A list dlist of local intrinsic dimension estimates dx ≈dimx M
+1 Train a matrix configuration A = {A1, . . . , AD} on X as in (4) or (5);
+2 dlist ←∅;
+3 for x ∈X do
+4
+calculate the ground state |ψ0(x)⟩of the error Hamiltonian H(x) ;
+5
+calculate the position y = A(ψ0(x)) ∈XA ;
+6
+calculate the spectrum e0 ≤. . . ≤eD−1 of the quantum metric g(y) ;
+7
+Calculate γ = argmaxi=1,...,D ei/ei−1, the largest spectral gap ;
+8
+Append d = D −γ to dlist
+9 end
+10 Return dlist
+The Algorithm 1 returns a list of intrinsic dimension estimates for every point x ∈X. To
+extract a global estimate, a variety of techniques can be employed, such as taking the mode,
+median, or geometric mean to more refined k-nearest neighbor techniques.
+A global estimate
+can also be easily adapted to the case where multiple connected components of M are detected,
+each with possibly different dimensions. Note that in steps 7-8 of Algorithm 1, we calculate the
+largest spectral gap by comparing successive ratios of eigenvalues. With this approach, the results
+d = 0, D cannot be detected. We are indeed assuming through the article that the data manifold
+does not have zero-dimensional/codimesion zero connected components.
+It is possible to replace these crude spectral gap estimates with more advanced methods. For
+example, if D is large and d ≪D, as is typical in real data sets, methods based on random matrix
+theory[GD14] are likely to give more robust estimates. Phase transitions in random matrix theory
+(RMT) refer to the abrupt changes in the behavior of eigenvalues of large random matrices as
+certain parameters are varied. These transitions are particularly interesting because they often
+separate different regimes of matrix behavior. The eigenvalues of large random matrices follow
+well-defined distributions (like the Marchenko-Pastur distribution [MP67]) and as the matrix size
+grows, eigenvalue behavior exhibits certain regularities, with interesting gaps between signal and
+7
+noise eigenvalues. There is often a critical threshold phase transitions at which the behavior of
+the eigenvalues changes sharply. The presence of spectral gaps between eigenvalues can signal the
+existence of significant phase transition and in high-dimensional problems, RMT can predict the
+existence of these gaps. Furthermore, the eigenvectors associated with eigenvalues that exhibit an
+eigen-gap will be informative and uninformative when the eigen-gap vanishes [Nad13].
+One approach to recover the true signal matrix is to threshold the singular values of the quantum
+metric g(y) and keep the singular values that are likely to correspond to the signal and discard
+those that are likely to be noise [GD14]. This leads to a singular value thresholding rule, where a
+threshold τ is applied to the singular values of the observable matrix, and only the singular values
+larger than τ are retained. It was shown that in the asymptotic limit as t, D →∞with t/D →γ,
+the optimal threshold is τopt =
+4
+√
+3 · σ where σ is the standard deviation of an underlying Gaussian
+noise matrix [GD14]. The noise parameter σ can be estimated by ˆσ using the Marchenko-Pastur
+bulk singular values. This estimate can then be used to adaptively set the threshold for singular
+value thresholding. Specifically, the rule ˆτopt =
+4
+√
+3 · ˆσ can be applied to the singular values of the
+of the quantum metric g(y) for hard thresholding to find the spectral gap. In the following, we
+will refer to this thresholding method as the “RMT-based" estimate.
+The choice of dimension N of the Hilbert space underlying the matrix configuration A is a
+hyperparameter of the algorithm. As shown in [SS16, FS24], we have the rank bound
+rank g ≤2(N −1),
+(8)
+so that N should be chosen large enough to ensure 2(N −1) > d. Since a priori we only know
+that d < D, a sensible choice would be to set N ≥D/2 + 1. However, for large datasets with
+D ≫0, this choice might be impractical, since the number of parameters of a QCML estimator
+scales quadratically in N. Instead, a simple strategy for choosing N that we employ in large real
+data sets is to first pick N small and gradually increase it until a clear spectral gap emerges and
+is consistent across different choices of dimensions. In general, larger Hilbert space dimension N
+will result in point clouds XA that are closer to the original data X (low bias) but may also model
+noise artifacts (high variance). A smaller N will result in approximations that may have higher
+loss/higher energy (high bias) but that may be more robust with respect to noise (low variance).
+Benchmarks
+The fuzzy sphere
+We first evaluate Algorithm 1 in the case when the data X is a sample of T = 2500 uniformly
+distributed points on the unit sphere M = S2, embedded in D = 3 dimensions. We allow the data
+to be “noisy”, that is, x ∈X might not necessarily lie on M but it could be drawn from a Gaussian
+distribution whose mean is on M and whose standard deviation is a noise parameter. By the rank
+bound in (8) on the quantum metric, the minimum possible choice of Hilbert space dimension is
+N = 3. Plots of the point cloud XA and the spectra of the quantum metric g(x) at different points
+x ∈XA are shown in Figure 1. With zero noise (Figure 1 a-b) the point cloud approximation XA
+is very close to the original unit sphere and a clear spectral gap emerges at every point between
+the top 2 eigenvalues of the quantum metric and the lowest eigenvalue. The intrinsic dimension
+estimate is thus d = 2 at all points. As the noise level increases, up to noise = 0.2 (Figure 1
+c-d) the point cloud starts picking up some noise artifacts and the variance of the metric spectrum
+8
+increases. However, even for noise = 0.2, the intrinsic dimension estimate is d = 2 at 2471 points
+out of 2500, giving an average estimate of d ≈1.9884.
+(a)
+(b)
+(c)
+(d)
+Figure 1: Two configurations are shown for a data set X consisting of T = 2500 points
+uniformly distributed on the unit sphere with different levels of noise. (a,c) Scatter plot
+of the point cloud XA for (a) noise = 0, and (c) noise = 0.2, for two corresponding
+matrix configurations A trained with Hilbert space dimension N = 3. The original dataset
+is overlayed in red. Darker points correspond to lower relative error energy E0. (b,d)
+Spectral gaps for (b) noise = 0 and (d) noise = 0.2. The x-axis corresponds to points
+x ∈XA and on the y-axis the eigenvalues of the quantum metric g(x) are plotted.
+9
+For comparison, we selected some of the best-performing state-of-the-art algorithms for intrin-
+sic dimension estimation (DANCo, MLE, CorrInt, MiND ML, TwoNN, as implemented in ref.
+[BMG+21] ) and tested them at different levels of noise, and for three different data set sizes
+T = 250, 2500, 25000 (Figure 2). In Figure 2, the slope of the intrinsic dimension estimate for the
+QCML model is nearly zero, so that the estimate is essentially unaffected by noise in the range 0-0.2.
+The dimension estimate is also consistent across different number of samples T = 250, 2500, 25000,
+indicating additional robustness with respect to data distribution and density. By comparison, the
+estimates of all other baseline algorithms quickly converge to d = 3, creating a “shadow” dimen-
+sion out of the noise. Increasing the size of the sample does not seem to aid the state-of-the-art
+algorithms in detecting the correct intrinsic dimension. In fact, the slopes of the “shadow dimen-
+sion” graphs in Figure 2 get noticeably steeper for T = 25000 samples, indicating an even faster
+degradation of the intrinsic dimension estimate as the data density increases.
+(a)
+(b)
+(c)
+Figure 2: Intrinsic dimension estimates for the unit sphere S2 as a function of noise
+level. Varying data set sizes of (a) T = 250, (b) T = 2500, (c) T = 25000 points are
+tested. For the QCML estimator, the average estimate across all T points is plotted. A
+slight degradation in the estimate for the QCML estimator is noticeable for noise > 0.15,
+especially in the case of T = 250, but it is otherwise robust when compared to other
+methods.
+It is perhaps worth noting that the optimal matrix configuration A = {A1, A2, A3} obtained
+by the QCML estimator in this case are well-known to physicists as “fuzzy spheres” [Ish15, SS16,
+Ste21]. Up to a change of basis and a re-scaling factor, the elements of A are given by the angular
+momentum operators in quantum mechanics.
+Higher-dimensional synthetic manifolds
+Next, we test the QCML estimator 1 on three higher-dimensional manifolds included in the bench-
+marking framework of ref. [CCCR15]. The first is the 17-dimensional standard hypercube em-
+bedded into D = 18 dimensions (Figure 3 (a), (d) ), and labeled M10b in the scikit-dimension
+Python package. The second is the 10-dimensional manifold Mβ (Figure 3 (b), (e) ), embedded
+in D = 40 dimensions, and the third is the 18-dimensional manifold MN1 (Figure 3 (c), (f) )
+embedded into D = 72 dimensions. These benchmarks are considered among the most difficult
+for intrinsic dimension estimation, due to both the non-uniform density of the data (for M10b and
+10
+Mβ) and to the non-linearity of the embedding (for Mβ and MN1). In our testing, we trained the
+QCML estimator with Hilbert space dimension N = 16 on each of these manifolds, and plotted
+the distribution of the eigenvalues of the quantum metric g(x) across all data points x ∈X (Figure
+3 (a-c) ). In all cases, a clear spectral gap emerges between the top d eigenvalues that are near
+1, and the remaining D −d bottom eigenvalues that are near 0, where d is the correct intrinsic
+dimension.
+These higher-dimensional manifolds can also be used as a testing ground for the random matrix
+theory (RMT) estimate of the spectral gap. Recall that this technique can be applied whenever
+the quantum metric is of low rank and of high dimension, and is therefore not suitable for the S2
+or M10b examples. For Mβ, the RMT estimate returns the correct dimension d = 10. For MN1,
+the artificial rank bound of 30 imposed by our choice of N = 16 implies that the metric is not
+actually of low rank, and therefore the RMT estimate cannot be applied with this choice of N.
+We re-tested this example with a higher value N = 37, the smallest dimension for which the rank
+bound is equal to the embedding dimension D = 72, and obtained an estimate of d = 15.
+Next, we plotted the intrinsic dimension estimate returned by Algorithm 1 as a function of
+Gaussian noise (Figure 3 (d-f) ) and compared the estimate to other standard intrinsic dimen-
+sion estimators. A common theme among the standard estimators is to first under-estimate the
+intrinsic dimension, in the presence of zero or low noise. As explained in the introduction, this
+is a well-known effect due to the “curse of dimensionality”, whereby neighboring points in high
+dimension tend to be very far apart. As the noise is increased, however, the “shadow dimension”
+effect overcomes the underestimating effects due to sparsity and the standard algorithms begin to
+overestimate intrinsic dimension. This is particularly evident in the plots for Mβ and MN1. By
+contrast, the spectral gap estimate of the QCML estimator is robust with respect to both these
+effects.
+Image recognition data sets
+We next test the QCML estimator on two of the real data sets suggested in the benchmarking
+framework of ref. [CCCR15], the ISOMAP face database and MNIST. The ISOMAP face database
+consists of 698 grayscale images of size 64 × 64 representing the face of a sculpture (Figure 4 (a)).
+Each image is represented as a vector in D = 642 = 4096 dimensions and it corresponds to a
+different rotation with respect to two axes and a different lighting direction, so that the intrinsic
+dimension of the data manifold in this case is expected to be d = 3. In Figure 4 (b) a well-
+defined spectral gap indeed emerges between the top 3 eigenvalues of the quantum metric and the
+remaining 4093. This result was obtained by training with Hilbert space dimension N = 32. The
+value of N = 32 was chosen after experimenting with different Hilbert space dimensions until a
+clear spectral gap emerged. The RMT-based intrinsic dimension estimate for ISOMAP faces is
+d = 3.
+The MNIST database consists of 70000 pictures of handwritten digits, each stored as a 28 × 28
+grayscale picture. The overall intrinsic dimension of this dataset is unknown, but it is expected that
+each digit has its own intrinsic dimension. For example, in ref. [HA05] estimates for the dimension
+of each digit are in the range d = 8 −14. For our testing, we selected 1000 samples of the digit
+“1” (Figure 4 (c) ) and trained with Hilbert space dimension N = 16. The results suggest that
+even within each digit there is variation of intrinsic dimension (Figure 4 (d-e)), perhaps reflecting
+different styles of handwriting. Indeed, in our testing we found a range of dimensions d = 5 −15,
+11
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+Figure 3: Intrinsic dimension estimates for T = 2500 points on three higher-dimensional
+benchmark manifolds[CCCR15]: the 17-dimensional hypercube M10b, the 10-dimensional
+Mβ manifold embedded into D = 40 dimensions, and the 18-dimensional manifold MN1
+embedded non-linearly into D = 72 dimensions. In the boxplots (a-c) the i-th box repre-
+sents the distribution of the eigenvalue ei across all T = 2500 points. The outliers have
+been omitted from the plot for clarity. The plots (d-f) show the intrinsic dimension esti-
+mates for each manifold as functions of the noise parameter. In these examples a global
+estimate of dimension for the QCML estimator was obtained by taking the median of the
+local dimension estimates.
+12
+with the majority of estimates being d = 8 (286 samples) and d = 12 (379 samples). This result
+highlights a further advantage of our method, which produces intrinsic dimension estimates for
+each data point independently, without requiring a sampling of its neighbors. The RMT-based
+intrinsic dimension estimate for MNIST digit “1” is d = 12.
+(a)
+(b)
+(c)
+(d)
+(e)
+Figure 4: (a) Examples of images from the ISOMAP face database, (b) Spectral gap for
+ISOMAP, (c) Examples of digit “1” in the MNIST, (d) Spectral gap for MNIST digit “1”,
+(e) Distribution of dimension estimates for MNIST digit “1”. For ISOMAP, the distribution
+of dimension estimates is concentrated in dimension d = 3, so the histogram is not shown.
+Wisconsin Breast Cancer data set
+We also test our intrinsic dimension estimator on the Diagnostic Wisconsin Breast Cancer Database
+[WMSS95]. This database consists of 569 data points representing images of fine needle aspirates
+(FNA) of a breast tumor. For each image, 30 features are extracted that describe characteristics
+of the cell nuclei present in the image. Therefore in this case we are sampling T = 569 points from
+a manifold sitting inside D = 30 dimensional Euclidean space. The dataset also contains labels
+indicating whether a certain tumor is benign or malignant, but for our intrinsic dimension testing
+the labels are discarded.
+We could not find any previous estimates for the intrinsic dimension of this data set, so we
+choose N = 16 for the Hilbert space dimension, according to the rank bound (8). For the loss
+function, this time we chose to introduce a quantum fluctuation term with weight factor w = 0.1,
+as in (5). During testing, this choice led to sharper and more consistent spectral gaps (Figure 5 (a),
+showing a spectral gap corresponding to d = 2). In general, the effects of the quantum fluctuation
+term on the loss function are analyzed more thoroughly in the appendix at the end of this article.
+To test the robustness of our estimate, we add a synthetic noise parameter consisting of
+13
+a fraction ϵ of standard deviation for each feature. That is, if we let X1, . . . , X30 be the 569-
+dimensional column vectors representing each feature, we create synthetic noisy features Yi by
+letting
+Yi = Xi + ϵσi · Zi,
+where σi is the standard deviation for the vector Xi and Zi is a vector of N(0, 1)-distributed
+random entries. In this experiment, the goal is to provide an intrinsic dimension estimate that is
+constant across different levels of noise ϵ, just like we did for the synthetic manifold examples.
+The results are shown in Figure 5 (b), where we tested on 21 equally spaced noise levels from
+ϵ = 0 to ϵ = 1 in increments of 0.05.
+(a)
+(b)
+Figure 5: Intrinsic dimension estimates for the Wisconsin Breast Cancer Dataset using
+a QCML estimator of dimension N = 16 and quantum fluctuation weight w = 0.1 in
+the loss function. (a) Spectral gap with zero noise. Outliers omitted for clarity. (b)
+Intrinsic dimension estimates as for different estimators as function of noise. For the
+QCML estimator, a global estimate of dimension is obtained by taking the mode of the
+local estimates.
+The QCML estimator consistently returns an intrinsic dimension estimate of d = 2 across all
+levels of noise tested. We also plot in Figure 5 (b) the results for other estimators. The estimates of
+these other models tend to slope upwards as the noise level increases, precisely as in the synthetic
+manifold examples. If we assume that the dataset carries a natural level of noise, then Figure 5
+suggests that the estimates of all the other methods should be revised downwards, and thus be
+closer to d = 2. In fact, not knowing a priori what the level of noise is, we can only imagine
+extrapolating the graph of Figure 5 to the left to a point where all the estimates converge to d = 2,
+similar to what happens in synthetic manifolds tests.
+Discussion
+In this article we introduce a new data representation paradigm based on Quantum Cognition
+Machine Learning, and intrinsic dimension estimator and quantum geometry.
+The idea is to
+learn a non-commutative quantum model [Ish15, SS16, Ste21] for the data manifold itself. This
+quantum model has the ability to abstract out the fundamental features of the geometry of the
+data manifold.
+In particular, we demonstrate how the intrinsic dimension of the data can be
+14
+estimated from the point cloud produced by the quantum model. Because the point cloud reflects
+global properties of the data, our method is fundamentally robust to noise, as demonstrated on
+synthetic benchmarks.
+This is in contrast to other state-of-the-art techniques, which tend to
+overestimate intrinsic dimension by including “shadow” dimensionality from noise artifacts. In
+light of our results, we suggest a new paradigm for testing intrinsic dimension estimators: instead
+of focusing on noise-free synthetic benchmarks of increasing non-linearity and dimensionality, it
+is perhaps more relevant to focus on the development of estimators that are robust to noise. For
+practical applications, no real data is immune to noise, and not much meaning can be attached to
+an intrinsic dimension estimate that is highly dependent on noise levels.
+Methods
+All the results of this article have been obtained by training matrix configurations as in (4) and
+(5) on a 32-core 13th Gen Intel Core i9-13950HX CPU with 64GB of memory, supplemented by a
+NVIDIA RTX 5000 Ada Generation Laptop GPU. Training these models involves iterative updates
+to the quasi-coherent states |ψ0(x)⟩and the matrix configuration A to lower the loss function until
+desired convergence is obtained. The specifics of each optimization step depend on the particular
+loss function used and the choice of initialization of the matrix configuration A. A typical training
+loop would consist, for each epoch, of:
+(1) Calculate the quasi-coherent states |ψ0(x)⟩for all data points x ∈X (or batch of data).
+(2) Compute the loss function (4) or (5) and its gradients with respect to A.
+(3) Update the matrix configuration A with gradient descent.
+The above training loop was implemented in PyTorch [PGM+19] to obtain all the matrix
+configurations shown in this article.
+All other intrinsic dimension estimators (DANCo, MLE,
+CorrInt, TwoNN) were tested through their implementation in the scikit-dimension Python
+package [BMG+21].
+References
+[Bis95]
+C.M. Bishop.
+Neural Networks for Pattern Recognition.
+Oxford University Press,
+USA, 1995.
+[BMG+21] Jonathan Bac, Evgeny M. Mirkes, Alexander N. Gorban, Ivan Tyukin, and Andrei
+Zinovyev.
+Scikit-dimension: A python package for intrinsic dimension estimation.
+Entropy, 23(10), 2021.
+[CBR+14]
+Claudio Ceruti, Simone Bassis, Alessandro Rozza, Gabriele Lombardi, Elena Casir-
+aghi, and Paola Campadelli. Danco: An intrinsic dimensionality estimator exploiting
+angle and norm concentration. Pattern Recognition, 47(8):2569–2581, 2014.
+[CCCR15]
+Paola Campadelli, Elena Casiraghi, Claudio Ceruti, and Alessandro Rozza. Intrinsic
+dimension estimation: Relevant techniques and a benchmark framework. Mathematical
+Problems in Engineering, 2015:1–21, 10 2015.
+15
+[CG07]
+Richard Cangelosi and Alain Goriely. Component retention in principal component
+analysis with application to cdna microarray data. Biology Direct, 2:2, 02 2007.
+[CPR12]
+Guillermo Canas, Tomaso Poggio, and Lorenzo Rosasco. Learning manifolds with
+k-means and k-flats. Advances in Neural Information Processing Systems, 25, 2012.
+[Don00]
+David L Donoho. High-dimensional data analysis: The curses and blessings of dimen-
+sionality. AMS Math Challenges Lecture, 1(2000):32, 2000.
+[ER92]
+J.-P. Eckmann and D. Ruelle.
+Fundamental limitations for estimating dimensions
+and lyapunov exponents in dynamical systems. Physica D: Nonlinear Phenomena,
+56(2):185–187, 1992.
+[FdRL17]
+Elena Facco, Maria d’Errico, Alex Rodriguez, and Alessandro Laio. Estimating the
+intrinsic dimension of datasets by a minimal neighborhood information. Scientific
+Reports, 7, 2017.
+[FO71]
+K. Fukunaga and D.R. Olsen. An algorithm for finding intrinsic dimensionality of
+data. IEEE Transactions on Computers, C-20(2):176–183, 1971.
+[FS24]
+Laura O. Felder and Harold C. Steinacker. Oxidation, reduction and semi-classical
+limit for quantum matrix geometries. Journal of Geometry and Physics, 199:105163,
+2024.
+[GD14]
+Matan Gavish and David L. Donoho. The optimal hard threshold for singular values
+is 4/
+√
+3. IEEE Transactions on Information Theory, 60(8):5040–5053, 2014.
+[GP83]
+Peter Grassberger and Itamar Procaccia. Measuring the strangeness of strange attrac-
+tors. Physica D: Nonlinear Phenomena, 9(1):189–208, 1983.
+[HA05]
+Matthias Hein and Jean-Yves Audibert. Intrinsic dimensionality estimation of sub-
+manifolds in rd.
+In Proceedings of the 22nd International Conference on Machine
+Learning, ICML ’05, page 289–296, New York, NY, USA, 2005. Association for Com-
+puting Machinery.
+[Ish15]
+Goro Ishiki. Matrix geometry and coherent states. Phys. Rev. D, 92:046009, Aug
+2015.
+[JL84]
+William B Johnson and J. Lindenstrauss. Extensions of Lipshitz mapping into Hilbert
+space. In Conference modern analysis and probability, 1984, pages 189–206, 1984.
+[LB04]
+Elizaveta Levina and Peter Bickel. Maximum likelihood estimation of intrinsic dimen-
+sion. In L. Saul, Y. Weiss, and L. Bottou, editors, Advances in Neural Information
+Processing Systems, volume 17. MIT Press, 2004.
+[LFLY18]
+Chunyuan Li, Heerad Farkhoor, Rosanne Liu, and Jason Yosinski. Measuring the
+intrinsic dimension of objective landscapes. ArXiv, abs/1804.08838, 2018.
+16
+[LLJM09]
+Anna V. Little, Jason Lee, Yoon-Mo Jung, and Mauro Maggioni. Estimation of intrin-
+sic dimensionality of samples from noisy low-dimensional manifolds in high dimensions
+with multiscale SVD. In 2009 IEEE/SP 15th Workshop on Statistical Signal Process-
+ing, pages 85–88, 2009.
+[MAB+24]
+Kharen Musaelian, Alexander Abanov, Jeffrey Berger, Luca Candelori Vahagn Ki-
+rakosyan, Ryan Samson, James Smith, and Dario Villani. Quantum cognition machine
+learning: AI needs quantum. Technical report, Qognitive, Inc, Miami Beach, Florida,
+March 2024. Available at https://www.qognitive.io/QCML-Qognitive,Inc.pdf.
+[MML24]
+Iuri Macocco, Antonietta Mira, and Alessandro Laio. Intrinsic dimension as a multi-
+scale summary statistics in network modeling. Scientific Reports, 14(1):17756, 2024.
+[MP67]
+Vladimir Alexandrovich Marchenko and Leonid Andreevich Pastur. Distribution of
+eigenvalues for some sets of random matrices. Matematicheskii Sbornik, 114(4):507–
+536, 1967.
+[Nad13]
+Raj Rao Nadakuditi. When are the most informative components for inference also
+the principal components? arXiv preprint arXiv:1302.1232, 2013.
+[PGM+19]
+Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory
+Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, Alban Desmai-
+son, Andreas Kopf, Edward Yang, Zachary DeVito, Martin Raison, Alykhan Tejani,
+Sasank Chilamkurthy, Benoit Steiner, Lu Fang, Junjie Bai, and Soumith Chintala.
+Pytorch: An imperative style, high-performance deep learning library. In Advances in
+Neural Information Processing Systems 32, pages 8024–8035. Curran Associates, Inc.,
+2019.
+[Pop35]
+Tiberiu Popoviciu. Sur les équations algébriques ayant toutes leurs racines réelles.
+Mathematica, 9(129-145):20, 1935.
+[SS16]
+Lukas Schneiderbauer and Harold C Steinacker. Measuring finite quantum geome-
+tries via quasi-coherent states. Journal of Physics A: Mathematical and Theoretical,
+49(28):285301, May 2016.
+[Ste21]
+Harold C Steinacker. Quantum (matrix) geometry and quasi-coherent states. Journal
+of Physics A: Mathematical and Theoretical, 54(5):055401, Jan. 2021.
+[Ste24]
+Harold C. Steinacker. Quantum Geometry, Matrix Theory, and Gravity. Cambridge
+University Press, 2024.
+[VSFD+23] Abhishek Varghese, Edgar Santos-Fernandez, Francesco Denti, Antonietta Mira, and
+Kerrie Mengersen. A global perspective on the intrinsic dimensionality of covid-19
+data. Scientific Reports, 13(1):9761, 2023.
+[WMSS95] W.
+Wolberg,
+O.
+Mangasarian,
+N.
+Street,
+and
+W.
+Street.
+Breast
+Can-
+cer Wisconsin (Diagnostic).
+UCI Machine Learning Repository, 1995.
+DOI:
+https://doi.org/10.24432/C5DW2B.
+17
+[XWZ+20]
+Mengjia Xu, Zhijiang Wang, Haifeng Zhang, Dimitrios Pantazis, Huali Wang, and
+Quanzheng Li. A new graph gaussian embedding method for analyzing the effects of
+cognitive training. PLoS computational biology, 16(9):e1008186, 2020.
+[ZTP+21]
+Shuo Zhou, Antoinette Tordesillas, Mehdi Pouragha, James Bailey, and Howard Bon-
+dell. On local intrinsic dimensionality of deformation in complex materials. Scientific
+reports, 11(1):10216, 2021.
+Appendix
+Effect of quantum fluctuation control on loss function
+Consider a matrix configuration A trained on the data set X according to the loss function (5)
+A = argminB={B1,...,BD}
+ X
+x∈X
+∥B(ψ0(x)) −x∥2 + w · σ2(x)
+!
+,
+where w is a real parameter 0 ≤w ≤1 controlling the quantum fluctuation term. In Figure 6 we
+show the effect on the point cloud XA of varying w, for the case when X is a synthetic dataset
+consisting of 2500 points uniformly distributed on the unit circle, with a Gaussian noise parameter
+of 0.1. For this example, we used a QCML estimator of Hilbert space dimension N = 4. For w = 0
+the point cloud (shown in blue) is an almost perfect match to the original data, including the
+noise. The manifold approximation in this case is low bias/high variance. As w ranges from 0.2-
+0.6, the point cloud instead resembles closely the unit circle, filtering out most of the noise. The
+bias is higher compared to the case w = 0, but the variance is lower. As w increases, the point
+cloud begins however to degenerate into a 4-means clustering approximation of the data manifold:
+in this case, this just corresponds to the vertices of square inscribed inside the unit circle. This
+example shows how the quantum fluctuation term in (5) controls the variance of the point cloud
+approximation XA: while low levels of quantum fluctuation control lead the model to filter out
+noise and highlight important features of the data, training with the full energy loss function (i.e
+w = 1) may lead to undesirable degenerations of the matrix configuration A.
+18
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+Figure 6: Dataset consisting of T = 2500 uniformly distributed points on a unit circle
+with noise=0.1, shown in red. Six different point clouds are shown (in blue) corresponding
+to six different levels of quantum fluctuation weight w in the loss function (5). The Hilbert
+space dimension is N = 4.
+19
+Controlling variance by varying the Hilbert space dimension
+Another way to control variance of the point cloud approximation is to vary the Hilbert space di-
+mension N. In Figure 7 we show the results of training a QCML estimator of dimension N = 3 and
+N = 4 on a ‘Swiss roll’ synthetic data set. This manifold is labeled M7 in the scikit-dimension
+Python package [BMG+21] that we use for benchmarking. In these examples, we kept w = 0 and
+only trained the bias term of the loss function, with no quantum fluctuation control. For N = 3
+the point cloud approximation looses quite a bit of information about the global geometry of the
+manifold, but the spectral gap between the eigenvalues of the quantum metric is very well-defined,
+and it returns the correct intrinsic dimension estimate d = 2 at every point (Figure 7 (a-b)).
+Increasing the Hilbert space dimension to N = 4 allows the point cloud to gain expressivity and
+better match the original data set (Figure 7 (c)) but a less clear spectral gap estimate is obtained.
+In this example, 807 points returned an intrinsic dimension estimate of d = 1 and 1693 points
+returned d = 2. This ambiguity is reflected in the graph of Figure 7 (d)).
+(a)
+(b)
+(c)
+(d)
+Figure 7: Dataset consisting of T = 2500 points on a Swiss roll with zero noise. Two
+configurations are shown, (a-b) point cloud approximation and spectral gap for Hilbert
+space dimension N = 3 and (c-d) for N = 4. The original data set is in red. Darker colors
+in the point cloud correspond to lower energy.
+20

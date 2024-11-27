@@ -1,0 +1,1843 @@
+Proceedings of Machine Learning Research 259:1–20, 2024
+Machine Learning for Health (ML4H) 2024
+Learning Personalized Treatment Decisions in Precision Medicine:
+Disentangling Treatment Assignment Bias in Counterfactual
+Outcome Prediction and Biomarker Identification
+Michael Vollenweider∗
+michavol@ethz.ch
+ETH Zurich
+Manuel Sch¨urch∗
+manuel schurch@dfci.harvard.edu
+University of Zurich, University Hospital Zurich, Harvard University
+Chiara Rohrer
+rohrechi@student.ethz.ch
+ETH Zurich
+Gabriele Gut
+gabriele.gut@usz.ch
+University of Zurich, University Hospital Zurich
+Michael Krauthammer
+michael.krauthammer@uzh.ch
+University of Zurich, University Hospital Zurich
+Andreas Wicki
+andreas.wicki@usz.ch
+University of Zurich, University Hospital Zurich
+Abstract
+Precision medicine has the potential to tailor
+treatment decisions to individual patients us-
+ing machine learning (ML) and artificial in-
+telligence (AI), but it faces significant chal-
+lenges due to complex biases in clinical obser-
+vational data and the high-dimensional nature
+of biological data. This study models various
+types of treatment assignment biases using mu-
+tual information and investigates their impact
+on ML models for counterfactual prediction
+and biomarker identification. Unlike traditional
+counterfactual benchmarks that rely on fixed
+treatment policies, our work focuses on mod-
+eling different characteristics of the underlying
+observational treatment policy in distinct clini-
+cal settings. We validate our approach through
+experiments on toy datasets, semi-synthetic tu-
+mor cancer genome atlas (TCGA) data, and
+real-world biological outcomes from drug and
+CRISPR screens.
+By incorporating empirical
+biological mechanisms, we create a more real-
+istic benchmark that reflects the complexities
+of real-world data.
+Our analysis reveals that
+different biases lead to varying model perfor-
+mances, with some biases, especially those unre-
+lated to outcome mechanisms, having minimal
+effect on prediction accuracy.
+This highlights
+∗Equal contribution
+the crucial need to account for specific biases in
+clinical observational data in counterfactual ML
+model development, ultimately enhancing the
+personalization of treatment decisions in preci-
+sion medicine.
+Keywords: Counterfactual Machine Learning,
+Precision Medicine, Potential Outcome Predic-
+tion, CATE Prediction, Biomarker Identifica-
+tion, Treatment Assignment Bias
+Data and Code Availability.
+The datasets are
+either synthetically generated or can be downloaded
+from publicly available sources. The source code is
+available on GitHub.
+Institutional Review Board (IRB).
+No IRB ap-
+proval was required for this study.
+1. Introduction
+The application of machine learning (ML) and artifi-
+cial intelligence (AI) to observational data offers sig-
+nificant potential for advancing precision medicine.
+In particular, domains such as personalized diagnos-
+tics and prognosis as well as therapy decision sup-
+port are poised to be primary beneficiaries.
+To
+make progress on the latter, much effort has been
+put into transitioning from learning average treat-
+ment effects (ATE) to personalized treatment effects,
+© 2024 M. Vollenweider, M. Sch¨urch, C. Rohrer, G. Gut, M. Krauthammer & A. Wicki.
+arXiv:2410.00509v3  [cs.LG]  24 Nov 2024
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 1: Different treatment assignment policies with
+increasing bias for simplified patient data rep-
+resented by (x1, x2). Row 1: Lighter regions
+indicate higher likelihood for patients of re-
+ceiving treatment 1.
+Row 2:
+Darker areas
+show strong treatment selection bias.
+Row
+3: Estimating the outcome surfaces for both
+treatments and the conditional treatment ef-
+fect helps to refine policies to optimize out-
+comes, as seen with the current suboptimal
+treatments in the blue and yellow regions.
+referred to as conditional average treatment effects
+(CATE) (Bica et al., 2021; Curth et al., 2024).
+A
+critical challenge in this domain remains counterfac-
+tual prediction — the task of determining what would
+have happened had a different action been taken in-
+stead of the factual one.
+Randomized Controlled Trials (RCTs) are considered
+the gold standard for supporting treatment decision
+in healthcare because they lack treatment selection
+bias, which arises when treatment assignment is bi-
+ased toward specific patient characteristics and gen-
+erally complicates prediction (Hariton and Locascio,
+2018). However, RCTs face limitations, such as high
+costs, ethical concerns, and challenges in generaliz-
+ing findings to broader populations. Moreover, in the
+context of high-dimensional data, it is impossible to
+control for all variables. On the other hand, the abun-
+dant and diverse nature of retrospective observational
+data offers promising opportunities for learning per-
+sonalized treatment decisions with ML models. How-
+ever, the treatment selection bias present in such data
+can lead to skewed or unrepresentative predictions.
+Clinical Relevance of Bias.
+Different clinical set-
+tings exhibit specific types of bias.
+For example,
+treatment selection can be biased towards cost in low-
+income settings and treatment effectiveness in high-
+income settings. Bias may also occur because therapy
+decision-making is informed by a flawed study and,
+consequently, treatments are assigned based on in-
+correctly identified biomarkers. Furthermore, even if
+the study is not flawed, treatment decisions are al-
+most always biased toward the average effect. The
+bias of an observed treatment policy, that is, the pro-
+tocol used to administer care to patients, may also
+change throughout the course of patient treatment.
+This is especially noticeable in cancer care, where
+initial treatment policies are often strictly regulated
+by medical guidelines (informed through clinical trial
+evidence), leading to substantial treatment selection
+bias. As a patient’s disease progresses, treatment op-
+tions are less regulated and policies are more depen-
+dent on the expertise of treating physicians and di-
+agnostic evidence.
+Figure 1 visualizes this idea of
+varying selection bias and shows how increasing bias
+results in a more severe covariate shift between treat-
+ment groups, complicating counterfactual prediction.
+Therefore, it is crucial to distinguish different clinical
+settings, and formalize varying notions of bias as it
+will help analyze their effects for counterfactual pre-
+diction and biomarker identification.
+Violation of Overlap Assumption.
+Substan-
+tial research has focused on defining the theoretical
+assumptions necessary for counterfactual prediction
+and developing methods to handle selection bias in
+observational data. A key assumption in this context
+is the overlap assumption (Rosenbaum and Rubin,
+1983), which ensures that each patient has a non-
+zero probability of receiving any treatment. Obser-
+vational policies with strong selection bias can violate
+this assumption. In precision medicine, data are of-
+ten high-dimensional, that is, there are more features
+than samples. In this case, the overlap assumption
+is basically never fulfilled (D’Amour et al., 2021). Is
+there hope to learn from this high-dimensional obser-
+vational data, nevertheless? We argue that the vio-
+lation of the overlap assumption does not necessarily
+harm prediction performance and that it is crucial to
+differentiate between various types of bias, as they
+can have distinct effects. To our knowledge, differ-
+2
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 2: Key findings in this paper: 1) Addressing var-
+ious treatment assignment biases under the
+consideration of their strength β and rele-
+vance, is essential when learning from high-
+dimensional observational data.
+2) Counter-
+factual ML approaches can enhance estimating
+optimal treatment policies compared to tradi-
+tional ML; however, there is still room for im-
+provement in effectively utilizing relevant bi-
+ases in observational treatment policies.
+ent kinds of observational policies have only enjoyed
+little investigation. Benchmarks often simulate differ-
+ent outcomes but usually fix selection policies with-
+out varying the type of bias (Louizos et al., 2017;
+Johansson et al., 2016; Shi et al., 2019). However,
+there are fundamental differences between learning
+from observational data in a setting close to a ran-
+domized controlled trial (RCT) and in a highly reg-
+ulated environment, as illustrated in Figure 1, since
+this significantly impacts the choice and performance
+of counterfactual ML models. Figure 2 summarizes
+our key findings for different characteristics of the un-
+derlying treatment policy and different ML models.
+Evaluation on Biological Outcomes.
+The ef-
+fects of bias also depend on the data-generating pro-
+cesses that underlie the observational outcomes. Of-
+ten, treatment effect models are evaluated on semi-
+synthetic datasets, which often favor certain classes
+of models because of the specific underlying data-
+generating process. Following the recommendations
+of Gentzel et al. (2019); Sch¨urch et al. (2024), in addi-
+tion to semi-synthetic data, we propose using empir-
+ical potential outcomes derived from in-vitro cell line
+experiments from DepMap (Tsherniak et al., 2017)
+and simulating treatment assignment policies with
+certain characteristics.
+This allows for a more ro-
+bust evaluation by incorporating real-world biologi-
+cal variability and complexities that are often absent
+in purely synthetic datasets.
+Related Work.
+The focus of this work is on differ-
+ent characteristics of treatment policies, which makes
+it different from the several benchmarks for coun-
+terfactual predictions, which usually simulate differ-
+ent outcomes, but fix an arbitrary selection policies.
+Furthermore, in addition to CATE prediction, we
+also study the effect of different policy characteris-
+tics on the prediction of counterfactual outcomes and
+biomarker identification (Crabb´e et al., 2022). Our
+formalization of bias adapts and extends the con-
+cept of expertise, introduced by H¨uy¨uk et al. (2024).
+While the introduction of expertise provides valuable
+insights, the given interpretation does not fully cap-
+ture the nuances of selection bias that we are inter-
+ested in, and the results on how bias affects absolute
+prediction performance differ significantly from ours.
+Furthermore, as pointed out by Gentzel et al. (2019)
+and Curth et al. (2021), related work in this area suf-
+fers from the lack of biologically realistic evaluation
+datasets and often relies only on simulated results.
+Contributions.
+We formalize and quantify vari-
+ous types of treatment assignment biases induced
+by observational treatment policies and explain how
+they relate to different clinical settings and types
+of biomarkers. We systematically simulate different
+types of treatment selection policies and analyze their
+effects on the performance of various state-of-the-art
+counterfactual ML models when combined with toy,
+semi-synthetic, and real outcomes. We propose em-
+ploying in-vitro experiments for counterfactual eval-
+uation, thereby offering the community a novel eval-
+uation approach characterized by realistic outcomes
+and multi-modal biological covariates.
+The results
+demonstrate that the type of bias matters signifi-
+cantly, that the violation of the overlap assumption is
+not necessarily detrimental, and that models differ in
+how they respond to various biases leading to several
+important findings for developing new methodologies
+and algorithms of counterfactual treatment models
+tailored to different settings in precision medicine.
+2. Methodology
+2.1. Data Generating Process (DGP)
+We consider patient characteristics X ∈X, binary
+treatment assignments Aπ ∈{0, 1} under a particu-
+lar treatment assignment policy π, and real-valued
+treatment outcomes Y
+∈R.
+These variables are
+linked together and the underlying probabilistic data-
+generating process can be defined through a struc-
+3
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 3: Data Generating Process (DGP).
+tural causal model (SCM) (Peters et al., 2017). As
+defined in Figure 3, we consider a treatment assign-
+ment policy π(Xπ), representing the probability that
+a patient gets the first treatment Aπ = 1 under the
+observational policy π.
+Moreover, we partition X
+into various subsets; the selective features Xπ ⊆X
+which include all features influencing the treatment
+assignment, the treatment-specific sets X0, X1 ⊆X,
+and the treatment-independent control set Xctr ⊆X.
+This allows to define detailed treatment outcome
+mechanisms for the potential outcomes Y 0 and Y 1
+depending on different subset of X and is useful to
+benchmark different biomarker identification.
+De-
+pending on the treatment assignment, the factual
+outcome Y π
+f corresponds to one of the potential out-
+comes Y 0 or Y 1. However, the fundamental problem
+of counterfactual inference (Rubin, 2005) from obser-
+vational data is that never both potential outcomes
+are observed together for a particular patient, that
+is, only the factual Y π
+f but never the counterfactual
+Y π
+cf, making this task challenging.
+2.2. Quantities of Interest
+Potential Outcomes (POs).
+The DGP charac-
+terizes the potential outcomes Y 0
+i
+and Y 1
+i
+for each
+patient i, as well as the conditional expected poten-
+tial outcome (Rubin, 2005)
+µa(x) = E[Y a
+i | Xi = x].
+For an oncological observational dataset, the poten-
+tial outcomes Y 0 and Y 1 could represent clinically
+measured tumor sizes or the progression-free survival
+under standard care versus a new chemotherapy drug,
+respectively. Knowing this quantity helps clinicians
+understand how patients react to certain treatments,
+based on their specific characteristics.
+Figure 4: Different clinical biomarker.
+Treatment Effects.
+The difference τi = Y 1
+i −Y 0
+i is
+the individual treatment effect and quantifies to what
+extent one treatment option is preferable over an-
+other. The expectation of τi leads to the conditional
+average treatment effect (CATE) (Rubin, 2005)
+τ(x) = E[Y 1
+i −Y 0
+i | Xi = x] = µ1(x) −µ0(x).
+Since the CATE is a deterministic function in both
+expected potential outcomes, it captures strictly less
+information but is sometimes easier to estimate.
+Optimal
+Treatment
+Policies.
+Ultimately,
+a
+physician aims to make the best possible decisions for
+every new patient. If the objective is to find a policy
+that always assigns the treatment with the greater
+outcome, i.e. that Y π
+f (x) ≥Y π
+cf(x) for all patients,
+then an optimal deterministic decision policy can be
+defined as D∗(x) = arg maxa∈{0,1} Y a(x), which is il-
+lustrated in Fig. 1 in the last row/column. Note that
+in some clinical settings, the objective may not be as
+simple as maximizing the outcomes (Li et al., 2023;
+Sch¨urch et al., 2023). One may also consider more
+risk-aware objectives or joint optimization of multi-
+ple outcomes.
+Clinical Biomarkers.
+In healthcare, biomarkers
+play a crucial role in guiding treatment decisions.
+We distinguish between prognostic biomarkers, which
+predict the overall disease outcome regardless of the
+treatment, and predictive biomarkers, which indicate
+how likely a specific treatment will be effective, fol-
+lowing Sechidis et al. (2018); Crabb´e et al. (2022);
+Garnett et al. (2012). Additionally, we introduce the
+concept of selective biomarkers — those biomarkers
+that clinicians actively use to assign treatments. As
+illustrated in the fictional example in Figure 4, we can
+assess the importance of different biomarkers through
+feature attribution methods (Lundberg, 2017). Ide-
+ally, selective biomarkers, for instance, HLA-ABC,
+align with predictive biomarkers. On the other hand,
+the PD-L1 biomarker is identified as both prognostic
+4
+Learning Personalized Treatment Decisions in Precision Medicine
+and selective, meaning it influences decision-making
+but primarily affects disease outcome rather than
+treatment effectiveness. This suggests PD-L1 might
+not be the best guide for treatment selection. Fur-
+ther, the example of pERK illustrates a biomarker
+that is used to make treatment decision but is neither
+a predictive nor prognostic feature. By understand-
+ing the roles of these biomarkers, we can better evalu-
+ate and improve the decision-making process in clini-
+cal settings. The DGP in Figure 3 allows to simulate
+different ground-truth feature sets and importances
+to validate the accuracy of biomarker discovery.
+2.3.
+Quantifying Treatment Assignment Bias
+To be able to analyze different treatment assignment
+policies Aπ ∼π(x) = P(Aπ = 1 | X = x), we quan-
+tify different treatment assignment biases based on
+mutual information (e.g. Murphy (2022)).
+Definition 1 (Z-Bias) The Z-bias for any treat-
+ment assignment Aπ ∼π(X) and random variable
+Z is defined as
+Bπ
+Z = I(Aπ; Z)
+H[Aπ] ,
+(1)
+which measures the degree of bias of treatment assign-
+ment Aπ with respect to Z.
+The Z-bias is proportional to the mutual information
+I(Aπ, Z) = P
+a∈{0,1}
+R ∞
+−∞p(a, z) log
+
+p(a,z)
+p(a)p(z)
+
+dz be-
+tween treatment assignment Aπ and random variable
+Z and quantifies the amount of information provided
+by Z about the treatment assignment. It is normal-
+ized by the marginal entropy of treatment assign-
+ments Aπ, that is H[Aπ] = −P
+a∈{0,1} p(a) log(p(a))
+and measures the general uncertainty in treatment
+assignment. Bπ
+Z attains its minimum and maximum
+at 0 and 1, respectively. In this way, Z-bias may also
+be interpreted as the portion of variability in treat-
+ment assignment that can be explained by Z. If there
+is no association between the assignment of the treat-
+ment and Z, then Bπ
+Z = 0 (no bias). However, if the
+policy is a deterministic function of Z, knowing Z
+fully explains all treatment assignments and Bπ
+Z = 1
+(high bias). There are five important special cases
+which we will use for our experiments.
+Bπ
+X.
+Observable bias or X-bias defined as Bπ
+X =
+I(Aπ; X)/H[Aπ] quantifies how much information all
+patient characteristics provide about treatment selec-
+tion, as depicted in the second row in Fig. 1. This bias
+Figure 5: Illustration of different biases.
+can also be seen to quantify the degree of violation
+of the overlap assumption in causal inference. The
+assumption ensures that every patient has a non-zero
+probability of receiving each treatment level given
+their covariates, that is, 0 < π(x) < 1 for all x ∈X
+(Rubin, 2005).
+A policy π which deterministically
+assigns treatments based on X, fully violates this as-
+sumption and attains the maximal X-bias of 1.
+Bπ
+Y0 & Bπ
+Y1.
+The treatment outcome biases, Y 0-
+bias and Y 1-bias, defined as Bπ
+Y a = I(Aπ; Y a)/H[Aπ],
+respectively, describe to what extent the potential
+outcomes of the treatments a = 0 and a = 1 de-
+termine the treatment decision. If treatment a = 0
+corresponds to a control (no treatment), then Bπ
+Y 0
+could be termed prognostic bias, as the control out-
+come is determined by prognostic biomarkers.
+Bπ
+Y1−Y0.
+The treatment effect bias defined as
+Bπ
+Y 1−Y 0 = I(Aπ; Y 1 −Y 0)/H[Aπ] quantifies how in-
+formed the assignment policy is with respect to the
+true treatment effect. Similarly to Y 0-bias, if treat-
+ment a constitutes a control, then Bπ
+Y 1−Y 0 may also
+be called predictive bias, as the treatment effect is
+determined by predictive features.
+Bπ
+Y0,Y1. The total outcome bias defined as Bπ
+Y 0,Y 1 =
+I(Aπ; Y 0, Y 1)/H[Aπ] describes to what extent the
+joint distribution of the potential outcomes deter-
+mines the treatment decision.
+The special cases of Z-bias, Bπ
+Y 1−Y 0 and Bπ
+Y 0,Y 1 are
+closely related to predictive and prognostic expertise,
+respectively, introduced by H¨uy¨uk et al. (2024). In
+addition, Bπ
+X is similar to their concept of in-context
+variability. While some of the definitions in this pa-
+per are related to their work, our interpretation and
+some results differ significantly. See Appendix C for
+a discussion of why we prefer Z-bias over Z-expertise
+to describe the quantity in Equation (1).
+Proposition 2
+Under the non-confounding as-
+sumption, we have
+Bπ
+X ≥Bπ
+Y 0,Y 1 ≥Bπ
+Y 0, Bπ
+Y 1, Bπ
+Y 1−Y 0.
+(2)
+5
+Learning Personalized Treatment Decisions in Precision Medicine
+Proposition 2 establishes an ordering between differ-
+ent types of bias, which is visualized in the Venn di-
+agram for Bπ
+Y 1 and Bπ
+Y 1−Y 1 in Figure 5 and a proof
+can be found in Appendix B.
+We also refer to Figure 10 in Appendix B for a visu-
+alizations of all considered and simulated biases. The
+entropies of random variables are represented as rect-
+angles, and their mutual information as the overlap
+thereof. The overlaps with the entropy of Aπ, cor-
+respond to a representation of the Z-biases, scaled
+by the entropy of Aπ. The manner in which the en-
+tropies relate is generally complex and depends on
+the distributions arising from the underlying noisy
+causal structural mechanisms.
+Proposition 3
+Z-bias relates to the overlap as-
+sumption (OA) as follows
+Bπ
+X = 1 =⇒OA is violated.
+(3)
+Proposition 3 states that when there is maximal ober-
+vational bias, then the overlap assumption is neces-
+sarily violated. This relates Z-bias to the commonly
+used assumption used in literature and will allow to
+measure how strongly it is violated in different sim-
+ulation settings. Proofs and further results can be
+found in Appendix B.
+Simulating
+Treatment
+Assignment
+Policies
+To be able to simulate different kinds of treatment
+assignment policies π(x) with a controlled amount of
+bias, we subsequently define a parametrized policy.
+Definition 4 (Z-Policy) For a given random vari-
+able Z and parameter β, the Z-policy is defined as
+πβ
+Z(x) := σ(βZ(x)),
+(4)
+where σ(x) :=
+ex
+1+ex . This Z-policy represents the
+probability that a patient with characteristics X = x
+is assigned to treatment Aπβ
+Z = 1 under the Z-policy.
+When β = 0, the policy mimics a (balanced) RCT
+with πβ=0
+Z
+(x) = 1/2 and hence, πβ=0
+Z
+= πRCT . As β
+increases, treatment selection becomes more depen-
+dent on Z, leading to greater selection bias.
+This
+parameter β is thus termed the bias scale. Figure 1
+in the first row visualizes this process: increasing β
+simulates a transition from an unbiased RCT setting
+to a highly biased observational policy.
+3. Experiments
+3.1. Data
+In total, we use four types of datasets for our pol-
+icy simulation experiments based on toy examples,
+TCGA data, CRISPR screens and drug screens.
+With the carefully constructed toy examples, we aim
+to elucidate key concepts.
+Their setup and corre-
+sponding results are discussed in Appendix G.
+Simulated Outcomes.
+To include a more con-
+ventionally used dataset, we extend the linear semi-
+synthetic simulation setting used in Crabb´e et al.
+(2022) with n = 1000. Here, the covariates are 100
+real RNA transcriptomics data from the TCGA data-
+bank. This dataset will be referred to as AY-TCGA,
+as we simulate the treatment and outcome mecha-
+nism. See Appendix D for details on the setup.
+Biological Outcomes.
+To create a more realistic
+setting, we leveraged in-vitro data from a drug and
+a CRISPR screen from DepMap (Dependency Map)
+(Tsherniak et al., 2017).
+The use of in-vitro data
+ensures high genetic consistency, with biological out-
+come measurements for different perturbational ex-
+periments, closely approximating the true counter-
+factuals. We refer to the two datasets derived from
+DepMap as A-CRISPR and A-DRUG, since we only
+simulate the treatment selection (blue path associ-
+ated within our DGP in Figure 3) but use the real bi-
+ological treatment outcome mechanisms. For a more
+in-depth description see Appendix D.
+3.2. Learners
+Given observational data D = {xi, ai, yi}n
+i=0, gener-
+ated with some observed policy π according to the
+DGP in Figure 3, the goal is to estimate the quan-
+tities discussed in Sec. 2.2.
+The fundamental diffi-
+culty of this task is the absence of measurements of
+the counterfactual outcome Y π
+cf. There exist several
+state-of-the-art counterfactual methods that aim to
+deal with this difficulty while estimating the quan-
+tities ˆµa(x), ˆτ(x) and ˆπ(x). For comparison in our
+experiments, we selected models based on three pri-
+mary axes: linear vs.
+nonlinear, action-predictive
+vs.
+balancing, and direct vs.
+indirect approaches.
+These distinctions guide our understanding of how
+various model designs handle treatment effect pre-
+diction and interact with different types of biases
+inherent in observational data.
+We use the imple-
+mentations of SLearner, TLearner, XLearner, CFR-
+6
+Learning Personalized Treatment Decisions in Precision Medicine
+Net, DragonNet, and TARNet provided by Curth and
+Van der Schaar (2021), and the EconML implemen-
+tations of SLearner and TLearner (Battocchi et al.,
+2019). See Appendix F for further details on three
+primary axes and a description of the selected learn-
+ers.
+We also introduce ActionNet, which trains a
+propensity net on observational treatment decisions
+and assigns Aˆπ = 0 if the predicted propensity is less
+than 0.5 and Aˆπ = 1, otherwise. To assess the consis-
+tency of model performance, the models were trained
+on five random seeds and five-fold splits of the data.
+3.3. Evaluation Metrics
+For treatment effect prediction we employ the classi-
+cally used Precision in Estimation of Heterogeneous
+Effect (PEHE) and the assignemnt precision metric
+Precπ
+Ass., counting how frequently the observational
+policy π selects the optimal outcome, inspired by
+Curth et al. (2021). For evaluating potential outcome
+(PO) prediction, we use the Root Mean Squared Error
+(RMSE) for both factual and counterfactual predic-
+tion. To quantify the quality of biomarker identifica-
+tion, we adopt the attribution metrics Attrpred and
+Attrprog used in Crabb´e et al. (2022), which count
+the number of correct predictive and prognostic fea-
+tures were selected as biomarkers compared to the
+ground-truth. To compute the biases involving the
+mutual information and entropies, we approximate
+them by binning continuous outcomes, similarly to
+H¨uy¨uk et al. (2024). See Appendix E for details.
+4. Results
+Figure 6 shows results for the A-CRISPR dataset. We
+performed four experiments simulating policies going
+from an RCT setting (β = 0) to a fully biased one
+(β = 16) with respect to Y 0, Y 1, Y 1 −Y 0 and Xrand.
+Here, Xrand represents a weighted linear combination
+of 20 randomly chosen features and uniformly sam-
+pled weights in [−1, 1], imitating a situation where
+the treatment decision is misinformed. By normaliz-
+ing all the quantities before providing them as input
+to the sigmoid function σ in Eq. 4, we ensure that
+treatment assignment is balanced. Figure 7 in Ap-
+pendix A shows the results for the same experiments
+on AY-TCGA with fully simulated outcomes. In this
+setting, we can simulate an additional policy πβ
+Xpred,
+where Xpred is a weighted linear combination of 20
+predictive features, which determine the treatment ef-
+fect in the outcome simulation. The weights are also
+uniformly sampled, but different from the weights
+sampled for computing the outcomes. This represents
+the case where the correct features are used for treat-
+ment decisions, but with a wrong/random influence.
+The results for A-Drug can be found in Appendix A.
+Biases.
+The first row of the plots shows how in-
+creasing β affects the biases of the obervational pol-
+icy. The observational bias Bπ
+X, indicated by the grey
+line, almost reaches 1 in every setting. With Eq. 3,
+this means that the overlap assumption becomes in-
+creasingly violated with increasing β. We can also see
+that for A-CRISPR, the increase of the outcome bi-
+ases Bβ
+Y 0 and Bβ
+Y 1 comes with a significant increase of
+the treatment effect bias Bβ
+Y 1−Y 0. This is not the case
+for simulated outcomes in AY-TCGA, which may be
+due to correlations between the outcomes, treatment
+effect and treatment assignment. We believe that the
+interaction information I(Aπ; Y 0; Y 1 −Y 0), which is
+respresented by the overlap of the entropies of all
+three variables in Figure 5, relates to how much the
+Y 0-bias is linked to the effect bias and consequently,
+how much they increase together. This difference pro-
+vides another reason to be cautious when interpret-
+ing results from fully simulated outcomes. For the
+last column, for A-CRISPR, the Y 1-bias and treat-
+ment effect bias increase slightly. This may indicate
+that the randomly chosen features, by chance, cap-
+ture some information about the outcomes.
+POs & Treatment Effects.
+The second row in
+Figures 6,7, and 9, respectively, depicts how well the
+baseline model TARNet can predict potential out-
+comes and treatment effects. The results show that
+the bias for a certain outcome comes with improved
+factual prediction but worse counterfactual predic-
+tion. If there is no outcome bias, there is little to no
+effect on prediction performance. Similarly, we can
+see, that the degradation of performance in treatment
+effect prediction (PEHE) correlates with the degree
+of treatment effect bias. This behavior is consistent
+across all datasets and supports the observation, that
+an irrelevant violation of the overlap assumption does
+not necessarily negatively impact prediction, which is
+a positive message in the context of high-dimensional
+medical data. The factual and counterfactual RMSE
+in A-CRISPR also nicely demonstrate the effects of
+the covariate shift.
+With increasing bias, the sup-
+port of the factual part of the outcome surface be-
+comes smaller and thereby the variance of its value
+range is reduced, making it easier to learn. The coun-
+terfactual part of the outcome surface, however, be-
+7
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 6: Results for A-CRISPR.
+comes increasingly underrepresented in the training
+data and the model fails to extrapolate correctly to
+those regions. The latter effect tends to be stronger,
+hence bias generally leads to worse performance. For
+the simulated outcomes in AY-TCGA, the factual
+RMSE does not improve with increasing β, proba-
+bly because the outcome surface is easy to learn in
+the RCT setting. In Appendix G, we show also an
+example where outcome and effect bias have different
+effects for direct vs. indirect learners.
+Inductive Bias.
+If we look at the last row in Fig.
+Figure 6 for πRCT →πβ
+Y 1−Y 0, we can see that with
+high bias, the observational policy makes all the right
+decisions. In that case, the treatment assignments in
+the training data themselves provide inductive bias
+that some models may be able to exploit. Note that
+also an observational policy which always decides in-
+correctly has inductive bias. Indeed, for A-CRISPR,
+it appears that the action predictive model Drag-
+onNet has an advantage over the balancing CFR-
+Net and baseline TARNet for medium to high treat-
+ment effect bias. Also for πRCT →πβ
+Y 1, where the
+effect biases increase significantly with the outcome
+bias, the DragonNet with especially strong action-
+predictiveness seems to have a slight advantage over
+the others. However, in absolute terms, performance
+still degrades significantly for DragonNet, as can be
+seen in the last row with Precˆπ
+Ass. as the y-axis. At
+maximal treatment effect bias, all models fail to sug-
+gest correct treatments completely, as a precision of
+0.5 corresponds to random guessing.
+This further
+demonstrates that in settings with high relevant bias,
+counterfactual prediction is very difficult and inher-
+ently limited. This makes the need for models that
+are able to deal with as much bias as possible evident
+and shows that simple models like the S-Learner al-
+ready fail for small amounts of bias. Another surpris-
+ing finding is that for high Y 1-bias and treatment ef-
+fect bias, the simple ActionNet outperforms all other
+models. Hence, in that case, it is better to simply
+8
+Learning Personalized Treatment Decisions in Precision Medicine
+learn the existing observational policy instead of try-
+ing to find a new one by estimating the treatment
+effect.
+In fact, DragonNet only seems to have an
+edge as soon as the ActionNet surpasses the other
+models. This implies that action predictive models
+are only better than balancing ones as soon as the
+models are not able to learn better decision making
+than the observational policy itself provides!
+Biomarker Identification.
+For AY-TCGA, we
+see in the last two rows in Fig. 7 that if there is no
+relevant bias, i.e. the last two columns, all models, ex-
+cept for the ActionNet, are able to almost perfectly
+identify which features are true biomarkers.
+Since
+there is no mutual information between the treatment
+assignment and the outcomes, we also do not expect
+ActionNet to be able to identify any biomarkers. Un-
+der Y 0-bias, the predictive feature attribution per-
+formance correlates with the PEHE. Intuitively, this
+makes sense, because if a model is able to predict the
+correct outcomes and effects, it must have been able
+to pick up on important features. For the prognostic
+feature score, however, the DragonNet outperforms
+the other Torch models.
+Here, DragonNet may be
+able to exploit the mutual information between treat-
+ment assignment and control outcome as an inductive
+bias for finding prognostic features. This principle is
+also evident in the setting with high effect bias (third
+column). DragonNet performs equally well to other
+Torch models in terms of PEHE, but outperforms
+them in predictive attribution for high bias scales.
+Y 1-bias has the most dramatic effect on predictive
+attribution. Here, TARNet and DragonNet identify
+only a small subset of the true predictive biomarkers
+and ActionNet surpasses all other Torch models for
+high bias. This stark difference between both types of
+outcome bias is probably because the true predictive
+features are comprised only by X1, since treatment
+(0) is chosen to represent a control. This is also re-
+flected in that the counterfactual prediction for Y 1 is
+much worse for high Y 1-bias than for high Y 0-bias.
+5. Conclusion
+This study investigates the complex relationship be-
+tween biases in high-dimensional observational data
+and their impact on counterfactual prediction, treat-
+ment decision-making, and biomarker identification
+in precision medicine. A central contribution is the
+formalization of various biases based on mutual in-
+formation, illustrating how these biases can influence
+model performance, particularly in high-dimensional
+datasets where traditional assumptions like overlap
+are often violated.
+A main finding is that not
+all biases negatively affect model performance and
+biomarker identification.
+Biases related to factors
+with minimal association with outcome mechanisms
+tend to have little impact on the accuracy of counter-
+factual predictions, which is a positive message in the
+context of high-dimensional medical data. Moreover,
+in settings of high treatment effect bias, correspond-
+ing to highly regulated clinical settings and ”correct”
+observational treatment policy, there is a substan-
+tial gap between the useful information present in the
+treatment assignment policy, and the performance of
+all state-of-the-art counterfactual ML models, which
+all fail to exploit this inductive bias. This shows the
+need for more research on developing counterfactual
+methods in these settings that can exploit this in-
+ductive bias instead of removing it.
+Overall, these
+findings suggest that identifying and understanding
+the specific biases present in a dataset leads to more
+informed ML model selection and more reliable treat-
+ment decisions. Additionally, using empirical poten-
+tial outcomes from in-vitro cell line experiments of-
+fers a novel benchmark for evaluating counterfactual
+models, addressing the limitations of relying solely
+on semi-synthetic datasets. The results demonstrate
+the need for caution when interpreting performance
+on fully simulated data. The performed experiments
+and findings have substantial implications for learn-
+ing personalized treatment decisions from clinical ob-
+servational data with AI and ML, where accurately
+predicting treatment outcomes in the presence of bias
+is crucial for developing effective personalized treat-
+ment plans. By appropriately developing modeling
+and adapting to biases in clinical data, more reliable
+and individualized treatment policies can be learned
+from high-dimensional multi-modal biological data,
+potentially leading to better patient outcomes in com-
+plex diseases like cancer. Future research should fo-
+cus on developing AI and ML methods to assess and
+exploit present biases in real-world datasets, collect-
+ing and benchmarking datasets with real biological
+outcomes for evaluation, and advancing the theoreti-
+cal understanding of performance bounds using these
+new insights. In conclusion, this study helps to un-
+derstand the role of treatment assignment bias in
+counterfactual prediction and biomarker identifica-
+tion, paving the way for the development of more
+robust and accurate predictive algorithms crucial for
+personalized healthcare.
+9
+Learning Personalized Treatment Decisions in Precision Medicine
+References
+Keith Battocchi, Eleanor Dillon, Maggie Hei, Greg
+Lewis, Paul Oka, Miruna Oprescu, and Vasilis
+Syrgkanis. EconML: A Python Package for ML-
+Based Heterogeneous Treatment Effects Estima-
+tion. https://github.com/py-why/EconML, 2019.
+Version 0.x.
+Fiona M Behan, Francesco Iorio, Gabriele Picco,
+Emanuel Gon¸calves, Charlotte M Beaver, Gior-
+gia Migliardi, Rita Santos, Yanhua Rao, Francesco
+Sassi, Marika Pinnelli, et al. Prioritization of can-
+cer therapeutic targets using crispr–cas9 screens.
+Nature, 568(7753):511–516, 2019.
+Ioana Bica, Ahmed M. Alaa, Craig Lambert, and Mi-
+haela van der Schaar. From real-world patient data
+to individualized treatment effects using machine
+learning: Current and future methods to address
+underlying challenges. Clinical Pharmacology and
+Therapeutics, 109(1):87–100, 2021.
+Steven M. Corsello, Rameen T. Nagari, Ryan D.
+Spangler, and et al. Discovering the anticancer po-
+tential of non-oncology drugs by systematic viabil-
+ity profiling. Nature Cancer, 1(2):235–248, Febru-
+ary 2020. doi: 10.1038/s43018-019-0018-6.
+Jonathan Crabb´e, Alicia Curth, Ioana Bica, and Mi-
+haela van der Schaar. Benchmarking heterogeneous
+treatment effect models through the lens of inter-
+pretability, 2022.
+Alicia Curth and Mihaela Van der Schaar. Nonpara-
+metric estimation of heterogeneous treatment ef-
+fects: From theory to learning algorithms. In Inter-
+national Conference on Artificial Intelligence and
+Statistics, pages 1810–1818. PMLR, 2021.
+Alicia Curth and Mihaela van der Schaar. Nonpara-
+metric estimation of heterogeneous treatment ef-
+fects: From theory to learning algorithms, 2021.
+Alicia Curth, David Svensson, Jim Weatherall, and
+Mihaela van der Schaar. Really doing great at es-
+timating cate? a critical look at ml benchmarking
+practices in treatment effect estimation. In Thirty-
+fifth conference on neural information processing
+systems datasets and benchmarks track (round 2),
+2021.
+Alicia Curth, Richard W. Peck, Eoin McKinney, and
+et al. Using machine learning to individualize treat-
+ment effect estimation: Challenges and opportuni-
+ties. Clinical Pharmacology and Therapeutics, 115
+(4):710–719, 2024.
+Broad
+DepMap
+and
+Mustafa
+Kocak.
+Re-
+purposing
+Public
+24Q2.
+5
+2024.
+doi:
+10.6084/m9.figshare.25917643.v1.
+URL
+https://figshare.com/articles/dataset/
+Repurposing_Public_24Q2/25917643.
+DepMap, Broad.
+Project score chronos.
+https:
+//doi.org/10.6084/m9.figshare.14461980.v2,
+2021. Dataset.
+Alexander D’Amour, Peng Ding, Avi Feller, and
+et al. Overlap in observational studies with high-
+dimensional covariates. Journal of Econometrics,
+221(2):644–654, 2021.
+Mathew J. Garnett, Elena J. Edelman, Sonja J. Hei-
+dorn, and et al.
+Systematic identification of ge-
+nomic markers of drug sensitivity in cancer cells.
+Nature, 483(7391):570–575, 2012.
+Amanda Gentzel, Dan Garant, and David Jensen.
+The case for evaluating causal models using inter-
+ventional measures and empirical data, 2019.
+Eduardo Hariton and Joseph J. Locascio.
+Ran-
+domised controlled trials—the gold standard for
+effectiveness research.
+BJOG: An International
+Journal of Obstetrics and Gynaecology, 125(13):
+1716, 2018.
+Alihan H¨uy¨uk, Qiyao Wei, Alicia Curth, and Mihaela
+van der Schaar. Defining expertise: Applications to
+treatment effect estimation, 2024.
+Fredrik Johansson, Uri Shalit, and David Sontag.
+Learning representations for counterfactual infer-
+ence.
+In International Conference on Machine
+Learning, pages 3020–3029. PMLR, 2016.
+S¨oren R K¨unzel, Jasjeet S Sekhon, Peter J Bickel, and
+Bin Yu. Metalearners for estimating heterogeneous
+treatment effects using machine learning. Proceed-
+ings of the national academy of sciences, 116(10):
+4156–4165, 2019.
+Zhen Li, Jie Chen, Eric Laber, Fang Liu, and Richard
+Baumgartner. Optimal treatment regimes: a re-
+view and empirical comparison. International Sta-
+tistical Review, 91(3):427–463, 2023.
+10
+Learning Personalized Treatment Decisions in Precision Medicine
+Christos Louizos, Uri Shalit, Joris M. Mooij, and
+et al.
+Causal effect inference with deep latent-
+variable models. Advances in Neural Information
+Processing Systems, 30, 2017.
+Scott
+Lundberg.
+A
+unified
+approach
+to
+in-
+terpreting model predictions.
+arXiv preprint
+arXiv:1705.07874, 2017.
+Kevin P Murphy. Probabilistic machine learning: an
+introduction. MIT press, 2022.
+J. Peters, D. Janzing, and B. Sch¨olkopf. Elements of
+Causal Inference: Foundations and Learning Algo-
+rithms. MIT Press, Cambridge, MA, USA, 2017.
+Paul R. Rosenbaum and Donald B. Rubin. The cen-
+tral role of the propensity score in observational
+studies for causal effects. Biometrika, 70(1):41–55,
+1983.
+Donald B. Rubin. Causal inference using potential
+outcomes: Design, modeling, decisions.
+Journal
+of the American Statistical Association, 100(469):
+322–331, 2005.
+Manuel Sch¨urch, Xiang Li, Ahmed Allam, Giulia
+Hofer, Amina Mollaysa, Claudia Cavelti-Weder,
+and Michael Krauthammer. Generating personal-
+ized insulin treatments strategies with conditional
+generative time series models. In Deep Generative
+Models for Health Workshop NeurIPS 2023, 2023.
+Manuel Sch¨urch, Laura Boos, Viola Heinzelmann-
+Schwarz, Gabriele Gut, Michael Krauthammer,
+Andreas Wicki, and Tumor Profiler Consortium.
+Towards ai-based precision oncology: A machine
+learning framework for personalized counterfactual
+treatment suggestions based on multi-omics data.
+arXiv preprint arXiv:2402.12190, 2024.
+Konstantinos Sechidis,
+Konstantinos Papangelou,
+Paul D Metcalfe, David Svensson, James Weather-
+all, and Gavin Brown. Distinguishing prognostic
+and predictive biomarkers: an information theo-
+retic approach. Bioinformatics, 34(19):3365–3376,
+2018.
+Uri Shalit, Fredrik D Johansson, and David Sontag.
+Estimating individual treatment effect:
+general-
+ization bounds and algorithms.
+In International
+conference on machine learning, pages 3076–3085.
+PMLR, 2017.
+Claudia Shi, David Blei, and Victor Veitch. Adapting
+neural networks for the estimation of treatment ef-
+fects. Advances in Neural Information Processing
+Systems, 32, 2019.
+Andrew Tsherniak, Francis Vazquez, Patrick G.
+Montgomery, and et al. Defining a cancer depen-
+dency map. Cell, 170(3):564–576.e16, July 2017.
+doi: 10.1016/j.cell.2017.06.010.
+Appendix A. Additional Results
+This section presents additional experimental results.
+Figure 8 shows the precision results for A-TCGA,
+which were omitted from the results in the main text
+but discussed in Section 4. For the A-DRUG dataset,
+which includes drug response data derived from the
+DepMap project. The results for A-DRUG in Fig-
+ure 9 are consistent with the findings from the other
+datasets, such as A-CRISPR and AY-TCGA. Simi-
+lar to those datasets, we observe that the degree of
+bias introduced by the observational policies signif-
+icantly impacts the model’s performance in predict-
+ing treatment effects and potential outcomes. Specif-
+ically, as the bias increases, factual prediction perfor-
+mance tends to improve slightly, while counterfactual
+prediction performance generally deteriorates, partic-
+ularly in scenarios with high treatment effect bias.
+Overall, the results from the A-DRUG dataset rein-
+force the key findings of our study, confirming the
+importance of understanding and addressing bias in
+treatment effect estimation across different types of
+biological data.
+11
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 7: Results for AY-TCGA. The experiment and the main findings are discussed in the main text.
+Figure 8: Precision for AY-TCGA.
+12
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 9: Results for A-Drug.
+13
+Learning Personalized Treatment Decisions in Precision Medicine
+Appendix B. Proofs of Propositions
+B.1. Proof of Proposition 2
+First, we prove that Bπ
+X ≥Bπ
+Y 0,Y 1. The approach
+is directly adopted from the proof for Proposition 1
+by H¨uy¨uk et al. (2024). Under the non-confounding
+assumption, we have for all Y 0, Y 1 ⊥⊥Aπ | X, i.e.
+given X, we know that the outcomes are independent
+of treatment assignment. We proceed as follows:
+Bπ
+Y 0,Y 1 = I(Aπ; Y 0, Y 1)
+H[Aπ]
+(5)
+= 1 −H[Aπ|Y 0, Y 1]
+H[Aπ]
+(6)
+≤1 −H[Aπ|Y 0, Y 1, X]
+H[Aπ]
+(7)
+= 1 −H[Aπ|X]
+H[Aπ]
+(8)
+= I(Aπ; X)
+H[Aπ]
+(9)
+= Bπ
+X,
+(10)
+where (5) and (10) follow from the definition of Z-
+bias, (6) and (9) by the definition of mutual infor-
+mation, (7) holds since conditioning never increases
+entropy and (8) follows from the conditional inde-
+pendence via the non-confounding assumption. Let
+Z′ ∈{Y 0, Y 1, Y 1 −Y 0}, then second part of the in-
+equality can be derived:
+Bπ
+Y 0,Y 1 = I(Aπ; Y 0, Y 1)
+H[Aπ]
+= 1 −H[Aπ|Y 0, Y 1]
+H[Aπ]
+= 1 −H[Aπ|Y 0, Y 1, Z′]
+H[Aπ]
+(11)
+≥1 −H[Aπ|Z′]
+H[Aπ]
+(12)
+= I(Aπ; Z′)
+H[Aπ]
+= Bπ
+Z′,
+where (11) follows from the fact that Z′ is a deter-
+ministic function of Y 0 and Y 1 and therefore does
+not affect the entropy when conditioned on in addi-
+tion to Y 0 and Y 1.
+(12) holds, since conditioning
+never increases entropy. Combining the two inequali-
+ties concludes the proof. See Figure 10 for an intuitive
+understanding of these inequalities.
+The diagrams
+only depict one out of several possible relationships
+between the entropies. If the mechanisms do not in-
+troduce any noise, then the inequalities in (2) also
+hold for the respective entropies and further restricts
+the ordering of rectangles in the Venn diagram.
+□
+B.2. Proof of Proposition 3
+When Bπ
+X = 1, Aπ is perfectly predictable from
+X.
+This situation necessarily violates the overlap
+assumption,
+which requires that the probability
+P(Aπ = 1 | X) to be strictly between 0 and 1 for
+all X. Therefore, if Bπ
+X = 1, the overlap assumption
+cannot be satisfied because there will be some values
+of X for which P(Aπ = 1 | X) is either 0 or 1. See
+proof for Proposition 4 in H¨uy¨uk et al. (2024) for a
+more rigorous approach.
+□
+Conversely, if the overlap assumption is violated, it
+does not necessarily imply that Bπ
+X = 1. Specifically,
+overlap is violated if P(Aπ = 1 | X) equals 0 or 1
+for some values of X. This does not ensure that the
+mutual information is at its maximum because there
+might still be some uncertainty in Aπ given X in
+other regions, preventing I(Aπ; X) from reaching its
+theoretical maximum.
+However,
+if the overlap assumption is violated
+across the entire support of X,
+meaning that
+P(Aπ = 1 | X) is 0 or 1 for every X within its
+support, then I(Aπ; X) will indeed be maximized
+and hence Bπ
+X = 1.
+Appendix C. Bias vs. Expertise
+C.1. Terminology
+In the context of our work, we choose to use the
+term z-bias rather than expertise to describe the
+information-theoretic quantity proposed.
+For in-
+stance, (H¨uy¨uk et al., 2024) refer to it as expertise
+because, intuitively, if a doctor always assigns the cor-
+rect treatment, this consistency signifies a high level
+of expertise. In such cases, the mutual information
+between the treatment assignment and the outcome
+would be large, reflecting a strong inductive bias that
+can be exploited for beneficial effects. However, the
+term expertise falls short in scenarios where mutual
+information remains high, even when the doctor con-
+sistently assigns the wrong treatment. Although mu-
+tual information would still be maximized, labeling
+this as expertise would be misleading since we would
+14
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 10: Types of Bias.
+not consider a doctor an expert if their decisions are
+always incorrect. In that way, Precπ
+Ass. may better
+describe the intended meaning of expertise. This is
+why we prefer the term bias, which carries a more
+neutral or even negative connotation, appropriately
+highlighting the potential challenges this quantity in-
+troduces, such as making counterfactual predictions
+more difficult.
+Furthermore, the term
+bias allows
+us to reason about different types of this quantity,
+offering a more flexible framework to understand its
+implications in various clinical settings.
+C.2. Results
+The Worst→Expert experiment performed by H¨uy¨uk
+et al. (2024) for Figure 3 corresponds directly to in-
+creasing β for πXβ
+irr in Figure 7. While their find-
+ings state that increasing irrelevant bias comes with
+a strong deterioration in performance, our results im-
+ply that the PEHE remains near constant, despite the
+increasing irrelevant bias. It has been confirmed with
+the authors that this discrepancy can be attributed
+to a bug in the implementation. The corrected exper-
+iment demonstrates a behaviour that is in agreement
+with the results in Figure 7.
+Appendix D. Data
+D.1. Simulated Outcomes
+The potential outcomes are simulated as simple
+weighted linear combinations of randomly selected
+features with added Gaussian noise. To ensure that
+we can evaluate the performance of the prognostic
+and predictive biomarker identification, we simulate
+a true control group by setting Z0 = 0 in Figure 3.
+This dataset will be referred to as AY-TCGA, indi-
+cating that Aπ, as well as Y 0 and Y 1 are fully simu-
+lated. Data were obtained from the TCGA Research
+Network: https://www.cancer.gov/tcga.
+D.2. Biological Outcomes
+PRISM repurposing drug screens.
+(DepMap
+and Kocak, 2024), performed on 877 cell lines accord-
+ing to Corsello et al. (2020) record the effect of hun-
+dreds of drugs on various cancer cell lines. The goal
+is to identify new therapeutic uses for existing drugs
+through a multiplexed approach. For our use case we
+focused on the measurements for two drugs, imatinib
+and az-628. Imatinib is a well-known tyrosine kinase
+inhibitor used mainly for chronic myeloid leukemia
+(CML) and gastrointestinal stromal tumors (GISTs).
+Az-628 is a selective inhibitor of RAF kinase, a key
+player in the MAPK/ERK signaling pathway, which
+is often involved in cancer development. As covari-
+15
+Learning Personalized Treatment Decisions in Precision Medicine
+ates we use RNA transcriptomics data, retaining the
+200 most correlated features as covariates.
+CRISPR knock-out screens.
+(DepMap, Broad,
+2021) were conducted on 1067 cell lines following the
+methodology described by Behan et al. (2019), and
+targeted a myriad of genes of interest. They provide
+critical insights into gene dependencies by knocking
+out specific genes to observe their effects on cancer
+cell viability. As the two treatment options in our
+setting, we used the knock-out of genes EGFR (Epi-
+dermal Growth Factor Receptor) and KRAS (Kirsten
+Rat Sarcoma Viral Oncogene Homolog), which are
+crucial in cell signaling pathways related to cancer,
+with mutations or overexpression frequently observed
+in various cancers. Again, the most correlated 200
+RNA transcriptomics features were used as covari-
+ates for our analysis. We refer to these datasets as
+A-CRISPR and A-DRUG.
+Appendix E. Metrics
+PEHE.
+The Precision in Estimation of Heteroge-
+neous Effect (PEHE) is conventionally used for evalu-
+ating Conditional Average Treatment Effect (CATE)
+predictions. It is calculated as
+PEHE =
+v
+u
+u
+t 1
+n
+n
+X
+i=1
+(ˆτ(xi) −τ(xi))2,
+where ˆτ(xi) is the predicted treatment effect and
+τ(xi) is the true treatment effect for individual i.
+Precision.
+The assignment precision of a policy
+Precπ
+Ass., inspired by Curth et al. (2021), is another
+metric used in our study that measures the ratio of
+treatment options proposed correctly by the policy π.
+In this case, correct means that for a given patient,
+the proposed treatment option leads to a higher out-
+come than the alternative. For a trained model, ˆπ, is
+the updated treatment assignment policy, which as-
+signs according to Aˆπ := d(X) = 1{ˆτ(x)>0}. We also
+considered the Area Under the Receiver Operating
+Characteristic Curve (AUROC) and the Area Under
+the Precision-Recall Curve (AUPRC). However, these
+metrics can be difficult to interpret due to the imbal-
+ance of positives and negatives, which is significantly
+impacted by the experimental knobs.
+RMSE.
+For the prediction of potential outcomes,
+we use the root mean square error (RMSE). This
+metric evaluates the accuracy of the predictions for
+both the factual and counterfactual outcomes of the
+test population. We differentiate between two differ-
+ent types of RMSE for both outcomes. The factual
+RMSE measures the error in outcome prediction for
+the treatment option to which a patient would have
+been assigned using the observational treatment pol-
+icy. The counterfactual RMSE (CF RMSE) evaluates
+how well the outcomes were predicted for the alter-
+native treatment option.
+Attribution Score.
+Additionally, we evaluate the
+identification of biomarkers using the metric intro-
+duced by Crabb´e et al. (2022). This metric assesses
+how well biomarkers predict treatment response het-
+erogeneity:
+Attrpred =
+1
+|Dtest|
+X
+X∈Dtest
+P
+i∈Ipred |ai(ˆτ, X)|
+Pd
+i=1 |ai(ˆτ, X)|
+, (13)
+where Ipred is the set of predictive features and ai
+represents a specific attribution for the i-th feature
+of a given model in the context of an explainabil-
+ity method. Since, we only evaluate on AY-TCGA,
+which is simulated with a true control, i.e. Z0 = 0 in
+Figure 3-I, Ipred represents all features in X1. Anal-
+ogously, we also evaluate prognostic biomarker iden-
+tification using Attrprog. In this case, we are utiliz-
+ing SHAP (SHapley Additive exPlanations) values to
+quantify the contribution of each feature to the pre-
+diction (Lundberg, 2017).
+Empirical Approximation of Z-Bias.
+We can
+rewrite Z-bias as follows:
+Bπ
+Z = I(Aπ; Z)
+H[Aπ]
+= H[Z] −H[Z|Aπ]
+H[Aπ]
+≈
+˜H[Z] −˜H[Z|Aπ]
+H[Aπ]
+(14)
+To approximate the entropy terms including the con-
+tinuous Z, we followed the discretization scheme from
+H¨uy¨uk et al. (2024). Using numpy, the support Z of
+Z for a given dataset is automatically binned into
+k bins: Z = Z1 ∪· · · ∪Zk. Then the observations
+zi are discretized according to those bins. We can
+16
+Learning Personalized Treatment Decisions in Precision Medicine
+approximate the entropy terms with:
+˜H[Aπ] =
+X
+a∈{0,1}
+|i : ai = a|
+n
+log2
+|i : ai = a|
+n
+˜H[Z] =
+X
+j∈[k]
+|i : zi ∈Zj|
+n
+log2
+|i : zi ∈Zj|
+n
+˜H[Z|Aπ] =
+X
+a∈{0,1},j∈[k]
+{i : ai = a, zi ∈Zj}
+
+n
+log2
+{i : ai = a, zi ∈Zj}
+
+|{i : ai = a}|
+Appendix F. Learners
+In our experiments, we employ a variety of models,
+each utilizing distinct approaches to deal with the
+difficulties of counterfactual prediction. Here we first
+describe the three axes along which we compare dif-
+ferent models and then provide a short description of
+the selected models. See Table 1 for an overview of
+the classification of the learners according the three
+axes discussed in the main text.
+F.1. High-Level Classification of Models
+Linear vs. Nonlinear.
+Nonlinear models, partic-
+ularly neural networks, are hypothesized to better
+manage complex biases arising from nonlinear data-
+generating mechanisms. They adapt more flexibly to
+complex patterns in data, potentially capturing intri-
+cate relationships within high-dimensional biological
+datasets. In contrast, linear models are more suited
+to address simpler biases and might offer better in-
+terpretability when relationships are straightforward,
+but may underperform in scenarios requiring model-
+ing of more complex dependencies.
+Action-Predictive
+vs.
+Balancing.
+Action-
+predictive models focus on learning the treatment
+selection mechanism itself, making them aware of
+the existing bias in treatment assignment.
+By un-
+derstanding the selection process, these models can
+leverage the inherent biases (such as physician exper-
+tise reflected in treatment decisions) to make more in-
+formed predictions. These models can potentially ex-
+ploit inductive biases beneficially, although it might
+only be effective when the existing treatment effect
+bias is not so severe that it already degrades predic-
+tion quality. Balancing models, on the other hand,
+aim to adjust or ”balance” the treatment groups to
+minimize the influence of covariate shift, effectively
+”removing” bias. This may offer robustness in situa-
+tions where treatment selection bias is high, leading
+to stable prediction performance across groups. Some
+models can exhibit neither balancing nor action-
+predictive behavior or both at the same time.
+So
+in principle, one could consider introducing two axes
+instead.
+Direct vs. Indirect.
+This axis distinguishes mod-
+els by whether they predict treatment effects di-
+rectly or indirectly. Direct models estimate treatment
+effects outright, while indirect models first predict
+counterfactual outcomes and then calculate treat-
+ment effects by subtracting these predictions.
+In-
+direct methods might be more resilient in settings
+with strong treatment effect bias but minimal out-
+come bias, as seen in scenarios like Toy3 (referenced
+in Appendix). Here, indirect models benefit by fo-
+cusing on outcome predictions, potentially mitigat-
+ing the direct impact of treatment effect bias on their
+estimations.
+F.2. Description of Selected Models
+S-Learner
+and
+T-Learner.
+The
+S-Learner
+(Single-Learner) approach involves combining all the
+data into a single predictive model that includes the
+treatment indicator as one of the covariates.
+This
+model is then used to estimate potential outcomes
+for different treatment groups by evaluating the
+model’s output with different values of the treat-
+ment indicator.
+The T-Learner (Two-Learner), on
+the other hand, trains separate models for each
+treatment group.
+The outcomes for each group
+are estimated independently,
+and the treatment
+effect is determined by comparing these estimates.
+Both S-Learner and T-Learner (K¨unzel et al., 2019)
+are foundational and commonly used baselines in
+treatment effect estimation, offering simplicity and
+interpretability, though they may struggle in cases
+of covariate imbalance or heterogeneous treatment
+effects.
+X-Learner.
+The X-Learner (K¨unzel et al., 2019)
+acts as an example for a direct learner. This means
+that it directly predicts the CATE, without first es-
+timating POs. The model employs a two-step pro-
+cedure: first, it estimates the potential outcomes for
+each treatment group separately. In the second step,
+these initial estimates are refined by exploiting the
+fact that treatment effects may be more accurately
+17
+Learning Personalized Treatment Decisions in Precision Medicine
+Model
+Linear/Nonlinear
+Action-Predictive/Balancing
+Direct/Indirect
+S-Learner (Lasso)
+Linear
+-
+Indirect
+S-Learner (Torch)
+Nonlinear
+-
+Indirect
+T-Learner (Lasso)
+Linear
+-
+Indirect
+T-Learner (Torch)
+Nonlinear
+-
+Indirect
+X-Learner (Lasso)
+Linear
+-
+Direct
+X-Learner (Torch)
+Nonlinear
+-
+Direct
+TARNet
+Nonlinear
+-
+Indirect
+CFRNet
+Nonlinear
+Balancing
+Indirect
+DragonNet
+Nonlinear
+Action-Predictive (& Balancing)
+Indirect
+ActionNet
+Nonlinear
+Action-Predictive
+-
+Table 1: Categorization of models.
+learned in one group and then transferred to the other
+group. This transfer mechanism allows the X-Learner
+to reduce bias and variance, improving the accuracy
+of CATE estimation.
+TARNet.
+TARNet
+(Treatment-Agnostic
+Repre-
+sentation Network) (Shalit et al., 2017) is a model
+within the family of representation learning ap-
+proaches aimed at improving CATE estimation. See
+Curth and van der Schaar (2021) for a description
+of how it relates to other representation learning ap-
+proaches. TARNet constructs a shared representa-
+tion for all units (regardless of their treatment sta-
+tus) through a deep neural network, which is agnos-
+tic to the treatment assignment.
+This shared rep-
+resentation is then fed into separate heads that pre-
+dict outcomes for each treatment group. The central
+idea behind TARNet is to create a representation
+that captures essential information about the units
+while minimizing the influence of treatment assign-
+ment, thereby enabling the model to generalize well
+across different treatment groups.
+CFRNet.
+CFRNet
+(Counterfactual
+Regression
+Networks) (Shalit et al., 2017) is a model that
+belongs to the class of balancing methods.
+These
+models are designed to minimize bias in treatment
+effect estimation by reducing covariate distribution
+differences between treated and control groups.
+CFRNet achieves this by learning a latent represen-
+tation of the data in which treated and control units
+are more similar.
+This alignment in the represen-
+tation space allows for more accurate comparisons
+between the groups, thereby facilitating improved
+treatment effect estimation. The underlying objec-
+tive of CFRNet is to approximate counterfactual
+outcomes more effectively by balancing covariates,
+making it a powerful tool in observational studies
+where covariate imbalance is a significant concern.
+CFRNet-0.0001, CFRNet-0.001 and CFRNet-0.01
+increasingly strongly penalize the distance between
+the representation spaces.
+DragonNet.
+The DragonNet (Shi et al., 2019) is
+an action-predictive model that incorporates a unique
+feature—a propensity score prediction head—within
+its network architecture.
+This head is designed to
+predict the probability of treatment assignment (i.e.,
+the propensity score) while simultaneously estimat-
+ing potential outcomes. By explicitly modeling the
+treatment assignment mechanism, DragonNet lever-
+ages the inductive bias inherent in the observed treat-
+ment decisions. This dual objective aims to enhance
+the model’s ability to make treatment recommenda-
+tions that align closely with the observed actions, po-
+tentially improving policy evaluation and treatment
+assignment accuracy.
+DragonNet-1, DragonNet-2
+and DragonNet-4 increasingly strongly penalize the
+propensity head loss.
+ActionNet.
+We introduce the ActionNet to rep-
+resent an extreme and trivial variant of action-
+predictive models. Unlike models that focus on esti-
+mating potential outcomes, ActionNet is solely con-
+cerned with predicting treatment decisions based on
+the observed selection policy.
+It trains a propen-
+sity model directly on the observed treatment assign-
+ments.
+The goal is to effectively mimic the exist-
+ing observational policy without explicitly modeling
+the potential outcomes. This approach maximally ex-
+ploits the existing biases in treatment decisions. In-
+herently, the performance of this model can only be
+as good as the observational policy.
+18
+Learning Personalized Treatment Decisions in Precision Medicine
+Balancing vs. Action-Predictive.
+The primary
+distinction between balancing models such as CFR-
+Net and action-predictive models like DragonNet and
+ActionNet lies in their approach to handling bias
+(H¨uy¨uk et al., 2024).
+Balancing models focus on
+mitigating bias by aligning the covariate distribu-
+tions between treatment groups. This alignment al-
+lows for more fair and accurate comparisons of out-
+comes across these groups, which is critical in settings
+where treatment assignment is non-random and co-
+variate imbalance may confound the estimated treat-
+ment effects.
+In contrast, action-predictive models
+take advantage of the inductive biases present in the
+observed treatment decisions. By modeling the treat-
+ment assignment process directly, these models aim
+to improve decision-making by leveraging the infor-
+mation embedded in the historical treatment pat-
+terns.
+However, this approach can be risky, as it
+relies heavily on the correctness and appropriateness
+of the observed treatment policy, potentially leading
+to biased recommendations if the underlying policy
+is flawed.
+Model-Specific
+Limitations
+for
+Evaluation.
+Since XLearner and ActionNet do not estimate
+any potential outcomes, PO prediction cannot be
+evaluated for them. The ActionNet only predicts a
+decision and can therefore also not be evaluated on
+treatment effect prediction.
+In
+summary,
+balancing
+models
+aim
+to
+reduce
+bias by ensuring fair comparisons across treatment
+groups, while action-predictive models leverage the
+bias inherent in the data to improve decision-making,
+with each approach offering distinct advantages de-
+pending on the context of the treatment effect
+estimation problem.
+Appendix G. Toy Examples
+G.1. Construction
+Figures 11 and 12 depict several toy examples, con-
+structed to demonstrate the effect of selection bias.
+The underlying DGPs are special cases of the struc-
+tural causal model in Figure 3. All simulated out-
+comes follow the structure Y a = fnl(f a
+i (x0, x1)),
+where fnl(·) =
+1
+1+exp(−10∗(·−0.5)) is a logistic-like non-
+linearity. The policies are designed to be proportional
+to different quantities and are computed similarly to
+Equation (4).
+Toy1.
+f 0
+1 (x0, x1) := x0
+f 1
+1 (x0, x1) := 1 −x0
+πβ
+1 (x0, x1) ∼1 −x0
+(15)
+This toy example should show why the covariate shift,
+visible in the outcome and treatment effect plots,
+leads to worse performance in estimating the treat-
+ment effect and outcomes as compared to the RCT
+setting.
+For PO prediction, we hypothesize that
+factual prediction performance will increase slighly,
+since the covariate shift makes the support of the fac-
+tual part of the outcome surface smaller and thereby
+reduces the variance of its value range, making it eas-
+ier to learn. Counterfactual prediction, however, will
+deteriorate, since the counterfactual part of the out-
+come surface is underrepresented in the training co-
+hort and the model will fail to extrapolate correctly
+to those regions. The lack of overlap of the outcome
+and treatment effect value ranges is visualized by the
+histograms and directly relates to the respective types
+of bias. This toy example leads to the sharp separa-
+tion of the two treatment hues of the histogram bars,
+indicating high bias.
+Toy2.
+f 0
+2 (x0, x1) := x0
+f 1
+2 (x0, x1) := 1 −x0
+πβ
+2 (x0, x1) ∼1 −x0
+(16)
+Here, the only thing different from Toy1, is that the
+treatment policy depends on a different dimension
+than the outcomes. As for Toy1, with high β, the
+policy, will violate the overlap assumption as the ob-
+servable bias goes approaches 1. Due to the indepen-
+dence of the assignment and outcome mechanisms,
+however, all other biases will remain 0.
+The his-
+tograms nicely illustrate how there is full overlap of
+the patient groups with respect to the outcome value
+ranges, visualizing the lack of bias.
+Toy3.
+f 0
+3 (x0, x1) := x0
+f 1
+3 (x0, x1) := 1 −x1
+πβ
+3 (x0, x1) ∼1 −x0 −x1
+(17)
+This example is constructed to lead to low treat-
+ment outcome biases, but high treatment effect bias.
+It should demonstrates how such constructed exam-
+ples can be used to test hypotheses about properties
+of different kinds of models. Here, for instance, we
+19
+Learning Personalized Treatment Decisions in Precision Medicine
+speculate that indirect learners, estimating the treat-
+ment effect via outcome predictions, will show better
+performance than direct learners, which estimate the
+treatment effect without having to estimate potential
+outcomes.
+Toy4.
+f 0
+4 (x0, x1) := x0
+f 1
+4 (x0, x1) := x1
+πβ
+4 (x0, x1) ∼x0
+(18)
+This setting is constructed to exhibit high Y 0-bias,
+but no Y 1-bias. The idea is to demonstrate that dif-
+ferent types of bias can have fundamentally different
+effects on prediction. Further, we want to evaluate
+whether the high treatment effect bias can also be
+exploited as inductive bias, as proposed by H¨uy¨uk
+et al. (2024).
+G.2. Results on Toy Examples
+The first two rows of Figure 13 generally show that
+the biases behave as constructed and that the change
+in performance in terms of PEHE and RMSE confirm
+expectations.
+Toy1.
+For Toy1, where all types of bias increase
+with increasing bias scale β, counterfactual predic-
+tion for both outcomes and treatment effect predic-
+tion become significantly worse for the T-Learner-
+Lasso. Factual prediction, on the contrary, improves
+slightly.
+In the third row we observe that for low
+bias, neural-network based models clearly outperform
+the linear TLearner. This is not surprising, as the
+treatment effect surface is constructed to be nonlin-
+ear.
+However, with increasing bias, it seems that
+the T-Learner-Lasso and more significantly so, the
+Dragon-Net, suffer less from bias than all other mod-
+els. The Dragon-Net may indeed by able to exploit
+the strong inductive bias captured by the obersva-
+tional policy. The amount of inductive bias is repre-
+sented by Precπ
+Ass.. The more correct decisions the
+obervational policy already made, the more inductive
+bias may be available to exploit. Note, that also an
+obervational policy which always decides incorrectly
+may contain inductive bias. The results for
+Toy2.
+Toy2 provides an example for when the vio-
+lation of the overlap assumption has little to no effect
+on the performance for all models. This in support
+of the hypothesis that not all types of bias are bad
+for counterfactual prediction performance.
+Toy3.
+Here, the results show that only the direct
+Xlearner experience a performance degradation due
+to the introduced treatment effect bias.
+This may
+be explained by the fact, that indirect learners only
+estimate potential outcomes and not the treatment
+effect. Therefore, a situation where there is little out-
+come bias but large treatment effect bias may be ad-
+vantageous for indirect learners, compared to direct
+learners.
+Toy4.
+The plot in the second row for Toy4, nicely
+demonstrates that outcome prediction only deterio-
+rates if there is bias with respect to that outcome. As
+for Toy1, it seems, Dragon-Net significantly outper-
+forms the other models. While there is less inductive
+bias than for Toy1, it may still be able to exploit it
+to some extent.
+20
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 11: Visualization of Toy Examples 1-3.
+21
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 12: Visualization of Toy Examples 4 and RCT.
+22
+Learning Personalized Treatment Decisions in Precision Medicine
+Figure 13: Results for toy examples 1-4.
+23

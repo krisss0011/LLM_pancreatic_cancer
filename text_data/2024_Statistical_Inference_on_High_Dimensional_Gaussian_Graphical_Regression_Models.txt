@@ -1,0 +1,2229 @@
+Statistical Inference on High Dimensional
+Gaussian Graphical Regression Models
+Xuran Meng∗and
+Jingfei Zhang† and
+Yi Li‡
+November 5, 2024
+Abstract
+Gaussian graphical regressions have emerged as a powerful approach for regressing
+the precision matrix of a Gaussian graphical model on covariates, which, unlike tradi-
+tional Gaussian graphical models, can help determine how graphs are modulated by
+high dimensional subject-level covariates, and recover both the population-level and
+subject-level graphs. To fit the model, a multi-task learning approach achieves lower
+error rates compared to node-wise regressions. However, due to the high complexity
+and dimensionality of the Gaussian graphical regression problem, the important task
+of statistical inference remains unexplored. We propose a class of debiased estimators
+based on multi-task learners for statistical inference in Gaussian graphical regressions.
+We show that debiasing can be performed quickly and separately for the multi-task
+learners. In a key debiasing step that estimates the inverse covariance matrix, we
+propose a novel projection technique that dramatically reduces computational costs
+in optimization to scale only with the sample size n. We show that our debiased
+estimators enjoy a fast convergence rate and asymptotically follow a normal distri-
+bution, enabling valid statistical inference such as constructing confidence intervals
+and performing hypothesis testing. Simulation studies confirm the practical utility of
+the proposed approach, and we further apply it to analyze gene co-expression graph
+data from a brain cancer study, revealing meaningful biological relationships.
+Keywords: Gaussian graphical models, graphical model with covariates, multi-task learning,
+debiased inference, projection.
+∗Department of Biostatistics, University of Michigan; e-mail: xuranm@umich.edu
+†Department of Information Systems and Operations Management,
+Emory University;
+e-mail:
+emma.zhang@emory.edu
+‡Department of Biostatistics, University of Michigan; e-mail: yili@umich.edu
+1
+arXiv:2411.01588v1  [stat.ME]  3 Nov 2024
+1
+Introduction
+Gaussian graphical models are powerful tools for describing dependencies among response
+variables in a homogeneous population (Meinshausen & B¨uhlmann 2006, Peng et al. 2009).
+In precision medicine where subject-specific gene co-expression graphs are of interest, sce-
+narios where the precision matrix depends on external covariates are considered (Saegusa
+& Shojaie 2016). For instance, genetic variants and environmental factors affect both in-
+dividual genes and their co-expression relationships in gene co-expression graphs (Wang
+et al. 2012); external factors like gender, age and genetic variants influence functional con-
+nectivity between brain regions (Zhang et al. 2023). These applications have led to the
+development of covariate-dependent Gaussian graphical regressions, where the goal is to
+understand how external covariates modulate the graphical structures at the individual
+level and recover both the population- and individual-level graphs. Towards this goal, Ni
+et al. (2019) proposed a conditional graphical regression model that allows the structure of
+a directed graph to flexibly vary with continuous covariates under the assumption of a small
+number of covariates and a known hierarchical ordering of the nodes. Zhang & Li (2023)
+proposed a flexible Gaussian graphical regression framework that models the precision ma-
+trix as a function of covariates in high-dimensional settings, providing consistent estimators
+using sparse group lasso and separate node-wise regressions. Building on this, Zhang & Li
+(2024) further improved the estimation procedure by proposing a joint multi-task learning
+problem, solved by an efficient augmented Lagrangian algorithm.
+Despite the advantages of Gaussian graphical regression approaches in recovering both
+population- and individual-level graphs, the existing work focused primarily on estimation,
+leaving a significant gap in statistical inference, especially in high dimensional settings.
+Statistical inference tools are crucial, as they play a fundamental role in quantifying the
+2
+uncertainty of the estimated relationships by providing confidence intervals and enabling
+hypothesis testing.
+In this paper, we address this gap by developing computationally
+efficient methods for conducting statistical inference in Gaussian graphical regressions.
+In high-dimensional problems, a useful approach to statistical inference involves debi-
+asing methodologies, as it is well-known that estimators like the lasso suffer from non-
+negligible bias in their second-order expansions, leading to inaccurate results in inference
+(Tibshirani et al. 2005, Zou 2006, Bellec & Zhang 2022, Cai et al. 2022). Using debiasing
+algorithms in the lasso framework, Javanmard & Montanari (2014) and van de Geer et al.
+(2014) developed confidence intervals and p-values for high-dimensional linear regressions.
+Chernozhukov et al. (2018) introduced Double Machine Learning (DML), which employs
+Neyman-orthogonal moments and cross-fitting to handle high-dimensional nuisance pa-
+rameters in semiparametric models.
+Zhu & Bradic (2018) explored debiasing in linear
+models without assuming sparsity. Fei et al. (2019) and Fei & Li (2021) enhanced inference
+methods through sample-splitting for improved precision. A series of works (Zhang & Han
+2019, Zhang et al. 2020, Xia et al. 2022) also tackled the computational challenges in tensor
+regression, developing unbiased algorithms tailored to low-rank tensor structures.
+Estimation and statistical inference in high-dimensional Gaussian graphical regressions
+present several new challenges, including the high model complexity, dimensionality and
+significant computational burden. From a computational perspective, a multi-task learn-
+ing estimator that simultaneously solves for all O(p2q) coefficients, where p represents the
+number of Gaussian variables and q the number of covariates, enjoys a fast convergence
+rate. Although parameter estimation can be efficiently handled using an augmented La-
+grangian algorithm (Zhang & Li 2024), debiasing all O(p2q) coefficients simultaneously
+remains computationally demanding. From a theoretical perspective, the design matrix
+3
+in the Gaussian regression problems includes interaction terms between the p Gaussian
+variables and the q external covariates, where the Gaussian variables are also dependent
+among themselves. Consequently, each row of the design matrix has a very complex joint
+distribution and is not sub-Gaussian or sub-exponential, as is commonly assumed in the
+existing literature (Cai et al. 2022). Moreover, unlike standard multi-task learning prob-
+lems where the stochastic terms from separate regressions are independent, the p regression
+tasks in the graphical setting inherently exhibit a complex dependence structure influenced
+by external covariates, making a joint inference virtually infeasible.
+We address these challenges as follows. First, to overcome the theoretical difficulties
+of joint inference in standard multi-task learning, our key finding is that although the
+coefficients are estimated jointly, they can be debiased separately. Specifically, we propose
+a marginalized debiasing procedure that decomposes the inference of the full vector into
+segments, ensuring that statistical validity is maintained within each segment (i.e., within
+each node). Second, unlike traditional debiasing methods (Javanmard & Montanari 2014,
+Cai et al. 2022), which exhibit polynomial growth in optimization costs with p and q,
+we introduce a new projection technique that ensures computational costs in optimization
+scale with the sample size n. Specifically, our approach maps the constrained optimization
+problem from R(p−1)(q+1) to Rn, quickly solves the much smaller problem, and then maps the
+solution back to the larger space, leading to a significant reduction in computational cost.
+To our knowledge, this is the first approach to enable reliable statistical inference in high-
+dimensional Gaussian graphical regression models with combined penalty functions. We
+provide theorems for asymptotic inference and validate our approach through simulations.
+Moreover, our results also notably relax a condition on the number of nonzero coefficients
+in existing work (Zhang & Li 2024, 2023) from O(n1/6) to o(n1/2).
+4
+More closely related to our work, Hudson & Shojaie (2022) explored a debiasing method
+for covariate-adjusted testing in differential graph analysis, but their approach is limited
+to a small number of variables; Cai et al. (2022) considered debiased sparse group lasso,
+but their method is not directly applicable in our settings as our design matrix includes
+high-dimensional interaction terms. Furthermore, the computational cost of their method
+can be prohibitive under our setting as it increases polynomially with p and q.
+The paper is organized as follows. In Section 2, we describe the Gaussian graphical
+regression model and review its multi-task estimators. Section 3 proposes a new inference
+method for Gaussian graphical regression models, by deriving a debiased estimator via pro-
+jection technique and establishing the theoretical results for statistical inference. Section 4
+conducts simulations to examine the finite sample performance of the method. Section 5
+applies our inference approach to analyze a brain tumor data set to study how SNPs may
+influence gene co-expression graphs and reports biologically meaningful results. Section 6
+concludes the paper. Additional simulations and proofs are provided in the supplement.
+2
+The Preamble
+We first present notation. Throughout the paper, lowercase letters denote scalars, and
+boldface denotes vectors and matrices. The sets of natural and real numbers are denoted by
+N and R, respectively. We denote [n1 : n2] = {n1, . . . , n2} and [n] = [1 : n] = {1, . . . , n}. We
+use “⊙” to denote the Hadamard product. We write X1(n) = O(X2(n)) or X1(n) ≾X2(n)
+if for any ε > 0, there exists C > 0 such that P(|X1(n)/X2(n)| > C) ≤ε for all n. We
+denote X1(n) = o(X2(n)) if {X1(n)/X2(n)} converges to 0 in probability. We use ∥· ∥q
+to denote the ℓq Euclidean norm. Let γ = (γ⊤
+(1), . . . , γ⊤
+(q)) be a vector associated with a
+pre-defined group structure, where γ(j) ∈Rpj is the sub-vector corresponding to group
+5
+j for j ∈[q]. Then, the ℓq1,q2-norm of γ is defined as: ∥γ∥q1,q2 =
+P
+j ∥γ(j)∥q1
+q2
+1/q1, for
+0 ≤q1, q2 ≤+∞. For example, ∥γ∥∞,2 = maxj ∥γ(j)∥2.
+2.1
+Gaussian graphical regression
+We briefly review Gaussian graphical models by considering a random vector X = (X1, . . . , Xp),
+which follows a multivariate normal distribution Np(0, Σ) and Σ ∈Rp×p is the covariance
+matrix. The inverse of Σ, denoted as Ω= Σ−1 = (σij)p×p, is the precision matrix, where
+σij ̸= 0 implies that Xi and Xj are conditionally dependent given the other variables.
+To estimate these conditional dependencies, Meinshausen & B¨uhlmann (2006) and Peng
+et al. (2009) established the dependence of each variable Xj on the remaining variables
+X−j = (X1, . . . , Xj−1, Xj+1, . . . , Xp) via
+Xj =
+p
+X
+k̸=j
+βjkXk + εj,
+(2.1)
+where εj is independent of X−j if and only if βjk = −σjk/σjj. Estimating the nonzero βjk
+coefficients thus becomes equivalent to identifying nonzero σij elements.
+Recently, Zhang & Li (2023, 2024) considered covariate-dependent Gaussian graphical
+models, where U = (U1, . . . , Uq)⊤represents a q-dimensional vector of covariates and the
+conditional distribution of X given U = u is modeled as:
+X | U = u ∼Np(µ(u), Ω−1(u)).
+(2.2)
+The mean vector µ(u) and precision matrix Ω(u) are given by
+µ(u) = Γu,
+Ω(u) = B0 +
+q
+X
+h=1
+Bhuh,
+(2.3)
+where Γ ∈Rp×q, and B0, B1, . . . , Bq ∈Rp×p are symmetric matrices. In this framework,
+the covariate effect is expressed through the contribution of each Bh to the precision matrix.
+6
+The diagonal elements of Ω(u) are usually assumed to be Ω(u)jj = σjj so that the residual
+variance of Xj does not vary with covariates, making the analysis more tractable. The
+formulation of (2.2) and (2.3) is useful as, after centering the vector Z = X −Γu =
+(Z1, . . . , Zp)⊤, they can be rewritten as:
+Zj =
+p
+X
+k̸=j
+βjk0Zk +
+p
+X
+k̸=j
+q
+X
+h=1
+βjkh · uh · Zk
+|
+{z
+}
+Interaction term
++εj,
+(2.4)
+where βjkh = −(Bh)jk/σjj, ϵj is independent of Z−j and Var(ϵj) = 1/σjj, for all j, k
+and h. As (2.4) offers a regression framework for estimating the dependence of precision
+parameters in (2.3) on u, it is termed Gaussian graphical regression on external covariates.
+It generalizes (2.1) by incorporating interactions between Z−j and u, and, correspondingly,
+modeling the partial correlation between Zj and Zk as a function of u.
+2.2
+Multi-task learning for Gaussian graphical regressions
+Consider n independent observations, (u(i), x(i)) ∈Rq × Rp, where i ∈[n]. Let z(i) =
+x(i) −Γu(i). To expose the key ideas, we assume Γ is known in the ensuing development
+and focus on the estimation and inference of βjhk’s. Letting zj = (z(1)
+j , ..., z(n)
+j )⊤for j ∈[p]
+and uh = (u(1)
+h , ..., u(n)
+h )⊤for h ∈[q], the Gaussian graphical regression model on the jth
+response variable can be written as
+zj =
+p
+X
+k̸=j
+βjk0zk +
+p
+X
+k̸=j
+q
+X
+h=1
+βjkhuh ⊙zk + εj.
+Here, εj ∈Rn is the regression error vectors of the node j with εj ∼N(0,
+1
+σjj I). We write
+βj = ((βj)⊤
+(0), ..., (βj)⊤
+(q))⊤∈R(p−1)(q+1), where (βj)(h) = (βj1h, . . . , βjph)⊤∈Rp−1 groups all
+the coefficients in the h-th group. A more detailed form of βj is as follows:
+βj = (βj10, . . . , βjp0
+|
+{z
+}
+(βj)(0)
+,
+βj11, . . . , βjp1
+|
+{z
+}
+(βj)(1)
+,
+. . . ,
+βj1q, . . . , βjpq
+|
+{z
+}
+(βj)(q)
+)⊤.
+7
+Let β = (β⊤
+1 , . . . , β⊤
+p )⊤∈Rp(p−1)(q+1), and collect all group vectors (βj)(h) defined above
+into the vector bh, where bh = ((β1)⊤
+(h), . . . , (βp)⊤
+(h))⊤∈Rp(p−1). To ease notation, we define
+a large design matrix W ∈Rnp×p(p−1)(q+1) as:
+W =
+
+
+
+
+
+
+
+W1
+· · ·
+0n×(p−1)(q+1)
+...
+...
+...
+0n×(p−1)(q+1)
+· · ·
+Wp
+
+
+
+
+
+
+
+,
+where Wj = [z1, ..., zj−1, zj+1, ..., zp, z1⊙u1, ..., zj−1⊙u1, zj+1⊙u1, ..., zp⊙uq] ∈Rn×(p−1)(q+1),
+and the response vector y as y = (z(1)
+1 , ..., z(n)
+1 , z(1)
+2 , ..., z(n)
+p )⊤∈Rnp. The multi-task learn-
+ing simultaneously estimates all βj by minimizing the following loss function:
+bβ = argminβ
+1
+2n
+y −Wβ
+2
+2 + λe∥β∥1 + λg
+q
+X
+h=1
+∥bh∥2,
+(2.5)
+where λe, λg > 0 are two tuning parameters.
+The regularization in (2.5) is known as
+the sparse group lasso penalty (Simon et al. 2013, Li et al. 2015, Cai et al. 2022, Zhang
+& Li 2023) because it combines both element- and group-level sparsity constraints; the
+term, ∥β∥1, promotes element-wise sparsity, since effective covariates may affect only a
+few edges; the term Pq
+h=1 ∥bh∥2 encourages group-wise sparsity, with the exception of
+h = 0, where group sparsity is not enforced. As each group coefficient vector bh collects
+(β1)(h), . . . , (βp)(h) from all p tasks, (2.5) defines a multi-task learning framework by con-
+sidering p graphical regressions simultaneously as well as a group lasso penalty to regularize
+bh across regressions. This enables us to borrow information across the p tasks to select
+and estimate effective covariates. Indeed, Zhang & Li (2024) showed that the error rate
+of bβ may improve over estimators from separate regressions by a factor of p. The esti-
+mation problem in (2.5) can be solved efficiently via a computationally efficient Fenchel
+convexification (Mifflin 1977, Zhang & Li 2024).
+8
+3
+Segmentally Debiased Multi-task Graphical Regres-
+sion via Projection
+As bβ underestimates the coefficients due to the shrinkage effects of the penalty function, it
+is critical to debias bβ for valid statistical inference. While the multi-task learning estima-
+tor in (2.5) achieves a fast convergence rate, debiasing the entire vector bβ simultaneously
+presents significant theoretical challenges. Unlike in traditional multi-task learning prob-
+lems, the p regression tasks in (2.5) are not independent and exhibit a highly complex
+dependence structure. Specifically, Cov(εj, εj′) depends on u, and the exact form of this
+relationship is intractable. Hence, directly calculating bβ’s joint distribution is nearly im-
+possible. Our key finding to addressing this problem is that, although the coefficients are
+estimated jointly, they can be debiased separately. Specifically, we propose to decompose
+the inference of the entire β vector into segmental inferences. This segmental debiasing
+method further reduces computational complexity and enables valid statistical inference
+within each segment, avoiding the need to account for dependencies across tasks. This ap-
+proach is conceptually similar to the marginal method, as seen in settings like generalized
+estimating equations (GEE) (Ziegler & Vens 2010).
+Specifically, we segment the debiasing procedure of bβ to each component bβj individually,
+i.e., for each j ∈[p], we debias bβj separately and denote the estimator by bβu
+j :
+bβu
+j = bβj + 1
+n
+c
+M⊤
+j W⊤
+j (zj −Wj bβj).
+(3.1)
+We refer to (3.1) as the segmentally adjusted graphical regression (SAGE) estimator. We
+later show the SAGE estimator bβu
+j asymptotically follows a multivariate normal distri-
+bution, laying a foundation for inference.
+In (3.1), c
+Mj = [ bmj1, . . . , bmj(p−1)(q+1)] is an
+estimator of Σ−1
+Wj, where ΣWj = E W⊤
+j Wj/n. Let bΣWj = W⊤
+j Wj/n. In existing methods
+9
+(Javanmard & Montanari 2014, Cai et al. 2022), bmjl’s are typically estimated by solving:
+argminm∈R(p−1)(q+1) m⊤bΣWjm
+subject to
+∥Hα(bΣWjm −el)∥∞,2 ≤γ,
+(3.2)
+where the soft-thresholding operator Hα(x) = sign(x) · (|x| −α)+ applies pointwise to
+vectors, el ∈R(p−1)(q+1) is the standard basis vector, and the scalars α and γ are to be
+defined via theoretical analysis. In (3.2), the computing cost for estimating each bmjl in the
+space of R(p−1)(q+1) increases polynomially with p and q.
+Alternatively, since bΣWj has rank n, this motivates us to map the optimization prob-
+lem from R(p−1)(q+1) to Rn, making computation feasible. Specifically, consider the n × n
+matrix Ξj = WjW⊤
+j /n, with its eigen-decomposition given by Ξj = UjDjU⊤
+j , where
+U⊤
+j Uj = UjU⊤
+j = In (Golub & Reinsch 1971). The diagonal matrix Dj ∈Rn×n collects
+the eigenvalues of Ξj, which are also identical to the nonzero eigenvalues of bΣWj. Now,
+define Vj = W⊤
+j UjD−1/2
+j
+/√n. It is then easy to derive that Wj/√n = UjD1/2
+j
+V⊤
+j and
+V⊤
+j Vj = In. Correspondingly, we have bΣWj = W⊤
+j Wj/n = VjDjV⊤
+j . This allows us to
+consider the following optimization problem in Rn:
+argminθ∈Rn θ⊤Djθ,
+subject to
+∥Hα(VjDjθ −el)∥∞,2 ≤γ,
+(3.3)
+where α and γ are defined later in our main results. Denote by bθjl, which solves (3.3).
+As the columns of the orthonormal matrix Vj are eigenvectors of bΣWj spanning an n-
+dimensional subspace, the θ in (3.3) is a projection of m in (3.2) onto the columns of Vj.
+The following proposition shows the properties of bθjl and bmjl, justifying the utility of this
+projection, and its proof is in Section ?? of the supplement.
+Proposition 3.1. If bθjl is a solution of (3.3), then bmjl = Vj bθjl is a solution of (3.2).
+Inversely, if bmjl is the solution of (3.2), then bθjl = V⊤
+j bmjl is a solution of (3.3).
+10
+The advantage of (3.3) lies in its estimation in Rn, a space whose dimension does not
+depend on p or q and is typically much lower than (p −1)(q + 1), avoiding estimating the
+inverse matrix directly in the original R(p−1)(q+1) and saving much computation. Once bθjl
+is computed, we can map it back to R(p−1)(q+1) to obtain the estimate of each column of the
+inverse matrix as bmjl = Vj bθjl, with j ∈[p −1)(q + 1)]. Moreover, the diagonal structure
+of Dj simplifies the computation in (3.3) by avoiding full matrix operations. Thus, it is
+clear that our debiased method remains computationally efficient even as the dimension of
+ΣWj grows. When estimating bmjl, the computational cost with (3.3) is O(n), whereas the
+direct applications of optimization in (3.2) incur a cost of O(p2q2); see Section ?? in the
+supplement. Importantly, the asymptotic results of bβu
+j of (3.1), with c
+Mj estimated based
+on bθjl’s, can be established under the following assumptions.
+Assumption 3.2. Suppose u(i) are i.i.d mean zero random vectors with a covariance matrix
+satisfying ϕ0 ≥λmax(Cov(u(i))) ≥λmin(Cov(u(i))) ≥1/ϕ0 for some constant ϕ0 > 0.
+Moreover, there exists a constant M > 0 such that |u(i)
+h | ≤M for all i and h.
+Assumption 3.3. Suppose that ϕ1 ≤λmin(Cov(z(i))) ≤λmax(Cov(z(i))) ≤ϕ2 for some
+constants ϕ1, ϕ2 > 0.
+Assumption 3.4. The dimensions p, q, and the element-wise sparsity se satisfy se(log(p)+
+log(q)) = o(√n/ log(n)). Additionally, the maximum column ℓ0 norm of Ω(u) is bounded
+above by a positive constant c > 0.
+Assumption 3.2 is characterizes the joint distribution of each row in Wj. This condi-
+tion is not restrictive, as genetic variants are often encoded as 0, 1 or 0, 1, 2 (Chen et al.
+2016). Similar assumptions can be found in Zhang & Li (2024, 2023). Assumption 3.3 im-
+poses bounded eigenvalues on Cov(z(i)). With Assumption 3.2, this provides a well-defined
+characterization of the joint distribution for each row in Wj. Assumption 3.3 is mild and
+11
+commonly used in the literature (Chen et al. 2016, Cai et al. 2022, Zhang & Li 2023).
+Assumption 3.4 is also mild, as we assume √n = ω(se(log p + log q)). This condition is less
+restrictive compared to Zhang & Li (2024), where se, log q and log q are required to grow
+no faster than n1/6. Our assumption allows se(log p + log q) to grow more slowly than √n,
+providing more flexibility.
+Theorem 3.5. Suppose β ∈Rp(p−1)(q+1) is (se, sg)-sparse, Assumptions 3.2-3.4 hold and
+sλ ·log(pq) = O(√n/ log n), where sλ is the number of nonzero entries in a candidate model
+such that se < sλ ≤n . Set
+λe = C
+s
+2se log(ep) + sg log(eq/sg)
+nse
+,
+λg =
+rse
+sg
+λe,
+and let α = C
+p
+log(pq)/n, γ =
+p
+se/sg·α, then with probability at least 1−C1 exp(−C2{se log(ep)+
+sg log(eq/sg)}/se) for some constants C1, C2 > 0, the SAGE estimator bβu
+j in (3.1) can be
+decomposed into √n( bβu
+j −βj) = ∆j + wj, where
+∥∆j∥∞≤Cse(log(p) + log(q))
+√n
+,
+wj|Wj ∼N(0, 1
+σjj c
+M⊤
+j bΣWjc
+Mj),
+and c
+Mj is obtained from (3.3). Moreover, for any l ∈[(p −1)(q + 1)] it holds that
+√n
+ ( bβu
+j )l −(βj)l
+
+q
+bm⊤
+jl bΣWj bmjl
+d→N(0, 1
+σjj ).
+The theorem and its proof provide several theoretical advances. First, we have estab-
+lished the existence of a solution to the convex optimization problem in (3.3) with suitable
+conditions for α and γ, despite the complex joint distribution of rows in the design matrix
+Wj, which are neither sub-Gaussian nor sub-exponential. To ensure feasibility of the solu-
+tion in (3.3) and control the error term ∆j, we reconstructed probability bounds tailored
+to this structure. Second, we derived a lower bound for the term bm⊤
+jlΣWj bmjl, ensuring
+it stays away from zero and thus stabilizing the estimator. The complexity of Wj de-
+manded advanced techniques beyond traditional concentration bounds, specifically using
+12
+tools like Lemma ??. Third, as (2.5) lacks a closed-form solution, the proof requires careful
+treatment as shown in Section ?? of the supplement, particularly given our more relaxed
+sparsity conditions compared to Zhang & Li (2024); see Lemmas ?? and ??.
+Practically, this theorem enables us to construct confidence intervals. If σjj were known,
+an asymptotic (1 −α)-confidence interval of (βj)l would be
+
+( bβu
+j )l −Φ−1(1 −α/2)
+σjj
+s
+bm⊤
+jl bΣWj bmjl
+n
+, ( bβu
+j )l + Φ−1(1 −α/2)
+σjj
+s
+bm⊤
+jl bΣWj bmjl
+n
+
+.
+(3.4)
+As proposed by Zhang & Li (2023), a natural and consistent estimator of
+1
+σjj is
+1
+bσjj =
+1
+n−bsj ∥zj −Wj bβOLS
+j
+∥2
+2, where bβOLS
+j
+is the OLS estimator constrained on the set bSj,
+satisfying
+
+bβOLS
+j
+
+b
+Sj =
+ (Wj)⊤
+b
+Sj(Wj) b
+Sj
+−1(Wj)⊤
+b
+Sjzj and
+
+bβOLS
+j
+
+b
+Sc
+j
+= 0. Hence, we can
+construct the confidence interval for (βj)l by replacing σjj with bσjj in (3.4). Moreover,
+for tests of linear contrasts, such as (βj)1 = (βj)2, the following corollary addresses the
+inference for Aβj for fixed matrix A. It forms the basis for testing, for example, whether
+a QTL modulate co-expressions in a gene pathway consisted of a set of genes.
+Corollary 3.6. Under the same condition of Theorem 3.5, for any fixed matrix A ∈
+RK×(p−1)(q+1) for some K ∈N, it holds with probability at least 1−C1 exp(−C2{se log(ep)+
+sg log(eq/sg)}/se) for some constant C1, C2 > 0, the vector A bβu
+j −Aβj can be decomposed
+into √n(A bβu
+j −Aβj) = ∆j + wj, where
+∥∆j∥∞≤C∥A∥∞se(log(p) + log(q))
+√n
+,
+wj | Wj ∼Ns(0, 1
+σjj Ac
+M⊤
+j bΣWjc
+MjA⊤),
+with c
+Mj obtained from (3.3).
+4
+Numerical Experiments
+To evaluate the finite sample performance of the proposed SAGE estimator, we conduct
+numerical experiments to: [Aim (i)] assess the bias and variance of the estimates, along with
+13
+the coverage probability of the confidence intervals; [Aim (ii)] examine how performance
+varies with sample size; [Aim (iii)] test the feasibility of conducting linear contrast tests;
+and [Aim (iv)] analyze computation time.
+For Aim (i), we simulate n samples {(x(i), u(i)) : i ∈[n]} from (2.3) with n = 400,
+where x(i) ∈Rp represents p response variables, and u(i) ∈Rq is the external covariate
+vector, such as SNPs. The elements u(i) are generated independently from a Bernoulli(0.5)
+distribution. Given u(i), we set Ω(u)jj = σjj = 1, and for the off-diagonal elements, we
+choose h = 1, 2 to allow nonzero values in Bh, meaning the number of effective covariates
+is 2. For each h ∈{1, 2} (corresponding to the matrix Bh), the values at positions (j, j +1)
+and (j + 1, j) are set to 0.3, with j = 1. We also set B0 = I. Once Ω(u(i)) are generated,
+we sample x(i) from N(0, Ω−1(u(i))) for each i ∈[n]. For each simulation configuration, we
+generate 200 independent datasets. Based on the parameter setting, the nonzero coefficients
+in β are located at indexes ind1 = p, ind2 = 2p −1, ind3 = (p −1)(q + 1) + p and
+ind4 = (p −1)(q + 1) + 2p −1, respectively.
+As a benchmark for assessing biases, we first compute the pre-debiased multi-task learn-
+ing estimates (2.5) (Zhang & Li 2024). We then compare two methodologies for bias cor-
+rection and statistical inference. The first is the SAGE estimator bβu
+j in the multi-task
+learning framework, with inference results provided in Theorem 3.5. In this methodology
+as well as for the pre-debiased multi-task estimates, we consider two fixed tuning param-
+eter choices, λe = 0.3 and 0.6, both of order
+p
+log(p)/n (as required by the theorem),
+along with a cross-validated λe. The corresponding λg is set as λe/
+√
+2, based on the ra-
+tio se/sg = 2. The second is an oracle method, serving as a “golden standard” approach
+by assuming prior knowledge of the non-zero sets Sj and applying ordinary least squares
+(OLS) to each non-zero set Sj to obtain bβoracle
+j
+for inference. To ensure comparability with
+14
+-0.45
+-0.4
+-0.35
+-0.3
+-0.25
+-0.2
+-0.15
+-0.1
+-0.05
+Estimated Coefficient Values
+0
+2
+4
+6
+8
+10
+12
+Frequency
+Histograms of the bias in multi-task learning
+Pre n=400
+Post n=400
+x = -0.3
+(a) (p, q) = (120, 20)
+-0.45
+-0.4
+-0.35
+-0.3
+-0.25
+-0.2
+-0.15
+-0.1
+-0.05
+Estimated Coefficient Values
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+Frequency
+Histograms of the bias in multi-task learning
+Pre n=400
+Post n=400
+x = -0.3
+(b) (p, q) = (20, 120)
+Figure 1: Histograms of pre-debiased estimates (referred to as Pre) and SAGE estimates
+(referred to as Post) for βind1 with varying p and q.
+the oracle estimates, we focus on specific sets in the debiasing procedure, such as S where
+βS ̸= 0. This approach also allows us to evaluate whether the debiased estimates within S
+exhibit a second-order normal distribution centered around the true values. The debiasing
+parameters are set to α = 1/√n and γ = 2/√n.
+We first visually assess the performance of the bias correction of the proposed debiased
+method by presenting histogram figures of the SAGE estimates bβu across 200 repetitions,
+plotting the histogram of bβu
+ind1 for (p, q) = (120, 20) and (20, 120), respectively. We select
+the bβ obtained from (λe, λg) = (0.3, 0.212) and show in Figure 1 how the SAGE estimates
+concentrate around the true parameter value of −0.3. As shown in Figure 1, the unde-
+biased estimates display a clear bias away from the true value of −0.3. However, after
+applying our debiasing procedure, the SAGE estimates are tightly concentrated around
+−0.3. The resulting histogram appears nearly normal and symmetric around the line −0.3,
+demonstrating the approximate normality of our proposed estimator. We next discuss the
+performance of statistical inference as reported in Table 1 over 200 data replicates.
+The tabulated results confirm that the proposed SAGE estimator consistently outper-
+15
+Table 1: Simulation results with n = 400. Standard deviations are shown in parentheses.
+Pre-Bias: the average bias of bβ prior to debiasing; Post-Bias: the average bias of the
+SAGE estimates post debiasing; Emp-SD: the empirical standard deviation of debiased
+estimates after standardization with the theoretical value being 1; Cov-Prob: the esti-
+mated coverage probability of the 95% confidence interval.
+(p, q)
+(λe, λg)
+βind1
+βind2
+βind3
+βind4
+(120, 20)
+(.3, .212)
+Pre-Bias
+.137(.036)
+.143(.037)
+.138(.036)
+.143(.038)
+Post-Bias
+.005(.047)
+.011(.046)
+.006(.045)
+.011(.046)
+Emp-SD
+1.22
+1.20
+1.18
+1.21
+Cov-Prob
+87.5%
+89.5%
+89%
+85.5%
+(.6, .424)
+Pre-Bias
+.278(.016)
+.280(.017)
+.278(.016)
+.280(.017)
+Post-Bias
+.013(.033)
+.014(041)
+.013(.032)
+.015(.042)
+Emp-SD
+0.87
+1.08
+0.83
+1.11
+Cov-Prob
+97%
+91.5%
+97.5%
+90%
+Cross Validation
+Pre-Bias
+.116(.048)
+.122(.047)
+.117(.046)
+.122(.047)
+Post-Bias
+.004(.047)
+.010(.046)
+.005(.045)
+.010(.046)
+Emp-SD
+1.23
+1.20
+1.17
+1.20
+Cov-Prob
+89%
+89.5%
+89.5%
+86.5%
+(120, 20)
+bβoracle
+Bias
+-.007(.046)
+.001(.045)
+-.003(.044)
+.002(.045)
+Emp-SD
+0.91
+0.89
+0.88
+0.90
+Cov-Prob
+98%
+98.5%
+97.5%
+99%
+(20, 120)
+(.3, .212)
+Pre-Bias
+.142(.035)
+.146(.040)
+.143(.035)
+.148(.040)
+Post-Bias
+.002(.044)
+.006(.049)
+.006(.043)
+.010(.047)
+Emp-SD
+1.11
+1.23
+1.09
+1.20
+Cov-Prob
+94%
+90%
+93.5%
+88.5%
+(.6, .424)
+Pre-Bias
+.279(.017)
+.279(.017)
+.279(.017)
+.279(.016)
+Post-Bias
+.009(.035)
+.009(.045)
+.013(.034)
+.012(.044)
+Emp-SD
+0.89
+1.14
+0.85
+1.12
+Cov-Prob
+96.5%
+89.5%
+96.5%
+92%
+Cross Validation
+Pre-Bias
+.104(.043)
+.108(.048)
+.107(.043)
+.111(.048)
+Post-Bias
+.004(.044)
+.008(.048)
+.008(.043)
+.012(.048)
+Emp-SD
+1.11
+1.22
+1.10
+1.21
+Cov-Prob
+93.5%
+90.5%
+93%
+87.5%
+(20, 120)
+bβoracle
+Bias
+-.003(.043)
+.001(.047)
+.002(.043)
+.006(.046)
+Emp-SD
+0.86
+0.94
+0.86
+0.91
+Cov-Prob
+98.5%
+95.5%
+97.5%
+96%
+forms the undebiased estimator across all four indices. The undebiased estimates show
+significantly larger pre-bias values, reflecting systematic bias, while the SAGE estimates
+achieve substantially reduced post-bias values, offering more accurate parameter estimates.
+Our SAGE estimator also performs comparably to the oracle estimator, which achieves
+16
+Table 2: Simulation results with n = 800.
+(p, q)
+(λe, λg)
+βind1
+βind2
+βind3
+βind4
+(120, 20)
+(.3, .212)
+Pre-Bias
+.144(.029)
+.139(.026)
+.144(.028)
+.139(.027)
+Post-Bias
+005(.034)
+-.001(.031)
+.006(.033)
+.001(.032)
+Emp-SD
+1.21
+1.10
+1.17
+1.16
+Cov-Prob
+91%
+91.5%
+90%
+91%
+(20, 120)
+(.3, .212)
+Pre-Bias
+.141(.025)
+.140(.028)
+.143(.026)
+.141(.027)
+Post-Bias
+.001(.030)
+-.000(.034)
+.005(.031)
+.003(.032)
+Emp-SD
+1.07
+1.18
+1.11
+1.13
+Cov-Prob
+93%
+87.5%
+92%
+90.5%
+minimal bias and near-nominal coverage probability. This highlights the robustness of the
+SAGE estimator in providing reliable inference without knowledge of the true support. Ad-
+ditionally, the theoretical variance aligns well with empirical variance, though variations in
+tuning parameters can affect this alignment. For instance, smaller tuning parameters may
+lead to model-based variance overestimating true variance, causing slight under-coverage
+in confidence intervals, likely due to finite sample effects.
+To confirm this and for Aim (ii), we conduct more experiments to examine the per-
+formance by varying n from 100 to 800. The results for (λe, λg) = (0.3, 0.212) over 200
+data replications are reported in Table 2 and additional results are in Section ?? of the
+supplement. These results show that, when the sample size is small, the under-coverage
+of confidence intervals becomes more pronounced. However, as the sample size increases,
+such as n = 800, the empirical variance aligns more closely with the theoretical values and
+the bias of the SAGE estimates becomes closer to 0.
+For Aim (iii), we focus on the case of j = 1, where the non-zero indices for β1 are p
+and 2p −1. We estimate the following linear combinations and conduct testing for the
+corresponding linear contrasts respectively:
+I : (β1)p −(β1)2p−1;
+II : (β1)1 −(β1)p;
+III : (β1)1 + 2(β1)2;
+IV :
+
+
+
+2(β1)1 −(β1)p
+(β1)2 + (β1)p
+
+
+.
+17
+Table 3: Results for the four cases with n = 400. Emp-AVE: empirical mean of SAGE
+estimates after standardization with the theoretical value being 0; Emp-SD: empirical
+standard deviation of SAGE estimates after standardization with the theoretical value
+being 1; Cov-Prob: estimated coverage probability of the 95% confidence interval. V1
+and V2 correspond to the two vector values being tested in Case IV.
+(p, q)
+I
+II
+III
+IV
+V1
+V2
+(120, 20)
+Emp-Ave
+-.103
+-.182
+.009
+-.128
+.146
+Emp-SD
+1.15
+1.14
+1.10
+1.17
+1.05
+Cov-Prob
+92.5%
+92%
+92%
+91.5%
+(20, 120)
+Emp-Ave
+-.100
+-.125
+.069
+-.086
+.151
+Emp-SD
+1.09
+1.12
+1.11
+1.18
+1.14
+Cov-Prob
+93%
+92.5%
+94.5%
+89.5%
+Case I examines the relationship between two non-zero parameters, Case II compares a non-
+zero parameter with a zero parameter, Case III assesses the relationship between two zero
+parameters, and Case IV explores simultaneous inference. We set (λe, λg) = (0.6, 0.424).
+Based on Corollary 3.6, the non-zero rows of matrix A corresponding to the four cases is
+given by (ep −e2p−1)⊤, (e1 −e2p−1)⊤, (e1 + 2e2)⊤and
+ (2e1−ep)⊤
+(e2+ep)⊤
+
+, and the values of Aβ for
+the four cases are 0, 0.3, 0 and (0.3, −0.3)⊤.
+Table 3 presents the results based on 200 repetitions. As shown in Table 3, the re-
+sults of Corollary 3.6 hold under the examined hypotheses. In particular, under Case IV
+which involves two different dimensions and shares the same (β1)p in both values, the
+standardized bivariate SAGE estimates, i.e., √n(Ac
+M⊤
+j bΣWjc
+MjA⊤)−1/2(A bβ1 −Aβ1), ap-
+proximately follows a two-dimensional normal distribution with mean 0 and an identity
+covariance matrix. The Q-Q plots in Figure 2 further confirm the asymptotic standard
+normal distribution. The joint distribution shown in Figure 2(d) shows a small Pearson
+correlation of only 0.057 between the two dimensions, and the histograms for both variables
+exhibit a shape consistent with the standard normal distribution.
+Finally, for Aim (iv), we conduct an experiment on our debiasing algorithm in (3.3),
+18
+-2.5
+-2
+-1.5
+-1
+-0.5
+0
+0.5
+1
+1.5
+2
+2.5
+Standard Normal Quantiles
+-3
+-2
+-1
+0
+1
+2
+3
+Quantiles of Statistics
+QQ-plot in Case I
+(a) Results in Case I
+-2.5
+-2
+-1.5
+-1
+-0.5
+0
+0.5
+1
+1.5
+2
+2.5
+Standard Normal Quantiles
+-3
+-2
+-1
+0
+1
+2
+3
+Quantiles of Statistics
+QQ-plot in Case II
+(b) Results in Case II
+-2.5
+-2
+-1.5
+-1
+-0.5
+0
+0.5
+1
+1.5
+2
+2.5
+Standard Normal Quantiles
+-3
+-2
+-1
+0
+1
+2
+3
+Quantiles of Statistics
+QQ-plot in Case III
+(c) Results in Case III
+-3
+-2
+-1
+0
+1
+2
+3
+Index 1
+-3
+-2
+-1
+0
+1
+2
+3
+Index 2
+Joint Distribution in Case IV (Pearson Corr=0.057298)
+(d) Results in Case IV
+Figure 2: The example figures demonstrate the asymptotic standard normal distribution
+behavior of the standardized SAGE estimates, √n(Ac
+M⊤
+j bΣWjc
+MjA⊤)−1/2(A bβ1 −Aβ1), in
+the cases with (p, q) = (120, 20). Figures 2(a), 2(b) and 2(c) present QQ plots for the Case
+I, Case II and Case III, respectively, illustrating the asymptotic normality. Figure 2(d)
+shows the joint distribution of two asymptotically independent standard normal variables
+under Case IV.
+comparing it to the optimization problem in (3.2) similar to previous works (Javanmard
+& Montanari 2014, Cai et al. 2022), to evaluate the computation time. For simplicity, we
+focus on solving (3.2) and (3.3), where we set l = 1 for the comparison of computation time.
+The simulations run on a MAC Pro with M3 Pro chips. Table 4 compares the computation
+time between our debiasing procedure by (3.3) and the direct optimization of (3.2). The
+results clearly indicate that the projection method is significantly faster. As p increases,
+the proposed projection method remains feasible, while the direct optimization of (3.2)
+19
+Table 4: Computation time in seconds with varying n, p while q = 20.
+Time (s)
+n = 50
+n = 100
+n = 200
+p = 20 p = 50 p = 100 p = 20 p = 50 p = 100 p = 20 p = 50 p = 100
+(3.2)
+1.36
+15.76
+99.14
+1.55
+17.52
+117.92
+1.25
+12.56
+98.38
+(3.3)
+0.11
+0.10
+0.13
+0.16
+0.17
+0.29
+0.26
+0.57
+0.67
+becomes increasingly computationally prohibitive.
+5
+Analysis of glioblastoma multiforme gene expres-
+sion graphs
+Glioblastoma multiforme is a lethal brain cancer, and existing therapies are largely in-
+effective (Kwiatkowska et al. 2013). To develop effective treatments, such as novel gene
+therapies, a better understanding of the disease’s molecular mechanisms is critical. We
+apply our methods to infer the effects of single nucleotide polymorphisms (SNPs) on gene
+co-expression in a Glioblastoma trial. The dataset, publicly available via the NIH Gene
+Expression Omnibus database (labeled as GSE108476), comprises n = 178 glioblastoma
+multiforme patients with both microarray and SNP chip profiling.
+After preprocessing the raw data as outlined by Gusev et al. (2018), we investigate
+the expression levels of 73 genes associated with the human glioma pathway, as recorded
+in the Kyoto Encyclopedia of Genes and Genomes (KEGG) database (Kanehisa & Goto
+2000). The covariates include SNPs located within 2kb upstream and 0.5kb downstream of
+these genes, resulting in 118 nearby SNPs. These SNPs are encoded as “0” for the common
+genotype and “1” for all other genotypes. Age and gender are also included as covariates. In
+total, there are 120 covariates, leading to 317,988 parameters (73 × 36 × 121). We perform
+Gaussian graphical regression on age, gender, and SNPs to examine their influence on
+20
+the graph structure. When fitting the model, we tune the parameters (λe, λg) via cross-
+validation as done in simulations, and then assess whether the initially dense edges were
+truly significant by applying the proposed debiased method, i.e., the SAGE estimator, for
+inference. We set α = 1/
+√
+178 and γ = 2/
+√
+178 respectively as guided by Theorem 3.5.
+Population Level (Original)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(a) Original Selected Edges
+Population Level (alpha=.05)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(b) Significance Level 0.05
+Population Level (alpha=.001)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(c) Significance Level 0.001
+Figure 3: Population-level gene co-expression graph (left), shown with significance levels
+of 0.05 (middle) and 0.001 (right). Positive partial correlations are shown with red dashed
+lines, while negative correlations are indicated by black solid lines.
+We first establish the population-level gene network based on the multi-task learning
+estimates (prior to debiasing), as shown in Figure 3(a). We then perform debiasing and
+test the statistical significance of the detected edges using our inference methodology. Fig-
+ures 3(b) and 3(c) demonstrate that after debiasing and statistical testing, the number
+of detected edges was significantly reduced, retaining only those with strong statistical
+evidence. Our results have biological implications. For instance, the PI3K/AKT/MTOR
+pathway plays a vital role in glioblastoma and other malignancies (Samuels et al. 2004,
+Network 2008), while EGFR, a major oncogene often mutated or amplified in glioblas-
+toma, promotes tumor growth and progression via this pathway (Ekstrand & et al. 1991,
+Melenhorst et al. 2008). Although EGFR exhibits limited direct connections at a signifi-
+cance level of 0.001, its interaction with SHC4, an intermediary that connects to additional
+genes, suggests a broader influence throughout the graph. Furthermore, at a more relaxed
+21
+significance level of 0.05, EGFR shows connections to numerous genes, further highlighting
+its impact within the network. The finding regarding EGFR is supported by other litera-
+ture that has identified its central role in glioblastoma and various other cancers (Samuels
+et al. 2004, Network 2008, Ekstrand & et al. 1991). Moreover, as shown in Figure 3(c),
+our findings align with those of Zhang & Li (2024), reinforcing the importance of targeting
+interconnected pathways in glioblastoma treatment strategies.
+Based on the graphical regression results, we further examine the effects of covariates
+on the graph and identify nine co-expression quantitative trait loci (eQTLs) at a signif-
+icance level of 0.05: “rs10509346”, “rs1347069”, “rs6701524”, “rs723210”, “rs9303511”,
+“rs503314”, “rs728655”, “rs759950”, and “rs306098”.
+At a more stringent significance
+level of 0.001, three eQTLs remain significant: “rs10509346”, “rs1347069”, and “rs759950”.
+As shown in Figure 4, with a significance level of 0.001, we identified a positive correla-
+tion between MTOR and EGF and a negative correlation between SHC2 and RAF1 when
+“rs10509346” is mutated (Figure 4(c)), both of which are important in cancer progression
+(Hua et al. 2019). When “rs1347069” is mutated (Figure 4(f)), a positive connection be-
+tween AKT1 and IGF1R suggests upregulated PI3K/AKT signaling (Manning & Toker
+2017). When “rs759950” is mutated (Figure 4(i)), we identified a negative partial cor-
+relation between GADD45G and CAMK2A, indicating potentially opposing roles in cell
+growth regulation (E Tamura et al. 2012, Coultrap & Bayer 2012). We also discover some
+eQTLs under statistical significance 0.05. For instance, with the mutation of “rs6701524”,
+there is a negative correlation between PDGFRB and CAMK1, whereas with “rs503314”
+mutated there is a positive link between CCND1 and CDKN2A; see Section ?? in the
+supplement for more results.
+Identifying these eQTLs may enable oncologists to tailor
+treatments to a patient’s unique genetic profile and tumor microenvironment, enhancing
+22
+rs10509346 (Original)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(a) Original Selected Edges
+rs10509346 (alpha=.05)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(b) Significance Level 0.05
+rs10509346 (alpha=.001)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(c) Significance Level 0.001
+rs1347069 (Original)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(d) Original Selected Edges
+rs1347069 (alpha=.05)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(e) Significance Level 0.05
+rs1347069 (alpha=.001)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(f) Significance Level 0.001
+rs759950 (Original)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(g) Original Selected Edges
+rs759950 (alpha=.05)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(h) Significance Level 0.05
+rs759950 (alpha=.001)
+EGF
+TGFA
+EGFR
+PDGFA
+PDGFB
+PDGFRA
+PDGFRB
+IGF1
+IGF1R
+PLCG1
+PLCG2
+CALML3
+CALM1
+CALML6
+CALML5
+CALML4
+CAMK1D
+CAMK1G
+CAMK1
+CAMK2A
+CAMK2D
+CAMK2B
+CAMK2G
+CAMK4
+PRKCA
+PRKCB
+PRKCG
+SHC1
+SHC2
+SHC3
+SHC4
+GRB2
+SOS1
+SOS2
+HRAS
+KRAS
+NRAS
+ARAF
+BRAF
+RAF1
+MAP2K1
+MAP2K2
+MAPK1
+MAPK3
+PIK3CA
+PIK3CD
+PIK3CB
+PIK3R1
+PIK3R2
+PIK3R3
+AKT1
+AKT2
+AKT3
+MTOR
+PTEN
+CDKN2A
+MDM2
+TP53
+CDKN1A
+CCND1
+CDK4
+CDK6
+RB1
+E2F1
+E2F2
+E2F3
+GADD45A
+GADD45B
+GADD45G
+BAX
+BAK1
+DDB2
+POLK
+(i) Significance Level 0.001
+Figure 4: The first, second and third rows display the SNP effects for “rs10509346”,
+“rs1347069” and “rs759950”, respectively, at significance levels of 0.05 (middle) and 0.001
+(right). Positive partial correlations are shown with red dashed lines, while negative corre-
+lations are indicated by black solid lines
+efficacy and reducing side effects (Li et al. 2023).
+23
+6
+Conclusions and Discussions
+We have developed a segmentally adjusted graphical regression (SAGE) estimator for multi-
+task Gaussian graphical regression models, enabling valid statistical inference in high-
+dimensional settings. In addition, we have proposed a projection approach to obtain the
+SAGE estimates, simplifying the estimation of the inverse variance-covariance matrix and
+enhancing computational efficiency. Our theoretical results show that the SAGE estimator
+asymptotically follows a normal distribution, allowing for reliable confidence intervals and
+hypothesis testing. The simulation studies and real data analyses confirm the effectiveness
+of our method, providing valuable insights into biological graphs.
+Our inference method approaches each node separately. For inference on multiple nodes,
+one could apply the Bonferroni correction or FDR control. However, since these approaches
+do not directly account for dependence among nodes, they may not achieve optimal power.
+In contrast, a joint debiasing approach, if feasible, could lead to more efficient inference
+with reduced variances by leveraging the shared dependence across tasks. However, this
+presents significant theoretical and computational challenges, which we plan to explore
+further in the future.
+References
+Bellec, P. C. & Zhang, C.-H. (2022), ‘De-biasing the lasso with degrees-of-freedom adjust-
+ment’, Bernoulli 28(2), 713–743.
+Cai, T. T., Zhang, A. R. & Zhou, Y. (2022), ‘Sparse group lasso: Optimal sample com-
+plexity, convergence rate, and statistical inference’, IEEE Transactions on Information
+Theory 68(9), 5975–6002.
+Chen, M., Ren, Z., Zhao, H. & Zhou, H. (2016), ‘Asymptotically normal and efficient
+estimation of covariate-adjusted Gaussian graphical model’, Journal of the American
+Statistical Association 111(513), 394–406.
+24
+Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. &
+Robins, J. (2018), ‘Double/debiased machine learning for treatment and structural pa-
+rameters’, The Econometrics Journal 21(1), C1–C68.
+Coultrap, S. J. & Bayer, K. U. (2012), ‘CaMKII regulation in information processing and
+storage’, Trends in Neurosciences 35(10), 607–618.
+E Tamura, R., F de Vasconcellos, J., Sarkar, D., A Libermann, T., B Fisher, P. & F Zerbini,
+L. (2012), ‘GADD45 proteins:
+central players in tumorigenesis’, Current Molecular
+Medicine 12(5), 634–651.
+Ekstrand, A. J. & et al. (1991), ‘Genes for epidermal growth factor receptor, transforming
+growth factor alpha, and epidermal growth factor and their expression in human gliomas
+in vivo’, Cancer Research 51(9), 2611–2616.
+Fei, Z. & Li, Y. (2021), ‘Estimation and inference for high dimensional generalized linear
+models: A splitting and smoothing approach’, Journal of Machine Learning Research
+22(58), 1–32.
+Fei, Z., Zhu, J., Banerjee, M. & Li, Y. (2019), ‘Drawing inferences for high-dimensional lin-
+ear models: A selection-assisted partial regression and smoothing approach’, Biometrics
+75(2), 551–561.
+Golub, G. H. & Reinsch, C. (1971), Singular value decomposition and least squares solu-
+tions, in ‘Handbook for Automatic Computation: Volume II: Linear Algebra’, Springer,
+pp. 134–151.
+Gusev, Y., Bhuvaneshwar, K., Song, L., Zenklusen, J.-C., Fine, H. & Madhavan, S. (2018),
+‘The REMBRANDT study, a large collection of genomic data from brain cancer patients’,
+Scientific Data 5, 180158.
+Hua, H., Kong, Q., Zhang, H., Wang, J., Luo, T. & Jiang, Y. (2019), ‘Targeting mTOR
+for cancer therapy’, Journal of Hematology & Oncology 12, 1–19.
+Hudson, A. & Shojaie, A. (2022), ‘Covariate-adjusted inference for differential analysis of
+high-dimensional networks’, Sankhya A 84(1), 345–388.
+Javanmard, A. & Montanari, A. (2014), ‘Confidence intervals and hypothesis testing for
+high-dimensional regression’, The Journal of Machine Learning Research 15(1), 2869–
+2909.
+Kanehisa, M. & Goto, S. (2000), ‘KEGG: kyoto encyclopedia of genes and genomes’, Nucleic
+Acids Research 28(1), 27–30.
+25
+Kwiatkowska, A., Nandhu, M. S., Behera, P., Chiocca, E. A. & Viapiano, M. S. (2013),
+‘Strategies in gene therapy for glioblastoma’, Cancers 5(4), 1271–1305.
+Li, S., Schmid, K. T., de Vries, D. H., Korshevniuk, M., Losert, C., Oelen, R., van Blokland,
+I. V., BIOS Consortium, s.-e. C., Groot, H. E., Swertz, M. A. et al. (2023), ‘Identification
+of genetic variants that impact gene co-expression relationships using large-scale single-
+cell data’, Genome Biology 24(1), 80.
+Li, Y., Nan, B. & Zhu, J. (2015), ‘Multivariate sparse group lasso for the multivariate
+multiple linear regression with an arbitrary group structure’, Biometrics 71(2), 354–363.
+Manning, B. D. & Toker, A. (2017), ‘AKT/PKB signaling: navigating the network’, Cell
+169(3), 381–405.
+Meinshausen, N. & B¨uhlmann, P. (2006), ‘High-dimensional graphs and variable selection
+with the lasso’, Annals of Statistics 34(3), 1436–1462.
+Melenhorst, W. B., Mulder, G. M., Xi, Q., Hoenderop, J. G., Kimura, K., Eguchi, S. & van
+Goor, H. (2008), ‘Epidermal growth factor receptor signaling in the kidney: key roles in
+physiology and disease’, Hypertension 52(6), 987–993.
+Mifflin, R. (1977), ‘Semismooth and semiconvex functions in constrained optimization’,
+SIAM Journal on Control and Optimization 15(6), 959–972.
+Network, C. G. A. R. (2008), ‘Comprehensive genomic characterization defines human
+glioblastoma genes and core pathways’, Nature 455(7216), 1061–1068.
+Ni, Y., Stingo, F. C. & Baladandayuthapani, V. (2019), ‘Bayesian graphical regression’,
+Journal of the American Statistical Association 114(525), 184–197.
+Peng, J., Wang, P., Zhou, N. & Zhu, J. (2009), ‘Partial correlation estimation by joint sparse
+regression models’, Journal of the American Statistical Association 104(486), 735–746.
+Saegusa, T. & Shojaie, A. (2016), ‘Joint estimation of precision matrices in heterogeneous
+populations’, Electronic Journal of Statistics 10(1), 1341.
+Samuels, Y., Wang, Z., Bardelli, A. & et al. (2004), ‘Oncogenic mutations of PIK3CA in
+human cancers’, Cell 117(5), 721–737.
+Simon, N., Friedman, J., Hastie, T. & Tibshirani, R. (2013), ‘A sparse-group lasso’, Journal
+of Computational and Graphical Statistics 22(2), 231–245.
+Tibshirani, R., Saunders, M., Rosset, S., Zhu, J. & Knight, K. (2005), ‘Sparsity and smooth-
+ness via the fused lasso’, Journal of the Royal Statistical Society Series B: Statistical
+Methodology 67(1), 91–108.
+26
+van de Geer, S., B¨uhlmann, P., Ritov, Y. & Dezeure, R. (2014), ‘On asymptotically opti-
+mal confidence regions and tests for high-dimensional models’, The Annals of Statistics
+42(3), 1166–1202.
+Wang, Y., Joseph, S. J., Liu, X., Kelley, M. & Rekaya, R. (2012), ‘SNPxGE2: a database
+for human snp–coexpression associations’, Bioinformatics 28(3), 403–410.
+Xia, D., Zhang, A. R. & Zhou, Y. (2022), ‘Inference for low-rank tensors—no need to
+debias’, The Annals of Statistics 50(2), 1220–1245.
+Zhang,
+A. & Han,
+R. (2019),
+‘Optimal sparse singular value decomposition for
+high-dimensional high-order data’, Journal of the American Statistical Association
+114(528), 1708–1725.
+Zhang, A. R., Luo, Y., Raskutti, G. & Yuan, M. (2020), ‘ISLET: Fast and optimal low-
+rank tensor regression via importance sketching’, SIAM Journal on Mathematics of Data
+Science 2(2), 444–479.
+Zhang, J. & Li, Y. (2023), ‘High-dimensional Gaussian graphical regression models with
+covariates’, Journal of the American Statistical Association 118(543), 2088–2100.
+Zhang, J. & Li, Y. (2024), ‘Multi-task learning for Gaussian graphical regressions with high
+dimensional covariates’, Journal of Computational and Graphical Statistics 0(ja), 1–18.
+URL: https://doi.org/10.1080/10618600.2024.2421246
+Zhang, J., Sun, W. W. & Li, L. (2023), ‘Generalized connectivity matrix response regression
+with applications in brain connectivity studies’, Journal of Computational and Graphical
+Statistics 32(1), 252–262.
+Zhu, Y. & Bradic, J. (2018), ‘Linear hypothesis testing in dense high-dimensional linear
+models’, Journal of the American Statistical Association 113(524), 1583–1600.
+Ziegler, A. & Vens, M. (2010), ‘Generalized estimating equations’, Methods of Information
+in Medicine 49(05), 421–425.
+Zou, H. (2006), ‘The adaptive lasso and its oracle properties’, Journal of the American
+Statistical Association 101(476), 1418–1429.
+27

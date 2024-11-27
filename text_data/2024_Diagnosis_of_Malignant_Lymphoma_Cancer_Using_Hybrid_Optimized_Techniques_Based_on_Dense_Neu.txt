@@ -1,0 +1,674 @@
+Diagnosis of Malignant Lymphoma Cancer Using
+Hybrid Optimized Techniques Based on Dense
+Neural Networks
+Salah A. Aly
+Computing & Data Science College
+Badya University
+October 6th City, Giza, Egypt
+Ali Bakhiet
+Computer Science Department
+Culture & Science October 6th City
+October 6th City, Giza, Egypt
+Mazen Balat
+Computer Science Department
+E-JUST
+Alexandria, Egypt
+Abstract—Lymphoma diagnosis, particularly distinguishing
+between subtypes, is critical for effective treatment but re-
+mains challenging due to the subtle morphological differences
+in histopathological images. This study presents a novel hy-
+brid deep learning framework that combines DenseNet201 for
+feature extraction with a Dense Neural Network (DNN) for
+classification, optimized using the Harris Hawks Optimization
+(HHO) algorithm. The model was trained on a dataset of 15,000
+biopsy images, spanning three lymphoma subtypes: Chronic
+Lymphocytic Leukemia (CLL), Follicular Lymphoma (FL), and
+Mantle Cell Lymphoma (MCL). Our approach achieved a testing
+accuracy of 99.33%, demonstrating significant improvements in
+both accuracy and model interpretability. Comprehensive evalua-
+tion using precision, recall, F1-score, and ROC-AUC underscores
+the model’s robustness and potential for clinical adoption. This
+framework offers a scalable solution for improving diagnostic
+accuracy and efficiency in oncology.
+Index
+Terms—Lymphoma
+Classification,
+Deep
+Learning,
+Transfer Learning, Harris Hawks Optimization, Histopathologi-
+cal Image Analysis
+I. INTRODUCTION
+Accurate diagnosis of malignant lymphomas is critical for
+determining appropriate treatment strategies and improving
+patient outcomes [1]. Histopathological image analysis plays
+a pivotal role in this diagnostic process, where pathologists
+examine stained tissue sections to identify cancerous subtypes.
+However, the manual interpretation of these images is time-
+consuming and prone to variability due to the subtle morpho-
+logical differences between subtypes. This makes automated,
+accurate, and reliable classification systems highly desirable in
+clinical practice. Lymphoma diagnosis through histopathologi-
+cal images presents multiple challenges. The visual complexity
+of the images, with subtle differences between subtypes, makes
+accurate classification difficult [2]. Additionally, variability
+in staining techniques and tissue preparation across different
+laboratories adds further complexity to training AI models [3].
+The limited availability of annotated data, particularly for rare
+lymphoma subtypes, restricts model training [4]. Furthermore,
+the lack of interpretability in AI-driven models raises concerns
+about their clinical adoption, as clinicians need transparency
+in how decisions are made [5].
+The primary clinical objectives in lymphoma diagnosis are
+early detection, accurate subtype classification, and minimiz-
+ing diagnostic variability [6]. Early detection is crucial for
+initiating timely treatment, which can significantly improve
+patient outcomes. Accurately distinguishing between subtypes
+such as CLL, FL, and MCL is essential for selecting the
+appropriate treatment protocol [7]. Ensuring consistency and
+reproducibility in diagnoses across different clinical settings
+helps reduce errors and improve the quality of patient care
+[8]. Ultimately, these objectives aim to enhance prognosis and
+treatment outcomes for patients with lymphoma.
+This research addresses the clinical challenges of lymphoma
+diagnosis through the following key contributions:
+1) DenseNet201 was utilized for transfer learning to extract
+robust features for lymphoma subtype classification.
+Various freezing strategies were employed to balance
+pre-trained knowledge with domain-specific learning,
+resulting in improved accuracy and addressing the chal-
+lenge of limited data.
+2) Harris Hawks Optimization (HHO) was applied to op-
+timize the Dense Neural Network (DNN). This meta-
+heuristic approach led to enhanced model accuracy,
+improved efficiency, and reduced overfitting, making it
+suitable for medical imaging tasks.
+3) A comprehensive performance evaluation was conducted
+using metrics such as precision, recall, F1-score, and
+ROC-AUC. This ensured the model’s robustness and its
+ability to generalize effectively across diverse clinical
+datasets with real-world variability.
+4) A scalable framework for automated lymphoma diag-
+nosis was proposed. The integration of DenseNet201
+and HHO created a flexible model, with potential for
+extension to other cancers.
+The paper is structured as follows: Section II provides
+an overview of related work in lymphoma classification.
+Section 3 details the materials and methods, including
+dataset description, data preprocessing, feature extraction us-
+ing DenseNet201, and the proposed classification model. Sec-
+tion 4 explains the optimization process using Harris Hawks
+Optimization (HHO). Section 5 presents the performance
+evaluation metrics and results, with a detailed comparison of
+model performance before and after optimization.
+arXiv:2410.06974v1  [eess.IV]  9 Oct 2024
+II. RELATED WORK
+The classification of lymphoma subtypes using machine
+learning and deep learning techniques has been a significant
+area of research in recent years. Various studies have explored
+different methodologies, datasets, and models to enhance the
+accuracy and efficiency of lymphoma classification. This sec-
+tion provides an overview of key contributions in this field,
+highlighting the use of Artificial Neural Networks (ANNs),
+Convolutional Neural Networks (CNNs), Evolutionary Algo-
+rithms (EAs), transfer learning, and ensemble approaches.
+Walsh et al. [9] investigated the effectiveness of Artificial
+Neural Networks (ANNs) and Deep Learning for Lymphoma
+classification, employing TensorFlow and Keras for network
+construction. They introduced a novel framework utilizing
+Evolutionary Algorithms (EAs) to optimize network weights.
+The study utilized a Convolutional Neural Network (CNN),
+achieving a tenfold cross-validation test accuracy of 95.64%
+and a best single run test accuracy of 98.41%. These results
+indicate that ANNs, when optimized with EAs, can surpass
+the diagnostic accuracy of the average human pathologist in
+classifying Lymphoma biopsies.
+Rajadurai et al. [10] utilized two Kaggle datasets for their
+research: a smaller dataset with 374 TIF-formatted samples
+(109 CLL, 124 FL, 109 MCL) and a larger dataset con-
+sisting of 15,000 images (5,000 for each subtype: CLL,
+FL, and MCL). The methodology involved transfer learning
+with pre-trained CNN models, including VGG16, VGG19,
+DenseNet201, InceptionV3, and Xception, alongside a stacked
+ensemble approach that combined InceptionV3 and Xception.
+For the smaller dataset, DenseNet201, InceptionV3, and Xcep-
+tion models achieved over 90% accuracy, with the ensemble
+model reaching 97%. For the larger dataset, the ensemble
+model achieved a remarkable 99% accuracy.
+In their study, ¨Ozg¨ur et al. [11] utilized a dataset consisting
+of histopathological images of various lymphomas, including
+chronic lymphocytic leukemia (CLL), follicular lymphoma
+(FL), and mantle cell lymphoma (MCL). The methodology
+involved feature extraction using the GLCM method and trans-
+fer learning architectures, with principal component analysis
+applied for feature selection and dimensionality reduction. For
+classification, they employed machine learning algorithms like
+random forests, k-nearest neighbors (KNN), naive Bayes, and
+decision trees, along with deep learning models including
+VGG16, ResNet50, and DenseNet201. The results showed
+that the highest accuracy in binary classification was 94% for
+CLL and FL using DenseNet201, while the lowest accuracy
+in binary classification was 49% for MCL and CLL. In triple
+classification, the highest accuracy achieved was 82%, with
+the KNN algorithm yielding the lowest performance at 36%.
+Habijan et al. [12] explored the classification of lymphoma
+types using deep learning models. The study utilized medical
+imaging datasets for three common lymphoma types: chronic
+lymphocytic leukemia (CLL), follicular lymphoma (FL), and
+mantle cell lymphoma (MCL). The authors applied trans-
+fer learning on pre-trained CNN models, including VGG-
+19, DenseNet201, MobileNetV3, and ResNet50V2, adapt-
+ing them for the lymphoma classification task. DenseNet201
+achieved the highest accuracy of 98.04%, while ResNet50V2,
+MobileNetV3, and VGG-19 followed with 90.13%, 89.07%,
+and 87.11% respectively. An ensemble approach combining
+all four models further improved performance, reaching an
+accuracy of 98.89%.
+While these studies show progress, challenges like hy-
+perparameter optimization, data limitations, and model gen-
+eralizability persist. This work addresses these by applying
+Harris Hawks Optimization (HHO), utilizing DenseNet201
+with freezing strategies, and ensuring robust performance
+evaluation across lymphoma subtypes.
+III. MATERIALS AND METHODS INVOLVED
+This section presents the materials and methods for de-
+veloping the lymphoma classification model. It includes a
+histopathological image dataset, preprocessing steps, transfer
+learning with DenseNet201 for feature extraction, and classifi-
+cation using a Dense Neural Network (DNN). Hyperparameter
+tuning is optimized with Harris Hawks Optimization (HHO),
+and the model’s performance is evaluated using various met-
+rics to ensure accuracy and generalizability.
+A. Dataset Description
+The dataset used in this study comprises 15,000 biopsy
+images of malignant lymphoma [13], a type of cancer affecting
+the lymph nodes. It specifically includes 5,000 samples for
+each of the three distinct types of malignant lymphoma:
+• Chronic
+Lymphocytic
+Leukemia
+(CLL): A slow-
+progressing cancer where abnormal white blood cells
+accumulate in the blood, bone marrow, and lymphatic
+tissues.
+• Follicular Lymphoma (FL): A type of non-Hodgkin
+lymphoma that originates from the lymph nodes and has
+a characteristic growth pattern resembling follicles.
+• Mantle Cell Lymphoma (MCL): A more aggressive
+form of non-Hodgkin lymphoma that arises from cells
+originating in the “mantle zone” of lymph nodes.
+These samples were prepared by various pathologists across
+different sites, which introduces a significant amount of stain-
+ing variation in the Hematoxylin and Eosin (H&E) stained
+biopsies. This variation mirrors the real-world challenges
+of histopathological diagnosis, where differences in sample
+preparation can affect the consistency of visual interpretation
+(see Figure 1).
+(a) CLL
+(b) FL
+(c) MCL
+Fig. 1: Representative biopsy samples for each class of ma-
+lignant lymphoma: CLL, FL, and MCL.
+The ability to distinguish between these types of lymphoma
+using H&E-stained biopsies is critical for accurate diagnosis
+and treatment planning. However, this task is typically com-
+plex, requiring the expertise of highly specialized pathologists.
+The current standard involves the use of class-specific molec-
+ular probes, which, while reliable, are resource-intensive and
+time-consuming.
+This dataset provides an opportunity to develop and test
+automated methods for lymphoma classification that could
+potentially reduce the workload on pathologists and improve
+diagnostic consistency. By including samples with inherent
+staining variation, the dataset allows for the evaluation of
+model robustness in realistic clinical settings.
+The dataset is a curated collection of biopsy images that
+reflect the natural diversity seen in clinical practice. Samples
+were sectioned and stained with H&E by different pathol-
+ogists, reflecting the staining variability encountered across
+different laboratories and institutions. This variability is critical
+for developing generalizable diagnostic models.
+B. Data Preprocessing
+The histopathological images, originating from various
+medical datasets, were resized to a fixed resolution of 224 ×
+224 pixels. This step was necessary to standardize the image
+dimensions, as the DenseNet201 model requires this specific
+input size. By resizing the images, we ensured uniformity
+across the dataset, which is critical for the consistency of
+the feature extraction process. This step not only facilitates
+computational efficiency but also helps prevent distortions or
+scaling issues that could arise from varying image sizes.
+C. Feature Extraction
+1) Transfer Learning Using DenseNet201: For feature ex-
+traction, we leveraged the DenseNet201 architecture [14], pre-
+trained on the ImageNet dataset. DenseNet201 is known for
+its deep and dense connections between layers, which enable
+it to efficiently capture intricate, hierarchical features. This
+ability is particularly useful for differentiating between subtle
+variations in lymphoma subtypes, as the model can effectively
+extract both low-level (e.g., textures and shapes) and high-
+level semantic information (e.g., tissue patterns and cellular
+structures) [15].
+2) Freezing Strategies: To balance the transfer learning
+capabilities of DenseNet201 with the need for task-specific
+adaptation, we implemented three distinct freezing strategies.
+These strategies control how much of the pre-trained network
+is kept static (frozen) and how much is fine-tuned during
+training for lymphoma classification [16]:
+• Total Freeze: All layers of DenseNet201 were frozen,
+retaining the pre-trained weights without any updates
+during training. This approach preserves the knowledge
+learned from the ImageNet dataset entirely, which can
+be advantageous when the target domain has similar
+features.
+• Half Freeze: The first half of the DenseNet201 layers
+were frozen, while the remaining layers were left train-
+able. This setup allows the model to maintain robust
+feature extraction capabilities in its early layers while
+fine-tuning deeper layers for the nuances specific to
+lymphoma classification.
+• Last Block Freeze: All layers except the final block were
+frozen. The last block, consisting of the most abstract
+and high-level layers, was trainable, allowing the model
+to adjust to the particular characteristics of the target
+dataset while still benefiting from the lower-level features
+extracted by the pre-trained layers.
+3) Feature Vector Concatenation: After configuring the
+DenseNet201 models with the aforementioned freezing strate-
+gies, we extracted feature vectors from each configura-
+tion. These vectors were then concatenated to form a com-
+prehensive, high-dimensional feature vector. By merging
+the outputs from models with different freezing strategies,
+we encapsulated a wide variety of representations—ranging
+from low-level structural features to high-level semantic in-
+sights—ensuring that the classification model receives a rich
+and diverse set of input features [17].
+D. Classification Models
+The classification of lymphoma subtypes was handled by a
+Dense Neural Network (DNN) [18]. The DNN was specifically
+designed to process the concatenated feature vectors and clas-
+sify them into one of the three lymphoma subtypes: chronic
+lymphocytic leukemia (CLL), follicular lymphoma (FL), and
+mantle cell lymphoma (MCL).
+a) Model Architecture: The deep neural network (DNN)
+model used in this study is composed of several key compo-
+nents, as summarized in Table I.
+TABLE I: Summary of the DNN Architecture Components
+Component
+Description
+Input Layer
+512 Neurons (DenseNet201 features)
+Dropout Layer
+50% Dropout rate to prevent overfitting
+Hidden Layers
+3 Layers: 256, 128, 64 Neurons (ReLU activation)
+Batch Normalization
+Applied after each hidden layer
+Output Layer
+3 Neurons (Softmax for class probabilities)
+The input layer contains 512 neurons, matching the size of
+the concatenated feature vector from DenseNet201 models. A
+50% dropout layer follows to reduce overfitting by randomly
+deactivating neurons during training, which encourages learn-
+ing generalized features and improves performance on unseen
+data.
+Next, the network includes three fully connected hidden
+layers with 256, 128, and 64 neurons, respectively. Each
+layer uses the ReLU activation function to introduce non-
+linearity, helping the model capture complex data patterns.
+Batch normalization is applied after each hidden layer to
+stabilize training and reduce internal covariate shift, enhancing
+robustness.
+Finally, the output layer has three neurons corresponding
+to the three lymphoma subtypes, with a softmax activation
+function providing class probabilities [19].
+b) Model Compilation: The DNN was compiled using
+the settings shown in Table II.
+TABLE II: DNN Compilation Configurations
+Component
+Description
+Optimizer
+Adam [20]
+Loss Function
+Categorical cross-entropy [21]
+Learning Rate Adjustment
+ReduceLROnPlateau [22]
+The Adam optimizer was selected for its adaptability in
+adjusting learning rates during training [20]. Categorical cross-
+entropy, a standard for multi-class classification, was chosen as
+the loss function [21]. Additionally, the ReduceLROnPlateau
+callback was used to adjust the learning rate when validation
+accuracy plateaued, promoting efficient convergence [22].
+E. Optimized Dense Neural Network (ODNN) with Harris
+Hawks Optimization (HHO)
+To enhance the classification performance further, we ap-
+plied the Harris Hawks Optimization (HHO) algorithm to
+optimize the hyperparameters of the DNN [23]. HHO is a
+metaheuristic optimization algorithm inspired by the coop-
+erative hunting strategies of Harris hawks, which balance
+exploration and exploitation during the search process [24].
+The optimization process involved the following steps:
+• Fitness Function: A fitness function was designed to
+evaluate different configurations of the DNN based on
+classification accuracy and loss. The fitness function
+provided a quantitative measure of each configuration’s
+performance, guiding the HHO algorithm towards the
+best model setup.
+• Hyperparameter Search: The HHO algorithm explored
+the hyperparameter space, searching for optimal values
+such as the number of neurons in each layer, learning rate,
+dropout rate, and batch size. By iterating over different
+configurations, HHO fine-tuned the DNN to maximize
+classification accuracy.
+• Convergence Monitoring: Throughout the optimization
+process, we monitored accuracy and loss plots to ensure
+the model was converging as expected. These plots pro-
+vided insights into the performance of the ODNN as the
+HHO algorithm refined the hyperparameters.
+F. Performance Evaluation Metrics
+To assess the classification model for malignant lymphoma
+subtypes, we employed a set of metrics that evaluate both
+overall accuracy and detailed classification performance across
+the training and testing phases.
+1) Accuracy: Accuracy represents the proportion of cor-
+rectly classified instances in both training and testing datasets.
+Accuracy =
+TP + TN
+TP + TN + FP + FN
+(1)
+Where:
+TP = True Positives, TN = True Negatives
+FP = False Positives, FN = False Negatives
+Fig. 2: An overview of the methodology for lymphoma clas-
+sification
+2) Precision: Precision calculates the accuracy of positive
+predictions.
+Precision =
+TP
+TP + FP
+(2)
+3) Recall: Recall, or sensitivity, measures the proportion of
+actual positives correctly identified.
+Recall =
+TP
+TP + FN
+(3)
+4) F1-Score: The F1-Score balances precision and recall.
+F1-Score = 2 × Precision × Recall
+Precision + Recall
+(4)
+5) Cohen’s Kappa Score: Cohen’s Kappa evaluates the
+agreement between predicted and actual classifications, adjust-
+ing for chance.
+κ = po −pe
+1 −pe
+(5)
+Where po is the observed agreement, and pe is the expected
+agreement by chance.
+6) Confusion Matrix: The confusion matrix summarizes the
+classification results as:
+TP
+FP
+FN
+TN
+
+(6)
+7) ROC-AUC: The ROC-AUC quantifies the model’s abil-
+ity to distinguish between classes by plotting the true positive
+rate (Recall) against the false positive rate (FPR), with the area
+under the curve (AUC) defined as:
+AUC =
+Z 1
+0
+TPR(t) dFPR(t)
+(7)
+Where:
+TPR = True Positive Rate, FPR = False Positive Rate
+These metrics offer a comprehensive evaluation of the
+model’s performance, from overall accuracy to detailed
+classification behavior.
+This methodology offers a detailed yet streamlined approach
+to tackling the complex task of lymphoma subtype classifica-
+tion, utilizing state-of-the-art techniques in transfer learning,
+neural network design, and hyperparameter optimization. By
+combining multiple freezing strategies with metaheuristic opti-
+mization, as summarized in Figure 2, we ensure that the model
+is both adaptable and highly accurate.
+IV. PERFORMANCE RESULTS
+This section presents the performance comparison of the
+Dense Neural Network (DNN) before and after optimization
+using the Harris Hawks Optimization (HHO) algorithm. The
+results demonstrate improvements in various performance met-
+rics post-optimization, and we also compare our results with
+key studies in the field.
+Table III summarizes the key performance metrics for the
+DNN and the optimized DNN (ODNN) after applying HHO.
+The optimization led to notable improvements in accuracy,
+precision, recall, and other classification metrics.
+TABLE III: Performance Metrics Comparison: DNN vs
+ODNN (with HHO)
+Metric
+DNN
+ODNN with HHO
+Training Accuracy
+97.38%
+99.95%
+Testing Accuracy
+97.56%
+99.33%
+Precision (Class 0: FL)
+97.60%
+99.45%
+Precision (Class 1: MCL)
+96.04%
+99.00%
+Precision (Class 2: CLL)
+100.00%
+100.00%
+Recall (All Classes)
+97.56%
+99.33%
+F1-Score (All Classes)
+97.56%
+99.33%
+Kappa Score
+96.33%
+99.00%
+ROC-AUC
+0.98
+0.99+
+Loss
+0.023
+0.0053
+The optimization resulted in a marked increase in both
+training and testing accuracy. Training accuracy improved
+from 97.38% to 99.95%, while testing accuracy rose from
+97.56% to 99.33%. This demonstrates the model’s enhanced
+ability to generalize to unseen data. Additionally, there were
+significant improvements in precision, particularly for Mantle
+Cell Lymphoma (Class 1), where precision increased from
+96.04% to 99.00%. The Kappa score, which measures the
+agreement between predicted and actual labels, improved from
+96.33% to 99.00%, reflecting the model’s higher classification
+reliability. The decrease in loss from 0.023 to 0.0053 further
+indicates better learning and optimization.
+In order to further contextualize the results, Table IV
+provides a comparison of the performance of the ODNN
+(optimized with HHO) on the larger dataset of 15,000 images
+against results from other prominent studies in the field of
+lymphoma classification.
+Our optimized DNN using the Harris Hawks Optimization
+algorithm achieved an accuracy of 99.33%, outperforming
+several other studies, particularly in terms of accuracy on the
+larger dataset. The optimization process, therefore, not only
+enhances the model’s ability to generalize and perform well
+TABLE IV: Comparison of Lymphoma Classification Results
+with Other Studies
+Study
+Method
+Accuracy
+Walsh et al. [9]
+CNN with EA
+98.41%
+Rajadurai et al. [10]
+Ensemble (InceptionV3 + Xception)
+99.00%
+¨Ozg¨ur et al. [11]
+Transfer Learning + PCA
+82%
+Habijan et al. [12]
+DenseNet201 + Ensemble
+98.89%
+Our Study
+ODNN (with HHO)
+99.33%
+on unseen data, but also places it among the top-performing
+approaches in the field.
+The confusion matrices in Figures 3a and 3b illustrate
+the distribution of classification results before and after opti-
+mization. After optimization, the number of misclassifications
+decreased notably, particularly for follicular lymphoma and
+mantle cell lymphoma. Most predictions fall along the diago-
+nal, indicating correct classifications across all classes.
+(a) Confusion Matrix Before Op-
+timization
+(b) Confusion Matrix After Opti-
+mization
+Fig. 3: Confusion Matrices Before and After Optimization
+The ROC curves before and after optimization (Figures
+4 and 5) provide additional insight into the model’s per-
+formance. The ROC-AUC score, which was already high
+at 0.98 before optimization, improved further to over 0.99,
+indicating an enhanced ability to discriminate between classes.
+The optimized model’s ROC curve approaches the ideal point,
+especially for Mantle Cell Lymphoma, which experienced the
+most significant improvement in precision and recall.
+In summary, the Harris Hawks Optimization algorithm
+significantly improved the DNN’s overall performance. The
+optimized model showed higher accuracy, precision, recall,
+and reduced classification errors. The enhanced generalization
+capabilities ensure the model performs reliably on both train-
+ing and testing datasets, reducing the likelihood of overfitting
+and increasing robustness in predicting lymphoma subtypes.
+V. CONCLUSION AND FUTURE WORK
+This study presents a novel, hybrid deep learning framework
+for the automated diagnosis of malignant lymphoma, combin-
+ing DenseNet201 for feature extraction with a Dense Neural
+Network (DNN) optimized using Harris Hawks Optimization
+(HHO). The proposed model achieved a remarkable testing
+accuracy of 99.33%, along with significant improvements in
+Fig. 4: ROC Curve Before Optimization (DNN)
+Fig. 5: ROC Curve After Optimization (ODNN with HHO)
+precision, recall, and F1-score, particularly for challenging
+subtypes such as Mantle Cell Lymphoma (MCL). By address-
+ing key challenges, such as staining variability and limited
+annotated data, this work showcases the potential for scalable
+and highly accurate diagnostic tools in clinical oncology.
+Future work will focus on enhancing the interpretability of
+the model, ensuring that clinicians can understand and trust
+the automated decisions. Additionally, the framework can be
+expanded to other cancer types, exploring its generalizability
+across diverse histopathological datasets, and improving di-
+agnostic consistency across various healthcare environments.
+Further integration of explainable AI techniques and real-time
+deployment strategies will also be pursued, promoting adop-
+tion in real-world clinical settings and improving diagnostic
+consistency across various healthcare environments.
+REFERENCES
+[1] M. d. C. Gonc¸alves, C. R. G. de Oliveira, A. F. Sandes, C. A. Rodrigues,
+Y. Novis, P. C. Viana, M. M. Serra, and M. C. N. Zerbini, “Core needle
+biopsy in lymphoma diagnosis: the diagnostic performance and the role
+of the multidisciplinary approach in the optimization of results,” The
+American Journal of Surgical Pathology, vol. 47, no. 1, pp. 111–123,
+2023.
+[2] A. Kumar, A. Vishwakarma, and V. Bajaj, “Crccn-net: Automated
+framework for classification of colorectal tissue using histopathological
+images,” Biomedical Signal Processing and Control, vol. 79, p. 104172,
+2023.
+[3] B. Bai, X. Yang, Y. Li, Y. Zhang, N. Pillar, and A. Ozcan, “Deep
+learning-enabled virtual histological staining of biological samples,”
+Light: Science & Applications, vol. 12, no. 1, p. 57, 2023.
+[4] A. Patr´ıcio, R. S. Costa, and R. Henriques, “On the challenges of pre-
+dicting treatment response in hodgkin’s lymphoma using transcriptomic
+data,” BMC Medical Genomics, vol. 16, no. Suppl 1, p. 170, 2023.
+[5] O. Wysocki, J. K. Davies, M. Vigo, A. C. Armstrong, D. Landers,
+R. Lee, and A. Freitas, “Assessing the communication gap between ai
+models and healthcare professionals: Explainability, utility and trust in
+ai-driven clinical decision-making,” Artificial Intelligence, vol. 316, p.
+103839, 2023.
+[6] S. Zhang, X. Wang, Z. Yang, M. Ding, M. Zhang, K. H. Young, and
+X. Zhang, “Minimal residual disease detection in lymphoma: methods,
+procedures and clinical significance,” Frontiers in Immunology, vol. 15,
+p. 1430070, 2024.
+[7] T.
+Robak,
+A.
+Krawczy´nska,
+B.
+Cebula-Obrzut,
+M.
+Urbaniak,
+E. Iskierka-Ja˙zd˙zewska, and P. Robak, “Atypical chronic lymphocytic
+leukemia—the current status,” Cancers, vol. 15, no. 18, p. 4427, 2023.
+[8] J. Levman, B. Ewenson, J. Apaloo, D. Berger, and P. N. Tyrrell,
+“Error consistency for machine learning evaluation and validation with
+application to biomedical diagnostics,” Diagnostics, vol. 13, no. 7, p.
+1315, 2023.
+[9] C. D. Walsh and N. K. Taylor, “Evolution of convolutional neural
+networks for lymphoma classification,” in Advances in Computer Vision
+and Computational Biology: Proceedings from IPCV’20, HIMS’20,
+BIOCOMP’20, and BIOENG’20.
+Springer, 2021, pp. 3–26.
+[10] S. Rajadurai, K. Perumal, M. F. Ijaz, and C. L. Chowdhary, “Preci-
+sionlymphonet: Advancing malignant lymphoma diagnosis via ensemble
+transfer learning with cnns,” Diagnostics, vol. 14, no. 5, p. 469, 2024.
+[11] E. ¨Ozg¨ur and A. Saygılı, “A new approach for automatic classification
+of non-hodgkin lymphoma using deep learning and classical learning
+methods on histopathological images,” Neural Computing and Applica-
+tions, pp. 1–24, 2024.
+[12] M. Habijan and I. Gali´c, “Ensemble transfer learning for lymphoma clas-
+sification,” in 2024 31st International Conference on Systems, Signals
+and Image Processing (IWSSIP).
+IEEE, 2024, pp. 1–6.
+[13] N. V. Orlov, W. W. Chen, D. M. Eckley, T. J. Macura, L. Shamir,
+E. S. Jaffe, and I. G. Goldberg, “Automatic classification of lymphoma
+images with transform-based global features,” IEEE Transactions on
+Information Technology in Biomedicine, vol. 14, no. 4, pp. 1003–1013,
+2010.
+[14] G. Huang, Z. Liu, L. van der Maaten, and K. Q. Weinberger, “Densely
+connected convolutional networks,” in Proceedings of the IEEE Confer-
+ence on Computer Vision and Pattern Recognition, 2017.
+[15] X. Jiang, Z. Hu, S. Wang, and Y. Zhang, “Deep learning for medical
+image-based cancer diagnosis,” Cancers, vol. 15, no. 14, p. 3608, 2023.
+[16] M. Iman, H. R. Arabnia, and K. Rasheed, “A review of deep transfer
+learning and recent advancements,” Technologies, vol. 11, no. 2, p. 40,
+2023.
+[17] N. Y. Khanday and S. A. Sofi, “Taxonomy, state-of-the-art, challenges
+and applications of visual understanding: A review,” Computer Science
+Review, vol. 40, p. 100374, 2021.
+[18] Q. Mei, M. G¨ul, and M. R. Azim, “Densely connected deep neural net-
+work considering connectivity of pixels for automatic crack detection,”
+Automation in Construction, vol. 110, p. 103018, 2020.
+[19] T. Pearce, A. Brintrup, and J. Zhu, “Understanding softmax confidence
+and uncertainty,” arXiv preprint arXiv:2106.04972, 2021.
+[20] Z. Liu, Z. Shen, S. Li, K. Helwegen, D. Huang, and K.-T. Cheng, “How
+do adam and training strategies help bnns optimization,” in International
+conference on machine learning.
+PMLR, 2021, pp. 6936–6946.
+[21] P. Li, X. He, X. Cheng, M. Qiao, D. Song, M. Chen, T. Zhou, J. Li,
+X. Guo, S. Hu et al., “An improved categorical cross entropy for remote
+sensing image classification based on noisy labels,” Expert Systems with
+Applications, vol. 205, p. 117296, 2022.
+[22] A. Thakur, M. Gupta, D. K. Sinha, K. K. Mishra, V. K. Venkatesan,
+and S. Guluwadi, “Transformative breast cancer diagnosis using cnns
+with optimized reducelronplateau and early stopping enhancements,”
+International Journal of Computational Intelligence Systems, vol. 17,
+no. 1, p. 14, 2024.
+[23] M. Shehab, I. Mashal, Z. Momani, M. K. Y. Shambour, A. AL-Badareen,
+S. Al-Dabet, N. Bataina, A. R. Alsoud, and L. Abualigah, “Harris
+hawks optimization algorithm: variants and applications,” Archives of
+Computational Methods in Engineering, vol. 29, no. 7, pp. 5579–5603,
+2022.
+[24] A. G. Hussien and M. Amin, “A self-adaptive harris hawks optimization
+algorithm with opposition-based learning and chaotic local search strat-
+egy for global optimization and feature selection,” International Journal
+of Machine Learning and Cybernetics, vol. 13, no. 2, pp. 309–336, 2022.

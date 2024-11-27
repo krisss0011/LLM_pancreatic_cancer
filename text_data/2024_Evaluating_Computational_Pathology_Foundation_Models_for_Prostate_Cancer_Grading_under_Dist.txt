@@ -1,0 +1,1221 @@
+Evaluating Computational Pathology Foundation Models for
+Prostate Cancer Grading under Distribution Shifts
+Fredrik K. Gustafsson1
+Mattias Rantalainen1,2
+1Department of Medical Epidemiology and Biostatistics, Karolinska Institutet, Stockholm, Sweden
+2MedTechLabs, BioClinicum, Karolinska University Hospital, Solna, Sweden
+fredrik.gustafsson@ki.se, mattias.rantalainen@ki.se
+Abstract
+Foundation models have recently become a popular re-
+search direction within computational pathology. They are
+intended to be general-purpose feature extractors, promis-
+ing to achieve good performance on a range of downstream
+tasks. Real-world pathology image data does however ex-
+hibit considerable variability. Foundation models should
+be robust to these variations and other distribution shifts
+which might be encountered in practice. We evaluate two
+computational pathology foundation models: UNI (trained
+on more than 100 000 whole-slide images) and CONCH
+(trained on more than 1.1 million image-caption pairs), by
+utilizing them as feature extractors within prostate cancer
+grading models. We find that while UNI and CONCH per-
+form well relative to baselines, the absolute performance
+can still be far from satisfactory in certain settings. The
+fact that foundation models have been trained on large and
+varied datasets does not guarantee that downstream models
+always will be robust to common distribution shifts.
+Computational pathology utilizes machine learning and
+computer vision methods to automatically extract use-
+ful information from histopathology whole-slide images
+(WSIs) [2, 7, 10, 13, 40].
+Commonly studied applica-
+tions include histological grading [6, 41, 44], risk stratifi-
+cation [21, 24, 42] and biomarker prediction [3, 11, 33].
+Foundation models, i.e. large deep learning models trained
+on large amounts of data using self-supervised learning [4,
+5, 30], have recently become a very popular research di-
+rection within computational pathology [1, 9, 16, 29, 31,
+43, 46, 49]. Foundation models are intended to be general-
+purpose feature extractors, promising to achieve good per-
+formance on a wide range of downstream tasks. Real-world
+pathology image data does however exhibit considerable
+variability, due to differences in staining and scanning pro-
+cedures employed at different labs and hospitals [23]. A
+truly general-purpose foundation model should be robust to
+these variations and other distribution shifts [17, 37] which
+might be encountered during practical deployment. While
+previous work in the general machine learning literature has
+shown that deep learning models can be highly sensitive to
+distribution shifts [18, 20, 25, 35], this has yet to be studied
+specifically for computational pathology foundation mod-
+els. In particular, it is currently unclear whether the large
+and varied datasets utilized in the training of these mod-
+els make them robust to commonly encountered distribution
+shifts, or if the model performance still can break down in
+certain practical settings. In this work we therefore study
+these open questions, evaluating foundation model robust-
+ness in terms of two common types of distribution shifts.
+For this evaluation, we utilize histological grading of
+prostate cancer biopsy WSIs [6, 41] as our specific practical
+application. Histological grading is used to provide impor-
+tant prognostic information for patients, categorizing biop-
+sies into five different International Society of Urological
+Pathology (ISUP) grade groups [14, 15]. With non-tumor
+biopsies denoted as grade 0, each biopsy WSI is thus as-
+signed an ISUP grade 0−5. We evaluate two different com-
+putational pathology foundation models: UNI [9] (trained
+on more than 100 000 WSIs using self-supervised learning)
+and CONCH [29] (trained on more than 1.1 million image-
+caption pairs using a vision-language objective). While var-
+ious other recently published foundation models also could
+be evaluated, UNI and CONCH have been among the best
+performing models in recent benchmarks [8, 32, 45], and
+we thus choose to focus on them in this work. We also in-
+clude Resnet-IN (trained on a dataset of natural images) as
+a baseline, to study the effect of pathology-specific mod-
+els.
+Following recent benchmarking studies [8, 32, 45],
+we evaluate the foundation models by utilizing them as
+frozen patch-level feature extractors in weakly supervised
+WSI-level prediction models. Specifically, we utilize the
+1
+arXiv:2410.06723v1  [eess.IV]  9 Oct 2024
+Kappa (↑)
+0.2
+0.4
+0.6
+0.8
+Kappa (↑)
+0.2
+0.4
+0.6
+0.8
+Kappa (↑)
+PANDA
+Karolinska
+Radboud
+Radboud →
+Karolinska
+Radboud-U
+Radboud-U →
+Karolinska-U
+Radboud-L
+Radboud-L →
+Radboud-R
+0
+0.2
+0.4
+0.6
+0.8
+UNI
+CONCH
+Resnet-IN
+Figure 1. Performance comparison of UNI, CONCH and Resnet-IN across different PANDA subsets, when utilized as patch-level feature
+extractors in the ABMIL (top), Mean Feature (middle) or kNN (bottom) ISUP grade classification models. All results are mean±std (stan-
+dard deviation) over 10 random cross-validation folds. Raw numerical results for this figure are provided in Table S1 in the supplementary
+material. The same model performance comparison but in terms of MAE instead of kappa is also found in Figure S1.
+foundation model feature extractors in three different ISUP
+grade classification models (see the Methods section for de-
+tails): ABMIL uses attention-based multiple instance learn-
+ing (ABMIL) [22, 26] to process the patch-level feature vec-
+tors and output a predicted ISUP grade ˆy(x) ∈{0, . . . , 5}
+for each biopsy WSI x. Mean Feature removes the train-
+able ABMIL aggregator and directly feeds the mean patch-
+level feature vector as input to a small classification net-
+work. Lastly, kNN removes also this trainable classifica-
+tion network, instead utilizing the k-nearest neighbors algo-
+rithm. kNN therefore contains no trainable model compo-
+nents, enabling a direct evaluation of the underlying foun-
+dation models. We conduct experiments on the PANDA
+dataset [6], containing 10 616 prostate biopsy WSIs with
+corresponding ISUP grade labels. The data was collected
+from two different sites: Radboud University Medical Cen-
+ter (Radboud) in the Netherlands, and Karolinska Institutet
+(Karolinska) in Sweden. The two sites differ in terms of
+both the pathology lab procedures and utilized scanners,
+creating a clear distribution shift for the WSI image data
+(see Figure 4a). By training ISUP grade models exclusively
+on Radboud data and then evaluating on Karolinska data,
+we are thus able to study how robust the foundation mod-
+els are to this commonly encountered type of distribution
+shift. By creating further subsets of the PANDA dataset (see
+Methods for details), we are also able to evaluate foundation
+model robustness in terms of a second type of distribution
+shift: shifts in the label distribution over the ISUP grades
+(see Figure 4b & 4c).
+The performance of UNI, CONCH and Resnet-IN across
+different PANDA subsets is compared in Figure 1, when
+utilized as patch-level feature extractors in the three ISUP
+grade models.
+First, we observe that when models are
+trained and evaluated on the full PANDA dataset (first col-
+umn of Figure 1), both UNI and CONCH perform well
+(0.888±0.013 kappa for UNI with ABMIL) and outperform
+Resnet-IN. Similar results are achieved also when ISUP
+grade models are both trained and evaluated exclusively on
+data from either Karolinska or Radboud (second and third
+column of Figure 1, respectively). However, when models
+are trained on Radboud data and evaluated on Karolinska
+data (Radboud →Karolinska in Figure 1), the performance
+drops drastically (0.247 ± 0.138 kappa for UNI with AB-
+MIL). This clear performance drop is observed for all three
+ISUP grade models, i.e. even when applying kNN directly
+on top of the foundation model patch-level features. When
+repeating this experiment on subsets with perfectly uniform
+ISUP grade label distributions (Radboud-U and Radboud-U
+2
+Kappa (↑)
+0.2
+0.4
+0.6
+0.8
+Kappa (↑)
+0.2
+0.4
+0.6
+0.8
+Kappa (↑)
+PANDA
+Karolinska
+Radboud
+Radboud →
+Karolinska
+Radboud-U
+Radboud-U →
+Karolinska-U
+Radboud-L
+Radboud-L →
+Radboud-R
+0
+0.2
+0.4
+0.6
+0.8
+ABMIL
+Mean Feature
+kNN
+Figure 2. Performance comparison of the ISUP grade models ABMIL, Mean Feature and kNN, when utilizing UNI (top), CONCH (middle)
+or Resnet-IN (bottom) as patch-level feature extractors. This figure contains the same results as Figure 1, but presented to enable a direct
+comparison of the ISUP grade models. All results are mean±std over 10 random cross-validation folds. Raw numerical results for this
+figure are provided in Table S2. The same model performance comparison but in terms of MAE instead of kappa is also found in Figure S2.
+→Karolinska-U in Figure 1), the performance drop from
+Radboud to Karolinska data is somewhat smaller but still
+highly significant. When models instead are trained and
+evaluated on Radboud data with left- or right-skewed la-
+bel distributions (Radboud-L and Radboud-L →Radboud-
+R in Figure 1), there is a consistent but relatively small drop
+in performance, at least for the ABMIL and Mean Feature
+ISUP grade models. Figure 2 contains the same results as
+Figure 1, but presented in order to enable a direct perfor-
+mance comparison of the three ISUP grade models. We
+observe that ABMIL achieves the best performance in most
+cases across the different PANDA subsets and feature ex-
+tractors, followed by Mean Feature and kNN. The ranking
+of the three models is more varied for Radboud →Karolin-
+ska and Radboud-U →Karolinska-U, but for these cases
+relatively poor performance is achieved by all three models.
+A more detailed performance comparison of UNI,
+CONCH and Resnet-IN is given in Figure 3 (top), when uti-
+lized in the ABMIL ISUP grade model. The left and middle
+plots show how the performance on Radboud and Karolin-
+ska test data, respectively, is affected when training models
+on varying amounts of Radboud data. While the perfor-
+mance on Radboud (in-distribution, ID) data consistently
+improves with more training data, this is not the case on
+Karolinska (out-of-distribution, OOD) data. We also ob-
+serve that UNI and CONCH perform especially well rela-
+tive to Resnet-IN when the amount of training data is lim-
+ited. The right plot of Figure 3 (top) shows how the per-
+formance on Karolinska test data is affected when varying
+the proportion of training data sampled from Karolinska.
+There, we observe that when increasing from 0% Karolin-
+ska training data, the performance quickly improves to a
+level close to that achieved with 100% Karolinska train-
+ing data. We also observe in Figure 3 (top) that in most
+cases, UNI achieves the best performance closely followed
+by CONCH, with a bigger drop down to Resnet-IN. Fig-
+ure 3 (bottom) shows the same performance comparison
+but for the three ISUP grade models instead, when using
+UNI as the patch-level feature extractor. We observe that,
+in virtually all cases, ABMIL achieves the best performance
+followed by Mean Feature and kNN.
+UNI outperforms Resnet-IN in every single setting
+across Figure 1 & 3.
+Relative to this baseline which is
+trained on natural images, the pathology-specific founda-
+tion model UNI thus achieves very strong performance,
+as expected. However, the absolute performance of UNI
+is still poor for Radboud →Karolinska and Radboud-U
+→Karolinska-U in Figure 1. That is, ISUP grade mod-
+3
+0
+25
+50
+75
+100
+0
+0.2
+0.4
+0.6
+0.8
+Kappa (↑)
+Radboud-Subsets-Test (ID)
+UNI (ABMIL)
+CONCH (ABMIL)
+Resnet-IN (ABMIL)
+0
+25
+50
+75
+100
+Karolinska (OOD)
+0
+25
+50
+75
+100
+Karolinska-1k-Test
+0
+25
+50
+75
+100
+0
+0.2
+0.4
+0.6
+0.8
+% of Radboud-Subsets-Dev used for training
+Kappa (↑)
+ABMIL (UNI)
+Mean Feature (UNI)
+kNN (UNI)
+0
+25
+50
+75
+100
+% of Radboud-Subsets-Dev used for training
+0
+25
+50
+75
+100
+% of training WSIs sampled from Karolinska
+Figure 3. Top: Detailed performance comparison of UNI, CONCH and Resnet-IN, when utilized as patch-level feature extractors in the
+ABMIL ISUP grade model. Bottom: Detailed performance comparison of the three ISUP grade models ABMIL, Mean Feature and kNN,
+when utilizing UNI as the patch-level feature extractor. All results are mean±std over 10 random cross-validation folds.
+els based on UNI are still highly sensitive to the distribu-
+tion shift from Radboud to Karolinska data. Models based
+on CONCH seem to be even more sensitive to this distri-
+bution shift, given that CONCH even is outperformed by
+Resnet-IN in most settings for Radboud →Karolinska and
+Radboud-U →Karolinska-U in Figure 1. The fact that UNI
+and CONCH have been trained on very large and varied
+datasets (UNI: more than 100 000 WSIs, CONCH: more
+than 1.1 million image-caption pairs) does therefore not
+guarantee that models built on top of UNI or CONCH al-
+ways will perform well in downstream prediction tasks. The
+quality of the data used to fit the actual downstream models
+is still crucially important. If this data has limited variabil-
+ity in terms of the number of data collection sites or utilized
+scanners, downstream models can still become highly sen-
+sitive to commonly encountered distribution shifts. While
+pathology-specific foundation models achieve very strong
+performance relative to general baselines such as Resnet-
+IN, the absolute performance can still be far from satisfac-
+tory in certain settings.
+When comparing the two foun-
+dation models UNI and CONCH in Figure 1 & 3, UNI
+achieves at least slightly better performance in almost all
+cases. This is somewhat surprising, given that the vision-
+language model CONCH was found superior in the recent
+benchmarking study by Neidlinger & El Nahhas et al. [32].
+Moreover, the results for Radboud-U →Karolinska-U and
+Radboud-L →Radboud-R in Figure 1 strongly suggest that
+shifts in the label distribution over ISUP grades are small
+issues compared to the WSI image data shift. The results in
+the middle plots of Figure 3 might initially seem quite sur-
+prising (training on more data tends to degrade the model
+OOD generalizability). However, if models are trained on
+large amounts of data from just a single site, it seems rea-
+sonable that this effectively could cause models to overfit
+to that one particular site. Lastly, the comparison of ISUP
+grade models in Figure 2 & 3 demonstrates added benefit
+overall of utilizing a trainable ABMIL aggregator and clas-
+sification layer.
+The main actionable takeaways from our study can
+be summarized as follows: 1.
+While the computational
+pathology foundation models UNI and CONCH achieve
+very strong performance relative to the Resnet-IN baseline,
+the absolute performance can still be far from satisfactory
+in certain settings.
+2.
+The fact that UNI and CONCH
+have been trained on very large and varied datasets does
+not guarantee that downstream prediction models always
+will be robust to commonly encountered distribution
+shifts. 3. Even within the emerging paradigm of powerful
+4
+(a) WSI image data shift, Radboud →Karolinska.
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+(b) Grade label shift, Radboud →Karolinska.
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+(c) Grade label shift, Radboud-L →Radboud-R.
+Figure 4. We study robustness in terms of two common types of distribution shifts: (a): Shifts in the WSI image data (visualization of
+2 500 randomly sampled patches from Radboud and Karolinska). (b) & (c): Shifts in the label distribution over the ISUP grades 0 −5.
+pathology-specific foundation models, the quality of the
+data utilized to fit downstream prediction models is a
+crucial aspect. 4. The vision-only model UNI outperforms
+the vision-language model CONCH overall. 5. Models are
+less sensitive to grade label distribution shifts than to WSI
+image data shifts.
+The results in the right plots of Figure 3 suggest that it
+might be sufficient to add relatively small amounts of train-
+ing data from a second site to improve the model general-
+izability. The current experiment does however not provide
+conclusive evidence for this claim, since both the training
+and test sets here contain data from the same site. It would
+therefore be interesting to instead conduct experiments with
+data from three different sites in future work (for example,
+study if a model trained on 50% site 1 data and 50% site
+2 data generalizes better to site 3, than a model trained on
+100% site 1 data). More generally, it would be interesting to
+study how well models trained on data from n = 1, 2, 3, . . .
+different sites perform on site n + 1. The robustness of
+other recent foundation models [39, 43, 46, 49] could also
+be evaluated. If clear differences among the different mod-
+els were to be discovered, this would be important infor-
+mation to consider when employing foundation models in
+various practical applications.
+Methods
+Experimental Setup
+We conduct all experiments using the publicly available de-
+velopment set of the PANDA dataset [6]. It contains 10 616
+prostate biopsy WSIs with corresponding ISUP grade la-
+bels (grade 0 −5).
+The 10 616 biopsy WSIs were col-
+lected from two different sites: Radboud University Med-
+ical Center (Nijmegen, the Netherlands) and Karolinska In-
+stitutet (Stockholm, Sweden). The 10 616 WSIs were col-
+lected from a total of 2 113 patients. The data collection
+site (Radboud or Karolinska) is known for each WSI in the
+dataset, while there is no available information on which
+patient each WSI originates from.
+The WSIs from the two data collection sites were dig-
+itally scanned using different scanners (Radboud: 3DHis-
+tech, Karolinska: Leica or Hamamatsu).
+Together with
+other potential differences in staining and processing pro-
+cedures, this creates a clear shift in appearance of the cor-
+responding WSI image data, as shown in Figure 4a (visual-
+ization of randomly sampled tissue patches from Radboud
+and Karolinska WSIs).
+Following the PANDA challenge [6], model perfor-
+mance is evaluated using quadratically weighted Cohen’s
+kappa (‘kappa’ for short) as the main metric, which mea-
+sures the level of agreement between the predicted and
+ground truth ISUP grades. As a secondary metric, we also
+compute the mean absolute error (MAE) between grade pre-
+dictions and labels.
+Main Evaluation
+For the main model comparison in Fig-
+ure 1 & 2, we create different subsets of the original
+PANDA development set, resulting in 7 different datasets
+in total. 1. PANDA is the full original dataset, containing
+10 433 WSIs after pre-processing (removal of WSIs with
+no extracted tissue patches). 2. Karolinska is a subset of
+PANDA, containing all WSIs collected at Karolinska, 5 434
+WSIs. Similarly, 3. Radboud contains all WSIs collected at
+Radboud, 4 999 WSIs. The label distribution for Radboud
+and Karolinska, as shown in Figure 4b, are quite different:
+nearly a uniform distribution over grade 0 −5 for Radboud,
+whereas the distribution is heavily left-skewed for Karolin-
+ska. In order to study the effect of this label shift, we create
+further subsets with a perfectly uniform label distribution:
+4. Radboud-U containing 3 996 WSIs, and 5. Karolinska-
+U containing 1 506 WSIs. We also create subsets of Rad-
+boud with a left-skewed or right-skewed label distribution
+(as shown in Figure 4c): 6. Radboud-L containing 2 484
+WSIs, and 7. Radboud-R containing 2 515 WSIs.
+For the PANDA, Karolinska, Radboud, Radboud-U
+and Radboud-L results in Figure 1 & 2, all models are
+trained and evaluated using random 10-fold cross-validation
+(80%/10%/10% train/val/test splits). For the Radboud →
+Karolinska, Radboud-U →Karolinska-U and Radboud-L
+→Radboud-R results, the 10 trained cross-validation mod-
+els are all evaluated on the full corresponding test set (e.g.
+for Radboud →Karolinska, the 10 models trained on Rad-
+5
+Patch-Level
+Feature Vectors
+WSI-Level
+Feature Vector
+WSI
+Tissue-Segmented
+& Patched WSI
+Patches
+ො𝑦(𝑥)
+Predicted 
+Grade
+Patches
+ො𝑦(𝑥)
+Predicted 
+Grade
+Patch-Level
+Feature Vectors
+∑
+WSI-Level
+Feature Vector
+kNN
+Patches
+ො𝑦(𝑥)
+Predicted 
+Grade
+Patch-Level
+Feature Vectors
+∑
+WSI-Level
+Feature Vector
+Figure 5. Overview of the three evaluated ISUP grade classification models: Top: ABMIL. Middle: Mean Feature. Bottom: kNN. All
+three models utilize the same initial WSI processing steps. First, the input prostate biopsy WSI x is tissue-segmented and divided into non-
+overlapping patches ˜xi of size 256×256 using CLAM [28]. Next, a feature vector p(˜xi) is extracted for each patch, using a pretrained and
+frozen feature extractor (either UNI [9], CONCH [29] or Resnet-IN). The different models then process these patch-level feature vectors
+p(˜xi) further (see the Methods section for details), finally outputting a predicted ISUP grade ˆy(x) ∈{0, . . . , 5}. In all three figures, blue
+marks the pretrained and frozen patch-level feature extractor, whereas green marks trainable model components.
+boud are all evaluated on Karolinska).
+Detailed Evaluation
+For the detailed model comparison
+in Figure 3, we create additional subsets of Radboud and
+Karolinska.
+For the left and middle plots of Figure 3,
+we set aside 1 000 randomly sampled WSIs from Rad-
+boud to form Radboud-Subsets-Test, while the remaining
+3 999 WSIs form Radboud-Subsets-Dev-100. We then also
+create Radboud-Subsets-Dev-50,
+Radboud-Subsets-Dev-
+25, Radboud-Subsets-Dev-10, Radboud-Subsets-Dev-5 and
+Radboud-Subsets-Dev-2, by randomly sampling 50%, 25%,
+10%, 5% or 2% of the WSIs in Radboud-Subsets-Dev-100.
+The Radboud-Subsets-Dev datasets are used for training
+models (random 10-fold cross-validation), which then are
+evaluated on both Radboud-Subsets-Test and Karolinska.
+For the right plots of Figure 3, we set aside 1 000 ran-
+domly sampled WSIs from Karolinska to form Karolinska-
+1k-Test.
+We then randomly sample the remaining 4 434
+WSIs from Karolinska and all 4 999 WSIs of Radboud,
+to form a series of datasets all containing 4 000 WSIs,
+with 0%, 1%, 5%, 10%, 25%, 50% or 100% of the
+WSIs being sampled from Karolinska. These mixed Rad-
+boud/Karolinska datasets are used for training models (ran-
+dom 10-fold cross-validation), which then are evaluated on
+Karolinska-1k-Test.
+ISUP Grade Classification Models
+We evaluate three different models, which all take a prostate
+biopsy WSI x as input and output a predicted ISUP grade
+6
+ˆy(x) ∈{0, . . . , 5}. An overview of the models is shown in
+Figure 5. Although there is an ordinal relationship among
+the 6 ISUP grades {0, . . . , 5}, we treat this as a regular
+multi-class classification problem, with C = 6 classes.
+All three models utilize the same initial WSI processing
+steps. First, the input biopsy WSI x is tissue-segmented
+and divided into P non-overlapping patches {˜xi}P
+i=1 using
+CLAM [28]. Patches are of size 256 × 256 at 20× magnifi-
+cation, and the number of extracted tissue patches P varies
+for different WSIs. Next, a feature vector p(˜xi) is extracted
+for each patch ˜xi, using a pretrained and frozen feature ex-
+tractor. The three models then process these patch-level
+feature vectors {p(˜xi)}P
+i=1 further, finally outputting a pre-
+dicted ISUP grade ˆy(x) ∈{0, . . . , 5} for the WSI x.
+ABMIL
+The first ISUP grade classification model, AB-
+MIL in Figure 5 (top), utilizes an ABMIL model [22] to
+aggregate the set of patch-level feature vectors {p(˜xi)}P
+i=1
+into a single WSI-level feature vector w(x). This feature
+vector w(x) is then fed as input to a linear classification
+layer, outputting logits for the C =6 classes/grades. Finally,
+ˆy(x) ∈{0, . . . , 5} is computed as the argmax over the log-
+its. Both the ABMIL aggregator and the linear classifica-
+tion layer are trained using the standard cross-entropy loss.
+Our ABMIL implementation is based on CLAM [28] (with-
+out the instance-level clustering), and we set the model and
+training hyperparameters according to UNI (see Methods -
+Weakly supervised slide classification in [9]). Specifically,
+models are trained using the AdamW optimizer [27] with a
+cosine learning rate schedule, for a maximum of 20 epochs.
+Early stopping is performed based on the val loss for each
+of the 10 random train/val/test cross-validation folds.
+Mean Feature
+The second model, Mean Feature in Fig-
+ure 5 (middle), simplifies ABMIL by removing the train-
+able ABMIL WSI-level aggregator. Instead, a single WSI-
+level feature vector w(x) is extracted by directly computing
+the mean over all patch-level feature vectors {p(˜xi)}P
+i=1.
+The WSI-level feature vector w(x) is then fed as input to
+a network head consisting of a fully-connected layer (with
+dropout and ReLU activation) and a linear classification
+layer, outputting logits for the C = 6 classes/grades. The
+network head (which is the only trainable model compo-
+nent left) is trained using the cross-entropy loss, with the
+same hyperparameters as used for ABMIL.
+kNN
+The third ISUP grade model, kNN in Figure 5 (bot-
+tom), in turn simplifies Mean Feature by removing its train-
+able network head. As for Mean Feature, a WSI-level fea-
+ture vector w(x) is directly computed as the mean over
+the patch-level feature vectors {p(˜xi)}P
+i=1.
+To output a
+predicted ISUP grade ˆy(x) ∈{0, . . . , 5}, we then instead
+utilize KNeighborsClassifier from scikit-learn [36]
+with k = 5. We include kNN as a simplest possible base-
+line, without any trainable model parameters.
+Feature Extractors
+We utilize three different patch-level feature extractors:
+UNI, CONCH and Resnet-IN. UNI and Resnet-IN ex-
+tract patch-level feature vectors p(˜xi) of dimension 1 024,
+whereas CONCH feature vectors are of dimension 512. The
+feature extractors are kept frozen in all our experiments, i.e.
+they are not updated during the training of any of the ISUP
+grade classification models.
+UNI [9] is a vision-only foundation model developed
+specifially for the computational pathology domain.
+It
+is a ViT-Large vision transformer [12], pretrained using
+DINOv2 [34] on a pan-cancer dataset (20 major tissue
+types) collected from the Massachusetts General Hospital,
+Brigham & Women’s Hospital and the Genotype-Tissue Ex-
+pression consortium. This dataset contains roughly 100 mil-
+lion tissue patches from more than 100 000 WSIs.
+CONCH [29] is a vision-language foundation model,
+also developed specifially for computational pathology ap-
+plications. The full CONCH model consists of both an im-
+age encoder and a text encoder, but we only utilize the im-
+age encoder. This image encoder, which is a ViT-Base vi-
+sion transformer [12], was first pretrained on an in-house
+dataset of 16 million tissue patches from more than 21 000
+WSIs, using the iBOT [48] self-supervised learning method.
+Then, the full CONCH model was further pretrained using
+a vision-language objective, on a dataset containing more
+than 1.1 million pathology-specific image-caption pairs.
+This image-caption dataset was curated via automatic pro-
+cessing of figures extracted from publicly available articles
+from PubMed. The vision-language pretraining objective
+from CoCa [47] was utilized, which combines image-text
+contrastive losses and an image captioning loss.
+Resnet-IN is a Resnet-50 model [19] pretrained on
+the ImageNet dataset [38] of natural images.
+Resnet-IN
+is included as a simple baseline, expected to be outper-
+formed by the pathology-specific foundation models UNI
+and CONCH.
+Ethics Statement
+This study only utilized publicly available and anonymized
+whole-slide images.
+Data Availability
+The biopsy whole-slide images and corresponding ISUP
+grade labels for the development set of the PANDA dataset
+are available at https://www.kaggle.com/c/
+prostate-cancer-grade-assessment/data.
+7
+Code Availability
+The code for this study is based on CLAM, UNI and
+CONCH, which are available at https://github.
+com/mahmoodlab/CLAM, https://github.com/
+mahmoodlab/UNI and https://github.com/
+mahmoodlab/CONCH, respectively. Further implemen-
+tation details are available from the corresponding author
+(FKG) upon reasonable request.
+Acknowledgments
+This work was supported by funding from the Swedish Re-
+search Council, the Swedish Cancer Society, VINNOVA
+(SwAIPP2 project), MedTechLabs, and the Swedish e-
+science Research Centre (SeRC) - eMPHasis.
+Author Contributions
+FKG was responsible for project conceptualization, soft-
+ware implementation, preparation of figures and tables, and
+manuscript drafting. MR was responsible for funding ac-
+quisition and project supervision. Both authors contributed
+to the design of experiments, interpretation of results, and
+manuscript editing.
+Competing Interests
+MR is co-founder and shareholder of Stratipath AB. FKG
+has no competing interests to declare.
+References
+[1] Nanne Aben, Edwin D de Jong, Ioannis Gatopoulos, Nico-
+las K¨anzig, Mikhail Karasikov, Axel Lagr´e, Roman Moser,
+Joost van Doorn, Fei Tang, et al.
+Towards large-scale
+training of pathology foundation models.
+arXiv preprint
+arXiv:2404.15217, 2024. 1
+[2] Bal´azs Acs, Mattias Rantalainen, and Johan Hartman. Artifi-
+cial intelligence as the next step towards precision pathology.
+Journal of Internal Medicine, 288(1):62–81, 2020. 1
+[3] Salim Arslan, Julian Schmidt, Cher Bass, Debapriya Mehro-
+tra, Andre Geraldes, Shikha Singhal, Julius Hense, Xiusi
+Li, Pandu Raharja-Liu, Oscar Maiques, et al. A systematic
+pan-cancer study on deep learning-based prediction of multi-
+omic biomarkers from routine pathology images. Communi-
+cations Medicine, 4(1):48, 2024. 1
+[4] Bobby Azad, Reza Azad, Sania Eskandari, Afshin Bo-
+zorgpour, Amirhossein Kazerouni, Islem Rekik, and Dorit
+Merhof.
+Foundational models in medical imaging:
+A
+comprehensive survey and future vision.
+arXiv preprint
+arXiv:2310.18689, 2023. 1
+[5] Rishi Bommasani, Drew A Hudson, Ehsan Adeli, Russ Alt-
+man, Simran Arora, Sydney von Arx, Michael S Bernstein,
+Jeannette Bohg, Antoine Bosselut, Emma Brunskill, et al.
+On the opportunities and risks of foundation models. arXiv
+preprint arXiv:2108.07258, 2021. 1
+[6] Wouter Bulten, Kimmo Kartasalo, Po-Hsuan Cameron Chen,
+Peter Str¨om, Hans Pinckaers, Kunal Nagpal, Yuannan Cai,
+David F Steiner, Hester Van Boven, Robert Vink, et al. Artifi-
+cial intelligence for diagnosis and gleason grading of prostate
+cancer: the PANDA challenge. Nature Medicine, 28(1):154–
+163, 2022. 1, 2, 5
+[7] Gabriele Campanella, Matthew G Hanna, Luke Geneslaw,
+Allen Miraflor, Vitor Werneck Krauss Silva, Klaus J Busam,
+Edi Brogi, Victor E Reuter, David S Klimstra, and Thomas J
+Fuchs. Clinical-grade computational pathology using weakly
+supervised deep learning on whole slide images.
+Nature
+Medicine, 25(8):1301–1309, 2019. 1
+[8] Gabriele Campanella, Shengjia Chen, Ruchika Verma, Jen-
+nifer Zeng, Aryeh Stock, Matt Croken, Brandon Veremis,
+Abdulkadir Elmas, Kuan-lin Huang, Ricky Kwan, et al. A
+clinical benchmark of public self-supervised pathology foun-
+dation models. arXiv preprint arXiv:2407.06508, 2024. 1
+[9] Richard J Chen, Tong Ding, Ming Y Lu, Drew FK
+Williamson, Guillaume Jaume, Andrew H Song, Bowen
+Chen, Andrew Zhang, Daniel Shao, Muhammad Shaban,
+et al.
+Towards a general-purpose foundation model for
+computational pathology. Nature Medicine, 30(3):850–862,
+2024. 1, 6, 7
+[10] Didem Cifci, Sebastian Foersch, and Jakob Nikolas Kather.
+Artificial intelligence to identify genetic alterations in con-
+ventional histopathology. The Journal of Pathology, 257(4):
+430–444, 2022. 1
+[11] Nicolas Coudray, Paolo Santiago Ocampo, Theodore Sakel-
+laropoulos, Navneet Narula, Matija Snuderl, David Feny¨o,
+Andre L Moreira, Narges Razavian, and Aristotelis Tsirigos.
+Classification and mutation prediction from non–small cell
+lung cancer histopathology images using deep learning. Na-
+ture Medicine, 24(10):1559–1567, 2018. 1
+[12] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov,
+Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner,
+Mostafa Dehghani, Matthias Minderer, Georg Heigold, Syl-
+vain Gelly, Jakob Uszkoreit, and Neil Houlsby. An image is
+worth 16x16 words: Transformers for image recognition at
+scale. In International Conference on Learning Representa-
+tions (ICLR), 2021. 7
+[13] Amelie Echle, Niklas Timon Rindtorff, Titus Josef Brinker,
+Tom Luedde, Alexander Thomas Pearson, and Jakob Nikolas
+Kather. Deep learning in cancer pathology: a new generation
+of clinical biomarkers. British Journal of Cancer, 124(4):
+686–696, 2021. 1
+[14] Jonathan I Epstein. An update of the gleason grading system.
+The Journal of urology, 183(2):433–440, 2010. 1
+[15] Jonathan I Epstein, Michael J Zelefsky, Daniel D Sjoberg,
+Joel B Nelson, Lars Egevad, Cristina Magi-Galluzzi, An-
+drew J Vickers, Anil V Parwani, Victor E Reuter, Samson W
+Fine, et al. A contemporary prostate cancer grading system:
+a validated alternative to the gleason score. European urol-
+ogy, 69(3):428–435, 2016. 1
+[16] Alexandre Filiot, Ridouane Ghermi, Antoine Olivier, Paul
+Jacob, Lucas Fidon, Alice Mac Kain, Charlie Saillard, and
+Jean-Baptiste Schiratti.
+Scaling self-supervised learning
+for histopathology with masked image modeling. medRxiv
+preprint, 2023. 1
+8
+[17] Samuel G Finlayson, Adarsh Subbaswamy, Karandeep
+Singh, John Bowers, Annabel Kupke, Jonathan Zittrain,
+Isaac S Kohane, and Suchi Saria. The clinician and dataset
+shift in artificial intelligence.
+New England Journal of
+Medicine, 385(3):283–286, 2021. 1
+[18] Fredrik K. Gustafsson, Martin Danelljan, and Thomas B.
+Sch¨on. How reliable is your regression model’s uncertainty
+under real-world distribution shifts?
+Transactions on Ma-
+chine Learning Research (TMLR), 2023. 1
+[19] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Deep residual learning for image recognition. In Proceed-
+ings of the IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 770–778, 2016. 7
+[20] Dan Hendrycks and Thomas Dietterich. Benchmarking neu-
+ral network robustness to common corruptions and perturba-
+tions. In International Conference on Learning Representa-
+tions (ICLR), 2019. 1
+[21] Julia H¨ohn,
+Eva Krieghoff-Henning,
+Christoph Wies,
+Lennard Kiehl, Martin J Hetz, Tabea-Clara Bucher, Jitendra
+Jonnagaddala, Kurt Zatloukal, Heimo M¨uller, Markus Plass,
+et al.
+Colorectal cancer risk stratification on histological
+slides based on survival curves predicted by deep learning.
+npj Precision Oncology, 7(1):98, 2023. 1
+[22] Maximilian Ilse,
+Jakub Tomczak,
+and Max Welling.
+Attention-based deep multiple instance learning. In Inter-
+national Conference on Machine Learning (ICML), pages
+2127–2136, 2018. 2, 7
+[23] Mostafa Jahanifar, Manahil Raza, Kesi Xu, Trinh Vuong,
+Rob Jewsbury, Adam Shephard, Neda Zamanitajeddin,
+Jin Tae Kwak, Shan E Ahmed Raza, Fayyaz Minhas, et al.
+Domain generalization in computational pathology: survey
+and guidelines. arXiv preprint arXiv:2310.19656, 2023. 1
+[24] Xiaofeng Jiang, Michael Hoffmeister, Hermann Brenner,
+Hannah Sophie Muti, Tanwei Yuan, Sebastian Foersch,
+Nicholas P West, Alexander Brobeil, Jitendra Jonnagaddala,
+Nicholas Hawkins, et al. End-to-end prognostication in col-
+orectal cancer by deep learning: a retrospective, multicentre
+study. The Lancet Digital Health, 6(1):e33–e43, 2024. 1
+[25] Pang
+Wei
+Koh,
+Shiori
+Sagawa,
+Henrik
+Marklund,
+Sang Michael Xie,
+Marvin Zhang,
+Akshay Balsubra-
+mani, Weihua Hu, Michihiro Yasunaga, Richard Lanas
+Phillips, Irena Gao, et al. Wilds: A benchmark of in-the-
+wild distribution shifts.
+In International Conference on
+Machine Learning (ICML), pages 5637–5664. PMLR, 2021.
+1
+[26] Narmin Ghaffari Laleh,
+Hannah Sophie Muti,
+Chiara
+Maria Lavinia Loeffler, Amelie Echle, Oliver Lester Sal-
+danha, Faisal Mahmood, Ming Y Lu, Christian Trautwein,
+Rupert Langer, Bastian Dislich, et al. Benchmarking weakly-
+supervised deep learning pipelines for whole slide classifica-
+tion in computational pathology. Medical Image Analysis,
+79, 2022. 2
+[27] Ilya Loshchilov and Frank Hutter.
+Decoupled weight de-
+cay regularization. In International Conference on Learning
+Representations (ICLR), 2019. 7
+[28] Ming Y Lu, Drew FK Williamson, Tiffany Y Chen, Richard J
+Chen, Matteo Barbieri, and Faisal Mahmood. Data-efficient
+and weakly supervised computational pathology on whole-
+slide images.
+Nature Biomedical Engineering, 5(6):555–
+570, 2021. 6, 7
+[29] Ming Y Lu, Bowen Chen, Drew FK Williamson, Richard J
+Chen, Ivy Liang, Tong Ding, Guillaume Jaume, Igor
+Odintsov, Long Phi Le, Georg Gerber, et al.
+A visual-
+language foundation model for computational pathology.
+Nature Medicine, 30:863–874, 2024. 1, 6, 7
+[30] Michael Moor, Oishi Banerjee, Zahra Shakeri Hossein Abad,
+Harlan M Krumholz, Jure Leskovec, Eric J Topol, and
+Pranav Rajpurkar. Foundation models for generalist medi-
+cal artificial intelligence. Nature, 616(7956):259–265, 2023.
+1
+[31] Dmitry Nechaev, Alexey Pchelnikov, and Ekaterina Ivanova.
+Hibou: A family of foundational vision transformers for
+pathology. arXiv preprint arXiv:2406.05074, 2024. 1
+[32] Peter Neidlinger, Omar SM El Nahhas, Hannah Sophie Muti,
+Tim Lenz, Michael Hoffmeister, Hermann Brenner, Marko
+van Treeck, Rupert Langer, Bastian Dislich, Hans Michael
+Behrens, et al. Benchmarking foundation models as feature
+extractors for weakly-supervised computational pathology.
+arXiv preprint arXiv:2408.15823, 2024. 1, 4
+[33] Jan Moritz Niehues, Philip Quirke, Nicholas P West, Heike I
+Grabsch, Marko van Treeck, Yoni Schirris, Gregory P Veld-
+huizen, Gordon GA Hutchins, Susan D Richman, Sebastian
+Foersch, et al. Generalizable biomarker prediction from can-
+cer pathology slides with self-supervised deep learning: A
+retrospective multi-centric study. Cell Reports Medicine, 4
+(4), 2023. 1
+[34] Maxime Oquab, Timoth´ee Darcet, Th´eo Moutakanni, Huy V.
+Vo, Marc Szafraniec, Vasil Khalidov, Pierre Fernandez,
+Daniel HAZIZA, Francisco Massa, Alaaeldin El-Nouby,
+Mido Assran, Nicolas Ballas, Wojciech Galuba, Russell
+Howes, Po-Yao Huang, Shang-Wen Li, Ishan Misra, Michael
+Rabbat, Vasu Sharma, Gabriel Synnaeve, Hu Xu, Herve Je-
+gou, Julien Mairal, Patrick Labatut, Armand Joulin, and Pi-
+otr Bojanowski. DINOv2: Learning robust visual features
+without supervision. Transactions on Machine Learning Re-
+search (TMLR), 2024. 7
+[35] Yaniv Ovadia, Emily Fertig, Jie Ren, Zachary Nado, D.
+Sculley, Sebastian Nowozin, Joshua Dillon, Balaji Lakshmi-
+narayanan, and Jasper Snoek. Can you trust your model's
+uncertainty? Evaluating predictive uncertainty under dataset
+shift. In Advances in Neural Information Processing Systems
+(NeurIPS), 2019. 1
+[36] F. Pedregosa, G. Varoquaux, A. Gramfort, V. Michel, B.
+Thirion, O. Grisel, M. Blondel, P. Prettenhofer, R. Weiss,
+V. Dubourg, J. Vanderplas, A. Passos, D. Cournapeau, M.
+Brucher, M. Perrot, and E. Duchesnay. Scikit-learn: Machine
+learning in Python. Journal of Machine Learning Research
+(JMLR), 12:2825–2830, 2011. 7
+[37] Joaquin Quionero-Candela,
+Masashi Sugiyama,
+Anton
+Schwaighofer, and Neil D Lawrence. Dataset shift in ma-
+chine learning, 2009. 1
+[38] Olga Russakovsky, Jia Deng, Hao Su, Jonathan Krause, San-
+jeev Satheesh, Sean Ma, Zhiheng Huang, Andrej Karpathy,
+Aditya Khosla, Michael Bernstein, et al.
+Imagenet large
+9
+scale visual recognition challenge. International Journal of
+Computer Vision (IJCV), 115:211–252, 2015. 7
+[39] Charlie Saillard, Rodolphe Jenatton, Felipe Llinares-L´opez,
+Zelda Mariet, David Cahan´e, Eric Durand, and Jean-Philippe
+Vert. H-optimus-0, 2024. 5
+[40] Artem Shmatko, Narmin Ghaffari Laleh, Moritz Ger-
+stung, and Jakob Nikolas Kather. Artificial intelligence in
+histopathology: enhancing cancer research and clinical on-
+cology. Nature Cancer, 3(9):1026–1038, 2022. 1
+[41] Peter Str¨om, Kimmo Kartasalo, Henrik Olsson, Leslie
+Solorzano, Brett Delahunt, Daniel M Berney, David G Bost-
+wick, Andrew J Evans, David J Grignon, Peter A Humphrey,
+et al.
+Artificial intelligence for diagnosis and grading of
+prostate cancer in biopsies: a population-based, diagnostic
+study. The Lancet Oncology, 21(2):222–232, 2020. 1
+[42] Sarah Volinsky-Fremond, Nanda Horeweg, Sonali Andani,
+Jurriaan Barkey Wolf, Maxime W Lafarge, Cor D de Kroon,
+Gitte Ørtoft, Estrid Høgdall, Jouke Dijkstra, Jan J Jobsen,
+et al.
+Prediction of recurrence risk in endometrial cancer
+with multimodal deep learning. Nature Medicine, pages 1–
+12, 2024. 1
+[43] Eugene Vorontsov, Alican Bozkurt, Adam Casson, George
+Shaikovski, Michal Zelechowski, Kristen Severson, Eric
+Zimmermann, James Hall, Neil Tenenholtz, Nicolo Fusi,
+et al. A foundation model for clinical-grade computational
+pathology and rare cancers detection.
+Nature Medicine,
+pages 1–12, 2024. 1, 5
+[44] Y Wang, B Acs, S Robertson, B Liu, Leslie Solorzano, Car-
+olina W¨ahlby, J Hartman, and M Rantalainen.
+Improved
+breast cancer histological grading using deep learning. An-
+nals of Oncology, 33(1):89–98, 2022. 1
+[45] Georg W¨olflein, Dyke Ferber, Asier R. Meneghetti, Omar S.
+M. El Nahhas, Daniel Truhn, Zunamys I. Carrero, David J.
+Harrison, Ognjen Arandjelovi´c, and Jakob Nikolas Kather.
+Benchmarking pathology feature extractors for whole slide
+image classification.
+arXiv preprint arXiv:2311.11772v5,
+2024. 1
+[46] Hanwen Xu, Naoto Usuyama, Jaspreet Bagga, Sheng Zhang,
+Rajesh Rao, Tristan Naumann, Cliff Wong, Zelalem Gero,
+Javier Gonz´alez, Yu Gu, et al.
+A whole-slide foundation
+model for digital pathology from real-world data. Nature,
+pages 1–8, 2024. 1, 5
+[47] Jiahui Yu, Zirui Wang, Vijay Vasudevan, Legg Yeung, Mo-
+jtaba Seyedhosseini, and Yonghui Wu. Coca: Contrastive
+captioners are image-text foundation models. Transactions
+on Machine Learning Research (TMLR), 2022. 7
+[48] Jinghao Zhou, Chen Wei, Huiyu Wang, Wei Shen, Cihang
+Xie, Alan Yuille, and Tao Kong. Image BERT pre-training
+with online tokenizer. In International Conference on Learn-
+ing Representations (ICLR), 2022. 7
+[49] Eric Zimmermann, Eugene Vorontsov, Julian Viret, Adam
+Casson, Michal Zelechowski, George Shaikovski, Neil
+Tenenholtz, James Hall, Thomas Fuchs, Nicolo Fusi, et al.
+Virchow2:
+Scaling self-supervised mixed magnification
+models in pathology.
+arXiv preprint arXiv:2408.00738,
+2024. 1, 5
+10
+Evaluating Computational Pathology Foundation Models for
+Prostate Cancer Grading under Distribution Shifts
+Supplementary Material
+A. Supplementary Tables
+Table S1. Raw numerical results for Figure 1. All results are mean±std over 10 random cross-validation folds.
+PANDA
+Karolinska
+Radboud
+Radboud →Karolinska
+Radboud-U
+Radboud-U →Karolinska-U
+Radboud-L
+Radboud-L →Radboud-R
+UNI - ABMIL
+0.888±0.013
+0.886±0.009
+0.853±0.026
+0.247±0.138
+0.843±0.023
+0.459±0.112
+0.826±0.036
+0.739±0.014
+CONCH - ABMIL
+0.866±0.009
+0.862±0.015
+0.818±0.021
+0.024±0.018
+0.818±0.028
+0.206±0.075
+0.805±0.048
+0.712±0.014
+Resnet-IN - ABMIL
+0.773±0.013
+0.750±0.027
+0.726±0.023
+0.185±0.041
+0.725±0.018
+0.380±0.035
+0.708±0.046
+0.545±0.014
+UNI - Mean Feature
+0.845±0.020
+0.779±0.021
+0.846±0.015
+0.489±0.059
+0.828±0.028
+0.516±0.018
+0.806±0.032
+0.686±0.020
+CONCH - Mean Feature
+0.777±0.019
+0.714±0.023
+0.743±0.025
+0.026±0.015
+0.743±0.038
+0.165±0.048
+0.731±0.055
+0.590±0.019
+Resnet-IN - Mean Feature
+0.610±0.030
+0.484±0.041
+0.565±0.023
+0.216±0.023
+0.550±0.040
+0.369±0.006
+0.514±0.045
+0.425±0.006
+UNI - kNN
+0.727±0.018
+0.582±0.033
+0.747±0.027
+0.214±0.037
+0.711±0.036
+0.283±0.034
+0.666±0.030
+0.397±0.005
+CONCH - kNN
+0.690±0.021
+0.590±0.026
+0.687±0.041
+0.208±0.012
+0.665±0.030
+0.320±0.023
+0.630±0.043
+0.387±0.008
+Resnet-IN - kNN
+0.613±0.016
+0.461±0.030
+0.630±0.042
+0.070±0.013
+0.594±0.048
+0.098±0.029
+0.502±0.041
+0.282±0.008
+Table S2. Raw numerical results for Figure 2. All results are mean±std over 10 random cross-validation folds.
+PANDA
+Karolinska
+Radboud
+Radboud →Karolinska
+Radboud-U
+Radboud-U →Karolinska-U
+Radboud-L
+Radboud-L →Radboud-R
+ABMIL - UNI
+0.888±0.013
+0.886±0.009
+0.853±0.026
+0.247±0.138
+0.843±0.023
+0.459±0.112
+0.826±0.036
+0.739±0.014
+Mean Feature - UNI
+0.845±0.020
+0.779±0.021
+0.846±0.015
+0.489±0.059
+0.828±0.028
+0.516±0.018
+0.806±0.032
+0.686±0.020
+kNN - UNI
+0.727±0.018
+0.582±0.033
+0.747±0.027
+0.214±0.037
+0.711±0.036
+0.283±0.034
+0.666±0.030
+0.397±0.005
+ABMIL - CONCH
+0.866±0.009
+0.862±0.015
+0.818±0.021
+0.024±0.018
+0.818±0.028
+0.206±0.075
+0.805±0.048
+0.712±0.014
+Mean Feature - CONCH
+0.777±0.019
+0.714±0.023
+0.743±0.025
+0.026±0.015
+0.743±0.038
+0.165±0.048
+0.731±0.055
+0.590±0.019
+kNN - CONCH
+0.690±0.021
+0.590±0.026
+0.687±0.041
+0.208±0.012
+0.665±0.030
+0.320±0.023
+0.630±0.043
+0.387±0.008
+ABMIL - Resnet-IN
+0.773±0.013
+0.750±0.027
+0.726±0.023
+0.185±0.041
+0.725±0.018
+0.380±0.035
+0.708±0.046
+0.545±0.014
+Mean Feature - Resnet-IN
+0.610±0.030
+0.484±0.041
+0.565±0.023
+0.216±0.023
+0.550±0.040
+0.369±0.006
+0.514±0.045
+0.425±0.006
+kNN - Resnet-IN
+0.613±0.016
+0.461±0.030
+0.630±0.042
+0.070±0.013
+0.594±0.048
+0.098±0.029
+0.502±0.041
+0.282±0.008
+11
+B. Supplementary Figures
+MAE (↓)
+0.5
+1
+1.5
+2
+MAE (↓)
+0.5
+1
+1.5
+2
+MAE (↓)
+PANDA
+Karolinska
+Radboud
+Radboud →
+Karolinska
+Radboud-U
+Radboud-U →
+Karolinska-U
+Radboud-L
+Radboud-L →
+Radboud-R
+0
+0.5
+1
+1.5
+2
+UNI
+CONCH
+Resnet-IN
+Figure S1. Performance comparison of UNI, CONCH and Resnet-IN across different PANDA subset, when utilized as patch-level feature
+extractors in the ABMIL (top), Mean Feature (middle) or kNN (bottom) ISUP grade models. The same comparison as in Figure 1, but in
+terms of MAE (lower is better) instead of kappa. The ranking of UNI, CONCH and Resnet-IN is virtually identical as in Figure 1.
+MAE (↓)
+0.5
+1
+1.5
+2
+MAE (↓)
+0.5
+1
+1.5
+2
+MAE (↓)
+PANDA
+Karolinska
+Radboud
+Radboud →
+Karolinska
+Radboud-U
+Radboud-U →
+Karolinska-U
+Radboud-L
+Radboud-L →
+Radboud-R
+0
+0.5
+1
+1.5
+2
+ABMIL
+Mean Feature
+kNN
+Figure S2. Performance comparison of the ISUP grade models ABMIL, Mean Feature and kNN, when utilizing UNI (top), CONCH
+(middle) or Resnet-IN (bottom) as patch-level feature extractors. The same comparison as in Figure 2, but in terms of MAE (lower is
+better) instead of kappa. The ranking of ABMIL, Mean Feature and kNN is virtually identical as in Figure 2.
+12

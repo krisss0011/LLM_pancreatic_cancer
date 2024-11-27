@@ -1,0 +1,1439 @@
+arXiv:2411.06591v1  [stat.ME]  10 Nov 2024
+Biometrics
+Analysis of spatially clustered survival data with unobserved covariates using
+SBART
+Durbadal Ghosh1,∗, Debajyoti Sinha1, Antonio Linero2, George Rust1
+1Florida State University; 2University of Texas at Austin
+*email: dg20ea@fsu.edu
+Summary:
+Usual parametric and semi-parametric regression methods are inappropriate and inadequate for large
+clustered survival studies when the appropriate functional forms of the covariates and their interactions in hazard
+functions are unknown, and random cluster eﬀects and cluster-level covariates are spatially correlated. We present a
+general nonparametric method for such studies under the Bayesian ensemble learning paradigm called Soft Bayesian
+Additive Regression Trees. Our methodological and computational challenges include large number of clusters, variable
+cluster sizes, and proper statistical augmentation of the unobservable cluster-level covariate using a data registry
+diﬀerent from the main survival study. We use an innovative 3-step approach based on latent variables to address
+our computational challenges. We illustrate our method and its advantages over existing methods by assessing the
+impacts of intervention in some county-level and patient-level covariates to mitigate existing racial disparity in breast
+cancer survival in 67 Florida counties (clusters) using two diﬀerent data resources. Florida Cancer Registry (FCR)
+is used to obtain clustered survival data with patient-level covariates, and the Behavioral Risk Factor Surveillance
+Survey (BRFSS) is used to obtain further data information on an unobservable county-level covariate of Screening
+Mammography Utilization (SMU).
+SBART Spatial Survival
+1
+1
+Introduction
+Clustered survival responses frequently arise in family studies, complex surveys, and multi-
+center clinical trials because survival times are clustered within families, geographical re-
+gions/units, and clinical centers (Hougaard, 2000). Unlike existing estimation equations
+based marginal analysis of clustered survival data (e.g., Lin and Ying, 1997; Lin and Wei,
+1992), particularly for spatially clustered survival data, models with unobserved cluster-
+speciﬁc random eﬀects allow more careful modeling of the within-cluster association. The
+most popular methods for such random cluster eﬀects are the so-called shared frailty models
+(Oakes, 1982; Aalen, 1994) under the assumption of proportional hazards (Cox, 1972) for
+the covariate eﬀect as well as the random cluster eﬀect, called frailty. See Hougaard (2000)
+and Ibrahim et al. (2001) for reviews of frequentist and Bayesian approaches for clustered
+survival data using the shared frailty models, which usually assume independence among
+random cluster eﬀects (frailties). However, our motivating survival study uses the Florida
+Cancer Registry (FCR), a state-wide registry of n = 76, 174 breast cancer patients accrued
+during 2004-2016 from 67 FL counties (clusters) with the availability of only the name of the
+county of each patient (hence, each county being an areal unit). So, these random cluster
+eﬀects on survival (frailties) are expected to be spatially associated. Like many other studies
+in the era of big data, the cluster sizes in FCR are highly variable, with a median of 503,
+a minimum of 1 (Liberty County), and a maximum of 6,234 patients (Broward County).
+The results of a separate analysis of survival data from each county would produce very
+unreliable conclusions for small countries with a moderate number of patients. Recently,
+there has been a massive increase in such studies with spatial locations of subjects (Li and
+Ryan, 2002; Taylor, 2015; Banerjee, 2016; Zhou, Hanson, and Zhang, 2017). Unlike most
+of these articles dealing with point-reference spatial survival times, our method deals with
+2
+SBART Spatial Survival
+spatial association among unknown cluster/county eﬀects by assuming a Conditional Auto
+Regressive (CAR) structure (Besag, 1974) among areal (lattice) units.
+One major challenge of our study is that one important county-level covariate, Screening-
+Mammography Utilization (in short, SMU), is not available from the FCR database even
+though it provides multiple other subject-level covariates. Our challenge of statistically
+principled augmentation of true unobservable SMU proportions within our Bayesian analysis
+is somewhat related to the covariate measurement error problem (Zucker, 2005; Sinha and
+Ma, 2014), except that we utilize within our analysis another study, the Behavioral Risk
+Factor Surveillance System (BRFSS), a nationwide telephone survey including the utilization
+of cancer prevention services. So, the screening mammography survey data from BRFSS also
+depend on these unobservable SMU proportions. Instead of using any plug-in estimators of
+SMU proportions based on BRFSS data alone, we incorporate both BRFSS and FCR studies
+within the same joint posterior and use the CAR model (Besag, 1974) to account for the
+spatial association among true unobservable SMU proportions of 67 counties.
+Most existing methods for spatially correlated survival data use fully parametric or semi-
+parametric survival models such as accelerated failure time (AFT) and proportional hazards
+(Cox, 1972) models. In practice, the true functional forms of these functions of interest are
+possibly more complex than the assumed semiparametric regression model, mainly because
+the true functional forms and nature of interactions among the covariates are usually un-
+known. From standard residual analysis, it is diﬃcult to judge whether the semiparametric
+modeling assumptions are either valid or adequate to explain the covariate eﬀects of such
+complex studies. Especially for studies with large numbers of clusters and at least some large
+clusters, observed data may conﬂict with the restrictive modeling assumptions of popular
+parametric and semiparametric models.
+Some of the recent nonparametric approaches to accommodate such complex survival
+SBART Spatial Survival
+3
+regression methods include Boosting proportional hazards (Li and Luan, 2005), Bagging
+(Hothorn, Lausen, and Benner, 2004), Random Survival Forests (Ishwaran et al., 2008), and
+Gaussian process for nonparametric covariate eﬀects (Fernandez, Rivera, and Teh, 2016).
+Various tree-based nonparametric methods (Li, Linero, and Murray, 2022, and the references
+therein) for continuous and discrete responses (not survival response) often work better than
+traditional nonparametric tools in the presence of nonlinear regression eﬀects and unknown
+order of interactions. Among these methods, the Bayesian Additive Regression Trees (BART)
+particularly show promising prediction capability. An extension of BART, called Soft-BART
+(SBART), can even adapt to the smoothness of the unknown regression function and avoid
+overﬁtting (Linero, 2017). For clustered survival data, a recently developed ﬂexible method
+using SBART (Basak et al., 2022) centers the prior of the nonparametric hazard on a
+parametric “prior guess”, accommodates time-dependent covariates and time-varying regres-
+sion eﬀects, and performs better than Random Survival Forests and usual semiparametric
+Bayesian methods. However, it does not accommodate any unobserved cluster-level covariates
+and spatial associations among random cluster eﬀects. Our other challenge is to obtain
+posterior samples of the relevant parameters, predictions, and relevant model summaries to
+achieve our analysis goals of a study of disparity in breast cancer survival.
+In Section 2, we present brief reviews of BART and SBART and then describe our model
+consisting of three sub-models: a hazard-based model for continuous and clustered survival
+responses, a spatial model for cluster/county eﬀects, and a model for the BRFSS study
+data that also depends on the spatially correlated true SMU proportions of diﬀerent clus-
+ters/counties. Section 3 describes our priors, including the SBART prior for our nonparamet-
+ric hazard. To deal with several computational challenges, including an intractable likelihood,
+two submodels sharing a common set of correlated parameters, a high number of clusters,
+and some very large cluster sizes, in Section 3, we present an eﬃcient and novel 3 steps
+4
+SBART Spatial Survival
+data-augmentation-based algorithm with the associated code in R to obtain Markov Chain
+Monte Carlo (MCMC) samples from our joint posterior with easy to compute importance
+sampling weights. The simulation studies in Section 4 compare our method’s performance
+with two existing frequentist methods. In Section 5, we compare our Bayesian analysis with
+the analysis based on competing methods of the Florida breast cancer study using diﬀerent
+residual-based diagnostics and illustrate the practical advantages of our method through
+important analysis results. These include an ordering of the covariates based on their roles
+on the hazard, estimation of survival curves for patients with known covariates in diﬀerent
+counties, and evaluation of expected lifetimes saved within 5 years and 10 years for a future
+patient if the racial disparities in certain covariates are mitigated. The last is of particular
+interest to policy makers. In Section 5, we conclude with some discussion about future
+directions.
+2
+Models, likelihoods, and priors
+2.1
+Brief review of BART and SBART:
+Even though Bayesian Regression Trees (BART) was originally developed for continuous
+response, BART now has been extended to binary response Y with the nonparametric probit
+model Y ∼Bernoulli[Φ{b0(x)}] (Chipman, George, and McCulloch, 2010), where Φ(·) is the
+cdf of the standard normal density, and vector x is a p-dimensional covariates (including
+even categorical covariates). The unknown regression function b0 : Rp →R is a sum of K
+regression trees b0(x) = PK
+k=1 g(x; τk, Mk), where τk denotes the topology (splitting rules)
+of the decision tree k and Mk = {µk1, · · · , µkJk} is the set of predictions for the Jk terminal
+nodes (or resulting partitions of the covariate space) of the decision tree τk. Here, each
+tree g(x; τk, Mk) = PJk
+ℓ=1 ϕℓ(x; τk)µkℓis a step function, where ϕℓ(x; τk) is the indicator of
+whether x is associated to leaf ℓof τk. For every branch node b of τk, a splitting rule of
+the form [xj ⩽Cb] is assigned with x going down the left of the branch if the condition
+SBART Spatial Survival
+5
+is satisﬁed and right of the branch otherwise. Following Chipman et al. (2010), unknown
+τk is assigned a branching process prior with sequentially employing regularized priors for
+terminating at a particular depth, for selecting a splitting variable at a nonterminal node,
+and for selecting the corresponding cut point of a splitting variable. A schematic diagram in
+Figure 1 shows how the branching process prior generates a sample of the decision tree τk
+and, consequently, a partition of the covariate space and corresponding ϕℓ(x; τk).
+A schematic diagram in Figure 1 shows how the branching process prior generates a sample
+of the decision tree τk and, consequently, a partition of the covariate space and corresponding
+ϕℓ(x; τk).
+[Figure 1 about here.]
+The default common Gaussian prior µkl
+iid
+∼N(0, σ2
+µ) for µkl with σµ = 3/(2
+√
+K) to ensures
+that Φ{b0(x)} is concentrated in the interval (Φ(−3), Φ(+3)). However, when the underlying
+response surface b0(x) is believed to be smooth, as is often the case in practice, prediction
+accuracy can be further improved theoretically, practically, and without compromising bias
+by extending the BART to SBART (Linero and Yang, 2018), which uses “soft decision
+trees” via replacing the indicator function ϕℓ(x; τk) with Q
+b∈Ak(ℓ) ψ(xjb; Cb, αb)1−Rb{1 −
+ψ(xjb; Cb, αb)}Rb, where Ak(ℓ) denotes the collection of ancestor nodes of leaf ℓand Rb
+is the indicator that the path from root to ℓat branch b goes right, and ψ(x; c, α) =
+[1 + exp{−(x −c)/α}]−1 is a continuous distribution function with location c and scale
+α > 0. The bandwidth parameter α →0 corresponds to the usual BART model.
+Below, we describe how these are extended to address our survival submodel, followed by
+the spatial submodels for cluster eﬀects and unknown cluster-level covariates.
+6
+SBART Spatial Survival
+2.2
+Nonparametric hazards model:
+Even though in our data analysis, we perform separate analyses for 6 strata indexed by
+combinations of 2 races and 3 stages of cancer, we now suppress the obvious connection
+of our model parameters to the underlying stratum in our notation. For any particular
+stratum, the survival submodel for subject j of the cluster (county) i = 1, · · · , N has the
+hazard function
+λij(t | Wi, Mi; xij) = λ0(t) Wi Φ(b(t, Mi, xij))
+(1)
+given the cluster-speciﬁc random eﬀect (frailty) Wi and the true unobserved cluster-level
+covariate Mi. Here, xij = (xij1, ..., xijp) ∈Rp is the vector of all observed (available in survival
+database FCR) patient-level covariates (examples include age and indicator of treatment
+delay). To ease the posterior computation, we scale all continuous covariates to have support
+(0, 1). The nonparametric hazard of (1) is centered on parametric baseline hazard λ0(·). For
+example, if b(t, Mi, xij) does not depend on t, then λij(t | Wi, Mi; xij) = λ0(t) WiΦ(b(Mi, xij))
+is proportional over time to the baseline λ0(t). Without loss of generality, we assume constant
+λ0(t) = λ0 because a fully nonparametric time-varying b(t, xij, Mi) in (1) already involves t.
+The unobserved cluster eﬀect (frailty) Wi accommodates the association within the cluster.
+The hazard in (1) extends the hazard model of Basak et al., 2022) with SBART for un-
+known b(t, M, x) to now accommodate spatial associations (explained later) between Wi and
+among the unobservable Mi. Under possible non-informative right-censoring, the likelihood
+contribution of the observed survival response (yij, δij) under the hazard function in (1) is
+Lij(Wi, λ0, b; Mi) ∝{λ0WiΦ(b(yij, Mi; xij))}δij exp
+
+−Wi λ0
+Z yij
+0
+Φ(b(s, Mi, xij)) ds
+
+,
+(2)
+where P[Tij > t | Wi, Mi; xij] = S(t | Wi, Mi; xij) = exp
+n
+−Wi λ0
+R t
+0 Φ(b(s, Mi, xij)) ds
+o
+,
+and the censoring indicator δij = 1 when observed yij = Tij and δij = 0 when yij < Tij.
+SBART Spatial Survival
+7
+2.3
+Spatial model for frailty:
+To account for a spatial association among unknown frailties W = (W1, · · · , WN) of N = 67
+counties (areal units) in (1), the spatial distance between any pair (i, k) of areal units (coun-
+ties) is described by the N×N adjacency matrix A with aik = 1 if i ̸= k are neighboring coun-
+ties, otherwise aik = 0. We assume that the joint distribution of R = (log(W1), · · · , log(WN))
+is a Conditional Auto-Regressive (CAR) model (Besag, 1974), denoted by
+R ∼CAR(A; σ2
+1, ρ1) if R ∼MV N(0, σ2
+1(D −ρ1A)−1) ,
+(3)
+where D = diag(a1+, a2+ · · · aN+), and ai+ = PN
+j=1 aij is the total number of neighbors of
+county i. The unknown parameters ρ1 ∈(
+1
+α(1) ,
+1
+α(N) ) and σ2
+1 > 0, respectively, characterize
+the spatial correlation and the variability among these N cluster eﬀects. We need the
+restriction above on ρ1 to ensure that the multivariate normal density of R in (3) is proper,
+where α(1) and α(N) are the minimum and maximum eigenvalues of A and (
+1
+α(1) ,
+1
+α(N) ) =
+(−0.346, +0.163) for FL. This spatial frailty model in (3) also ensures the identiﬁability
+condition E[Ri] = 0, and the conditional distribution of each Ri given R(−i) = {Rj : j ̸= i}
+is N
+
+ρ1
+ai+
+PN
+k=1 aikRk, σ2
+1/ai+
+
+, where the conditional mean E[Ri | R(−i)] is proportional
+to the average PN
+k=1 aikRk/ai+ of its neighbors’ values, and the variance Var[Ri | R(−i)] is
+inversely proportional to the number of neighbors ai+.
+2.4
+Spatial model for unobservable covariates:
+Instead of observing the true proportion of cluster-speciﬁc SMU (Mi) in FCR, another sepa-
+rate database, BRFSS, has the observed survey data D0 = (m0, n0) for m0 = (m01, · · · , m0N)
+and n0 = (n01, · · · , n0N), where m0i is the observed number of patients receiving regular
+screening mammography out of n0i patients surveyed in county i. It is reasonable here to
+assume that the observed m0i given unknown M is independent Binomial(n0i, Mi), Also,
+where the spatial association model for M is similar to the spatial model (3) of W with the
+8
+SBART Spatial Survival
+same adjacency matrix A, but possibly with diﬀerent spatial correlation ρ0 ∈(α−1
+(1), α−1
+(N)) =
+(−0.346, 0.163) and variability σ2
+0 > 0. Therefore, the likelihood contribution of D0 and the
+distribution M are given as
+L0(M|D0) ∝
+N
+Y
+i=1
+L∗
+i (Mi) ∝
+N
+Y
+i=1
+{Mm0i
+i
+(1 −Mi)n0i−m0i}, and logit(M) ∼CAR(A; σ2
+0, ρ0) ,
+(4)
+where logit(M) = (logit(M1), . . . , logit(MN)).
+To fully specify our hierarchical Bayesian model, we specify the joint prior distribution
+p(Ω) of our model parameters Ω= (b, λ0, η1, η0) as p(Ω) ∝p(b | Ψ) × p(λ0) × p(η1) × p(η0),
+where p(η1) is the prior of the parameters η1 = (σ2
+1, ρ1) of the frailty model in (3), p(η0) is
+the prior of the parameters η0 = (σ2
+0, ρ0) of SMU in (4). As described earlier, we model the
+possibly time-varying eﬀects, unknown forms of observed and unknown covariates (xij, Mi)
+and their interactions using the SBART prior p(b | Ψ) on the completely nonparametric
+b(t, Mi, xij), of (1), where Ψ denotes its usual regularized known hyperparameters of the
+priors of {τK, Mk}K
+k=1. We can show that the prior predictive survival function EΨ[P{T >
+t|W, M, x}] under SBART is a valid survival function, where EΨ denotes the expectation
+with respect to the SBART prior.
+Furthermore, for the independent priors p(ηk) for k = 0, 1, we assume a common noninfor-
+mative Unif(−0.346, 0.163) prior for both ρk, and a common independent Inverse-Gamma
+prior for both σ2
+k. We use a Gamma distribution for prior p(λ0). The hyperparameters for
+these priors are chosen to ensure that their choices have very moderate eﬀects on the posterior
+inference, given the large size of the observed data.
+3
+Posterior and computation
+Given the observed data D = {D0, D1}, where D1 = {(yij, δij; xij) : j = 1, · · · , ni; i =
+1, · · · , N} is the survival data from FCR and D0 = {m0i, n0i : i = 1, · · · , N} is the
+SBART Spatial Survival
+9
+mammography screening data from BRFSS, the joint posterior of our model is
+p(Ω, W, M | D) ∝[
+N
+Y
+i=1
+{
+ni
+Y
+j=1
+Lij}] × L0(M|D0) × g1(W | η1) × g0(M | η0) × p(Ω),
+(5)
+where Lij is the likelihood contribution of the survival response of subject (i, j) as given
+in (2), g1(W | η1) and g0(M | η0) are the CAR based joint densities of W in (3) and of
+M in (4) respectively, and L0(M|D0), a function of only unobservable M, is the likelihood
+contribution from BRFSS under the model of (4). The ﬁrst major challenge in sampling
+all the model parameters Ω= (b, λ0, η1, η0) from (5) using the MCMC tool is the presence
+of M in both Q
+(i,j) Lij and L0. So, we use the following steps to implement the Bayesian
+computation of any Bayesian estimate
+R
+f(Ω1)p(Ω1|D) dΩ1 of any parameter/quantity of
+interest in the model f(Ω1) of the survival submodel in (1).
+Step 1: Obtain samples of M from the posterior p0(M, η0|D0) ∝[L0(M|D0)] × g0(M|η0) ×
+p(η0) and use these samples to compute the posterior estimate ˆM = E[M|D0] of M.
+Step 2: Obtain MCMC samples of the rest of the parameters Ω1 = (b, λ0, η1) and W from
+the approximate posterior
+p(W, Ω1 | D1; ˆM) ∝[
+N
+Y
+i=1
+{
+ni
+Y
+j=1
+Lij(Wi, λ0, b; ˆ
+Mi)}]g1(W | η1)p(b | Ψ)p(λ0)p(η1) .
+(6)
+Step 3: Use ﬁnal samples of (M, η0, Ω1, W) from previous steps as importance samples from
+(5) with weights proportional to QN
+i=1[Qni
+j=1{Lij(Wi, λ0, b; Mi)/Lij(Wi, λ0, b; ˆ
+Mi)}].
+The primary challenge in implementing the MCMC tool to sample from (6) in Step 2
+and evaluating the importance weight in Step 3 is that the likelihood contribution Lij in
+(2) requires numerical evaluation of integrals like
+R yij
+0
+Φ(b(s, ˆ
+Mi, x)) ds. In Step 2, having
+this time-varying b(s, ˆ
+Mi, xij) inside the integral in (2) prevents us from applying the usual
+Bayesian back-ﬁtting algorithm (Chipman, George, and McCulloch, 2010) to update the
+hyperparameters {τk, Mk} of SBART given the rest of the parameters. Following Basak
+et al. (2022), we address this using the Data Augmentation (DA) scheme with additional
+10
+SBART Spatial Survival
+latent variables Gij = {Gijk for k = 1, · · · , mij} as the “rejected” points generated from a
+Non-homogeneous Poisson Process (NHPP) with intensity λ0Wi{1 −Φ(b(s, ˆ
+Mi, xij))} in the
+interval (0, yij), while viewing yij as the ﬁrst “accepted” point of a thinned Poisson process
+when δij = 1. Given (Ω1, W, ˆM) the conditional likelihood of the augmented Gij simulated
+via this NHPP is given by
+Pr[ “Rejected” events at Gij, no other events in (0, yij)| δij “accepted” event at yij ]
+=
+"mij
+Y
+k=1
+{λ0Wi(1 −Φ(b(Gijk, ˆ
+Mi, xij))}
+#
+exp
+
+−λ0Wi
+Z yij
+0
+{1 −Φ(b(s, ˆ
+Mi, xij))}ds
+
+.
+(7)
+Combining the augmented likelihood of (7) with the observed likelihood Lij of (2), we get
+the “complete data” likelihood contribution Lcij(λ0, b, Wi, Gij, ˆ
+Mi)
+∝{λ0WiΦ(b(yij, ˆ
+Mi, xij)}δij ×
+mij
+Y
+k=1
+h
+λ0Wi{1 −Φ(b(Gijk, ˆ
+Mi, xij))}
+i
+× exp(−λ0Wiyij)
+(8)
+which is proportional to {Φ(b(yij, ˆ
+Mi, xij)}δij Qmij
+k=1{1 −Φ(b(Gijk, ˆ
+Mi, xij))} as a function of
+b(·). This allows us to use the Bayesian back-ﬁtting approach of Linero and Yang (2018) for
+Binary response to sample {τk, Mk} of b(·) from the joint posterior of (6). This also ensures
+a closed-form Gamma conditional posterior for λ0.
+With the CAR model of W in (3), the resulting conditional posterior of W given (λ0, b, G, ˆM)
+is not a standard density. Even via tools such as Metropolis-Hastings and Slice Sampling,
+it is challenging to sample from this density due to the large number of N = 67 clusters,
+variable cluster sizes, and some really large clusters. To deal with such a complex conditional
+density of high dimension W, we use Hamiltonian Monte Carlo (Duane et al., 1987), which
+uses the derivatives of the conditional density of W to generate an eﬃcient candidate for
+the Metropolis step.
+The MCMC samples of (M, Ω0) and (W, Ω1) a obtained in Steps 1 and 2 are not the
+identically distributed samples from the true posterior in (5) because the importance weight
+of (M, W, Ω1) is proportional to QN
+i=1[Lij(λ0, b, Wi, Mi)/Lij(λ0, b, Wi, ˆ
+Mi)]. To avoid the chal-
+SBART Spatial Survival
+11
+Algorithm 1 MCMC algorithm to sample from posterior based on (yij, δij).
+Input: Observed censored survival times (yij, δij); Posterior estimates ˆM; Initial values of b
+(SBART), λ0 (baseline hazard), W (frailties) and η1 (frailty density parameter).
+1: for n∗= 1, . . . , N∗do
+2:
+for i = 1, . . . , N do
+3:
+for j = 1, . . . , ni do
+4:
+qij ∼Poisson(1; λ0yijWi)
+5:
+˜Gij ∼Uniform(qij; 0, yij)
+6:
+Uij ∼Uniform(qij; 0, 1)
+7:
+Gij ←{ ˜Gij : Uij ⩽1 −Φ(b( ˜Gij, ˆ
+Mi, xij))} = {Gij1, · · · , Gijmij}
+8:
+end for
+j
+9:
+Update b using Bayesian back-ﬁtting (Linero and Yang, 2018)
+10:
+Update λ0 by Metropolis-Hastings
+11:
+Update η1 by Hamiltonian Monte Carlo
+12:
+Update W by Hamiltonian Monte Carlo
+13:
+end for
+i
+14: end for
+n∗
+lenge of evaluating the Lij in (2), we instead use the MCMC samples M and (G, W, Ω1) from
+Steps 1-2 to obtain the sample (G, W, M, Ω1) from the posterior (5) in Step 3 with easy to
+compute weight proportional to QN
+i=1[Lcij(λ0, b, Wi, Gij, Mi)/Lcij(λ0, b, Wi, Gij, ˆ
+Mi)]. Using
+suﬃciently large number of samples of (G, W, M, Ω1) and their corresponding normalized
+weights, we can obtain Monte Carlo approximations of any posterior prediction and posterior
+estimates of any function of interest f(M, W, Ω1) of the survival submodel in (1).
+4
+Simulation Study
+In this section, we compare the performance of our spatial SBART method with two existing
+competing methods: (1) Random Survival Forest (Ishwaran et al., 2008) without frailty; and
+(2) the proportional hazards model with independent cluster-speciﬁc frailty (Hougaard, 1995;
+Sargent, 1998), called PH-frailty model now onwards. In both of these existing methods,
+we use the observed sample proportion m0i
+n0i to augment the unobserved Mi. We compare
+these methods under 3 diﬀerent Scenarios (given below) of the true hazard λij(t|Wi; Mi, xij),
+where each simulated dataset has n = 2, 000 number of subjects, 2 continuous fully observed
+subject-level covariates (x1ij, x2ij) simulated from independent Uniform(0, 1), and 1 cluster-
+12
+SBART Spatial Survival
+level (considered unobservable) continuous covariate Mi for i = 1, · · · , 10 clusters of ﬁxed
+cluster size of 200. The adjacency matrix A is based on 10 western counties of FL (to
+ensure some similarity to our motivating study). For each scenario, our observed data D0
+for supplementary study is simulated as m0i ∼Binomial(n0i, Mi), where n0i is same as the
+observed n0i of the corresponding FL county. So, each simulated data set D has observations
+{yij; x1ij, x2ij, n0i, m0i} with only uncensored survival times yij with δij = 1. For comparing 3
+competing methods under each simulation scenario, the Monte Carlo approximations of the
+following criteria of the estimates are based on 20 replications. Each SBART based analysis
+used 2, 500 burn-in followed by 5, 000 MCMC samples.
+Scenario A aims to compare the methods when the true hazard λij(t|Wi, Mi; x1ij, x2ij) =
+Wi exp(tx1ij + 0.25x2
+1ij + 0.5Mi) satisﬁes our non-linear non-proportional hazards model in
+(1), except, one of the continuous covariates x2ij does not aﬀect the hazard. In addition,
+both the random cluster eﬀect R and the unobservable M follow the spatial CAR models of
+(3) and (4) with true σ0 = σ1 = 1 and ρ0 = ρ1 = 0.5. Furthermore, to assess the robustness
+of the SBART method, the true hazard is chosen as exponential in time t, which is diﬃcult
+to approximate using BART’s piecewise constant hazard.
+Scenario B aims to compare the robustness of SBART with competing methods when
+the true common distribution of W and M is same as in Scenario A, however, the frailty
+eﬀect Wi on the true hazard λij(t|Wi, Mi; x1ij, x2ij) = exp(tx1ijWi + 0.25x2
+1ij + 0.5Mi) is not
+multiplicative as in (1) due to its time-varying interaction tx1ijWi with the covariate x1ij.
+Scenario C aims to make another comparison of the robustness of these methods when
+the unobservable Mi =
+Wi
+1+Wi in the true hazard λij(t|Wi, Mi; x1ij, x2ij) = Wi exp(tx1ij +
+0.25x2
+1ij + 0.5Mi) is a function of frailty Wi.
+The ﬁrst criterion for comparing methods is the plot of the Monte Carlo approximation of
+E[ ˆS(t|x, ˆ
+Mi)], called Average Estimated Survival (AES) curves, for diﬀerent pre-speciﬁed
+SBART Spatial Survival
+13
+values of (x1, x2, Mi), where E is the sampling distribution of the estimators under the
+simulation model. For simulation scenario A, Figure 2 presents AES curves from 3 competing
+methods as well as the true survival curve for 4 diﬀerent sets of values of (x1, x2), but, for
+Mi of one particular county. For all cases, the AES curve from the SBART method is clearly
+much closer to the true survival curve than other methods. For other values of Mi and
+also for simulation scenarios B and C, we found the AES curves from SBART methods to
+perform better than competing methods. The Figure S1 and S2 of Supplementary Materials
+present these true survival curve and AES curves from 3 competing methods respectively for
+simulation scenarios B and C (for two representative sets of (x, Mi) for each scenario).
+[Figure 2 about here.]
+The second performance metric for comparing estimation methods is
+AMSE =
+1
+Ntmax
+N
+X
+i=1
+Z
+X
+Z tmax
+0
+E{S(t|xo, Mi, Wi) −ˆS(t|xo, ˆ
+Mi, ˆWi)}2 dt dxo
+(Average Mean Squared Error) of estimated survival functions ˆS(t|xo, ˆ
+Mi, ˆWi) from all N =
+10 clusters. Our Monte Carlo approximations of AMSE use m = 121 pairs of xo = (x1o, x2o)
+taken on a grid of the covariate space X , G∗= 150 grid-points in the pre-speciﬁed time-
+interval of 0 to tmax = 10 years. SBART with spatial frailty has superior performance, that
+is, lower AMSE (0.25, 0.1, and 0.2 respectively for Scenarios A, B, and C) than competing
+methods, with values (0.26 and 0.15 for Scenario A and B) of PH frailty coming close second.
+Random Forest has the worst AMSE values, ranging between 0.43 and 0.49. In conclusion,
+our method using SBART with spatial W and M outperforms competing methods even when
+the modeling assumptions of the multiplicative eﬀect of Wi (Scenario B) and independence
+of Mi and Wi (Scenario C) are not correct.
+14
+SBART Spatial Survival
+5
+Application: Florida Breast Cancer (FCR) Study
+For the FCR, we consider 6 strata based on combinations of two races (African American
+(AA) and Non AA (WA)) and 3 stages of diagnosis (Distant/Regional/Local abbreviated as
+D/R/L). Important patient-level covariates include the continuous covariate age and cate-
+gorical covariates Hormone Receptor (HR) status (negative/positive), tumor grade (1/2/3),
+Biopsy Delay or BD (long/short), and Treatment Delay or TD (long/short). For all 3 stages
+of BC, the existing disparity in cancer survival for AA compared to WA at the national
+level is very well recognized (Jato, Sung, and Jemal, 2022; Society, 2022). Particularly for
+FCR registry from FL, this is very evident from the Kaplan-Meier plots given in Figure S1
+of the supplementary materials and stratiﬁed log-rank test (p-value < 0.01) to evaluate
+racial disparity in survival across all 3 cancer stages. For each of 6 strata, we use two
+competing survival analysis methods: our SBART method with spatial (M, W) and the
+clustered survival SBART method of Basak et al. (2022). The second method use the same
+Bayes estimate ˆ
+Mi of Mi from Step 1 as the plug-in for imputing Mi, however, does not use
+spatial association among W. A comparison of these two methods based on Cox-Snell, as
+well as Martingale residuals (Figure S4 in supplementary materials) shows that our method
+performs better across all 6 strata.
+We consider three non-demographic covariates (patient-level biopsy and treatment delays
+and county-level SMU) as “intervenable” because the racial disparities in them can be
+addressed in the future by personal and policy-level interventions. The primary analysis
+goals are the following: (1) Identify the most critical covariates aﬀecting the BC survival in
+all 6 strata (3 cancer stages × 2 races); (2) Determine the eﬀects of these covariates within
+each stratum; (3) For each county, assess the life-years saved (explained later) over 5 and 10
+years in AA patients when the racial disparities in 3 intervenable covariates are mitigated.
+Table 1 presents the importance of 7 covariates based on the average number of times
+SBART Spatial Survival
+15
+the particular covariate appears in any tree sampled from the posterior in (5). Let clm be
+the number of splitting rules using the l-th predictor xl as the splitting variable out of
+the total c.m = Pp
+l=1 clm splitting rules in the m-th posterior sample. Using m = 1 · · ·M∗
+posterior samples of BART, the importance of the predictor xl is measured by the Monte
+Carlo approximation νm =
+1
+M∗
+PM∗
+m=1
+clm
+c.m (Luo and Daniels, 2014).
+[Table 1 about here.]
+Unsurprisingly, Age is found to be important across most of strata possibly suggesting both
+hazard being a function of time and time-varying eﬀects of the covariates on hazard. For WA
+patients, biological covariates (such as Age, Tumor Grade) turn out to be most important.
+Whereas for AA patients, intervenable covariates of SMU and Treatment Delay (TD) are
+the most important covariates, especially for Local and Distant stage cancer patients. These
+results suggest that improving proportions of SMU and TD may lead to better survival rates
+particularly among AA patients. The Boxplots of the within county sample proportions of
+TD, Biopsy Delay (BD), and Bayes estimates
+ˆ
+Mi for SMU) in Figure 3 show the racial
+diﬀerences in these 3 intervenable covariates. We ﬁnd that the Boxplots of the ˆ
+Mi of SMU
+and BD proportions have the biggest diﬀerences between two races.
+[Figure 3 about here.]
+A comprehensive analysis of the eﬀects of these 3 intervenable covariates should look at
+their eﬀects on disparities in all 67 counties and 3 stages separately, but, for sake of brevity,
+here we focus on only Broward county as an example because it is a big diverse county
+in FL and its SMU and BD proportions are very similar to the corresponding medians of
+67 counties. For 6 strata, Figure 4 shows the estimated survival curves for representative
+patients in Broward county with 3 diﬀerent stages of cancer. Here a “representative patient”
+for, say stage L and race AA, is a future AA and L stage patient from the county with
+covariate values xoi same as the corresponding sample medians of all L stage AA patients
+16
+SBART Spatial Survival
+within the same county. Especially for representative L and D stage patients in Broward,
+the estimated survival for AA (dashed line) is well below that of WA (solid line), with large
+diﬀerence in survival for stage D patients after year 1. According to our model, overall across
+all 3 stages, there is substantial racial disparity in survival between representative AA and
+WA patients in Broward.
+[Figure 4 about here.]
+To understand the eﬀect of mitigating disparity in any intervenable covariate of any
+particular AA patientj at any particular diagnosis stage from county i, we need to compare
+the survival curves of two future AA patients with covariate values xoij and x∗
+oij, where xoij is
+the observed covariate of the AA patient j from county i and x∗
+oij is the same covariate value
+except a particular intervenbale covariate, say, BD, has been changed to no BD (best scenario
+to eliminate disparity). We use the metric of expected Life Years Saved within a years of
+monitoring (typically, a = 5 and 10 years for us) LYS(a) =
+R a
+0 [S(t|x∗
+oi, Wi) −S(t|xoi, Wi)] dt
+for the AA patient from county i if the covariate values xoi of the patient are changed to
+x∗
+oi while keeping the county-speciﬁc Wi same. For example, Figure 5 presents the LY S(10)
+values versus corresponding county sample-sizes of R stage “representative” AA patients
+when only SMU proportions of these AA patients are changed to the maximum ˆ
+Mi of AW
+patients (all the subject-speciﬁc covariates of ”representative” AA patient are same as the
+observed median values within county) from 67 counties. The plot shows that a rural county
+such as Citrus has high dividend (in terms of LYS in 10 years) for mitigating disparity in
+SMU for an “representative” AA patient, and a large urban county like Broward also has a
+moderately high (around 0.4 years) of expected LYS for mitigating disparity in SMU in the
+same “representative” AA patient.
+[Figure 5 about here.]
+For R stage “representative” AA patients (whose patient-speciﬁc covariates are same as
+SBART Spatial Survival
+17
+corresponding observed medians for the county), Figure 5 illustrates the relationship between
+the LYS(10) if we mitigate the disparity in SMU in 67 counties versus the sample-sizes of the
+counties. This plot shows the variability among these counties and how some of the counties
+with small sample sizes can gain substantial in LYS(10).
+[Table 2 about here.]
+For each of 3 tumor grades and for L and R stage of an ”representative” AA patients
+from Broward county, Table 2 presents the estimates (corresponding 95% HPD interval in
+parenthesis) of LYS(10) when the disparity of the intervenable covariates (here, SMU, BD,
+or TD) are mitigated one at a time while keeping rest of them at their respective median
+values within Broward county. For R stage AA patient, reducing disparity in BD seem have
+almost either no or small negative eﬀects (HPD are very very narrow covering/close to 0).
+These low and sometime negative eﬀects can be artifacts of the association between BD and
+TD as well as very negligible eﬀects of BD after adjusting for the estimated large eﬀects of
+other important covariates. For example, removing SMU disparities results in up to 0.43 life-
+years saved for R stage AA patient. Whereas for R stage AA patients, mitigating disparity
+in BD results in around 0.65 life-years (widths of 0.02 year for HPD) saved. The most
+substantial and consistent (across both stages and all 3 grades) gains are seen by eliminating
+disparity in TD, with up to 0.84 life-years saved in R stage AA patients. This indicates that
+timely treatment is essential for improving survival and reducing disparities. In summary,
+the comprehensive analysis of LYS(10) from all 67 counties shows substantial variability in
+the relative importance of the intervenable covariates and the magnitudes of the these eﬀects
+across diﬀerent counties. This suggests the possible beneﬁt of prioritizing these intervenable
+covariates diﬀerently for diﬀerent counties.
+18
+SBART Spatial Survival
+6
+Discussion
+This study highlights the utility of a nonparametric, spatially aware survival model to assess
+the impacts of closing disparities in modiﬁable covariates such as treatment delay, biopsy
+delay, and screening mammography utilization (SMU) across diﬀerent counties. By leveraging
+this approach, we can estimate quantities like life-years saved by mitigating racial disparities
+in these covariates at both the patient and county levels. Our ﬁndings suggest that these
+estimates can provide valuable insights for targeted policy decisions and resource allocation.
+Speciﬁcally, closing gaps in SMU and treatment delays in counties with signiﬁcant disparities
+could lead to substantial gains in survival for underserved populations. These estimates can
+inform customized budget allocations, targeted healthcare interventions, and help prioritize
+counties where policy changes may yield the most considerable improvements in public health
+outcomes.
+There are some potential criticisms and weaknesses of our methods that will be addressed
+in future research. Our work does not incorporate the associations that exist among diﬀerent
+covariates. Some of the covariates such as BD should not be beneﬁcial, however, the estimated
+gain for mitigating disparity in BD turned out to negative for some strata (in spite of being
+very small in magnitudes). This can be addressed via allowing only a monotone adverse
+eﬀects of BD (which is clinically very reasonable assumption) using mBART (an extension
+of BART). However, that requires additional computational challenges. One of the biological
+variables (the stage of diagnosis) is actually an intermediate outcome variable which is
+another issue not directly addressed in current analysis. We also avoid the issue of causal
+eﬀects of the intervenable covariates even though it may be of practical interest here.
+Supporting Information
+Code for running the analysis and additional results are available in the supplementary web
+appendix.
+SBART Spatial Survival
+19
+Data Availability Statement
+The data that support the ﬁndings of this study are available from the Florida Cancer
+Registry. Restrictions apply to the availability of these data, which were used under license
+for this study. Data are available the authors with the permission of the Florida Cancer
+Registry.
+References
+Aalen, O.O. (1994). “Eﬀects of frailty in survival analysis”. Statistical Methods I Medical
+Research, 3(3), 227–243.
+Banerjee, S., Carlin, B.P. and Gelfand, A.E. (2016). “Hierarchical modeling and analysis for
+spatial data, 2nd Edition”. Chapman & Hall/CRC Monographs on Statistics and Applied
+Probability.
+Basak, P., Linero, A., Sinha, D. and Lipsitz, S. (2022). “Semiparametric analysis of clustered
+interval-censored survival data using soft Bayesian additive regression trees (SBART)”.
+Biometrics, 78(3), 880–893.
+Besag, J. (1974). “Spatial interaction and the statistical analysis of lattice systems”. Journal
+of the Royal Statistical Society. Series B , 36, 192–236.
+Chipman, H., George, E.I. and McCulloch, R.E. (2010). “BART: Bayesian additive regression
+trees”. The Annals of Applied Statistics, 4, 266–298.
+Cox, D.R. (1972). “Regression models and life tables”. Journal of the Royal Statistical
+Society. Series B (Methodological), 34, 187–220.
+Duane, S., Kennedy, A.D., Pendleton, B. and Roweth, D. (1987). “Hybrid Monte Carlo.”
+Physics Letters B, 195(2), 216–222.
+Fernandez, T., Rivera, N. and Teh, Y.W. (2016). “Gaussian processes for survival analysis”.
+Proceedings of the 30th International Conference on Neural Information Processing
+Systems, 16, 5021–5029.
+20
+SBART Spatial Survival
+Hothorn, T., Lausen, B. and Benner, A. (2004). “Bagging survival trees”. Statistics in
+Medicine, 23(1), 77–91.
+Hougaard, P. (2000). “Analysis of multivariate survival data”. Springer-Verlag.
+Hougaard, P. (1995). “Frailty models for survival data”. Lifetime Data Analysis, 1(3), 255–
+273.
+Ibrahim, J.G., Chen, M.H., and Sinha, D. (2001). “Bayesian survival analysis”, Springer-
+Verlag.
+Ishwaran, H., Kogalur, U.B., Blackstone, E.H. and Lauer, M.S. (2008). “Random survival
+forests”. Annals of Applied Statistics, 2(3), 841–860.
+Li, H. and Luan, Y. (2005). “ Modeling spatial survival data using semiparametric frailty
+models”. Biometrics, 58(2), 287–297.
+Li, Y. and Ryan, L. (2002). “Boosting proportional hazards models using smoothing splines,
+with applications to high-dimensional microarray data”. Bioinformatics, 21(10), 2403-
+–2409.
+Li, Y., Linero, A.R. and Murray, J.S. (2022) “Adaptive conditional distribution estimation
+with Bayesian decision tree ensembles”. Journal of the American Statistical Association,
+118(543), 2129–2142 .
+Lin, D.Y. and Ying, Z. (1997). “Additive regression models for survival data”. Proceedings
+of the First Seattle symposium in Biostatistics:Survival Analysis, 123, 185–198.
+Lin, J.S. and Wei, L.Z. (1992).“Linear regression analysis for multivariate failure time
+observations”. Journal of the American Statistical Association, 87(420), 1091–1097.
+Linero, A.R. (2017).“A review of tree-based Baysian methods”.
+Communications for
+Statistical Applications and Methods, 24(6), 543–559.
+Linero, A.R. (2022). “Package SoftBart”. arXiv.
+Linero, A.R. and Yang, Y. (2018). “Bayesian regression trees ensembles that adapt to
+SBART Spatial Survival
+21
+smoothness and sparsity”. Journal of the Royal Statistical Society. Series B, 80(5),
+1087–1110.
+Linero, A.R., Basak, P., Sinha, D. and Li, Y. (2021).“Bayesian survival tree ensembles with
+submodel shrinkage”. International Society for Bayesian Analysis, 17(3), 997–1020.
+Luo, C. and Daniels, M.J. (2024).“Variable selection using Bayesian Additive Regression
+Trees”. Statistical Science, 39(2), 286–304.
+Oakes, D.R. (1982). “A model for association in bivariate survival data”. Journal of the
+Royal Statistical Society, Series B, 44, 414–428.
+Onicescu, G., Lawson, A. B., Zhang, J., Gebregziabher, M., Wallace, K. and Eberth, J.M.
+(2018). “Bayesian cure-rate survival model with spatially structured censoring”. Spatial
+and Spatio-temporal Epidemiology, 29, 139–148.
+Sargent, D.J. (1998). “A general framework for random eﬀects survival analysis in the Cox’s
+proportional hazards Setting ”. Biometrics, 54, 1486–1497.
+Sinha, S. and Ma, Y. (2014). “ Semiparametric analysis of linear transformation models with
+covariate measurement errors ”. Biometrics, 70, 21–32.
+Taylor, B. (2015). “Spatial survival analysis”. Encyclopedia of Geographical Information
+System, 1–9.
+Zhou, H. and Hanson, T. (2018). “A uniﬁed framework for ﬁtting Bayesian semiparametric
+models to arbitrarily censored survival data, including spatially referenced data”. Journal
+of the American Statistical Association, 113, 571–581.
+Zhou, H., Hanson, T., and Zhang, J. (2020). “spBayesSurv: Fitting Bayesian spatial survival
+models using R”. Journal of Statistical Software, 92, 1–33.
+Zhou, H., Hanson, T., and Zhang, J. (2017). “Generalized accelerated failure-time spatial
+frailty model for arbitrarily censored data”. Lifetime Data Analysis, 23, 495–515.
+Zucker, M. D. (2005). “A pseudo–partial likelihood method for semiparametric survival
+22
+SBART Spatial Survival
+regression With covariate errors”. Journal of the American Statistical Association, 100
+(472), 1264–1277.
+Received November 2023. Revised April 2023. Accepted March someday.
+SBART Spatial Survival
+23
+Figure 1.
+Schematic diagram illustrating how to draw from the prior on (τ, M). For tree
+τ, we ﬁrst determine with probability γ that the root node will be a branch; then sample
+the splitting coordinate j = 1 and the cutpoint C = 0.5 for xj. This process then iterates;
+the left child node is set to be a leaf node with probability 1 −γ/22, and the right child
+is made another branch with probability γ/22. Eventually, this process terminates, and we
+independently sample a mean parameter µ for each of J = 3 leaf nodes of the generated
+decision tree τ.
+24
+SBART Spatial Survival
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.5, x2=0.5, M1=0.5
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.75, x2=0.5, M1=0.5
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.5, x2=0.5, M1=0.75
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.75, x2=0.5, M1=0.75
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+Figure 2.
+Simulation A: Comparison of the Average Estimated Survival (AES) curves
+(E[ ˆS(t | xo, ˆ
+Mi)]) from 3 estimation methods and the true survival curve S(t | xo, Mi) for
+Mi of a particular cluster and 4 diﬀerent values of xo = (x1o, x2o). ——–: True survival
+curve; ——–: estimated by SBART; ——–: estimated via Random Survival Forest; ——–:
+estimated via PH frailty model.
+SBART Spatial Survival
+25
+Biopsy Delay
+No SMU
+Treatment Delay
+0.0
+0.2
+0.4
+0.6
+Values
+Figure 3.
+Boxplots of the proportions of patients having Biopsy delay, estimated propor-
+tion of No SMU ( ˆ
+Mi), and proportions of Treatment delay (respectively from left to right in
+3 panels). Left box: African American (AA), Right box: Not AA (WA).
+26
+SBART Spatial Survival
+0
+2
+4
+6
+8
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Local
+Times (in years)
+Survival Function
+0
+2
+4
+6
+8
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Regional
+Times (in years)
+Survival Function
+0
+2
+4
+6
+8
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Distant
+Times (in years)
+Survival Function
+Figure 4.
+Estimated survival curve ( ˆS(t)) versus time t (in years) for AA (dashed line) and
+WA (solid line) patients with covariates values same as the observed median values within
+their respective racial groups in Broward county.
+SBART Spatial Survival
+27
+0.0
+0.5
+1.0
+1.5
+2.0
+0
+200
+400
+600
+800
+County size
+Life years saved
+Figure 5.
+Plot of expected life years saved over 10 years for a representative AA patient
+with regional stage versus the respective observed sample sizes of 67 FL counties.
+: Baker County,
+: Escambia County,
+: Broward County,
+: Citrus County
+28
+SBART Spatial Survival
+Table 1
+Posterior Importance Measures of 7 covariates within 2 × 3 strata (2 races: AA for African-American, WA for rest; 3
+cancer stages: L/R/D for Local/Regional/Distant). The top two important variables in each stratum are highlighted in
+boldface.
+Strata: (Race, Stage)
+(AA, L)
+(WA, L)
+(AA, R)
+(WA, R)
+(AA, D)
+(WA, D)
+Age
+0.105
+0.171
+0.163
+0.165
+0.135
+0.173
+HR Status
+0.140
+0.135
+0.178
+0.122
+0.123
+0.131
+Tumor Grade
+0.124
+0.146
+0.112
+0.146
+0.119
+0.146
+SMU
+0.177
+0.159
+0.137
+0.152
+0.165
+0.144
+Treatment Delay
+0.161
+0.128
+0.126
+0.133
+0.168
+0.151
+Biopsy Delay
+0.114
+0.145
+0.138
+0.145
+0.127
+0.131
+SBART Spatial Survival
+29
+Table 2
+Expected life-years saved over 10 years (LYS(10)) for a representative AA patient from Broward county if the racial
+disparities in three intervenable covariates are eliminated one at a time.
+Intervenable
+Tumor
+Cancer Stage
+Covariate
+Grade
+Local
+Regional
+SMU
+1
+0.12 (0.11, 0.12)
+0.42 (0.41, 0.42)
+2
+0.16 (0.14, 0.16)
+0.43 (0.41, 0.43)
+3
+0.00 (0.00, 0.00)
+0.43 (0.42, 0.44)
+Biopsy Delay
+1
+0.00 (0.00, 0.00)
+0.64 (0.64, 0.66)
+2
+-0.02 (-0.02, 0.01)
+0.65 (0.65, 0.66)
+3
+-0.11 (-0.11, -0.09)
+0.65 (0.65, 0.66)
+Treatment Delay
+1
+0.84 (0.84, 0.84)
+0.59 (0.59, 0.59)
+2
+0.83 (0.83, 0.83)
+0.60 (0.59, 0.60)
+3
+0.81 (0.81, 0.82)
+0.58 (0.56, 0.59)
+arXiv:2411.06591v1  [stat.ME]  10 Nov 2024
+Supplementary Materials for “Analysis of Spatially
+Clustered Survival Data with Unobserved Covariates
+using SBART”
+1. Simulation Study Results
+For two sets of values of (x, M1), Figures S1 and S2 present the true survival curve
+S(t|x, M1) of cluster 1, and Average Estimated Survival (AES = E[ ˆS1(t|x)) curves
+of cluster 1 from 3 competing methods: (1) our spatial SBART, (2) Random Survival
+Forest without frailty; and (3) the proportional hazards model with independent cluster-
+speciﬁc frailty (called PH-frailty model). In both of these existing methods, we use the
+observed sample proportion m0i
+n0i to augment the unobserved Mi. These ﬁgures highlight
+the superior performance of the SBART method compared to competing methods even
+when the model assumption about the eﬀects of Mi and Wi on hazards of the true
+simulations models (Scenarios B and C) are not correct.
+2. Application: Florida Breast Cancer
+Kaplan-Meier Survival Plots
+Figure S3 shows Kaplan-Meier survival plots comparing African American (AA) and
+Non-African American (Non-AA) breast cancer patients, stratiﬁed by three stages of
+diagnosis: local, regional, and distant. These plots illustrate the disparities in survival
+1
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.5, x2=0.5, M1=0.5
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.75, x2=0.5, M1=0.5
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.5, x2=0.5, M1=0.75
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.75, x2=0.5, M1=0.75
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+Figure S1: Under Simulation Model B, comparisons of 3 estimation methods based
+on the Average Expected Survival curves E[ ˆSi(t | x)] of a cluster (cluster with true
+”unobserved” covariate M1) under two diﬀerent sets of true values of (x1, x2, M1). —
+—–: True survival curve——–: Estimated by spatial SBART; ——–: estimated by
+Random Forest; ——–: estimated by Hougaard’s PH-frailty model (1995).
+2
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.5, x2=0.5, M1=0.5
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.75, x2=0.5, M1=0.5
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.5, x2=0.5, M1=0.75
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Settings: x1=0.75, x2=0.5, M1=0.75
+Time
+Probabilty
+True Survival
+Our Method
+CoxPh
+RandForest
+Figure S2: Under Simulation Model C, comparisons of 3 estimation methods based
+on the Average Expected Survival curves E[ ˆSi(t | x)] of a cluster (cluster with true
+”unobserved” covariate M1) under two diﬀerent sets of true values of (x1, x2, M1). —
+—–: True survival curve——–: Estimated by spatial SBART; ——–: estimated by
+Random Forest; ——–: estimated by Hougaard’s PH-frailty model (1995).
+3
+0
+2
+4
+6
+8
+0.2
+0.4
+0.6
+0.8
+1.0
+Local
+Times (in years)
+Survival Function
+0
+2
+4
+6
+8
+0.2
+0.4
+0.6
+0.8
+1.0
+Regional
+Times (in years)
+Survival Function
+0
+2
+4
+6
+8
+0.2
+0.4
+0.6
+0.8
+1.0
+Distant
+Times (in years)
+Survival Function
+Figure S3: Kaplan-Meier survival plots for African American (AA: dashed line) and
+Non-African American (AW: solid line) patients, stratiﬁed by breast cancer stages (Lo-
+cal/Regional/Distant). The disparities in survival are most evident in the regional and
+distant stages, where AA patients consistently have lower survival probabilities. These
+results highlight the need for targeted interventions to address these racial disparities,
+within all 3 breast cancer stages.
+rates between AA and Non-AA patients, with more pronounced diﬀerences observed in
+the distant stage. The results underscore the importance of addressing racial disparities
+in breast cancer treatment and survival outcomes.
+Cox-Snell and Deviance Residuals
+Figures S4 and S5 present the Cox-Snell residuals and deviance residuals, respectively,
+comparing our spatial SBART method to the PH frailty model. These residual diagnos-
+tics help evaluate the goodness-of-ﬁt of the models. The Cox-Snell residuals for both
+4
+0.0
+0.5
+1.0
+1.5
+0.0
+0.5
+1.0
+1.5
+Residual
+Cox−Snell Residual
+0.0
+0.5
+1.0
+1.5
+2.0
+0.0
+0.5
+1.0
+1.5
+2.0
+Residual
+Cox−Snell Residual
+Figure S4: Comparison of our method (Green) to PH-frailty model (Red) of Hougaard
+(1995) by Cox-Snell Residual diagnostics for for African American (AA) regional stage
+cancer patients (right panel) and non-AA (AW) regional stage cancer patients (left
+panel).
+African American and Non-African American regional-stage patients (Figure S4) show
+better ﬁt for our spatial SBART method compared to the PH frailty model. Similarly,
+Figure S5 shows deviance residuals for African American patients, demonstrating that
+our spatial SBART provides a better ﬁt to the observed data especially for AA patients.
+Life-Years Saved Analysis
+Table S1 presents the estimated life-years saved over 5 years for African American
+patients in Broward County if racial disparities in Biopsy Delay (BD) and Screening
+Mammography Utilization (SMU) are eliminated. The analysis shows that improving
+SMU and avoiding BD can signiﬁcantly improve survival outcomes, particularly for
+Regional-stage AA cancer patients. The table quantiﬁes the potential beneﬁts of these
+interventions, showing how targeted policies may improve survival of AA cancer patients
+in various FL counties by addressing disparities in cancer detection and care among AA
+5
+0
+5
+10
+15
+−2
+−1
+0
+1
+2
+3
+4
+Time(in years)
+Deviance Residuals 
+0
+5
+10
+15
+−2
+−1
+0
+1
+2
+3
+4
+Time(in years)
+Deviance Residuals 
+Figure S5: Comparison of our method (left) to Frailty model of Hougaard (right)
+by Deviance Residual diagnostics of African American Cancer regional stage cancer
+patients
+patients.
+6
+0
+5
+10
+15
+−2
+−1
+0
+1
+2
+3
+4
+Time(in years)
+Deviance Residuals 
+0
+5
+10
+15
+−2
+−1
+0
+1
+2
+3
+4
+Time(in years)
+Deviance Residuals 
+Figure S6: Comparison of our method (left) to Frailty model of Hougaard (right) by
+Deviance Residual diagnostics of American White regional stage cancer patients
+Table S1: Expected life-years saved over 5 years for a representative AA patient from
+Broward county if the disparities in the BD and the SMU proportions are eliminated
+compared to AW cancer patients in other counties.
+Stage Local
+Stage Regional
+Stage Distant
+Tumor Grade 1
+0.304
+0.664
+0.021
+Biopsy
+Tumor Grade 2
+-0.012
+-0.153
+0.144
+Tumor Grade 3
+0.028
+0.213
+-0.515
+Tumor Grade 1
+0.458
+-0.076
+0.587
+SMU
+Tumor Grade 2
+0.672
+-0.279
+0.582
+Tumor Grade 3
+0.559
+0.200
+0.871
+7
+0.0
+0.5
+1.0
+1.5
+2.0
+Life years Saved
+Figure S7: Expected life-years saved in 10 years for ”representative” African American
+patients of each FL county if the racial disparity in only SMU proportion is mitigated
+for each county.
+8

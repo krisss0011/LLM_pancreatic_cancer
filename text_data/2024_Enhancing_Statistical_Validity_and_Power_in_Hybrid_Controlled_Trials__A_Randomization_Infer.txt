@@ -1,0 +1,2791 @@
+Enhancing Statistical Validity and Power in
+Hybrid Controlled Trials: A Randomization
+Inference Approach with Conformal
+Selective Borrowing
+Ke Zhu1,2, Shu Yang∗1, and Xiaofei Wang2
+1Department of Statistics, North Carolina State University, Raleigh, NC 27695, USA
+2Department of Biostatistics and Bioinformatics, Duke University, Durham, NC 27710, USA
+Abstract
+Randomized controlled trials (RCTs) are the gold standard for causal inference
+but may lack power because of small populations in rare diseases and limited par-
+ticipation in common diseases due to equipoise concerns. Hybrid controlled trials,
+which integrate external controls (ECs) from historical studies or large observational
+data, improve statistical efficiency and are appealing for drug evaluations. However,
+non-randomized ECs can introduce biases and inflate the type I error rate, especially
+when the RCT sample size is small. To address this, we propose a Fisher randomiza-
+tion test (FRT) that employs a semiparametric efficient test statistic combining RCT
+and EC data, with assignments resampled using the actual randomization procedure.
+The proposed FRT controls the type I error rate even with unmeasured confounding
+among ECs. However, borrowing biased ECs can reduce FRT power, so we introduce
+conformal selective borrowing (CSB) to individually borrow comparable ECs. We
+propose an adaptive procedure to determine the selection threshold, minimizing the
+mean squared error of a class of CSB estimators and enhancing FRT power. The
+advantages of our method are demonstrated through simulations and an application
+to a lung cancer RCT with ECs from the National Cancer Database. Our method is
+available in the R package intFRT.
+Keywords: causal inference, data fusion, randomization test, real-world data and evidence,
+small sample size
+∗Address for correspondence: Shu Yang, Department of Statistics, North Carolina State University, NC
+27695, USA. Email: syang24@ncsu.edu
+1
+arXiv:2410.11713v2  [stat.ME]  14 Nov 2024
+1
+Introduction
+Randomized controlled trials (RCTs) are the gold standard for making causal inferences
+on the treatment effect of a new treatment relative to a control treatment. However, large
+RCTs are often infeasible to conduct in practice when the indications of interest involve
+rare diseases (U.S. Food and Drug Administration 2022) or common conditions where few
+patients are willing to participate due to a lack of equipoise (Miller & Joffe 2011). As
+a result, RCTs in such a context often lack sufficient statistical power to detect realistic
+treatment effect sizes. Meanwhile, historical studies or large external databases contain
+observational real-world data (RWD) under control conditions. Hybrid controlled trials
+have attracted extensive interest as an effective tool to increase the power of RCTs with
+small sample sizes. However, most existing methods for such trials rely on asymptotic p-
+values. The type I error rate in hybrid controlled trials is often inflated due to small sample
+sizes and potential biases associated with ECs. Moreover, since ECs are not randomized,
+they may systematically differ from randomized controls (RCs), even after adjusting for
+measured confounders. Directly incorporating these ECs may introduce hidden bias into the
+RCT analysis, compromising the validity of the statistical inference. Strictly controlling
+the type I error rate in hybrid controlled trials, especially with small sample sizes and
+unmeasured confounding, remains an open problem.
+To address this problem, we extend the randomization inference framework to hybrid
+controlled trials. To utilize ECs, we use a doubly robust estimator of the average treatment
+effect (ATE) as the test statistic, which incorporates both RCT and EC data and effectively
+balances the measured confounders between RCT and EC (Li et al. 2023). Then, Fisher
+randomization tests (FRTs) are performed using only the randomization in the RCT. In
+contrast to the asymptotic inference in Li et al. (2023), which relies on (i) large sample
+2
+sizes for both the RCT and EC, (ii) correct specification of at least one of the two nuisance
+models, and (iii) no unmeasured confounders, the FRT strictly controls the type I error rate
+without requiring any of these conditions, thus achieving model-free, finite-sample exact
+inference. The validity of the FRT relies solely on the randomization within the RCT,
+which is typically well-managed by the study design. Furthermore, we perform a power
+analysis for FRT in hybrid controlled trials and show that incorporating unbiased ECs with
+correctly specified models can enhance statistical power. However, EC borrowing is not a
+free lunch, as we find that including biased ECs may diminish power.
+The power issue motivates us to to develop a method that selectively incorporates
+unbiased ECs rather than indiscriminately borrowing all ECs Unlike observational studies,
+where the assumption of no unmeasured confounders is untestable, a key advantage of
+hybrid controlled trials is that the bias in ECs can be identified by comparing EC units to
+RC units, allowing us to test the comparability of ECs. Leveraging this advantage, existing
+methods mitigate hidden bias by penalized estimation and selective borrowing (Chen, Ning,
+Shen & Qin 2021, Gao et al. 2023, Huang et al. 2023), where selection consistency depends
+on asymptotic arguments, potentially leading to inferior performance in small samples.
+We propose a novel approach called Conformal Selective Borrowing, which selec-
+tively incorporates unbiased ECs using conformal inference (Vovk et al. 2005, Lei et al.
+2018). We measure the bias of each EC using a score function that can flexibly accom-
+modate either parametric or machine learning models. We then calibrate this score to
+conformal p-values, which test the exchangeability of each EC. These conformal p-values
+are valid in finite samples, distribution-free, and do not depend on the asymptotic prop-
+erties of models. In summary, Conformal Selective Borrowing offers three advantages:
+(i) it makes individual borrowing decisions for each EC, (ii) it is flexible in incorporating
+3
+RCT Treatment
+RCT Control
+External Control
+Fisher Randomization Test
+Conformal Selective Borrowing
+Reasoned Basis for Inference
+Improve
+Power
+Post-selection
+Inference
+Randomization
+Comparison
+Identification of Hidden Bias 
+Figure 1: Randomization inference in hybrid controlled trials.
+either computationally efficient parametric models or off-the-shelf machine learning mod-
+els for bias estimation, and (iii) it provides finite-sample guarantees and performs stably
+with small samples. We consider four state-of-the-art variants of conformal inference: full
+conformal, split conformal, jackknife+, and CV+ (Barber et al. 2021).
+This paper proposes an FRT method with Conformal Selective Borrowing in hybrid
+controlled trials. The proposed method leverages the two key advantages of hybrid con-
+trolled trials: (i) randomization within the RCT data allows us to use FRT to control the
+type I error rate, and (ii) the presence of RC enables us to evaluate bias in ECs using confor-
+mal p-values, selectively borrow unbiased ECs, and enhance power. Furthermore, FRT can
+straightforwardly account for selection uncertainty introduced by Conformal Selective
+Borrowing and offer valid post-selection inference. Figure 1 illustrates the motivation and
+advantages of the proposed methods in hybrid controlled trials. We identify a risk-benefit
+trade-off in the power of FRT associated with different selection thresholds for the conformal
+p-values. This trade-off is analogous to the mean squared error (MSE) trade-offs observed
+in various data integration estimators in recent literature (Yang et al. 2023, Oberst et al.
+2022, Lin et al. 2024). To ensure robust performance across varying bias magnitudes, we
+4
+propose a data-adaptive procedure for determining the selection threshold to minimize the
+MSE of the Conformal Selective Borrowing estimator. The advantages of our methods
+are demonstrated through simulation studies and a lung cancer randomized clinical trial
+that integrates ECs from the National Cancer Database (NCDB).
+1.1
+Related work
+Hybrid controlled trials aim to integrate ECs to boost RCT efficiency (Pocock 1976).
+For an overview of RCT and RWD integration, see Colnet et al. (2024). A key challenge
+is bias in ECs, which stems from factors like selection bias, non-concurrency, and measure-
+ment error (U.S. Food and Drug Administration 2023). Statistically, biases are categorized
+as measured and unmeasured confounding. Measured confounding, or covariate shift, refers
+to systematic differences in observed covariates between RCs and ECs. To address mea-
+sured confounding, covariate balancing techniques such as matching, inverse propensity
+score weighting, calibration weighting, and their augmented counterparts can be employed
+(Li et al. 2023, Valancius et al. 2024, Li & Luedtke 2023). When there is unmeasured
+confounding between RCT and EC, a rich body of literature addresses the hidden bias by
+various strategies, including test-then-pool (Viele et al. 2014, Yang et al. 2023, Gao & Yang
+2023, Dang et al. 2023), subset or selective borrowing based on penalized bias estimation
+(Chen, Ning, Shen & Qin 2021, Gao et al. 2023, Huang et al. 2023), bias correction (Stuart
+& Rubin 2008, Cheng et al. 2023, Li & Jemielita 2023, van der Laan et al. 2024), using ECs
+for improving nuisance function estimation (Schuler et al. 2022, Gagnon-Bartsch et al. 2023,
+Karlsson et al. 2024), weighted combination (Chen et al. 2020, Chen, Zhang & Ye 2021,
+Cheng & Cai 2021, Oberst et al. 2022, Rosenman et al. 2023, Chen et al. 2023), Bayesian
+power prior methods (Hobbs et al. 2011, Kwiatkowski et al. 2024, Alt et al. 2024, Lin et al.
+2024), and sensitivity analysis (Yi et al. 2023). None of these methods use randomization
+5
+inference or conformal inference to address unmeasured confounding in hybrid controlled
+trials with a small sample size.
+Randomization inference, introduced by Fisher (Fisher 1935), provides finite-sample
+exact p-values for any test statistic and is widely endorsed (Rosenberger et al. 2019,
+Proschan & Dodd 2019, Young 2019, Bind & Rubin 2020, Carter et al. 2023).
+Ran-
+domization tests are useful for small sample trials or complex designs, including cluster
+experiments with few clusters (Rabideau & Wang 2021) and adaptive experiments (Simon
+& Simon 2011, Plamadeala & Rosenberger 2012, Nair & Janson 2023, Freidling et al. 2024).
+Randomization tests have appeared in regulatory guidance documents to ensure type I er-
+ror rate control in adaptive designs when conventional statistical methods fail (European
+Medicines Agency 2015, U.S. Food and Drug Administration 2019, Carter et al. 2023). For
+an overview of randomization inference, see Zhang & Zhao (2023) and Ritzwoller et al.
+(2024). Nevertheless, the randomization inference hasn’t been applied to hybrid controlled
+trials, especially with selective borrowing to address unmeasured confounding.
+Conformal inference, or conformal prediction, is a model-free method providing
+finite-sample valid uncertainty quantification for individual predictions (Vovk et al. 2005),
+particularly useful in high-stakes scenarios with black-box machine learning models (An-
+gelopoulos et al. 2023). Two main applications are most relevant to this paper. The first
+involves using conformal inference to infer individual treatment effects (Chernozhukov et al.
+2021, Lei & Cand`es 2021). The second line is in outlier detection (Guan & Tibshirani 2022,
+Bates et al. 2023, Liang et al. 2024). These studies inspire us to treat biased ECs as outliers
+and use conformal p-values to test their exchangeability. Our primary goal, however, is to
+boost FRT power by selectively borrowing unbiased ECs with conformal p-values. The
+adaptive selection threshold that minimized the estimator’s MSE is also a novel approach.
+6
+2
+Randomization inference
+2.1
+Semiparametric efficient estimator
+Consider nR patients in the RCT, nE patients in the EC group, and n = nR + nE
+patients in total. Let S = 1 for patients in RCT and S = 0 for patients in the EC group.
+Let the binary treatment denote by A, where A = 1 stands for treatment and A = 0 stands
+for control. We denote T = {i : Ai = 1, Si = 1}, C = {i : Ai = 0, Si = 1}, R = T ∪C, and
+E = {i : Si = 0}. Let X denote the baseline covariates, Y denote the observed outcome,
+and Y (0) and Y (1) denote the potential outcomes. In an RCT, we randomize nR patients
+into either the treatment group or the control group based on the known propensity score
+e(x) = P(A = 1 | X = x, S = 1). This results in n1 patients in the treatment group and n0
+patients in the control group. For nE patients in the EC group, since all of them are under
+control, we have A = 0 for S = 0. Let π(x) = P(S = 1 | X = x) denote the sampling
+score of participating in the RCT. We consider average treatment effect (ATE) in the RCT
+population as our estimand τ = E{Y (1) −Y (0) | S = 1}. For RCT data, the following
+standard identification assumptions are considered (Imbens & Rubin 2015).
+Assumption 1 (RCT identification). (i) (Consistency) Y = AY (1) + (1 −A)Y (0). (ii)
+(Positivity) 0 < e(x) < 1 for all x such that fX|S(x|1) > 0, where fX|S(x|s) is the condi-
+tional p.d.f. of X given S = s. (iii) (Randomization) Y (a) ⊥⊥A | (X, S = 1), a = 0, 1.
+Under Assumption 1, τ is identifiable based on RCT data. We denote the conditional
+outcome mean functions by µa(x) = E(Y | X = x, A = a, S = 1), a = 0, 1. We estimate
+µa(x) and e(x) with only RCT data and denote the estimated functions by ˆµa,R(x) and
+7
+ˆe(x), respectively. An RCT-only doubly robust estimator of τ is
+ˆτR = 1
+nR
+X
+i∈R
+
+ˆµ1,R(Xi) +
+Ai
+ˆe(Xi){Yi −ˆµ1,R(Xi)} −ˆµ0,R(Xi) −
+1 −Ai
+1 −ˆe(Xi){Yi −ˆµ0,R(Xi)}
+
+,
+which is referred to as the No Borrowing approach hereafter. In RCTs, since the propensity
+score model e(x) is known, ˆτR is consistent and asymptotically normal regardless of whether
+µa(x) is correctly specified for a = 0, 1. Thus, ˆτR serves as a model-assisted covariate-
+adjusted ATE estimator whose asymptotic variance attains the semiparametric efficiency
+bound if µa(x) is correctly specified for a = 0, 1 (Cao et al. 2009).
+The efficiency of ˆτR could be improved by borrowing information from EC data. To
+incorporate EC data for estimating τ, many scholars have considered the following assump-
+tion (Li et al. 2023, Valancius et al. 2024).
+Assumption 2 (Mean exchangeability). E{Y (0) | X, S = 0} = E{Y (0) | X, S = 1}.
+Under Assumptions 1 and 2, τ could be identified with both RCT and EC data. We
+estimate µ0(x) with RCT and EC data and denote the estimated functions by ˆµ0,R+E(x).
+Let ˆπE(x) denote the estimated sampling score. The variance ratio between RC and EC
+is denoted by r(x) = V{Y (0) | X = x, A = 0, S = 1}
+
+V{Y (0) | X = x, A = 0, S = 0}.
+Let ˆrE(x) denote the estimated variance ratio. Li et al. (2023) proposed a doubly robust
+estimator of τ with RCT data and all EC data,
+ˆτR+E = 1
+nR
+X
+i∈R∪E
+
+Si ˆµ1,R(Xi) + Si
+Ai
+ˆe(Xi){Yi −ˆµ1,R(Xi)} −Si ˆµ0,R+E(Xi)
+(1)
+−ˆπE(Xi)
+Si(1 −Ai) + (1 −Si)ˆrE(Xi)
+ˆπE(Xi){1 −ˆe(Xi)} + {1 −ˆπE(Xi)}ˆrE(Xi){Yi −ˆµ0,R+E(Xi)}
+
+,
+which is referred to as the Full Borrowing approach hereafter.
+The term “Full” here
+8
+refers to incorporating the full set of ECs to construct ˆτR+E, while down-weighting those
+ECs based on similarity measured by X, thereby addressing bias caused by observed con-
+founders.
+ˆτR+E is consistent and asymptotically normal if either (i) µa(x) is correctly
+specified for a = 0, 1, or (ii) both π(x) and e(x) are correctly specified.
+If all models
+for µa(x), a = 0, 1, π(x), and e(x) are correctly specified, the asymptotic variance of ˆτR
+achieves the semiparametric efficiency bound (Li et al. 2023).
+However, asymptotic inference for ˆτR+E may be invalid due to three main reasons: (i) it
+assumes nR →∞, which contradicts the motivation for EC borrowing, where the sample
+size of the RCT is typically small; (ii) it relies on the correct specification of at least one of
+the two nuisance models, which may be violated because sophisticated models are difficult
+to work with under small sample sizes; and (iii) it depends on Assumption 2, which may
+be violated due to unmeasured confounders. To address these issues, we consider a finite-
+sample exact randomization inference framework that maintains strict type I error rate
+control even if all models are misspecified and Assumption 2 fails. We consider ˆτR and
+ˆτR+E as candidate test statistics and propose a new class of test statistics in Section 3 to
+achieve improved power across various scenarios.
+2.2
+Fisher randomization test
+In the randomization inference framework, we are conditional on the potential out-
+comes Yi(a) and covariates Xi for i ∈R ∪E, and consider the randomized assignment
+A = (A1, . . . , An) as the sole source of randomness. Since Ai for i ∈R is well controlled
+and known in the RCT, we can fully leverage this advantage to guarantee the validity of
+inference without any additional distributional assumptions. Let A denote the set of all
+possible assignments generated by the actual RCT design. Since all external units are under
+control, we have Ai = 0 for i ∈E. In addition to Bernoulli trials where Ai
+i.i.d.
+∼Bernoulli(p)
+9
+for i ∈R, randomization inference can also accommodate more complex experimental de-
+signs, such as randomized block experiments (Fisher 1926), covariate-adaptive randomized
+experiments (Bugni et al. 2018), and rerandomized experiments (Morgan & Rubin 2012).
+Consider Fisher’s sharp null hypothesis H0 : Yi(0) = Yi(1), ∀i ∈R, which states no
+treatment effect for any units in RCT. Based on H0, we could impute all potential outcomes
+Y imp
+i
+(0) = Y imp
+i
+(1) = Yi for i ∈R. Let T(A) denote the test statistic, which depends on
+the assignment A ∈A. T(A) could be |ˆτR(A)|, |ˆτR+E(A)|, or the estimator introduced in
+Section 3. The theoretical guarantee of type I error rate control holds for any test statistic,
+including those involving ECs, even if these ECs have hidden biases. This is one of the key
+merits of randomization inference. We define the p-value for measuring the extremeness
+of the observed T(A) against H0 as pFRT = PA∗{T(A∗) ≥T(A)}, where A∗∈A has the
+same distribution as A and is independent of A, and PA∗is taken over the distribution of
+A∗.
+Theorem 1. Under H0, for α ∈(0, 1), we have PA(pFRT ≤α) ≤α, where PA is taken over
+the distribution of A. If we further assume that T(A) takes distinct values for different
+A ∈A, then we have PA(pFRT ≤α) = ⌊α|A|⌋/|A| > α −1/|A|, where ⌊x⌋represents the
+greatest integer less than or equal to x
+In practice, we use Monte Carlo to approximate pFRT.
+Based on the RCT’s actual
+randomization, we generate the new assignment Ab
+i for i ∈R and set Ab
+i ≡0 for i ∈E since
+the randomization in the RCT does not affect the assignments of the ECs. We denote the
+new assignment vector as Ab = (Ab
+1, . . . , Ab
+n). We repeatedly generate assignments for B
+times and obtain ˆpFRT =
+ PB
+b=1 I{T(Ab) ≥T(A)}+1
+
+/(B +1), where we add one to both
+the numerator and denominator to prevent ˆpFRT from being zero (Phipson & Smyth 2010).
+Theorem 1 shows that FRT exactly controls the type I error rate in finite samples,
+10
+regardless of Assumption 2, because, under H0, the reference distribution is derived from
+true randomization, which is well-controlled in clinical trials. However, the power of FRT
+depends on the choice of test statistic, which varies under different scenarios related to
+Assumption 2.
+2.3
+Model-based power analysis
+There are two primary approaches for conducting a power analysis of FRT: model-based
+or simulation-based (Rosenberger & Lachin 2015, Lehmann & Romano 2022). We first
+perform a model-based power analysis under Assumption 2, highlighting how low variance
+of a consistent test statistic enhances the power of FRT. In the following section, we conduct
+a simulation-based power analysis for a more challenging scenario where Assumption 2 does
+not hold, demonstrating that the high bias of an inconsistent test statistic significantly
+reduces the power of FRT.
+Let M denote the total number of possible assignments, F1,n,M(t) = PA(T(A) ≤t)
+denote the randomization distribution of T(A), and F0,n,M(t) = PA∗(T(A∗) ≤t) denote
+the reference distribution of T(A∗) under H0. Both F1,n,M and F0,n,M are discrete in finite
+samples. To apply empirical process theory and derive asymptotic rates for testing power,
+we assume continuous super-population distributions F1,n and F0,n, with F1,n,M and F0,n,M
+representing the empirical distribution functions based on M independent samples drawn
+from F1,n and F0,n, respectively.
+In cases where these assumptions do not hold, FRT
+still controls the type I error rate, and we will investigate its power through simulation
+in Section 4. Based on those notations, the p-value and the power can be expressed as
+pFRT = PA∗{T(A∗) ≥T(A)} = 1 −F0,n,M
+ T(A)
+
+, and ψn,M = PA(pFRT ≤α) = PA{1 −
+F0,n,M
+ T(A)
+
+≤α} = 1 −F1,n,M
+ F −1
+0,n,M(1 −α)
+
+.
+Theorem 2. For fixed n > 0, suppose the following conditions hold:
+11
+(a) There are continuous cumulative distribution functions (c.d.f.) F0,n and F1,n, such
+that F0,n,M and F1,n,M are the empirical distribution functions based on M independent
+samples drawn from F0,n and F1,n, respectively.
+(b) There is σn > 0 and a continuous c.d.f. F such that F0,n(t) = F(t/σn) for all t ∈R.
+(c) For ATE τ, F1,n(t) = F0,n(t −τ) = F
+ (t −τ)/σn
+
+, for all t ∈R.
+For 0 < ι < 0.5 and large enough M, we have E(ψn,M) ≥1 −F (F −1(1 −α) −τ/σn) −
+O (M −0.5+ι), where E is taken with respect to M independent samples drawn from F0,n and
+F1,n.
+For a given τ ̸= 0, significance level α, and design with possible assignments M, Theorem
+2 shows that the power of the FRT also depends on the variance of the test statistic, σn.
+Under Assumptions 1 and 2, and with all working models correctly specified, ˆτR+E is
+consistent and has a variance that is less than or equal to that of ˆτR (Li et al. 2023).
+Consequently, using ˆτR+E as the test statistic improves the power of the FRT compared to
+using ˆτR, as confirmed by simulations in Section 4 and subplot (B) in Figure 2.
+2.4
+Simulation-based power analysis
+When unmeasured confounding exists between RCT and EC data, Assumption 2 is
+violated, rendering ˆτR+E inconsistent. In such cases, asymptotic inference based on ˆτR+E is
+invalid and fails to control the type I error rate. In contrast, since Theorem 1 holds for any
+test statistic, FRT can still control the type I error with the inconsistent test statistic ˆτR+E,
+highlighting a core merit of FRTs. However, the violation of Assumption 2 subsequently
+causes Assumption (c) in Theorem 2 to be unfulfilled, rendering FRT with ˆτR+E unable
+to achieve a power improvement over FRT with ˆτR. Furthermore, employing ˆτR+E as the
+test statistic results in a substantial loss of power compared to using ˆτR, as illustrated in
+12
+Type I error = 0.048
+Type I error = 0.038
+Type I error = 0.066
+0.00
+0.25
+0.50
+0.75
+1.00
+0
+10
+20
+0
+10
+20
+0
+10
+20
+Exact p−value
+(A) Distribution under H0 (No Hidden Bias in ECs)
+Power = 0.334
+Power = 0.486
+Power = 0.484
+0.00
+0.25
+0.50
+0.75
+1.00
+0
+50
+100
+150
+0
+50
+100
+150
+0
+50
+100
+150
+Exact p−value
+(B) Distribution under H1 (No Hidden Bias in ECs)
+Type I error = 0.048
+Type I error = 0.056
+Type I error = 0.064
+0.00
+0.25
+0.50
+0.75
+1.00
+0
+10
+20
+0
+10
+20
+0
+10
+20
+Exact p−value
+(C) Distribution under H0 (Hidden Bias in ECs)
+Power = 0.334
+Power = 0.186
+Power = 0.454
+0.00
+0.25
+0.50
+0.75
+1.00
+0
+50
+100
+150
+0
+50
+100
+150
+0
+50
+100
+150
+Exact p−value
+(D) Distribution under H1 (Hidden Bias in ECs)
+Method
+No Borrow (γ = 1)
+Full Borrow (γ = 0)
+Conformal Selective Borrow (γ^)
+Figure 2: Simulated distributions of p-values under H0 and H1.
+subplot (D) of Figure 2.
+Based on the power analysis, we find that, compared to ˆτR, ˆτR+E improves the power
+of the FRT by leveraging all ECs under Assumption 2, but results in a severe decrease in
+power when Assumption 2 does not hold. The trade-off between ˆτR and ˆτR+E generally
+arises between a causal estimator that ignores additional information and assumptions,
+and one that incorporates them but risks bias if the assumptions fail (Rothenh¨ausler 2020,
+Rothenh¨ausler et al. 2021). In the next section, instead of choosing between ˆτR and ˆτR+E, we
+construct a class of ATE estimators, ˆτγ, indexed by a tuning parameter γ and encompassing
+ˆτR and ˆτR+E as special cases. We then propose a data-adaptive procedure to select γ that
+minimizes the MSE of ˆτγ, thereby enhancing the power of FRT when using ˆτγ as the test
+statistic.
+13
+3
+Conformal Selective Borrowing
+Motivated by realistic scenarios in which some ECs satisfy Assumption 2 while oth-
+ers do not, we propose a Conformal Selective Borrowing approach that uses conformal
+inference to select comparable ECs. We propose conformal p-values p∗
+j ∈(0, 1] to test
+the exchangeability of each individual EC j ∈E. The selected EC set is then defined as
+ˆE(γ) = {j ∈E : p∗
+j > γ}, where γ ∈[0, 1] is a selection threshold. Substituting E with ˆE(γ)
+in (1), we obtain,
+ˆτγ = 1
+nR
+X
+i∈R∪ˆE(γ)
+
+Si ˆµ1,R(Xi) + Si
+Ai
+ˆe(Xi){Yi −ˆµ1,R(Xi)} −Si ˆµ0,R+ ˆE(γ)(Xi)
+(2)
+−ˆπ ˆE(γ)(Xi)
+Si(1 −Ai) + (1 −Si)ˆr ˆE(γ)(Xi)
+ˆπ ˆE(γ)(Xi){1 −ˆe(Xi)} + {1 −ˆπ ˆE(γ)(Xi)}ˆr ˆE(γ)(Xi){Yi −ˆµ0,R+ ˆE(γ)(Xi)}
+
+.
+The proposed methods represent a class of ATE estimators: when ˆE(1) = ∅with no
+ECs borrowed, let ˆτ1 ≡ˆτR; when ˆE(0) = E with all ECs borrowed, we have ˆτ0 = ˆτR+E.
+Hereafter, we will use ˆτ1 and ˆτ0 to refer to the No Borrowing and Full Borrowing ATE
+estimators, respectively. For 0 < γ < 1, ˆτγ balances the trade-off between borrowing more
+ECs with a smaller γ and discarding more ECs with a larger γ. By using T(A) = |ˆτγ| as
+the test statistic for FRT and allowing ˆE(γ) to vary with resampling A in FRT, it could
+account for selection uncertainty and provide valid post-selection inference by Theorem 1.
+Figure 2 shows that the Conformal Selective Borrowing can improve power compared
+to the No Borrowing, regardless of whether Assumption 2 holds for all ECs. The next two
+sections introduce how to compute conformal p-values and a data-adaptive procedure for
+selecting γ to minimize the MSE of ˆτγ.
+14
+3.1
+Conformal p-values
+3.1.1
+Full conformal p-value
+We first consider full conformal inference (Vovk et al. 2005), which fully utilizes all data
+in C for both training and calibration. We use a score function s(x, y) to measure the
+“nonconformity” of (x, y).
+For example, we can use the absolute residual as the score
+function: si = |Yi −ˆfj(Xi)| for i ∈C and sj = |Yj −ˆfj(Xj)|, where ˆfj(x) is a prediction
+model fitted by the augmented set C ∪{j}. Intuitively, if (Xj, Yj) is not exchangeable
+(see Remark 1 for a formal definition) with {(Xi, Yi)}i∈C, sj should be large compared to
+{si}i∈C. To measure the extremeness of observing sj under the exchangeability, we define
+the full conformal p-value as the proportion of the elements in {si}i∈C that are larger than
+or equal to sj:
+pfull
+j
+=
+P
+i∈C I(si ≥sj) + 1
+|C| + 1
+,
+where I is the indicator function, and the “+1” accounts for including sj itself. If pfull
+j
+is
+smaller than a threshold γ, we reject the hypothesis of exchangeability and discard EC j.
+We have the following theoretical guarantee, which states that if EC j is exchangeable with
+the RCs, the rejection rate is less than γ.
+Proposition 1. For an EC j ∈E, suppose that (Xj, Yj) and the RCs {(Xi, Yi)}i∈C are
+exchangeable. For γ ∈(0, 1), we have P(pfull
+j
+≤γ) ≤γ. Further assuming sj and {si}i∈C
+have distinct values, we have P(pfull
+j
+≤γ) =
+
+⌊γ (|C| + 1)⌋
+	 
+(|C| + 1) > γ −1/(|C| + 1).
+Remark 1 (Definition of exchangeability). The random variables z1, . . . , zn are exchange-
+able if, for any permutation ω of 1, . . . , n, the random variables zω(1), . . . , zω(n) have the
+same joint distribution as z1, . . . , zn. The i.i.d. assumption is stronger than exchange-
+ability, as the latter can hold with dependence (Shafer & Vovk 2008). The exchangeability
+15
+required by conformal inference is stronger than the mean exchangeability (Assumption 2),
+which allows the construction of a statistically valid estimator within the asymptotic infer-
+ence framework (Li et al. 2023, Valancius et al. 2024).
+To compute full conformal p-values for all ECs j ∈E, the prediction model must be refit
+nE times, which is time-consuming for large EC samples. Thus, we consider split conformal
+inference (Papadopoulos et al. 2002), requiring only one model fit while preserving validity.
+3.1.2
+Split conformal p-value
+We randomly split C into a calibration set C1 and a training set C \ C1 according to a
+prespecified sample size ratio, for example, 1 : 2. We can still use the absolute residual as
+the score function: si = |Yi −ˆf−C1(Xi)| for i ∈C1 and sj = |Yj −ˆf−C1(Xj)|, where ˆf−C1(x)
+is a prediction model fitted by the training set C \C1. We define the split conformal p-value
+as the proportion of {si}i∈C1 that are larger than sj,
+psplit
+j
+=
+P
+i∈C1 I(si ≥sj) + 1
+|C1| + 1
+.
+Proposition 2. For an EC j ∈E, suppose that (Xj, Yj) and the RCs {(Xi, Yi)}i∈C are
+exchangeable. For γ ∈(0, 1), we have P(psplit
+j
+≤γ) ≤γ. Further assuming sj and {si}i∈C
+have distinct values, we have P(psplit
+j
+≤γ) =
+
+⌊γ(|C1| + 1)⌋
+	 
+(|C1| + 1) > γ −1/(|C1| + 1).
+While split conformal p-values are computationally efficient, they lose statistical effi-
+ciency due to data splitting. Next, we introduce Jackknife+ p-values (Barber et al. 2021),
+which fully utilize training data and remain computationally feasible.
+16
+3.1.3
+Jackknife+ p-value
+We use the leave-one-out training set C \ {i} to fit prediction models ˆf−i(x) and use the
+absolute residual as the score function: si = |Yi −ˆf−i(Xi)| and s(i)
+j
+= |Yj −ˆf−i(Xj)| for
+i ∈C. We define the Jackknife+ p-value as the proportion of {si}i∈C that are larger than
+the corresponding {s(i)
+j }i∈C,
+pjackknife+
+j
+=
+P
+i∈C I(si ≥s(i)
+j ) + 1
+|C| + 1
+.
+Proposition 3. For an EC j ∈E, suppose that (Xj, Yj) and the RCs {(Xi, Yi)}i∈C are
+exchangeable. For γ ∈(0, 1), we have P(pjackknife+
+j
+≤γ) ≤2γ −1/(|C| + 1) < 2γ.
+Remark 2. The factor of 2 cannot be reduced without further assumptions, as shown by
+pathological cases in Barber et al. (2021), though the empirical error rate is close to γ.
+We fit the prediction model using n0 leave-one-out datasets, which is feasible since n0
+is usually small when borrowing ECs. If model fitting is computationally expensive, an
+alternative is K-fold cross-validation, known as CV+ (Barber et al. 2021).
+3.1.4
+CV+ p-value
+We randomly split C into K disjoint folds: C = ∪K
+k=1Ck. We use the training set C \ Ck
+to fit prediction models ˆf−Ck(x) and use the absolute residual as the score function: si =
+|Yi−ˆf−Ck(i)(Xi)| and s(i)
+j
+= |Yj −ˆf−Ck(i)(Xj)| for i ∈C, where k(i) ∈{1, . . . , K} is a function
+that indicates i ∈Ck. Thus, for i ̸= i′ and k(i) = k(i′), we have s(i)
+j
+= s(i′)
+j . We define the
+CV+ p-value as the proportion of {si}i∈C that are larger than the corresponding {s(i)
+j }i∈C,
+pcv+
+j
+=
+P
+i∈C I(si ≥s(i)
+j ) + 1
+|C| + 1
+.
+17
+The following theoretical guarantee is a generalization of Proposition 3, where K = |C|.
+Proposition 4. For an EC j ∈E, suppose that (Xj, Yj) and the RCs {(Xi, Yi)}i∈C are
+exchangeable. For γ ∈(0, 1), we have P(pcv+
+j
+≤γ) ≤2γ+
+
+(1−2γ)(m−1)−1
+	 
+(|C|+m) <
+2γ +
+ 1 −K/|C|
+
+/ (K + 1), where m = |C|/K is assumed to be an integer for simplicity.
+3.2
+Adaptive selection threshold
+Since we construct p∗
+j individually and make borrowing decisions collectively, one might
+consider choosing a selection threshold γ that controls the family-wise type I error rate or
+false discovery rate for testing the exchangeability of all ECs (Bates et al. 2023). However, in
+our context, the power of the conformal tests is of greater concern. The classical test-then-
+pool approach has been criticized for its low power in detecting hidden bias, particularly
+when the sample size of randomized controls is small (Li et al. 2020). Even if we effectively
+control the family-wise type I error rate, low-power conformal tests may still result in
+many biased ECs being incorrectly borrowed, leading to an increase in the MSE of ˆτγ and
+a reduction in the power of the FRT. Therefore, we propose a data-adaptive procedure to
+directly minimize the MSE of ˆτγ and thereby improve the power of the FRT.
+We decompose MSE(γ) ≡E(ˆτγ −τ)2 = {E(ˆτγ) −τ}2 + V(ˆτγ). The main challenge
+lies in estimating the squared bias {E(ˆτγ −τ)}2 as the true τ is unknown. Fortunately,
+since the No Borrowing estimator ˆτ1 is consistent for τ, we approximate {E(ˆτγ −τ)}2 by
+{E(ˆτγ −ˆτ1)}2 = E(ˆτγ −ˆτ1)2 −V(ˆτγ −ˆτ1). We then use (ˆτγ −ˆτ1)2 to estimate E(ˆτγ −ˆτ1)2
+and apply bootstrap to estimate V(ˆτγ) and V(ˆτγ −ˆτ1). Combining these yields estimated
+MSE for each γ over finite grids, and we select γ that minimizes this estimated MSE. The
+full procedure is outlined in Algorithm 1.
+Finally, we theoretically analyze the data-adaptive selection threshold procedure from
+a non-asymptotic perspective with a fixed n (Wainwright 2019).
+We decompose ˆτγ =
+18
+Algorithm 1 Adaptive Selection Threshold
+Input: Threshold grid Γ = {0, 0.1, . . . , 1}, number of bootstrap samples L = 100.
+for γ ∈Γ do
+▷Step 1 (ATE Estimation for Original and Bootstrap Samples)
+Compute ˆτγ from the original sample.
+for l = 1, . . . , L do
+Compute ˆτ (l)
+γ
+from the l-th bootstrap sample.
+end for
+end for
+for γ ∈Γ \ {1} do
+▷Step 2 (MSE Calculation for Each γ)
+Compute bV(ˆτγ −ˆτ1) = (L −1)−1 PL
+l=1
+n
+(ˆτ (l)
+γ −ˆτ (l)
+1 ) −L−1 PL
+l′=1(ˆτ (l′)
+γ
+−ˆτ (l′)
+1 )
+o2
+.
+Compute bV(ˆτγ) = (L −1)−1 PL
+l=1
+
+ˆτ (l)
+γ −L−1 PL
+l′=1 ˆτ (l′)
+γ
+2
+.
+Compute [
+MSE(γ) = (ˆτγ −ˆτ1)2 −bV(ˆτγ −ˆτ1) + bV(ˆτγ).
+end for
+Compute [
+MSE(1) = (L −1)−1 PL
+l=1
+
+ˆτ (l)
+1 −L−1 PL
+l′=1 ˆτ (l′)
+1
+2
+.
+Find ˆγ = arg minγ∈Γ [
+MSE(γ).
+▷Step 3 (Optimal Threshold Selection)
+Output: ˆγ.
+τ + δγ + ϵγ, where δγ ≡E(ˆτγ) −τ and E(ϵγ) = 0. Let κ2
+γ ≡V(ˆτγ −ˆτ1) = V(ϵγ −ϵ1) and
+σ2
+γ ≡V(ˆτγ) = V(ϵγ).
+Theorem 3. For fixed n > 0 and γ ∈Γ, suppose ϵγ is a centered sub-Gaussian variable
+with parameter ϕγ > 0, i.e., E {exp(λϵγ)} ≤exp
+ ϕ2
+γλ2/2
+
+for all λ ∈R. For ι > 0, there
+exists a constant c > 0 such that with probability at least 1 −4ι, we have
+max
+γ∈Γ
+[
+MSE(γ) −MSE(γ)
+ ≤c∆|δ1| + c∆Φ
+p
+log (|Γ|/ι)
++ max
+n
+cΦ2p
+log (|Γ|/ι), cΦ2 log (|Γ|/ι)
+o
++ max
+γ∈Γ |bV(ˆτγ −ˆτ1) −κ2
+γ| + max
+γ∈Γ |bV(ˆτγ) −σ2
+γ|,
+where ∆= maxγ∈Γ |δγ|, Φ = maxγ∈Γ ϕγ, δ1 is the bias of the consistent estimator ˆτ1, and
+19
+|Γ| is the cardinality of the set Γ.
+Theorem 3 demonstrates that the discrepancy between the estimated MSE and the true
+MSE vanishes as long as the maximum bias ∆is bounded and the bias of the consistent
+estimator ˆτ1, the maximum proxy variance Φ, and the maximum errors in the two variance
+estimations are sufficiently small.
+Theorem 4. Under the same assumptions as in Theorem 3, for any ι > 0, there exists a
+constant c > 0 such that, with probability at least 1 −8ι, the following holds:
+(ˆτˆγ −τ)2 −min
+γ∈Γ (ˆτγ −τ)2 ≤2c∆|δ1| + 2c∆Φ
+p
+log (|Γ|/ι)
++ 2 max
+n
+cΦ2p
+log (|Γ|/ι), cΦ2 log (|Γ|/ι)
+o
++ 2 max
+γ∈Γ |bV(ˆτγ −ˆτ1) −κ2
+γ| + 2 max
+γ∈Γ |bV(ˆτγ) −σ2
+γ|.
+Theorem 4 provides a bound for the excess risk of ˆτˆγ in comparison to the oracle es-
+timator. Although ˆτˆγ generally outperforms ˆτ1 in terms of MSE, it may exhibit excess
+risk in certain challenging cases, as shown in Figure 3 (C) in the simulation. This phe-
+nomenon highlights the super-efficiency of ˆτˆγ, similar to the behavior of the Hodges esti-
+mator (Le Cam 1953) and recent integrated estimators in data fusion (Yang et al. 2023,
+Oberst et al. 2022). Notably, FRT can still control the type I error rate even if excess risk
+is present or the assumptions in Theorem 3 are not satisfied.
+4
+Simulation
+We conduct simulations to evaluate the repeated sampling performance of the proposed
+methods under small sample sizes and varying magnitudes of hidden bias, including chal-
+lenging cases where separating biased ECs is difficult. Specifically, the sample sizes for
+the RT, RC, and EC groups are set as (n1, n0, nE) = (50, 25, 50). Similar results for a
+20
+larger EC sample size (nE = 300) are included in the Supplemental Material. We generate
+covariates X ∼N(0, Ip) with dimension p = 2 and Ip is the identity matrix. The sampling
+indicator S ∼Bernoulli(π(X)) is generated with π(X) = {1 + exp (η0 + XTη)}−1, where
+η0 is chosen to ensure E(S) = nR/n, and η = (0.1, 0.1). The assignment is generated by
+A ∼Bernoulli(n1/nR) for S = 1 and A = 0 for S = 0. Let ε ∼N(0, 1) denote the noise.
+For the RCT sample (S = 1), we generate the potential outcomes as Y (0) = XTβ0 + ε
+with β0 = (1, 1), and Y (1) = τ0 + XTβ1 + ε with τ0 = 0.4 and β1 = (2, 2). For the EC
+sample (S = 0), we consider two scenarios: (i) the scenario without hidden bias, where
+Y (0) = XTβ0 + 0.5ε; (ii) the scenario where part of the ECs have hidden bias b, where
+a random proportion ρ of the ECs is biased, with Y (0) = −b + XTβ0 + 0.5ε, and the
+remaining proportion (1 −ρ) are unbiased, with Y (0) = XTβ0 + 0.5ε. We consider pro-
+portions of biased ECs ρ = 50% and magnitudes of hidden bias b = 1, 2, . . . , 8. Note that
+hidden bias refers to bias that remains due to unmeasured confounders, even after bal-
+ancing the observed covariates. Under the alternative hypothesis, the observed outcome is
+Y = AY (1) + (1 −A)Y (0); under the null hypothesis, the observed outcome is Y = Y (0).
+We consider No Borrowing (NB), Full Borrowing (FB), and Conformal Selective
+Borrowing (CSB) as estimators of τ and test statistics for FRT. We also consider Adaptive
+Lasso Selective Borrowing (ALSB) by Gao et al. (2023). Given its higher computational
+cost (approximately 10 times slower than CSB), we omit FRTs for this method and instead
+compare CSB+FRT with ALSB+asymptotic inference. CV+ p-values are computed using
+10 folds. We use Algorithm 1 to determine ˆγ. We also consider various fixed thresholds
+γ = 0.4, 0.6, 0.8 in the Supplemental Material. We set B = 5000 to approximate pFRT and
+replicate the simulation 500 times per scenario.
+Figure 3 shows the main simulation results for FRTs. In the first case, with a hidden
+21
+0.0
+0.2
+0.4
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(A) Absolute Bias
+0.06
+0.08
+0.10
+0.12
+0.14
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(B) Variance
+0.1
+0.3
+0.5
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(C) MSE
+0.0
+0.2
+0.4
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(D) Type I Error Rate
+0.2
+0.4
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(E) Power
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(F) #Biased / #Selected
+Method
+No Borrow (γ = 1)
+Full Borrow (γ = 0)
+Conformal Selective Borrow (γ^)
+Figure 3: Simulation results across different hidden bias magnitudes.
+bias magnitude of b = 0, the results indicate that: (i) all methods exhibit negligible bias;
+(ii) FB and CSB reduce MSE by 42% and 20%, respectively, compared to NB; (iii) all
+methods effectively control the type I error rate; and (iv) FB and CSB increase power by
+46% and 45%, respectively, compared to NB.
+The following eight cases, where there is hidden bias (b = 1, . . . , 8), show that: (i)
+FB exhibits a large bias, approximately 125%-203% of its standard deviation (SD). The
+absolute bias of FB decreases with b when b ≥3 because large b values increase V{Y (0) |
+X = x, A = 0, S = 0}, causing FB to down-weight ECs with small ˆr(Xi) in (1). CSB
+performs better at bias control, with bias ranging from 0%-22% of its SD; (ii) compared
+to NB, FB increases MSE by up to 454%, and CSB decreases MSE by 13%-16% (except
+when b = 1, 2, where MSE increase by 1%-18%). (iii) In line with Theorem 1, all methods
+22
+b: 6
+b: 7
+b: 8
+b: 3
+b: 4
+b: 5
+b: 0
+b: 1
+b: 2
+0.5
+0.6
+0.7
+0.8
+0.5
+0.6
+0.7
+0.8
+0.5
+0.6
+0.7
+0.8
+−8
+−4
+0
+4
+−8
+−4
+0
+4
+−8
+−4
+0
+4
+Sampling Score
+Outcome
+RCT Controlled
+EC (Selected)
+EC (Unselected)
+Figure 4: Selection performance of Conformal Selective Borrowing.
+control the type I error rate well; (iv) compared to NB, FB decreases power by up to
+51%. In contrast, CSB increases power by 13%-36% (except when b = 2, 3, 4, where power
+decreases by 7%-20%). In challenging cases where 0 < b ≤4, the efficiency loss of CSB
+occurs because small biases make it hard to distinguish biased ECs from unbiased ECs.
+Such loss is inevitable when aiming to gain efficiency in scenarios without hidden bias, a
+phenomenon known in the transfer learning literature as the cost of transferability detection
+(Cai et al. 2024). This phenomenon also occurs for other data integration estimators under
+hidden bias (see Figure 2 in Yang et al. (2023), Figure 4 in Oberst et al. (2022), and Figure
+2 in Lin et al. (2024)).
+Finally, we examine the selection performance of CSB. Subplot (F) in Figure 3 shows
+the proportion of biased ECs among the selected ECs, referred to as the false selection rate
+23
+(FSR). Since 50% of the ECs are biased, FB’s FSR stays constant at 0.5 when b ̸= 0. CSB’s
+FSR is 0.22 at b = 1 (the hardest case) and nearly zero when b ≥2. We do not expect
+CSB to perfectly separate biased ECs from unbiased ones due to (i) the small sample size
+of reference objects (RCs) and (ii) finite sample noise. In most cases, CSB discards biased
+ECs and some unbiased ones that aren’t sufficiently similar to RCs, as shown in Figure
+4. In these small sample cases, CSB outperforms ALSB in both estimation and selection.
+Moreover, ALSB, relying on asymptotic inference, fails to control the type I error rate, as
+demonstrated in the Supplemental Material.
+5
+Real data application
+5.1
+The CALGB 9633 and NCDB data
+Description. We apply the proposed methods to an RCT conducted by the Cancer
+and Leukemia Group B (CALGB), known as CALGB 9633, which investigated the treat-
+ment effect of adjuvant chemotherapy in patients with stage IB non-small-cell lung cancer
+(Strauss et al. 2008). In CALGB 9633 (S = 1), n1 = 167 patients were randomized to
+adjuvant chemotherapy (A = 1), and n0 = 168 were randomized to observation (A = 0).
+We extract data for 11,700 patients from the National Cancer Database (NCDB) as the
+EC sample (A = 0, S = 0) to improve CALGB 9633’s statistical efficiency. The NCDB is a
+clinical oncology database sourced from hospital registry data, jointly run by the American
+Cancer Society and the American College of Surgeons, covering 70% of U.S. cancer cases.
+RMST. We use the Restricted Mean Survival Time (RMST), Y = min(T, t∗), as the
+primary endpoint, where T represents the survival time and t∗is the truncation time.
+RMST measures survival time up to a clinically relevant truncation point and serves as
+a compelling alternative to the hazard ratio when the proportional hazards assumption
+is violated (Hern´an 2010, Royston & Parmar 2013). We consider the difference in 3-year
+24
+RMST between the treatment and control groups for the RCT population τ = E{Y (1) −
+Y (0) | S = 1} as the estimand, where Y (a) = min{T(a), 3} and T(a) is the potential
+survival time, a = 0, 1. Five baseline covariates in CALGB 9633 and NCDB are considered:
+sex, age, race, histology, and tumor size.
+Pseudo-observations. The censoring rates of T in CALGB 9633 and NCDB are 42%
+and 48%, respectively. We use a “once-for-all” approach to transform right-censored sur-
+vival times into pseudo-observations for RMST, allowing standard causal inference methods
+as if outcomes were non-censored (Andersen et al. 2003, Overgaard et al. 2017, Andersen
+et al. 2017, Zeng et al. 2023). To address covariate-dependent censoring, we stratify by sex,
+race, and histology, applying transformations separately within each dataset (Andersen &
+Pohar Perme 2010). The stratified Kaplan–Meier estimator is used to estimate survival
+functions, with pseudo-observations generated via the jackknife method, as implemented
+in the R package eventglm (Sachs & Gabriel 2022). More details are in the Supplement
+Material. We treat the pseudo-observations for 3-year RMST as the outcome hereafter.
+Matching.
+We use nearest-neighbor matching to mitigate the covariate imbalance
+between CALGB 9633 and NCDB. Tumor size was imputed for eight missing values in
+CALGB 9633 using the median of 4. NCDB samples with missing values or covariates
+outside the CALGB 9633 range were excluded, leaving 10,241 samples. We perform 1:1
+nearest-neighbor matching using MatchIt (Ho et al. 2011), treating the sampling indica-
+tor S as a “treatment” and targeting the average treatment effect on the treated (ATT).
+This preserves all RCT samples and matches 335 NCDB samples. Distributional balance
+for the baseline covariates and the estimated sampling score ˆP(S = 1|X) improves signifi-
+cantly after matching, with a visual comparison in the Supplementary Material. However,
+certain covariates, such as tumor size, remain imbalanced, which could not be addressed
+25
+Table 1: Analysis results for CALGB 9633 + NCDB.
+Method
+Est
+SE
+CI
+Asym p
+Exact p
+#EC
+No Borrow (Dif-in-Means)
+0.135
+0.072
+(-0.007, 0.276)
+0.062
+0.060
+0
+No Borrow (AIPW)
+0.142
+0.074
+(-0.003, 0.286)
+0.055
+0.051
+0
+Full Borrow
+0.241
+0.061
+(0.122, 0.361)
+<0.001
+0.031
+335
+Conformal Selective Borrow
+0.138
+0.058
+(0.024, 0.252)
+0.018
+0.046
+264
+Note: “Est” is the point estimate of ATE for the RCT population. “SE”, “CI”, and “Asym p” are the
+standard error, confidence interval, and p-value, respectively, based on asymptotic inference. “Exact p”
+is the proposed exact p-value based on FRT. “#EC” is the number of borrowed ECs.
+by matching without resorting to methods that would undesirably discard RCT samples.
+This motivates the use of the doubly robust estimator in Sections 2.1 and 3. Notably,
+while a doubly robust estimator alone can address covariate imbalance, matching as a pre-
+processing step reduces reliance on correct model specification (Ho et al. 2007). A summary
+table of the pre-processed data is in the Supplementary Material.
+5.2
+Data analysis
+We apply No Borrowing, Full Borrowing, and Conformal Selective Borrowing to
+estimate the ATE and perform FRTs. For comparison, we also apply No Borrowing without
+covariate adjustment, i.e., difference-in-means estimator. In addition to the proposed exact
+p-value, we also compute the standard error, confidence interval, and p-value based on
+asymptotic inference for all approaches (Li et al. 2023). Since the outcome shows a high
+proportion of truncation at 3 years, resulting in a highly skewed distribution, we apply the
+conformal quantile regression (Romano et al. 2019) to compute the conformal score. We
+utilize the Jackknife+ p-value (Barber et al. 2021) introduced in Section 3.1.3.
+Table 1 presents the analysis results. For No Borrowing using Dif-in-Means and AIPW,
+asymptotic and exact p-values range from 0.051 to 0.062. In contrast, Full Borrowing
+(using all 335 ECs) gives an asymptotic p-value of < 0.001 and an exact p-value of 0.031,
+indicating a significantly positive ATE. Similarly, Conformal Selective Borrowing (using
+26
+0
+1
+2
+3
+0.40
+0.45
+0.50
+0.55
+Sampling Score
+Outcome (3−year RMST)
+CALGB 9633 Controlled
+NCDB Controlled (Selected)
+NCDB Controlled (Unselected)
+Figure 5: 3-year RMST (Outcome) vs. Sampling Score estimated by 5 covariates. The
+shaded area is constructed using quantile regression on the CALGB 9633 controlled data.
+178 ECs) shows an asymptotic p-value of 0.018 and an exact p-value of 0.046, also indicat-
+ing a significantly positive ATE. The ATE estimate from Conformal Selective Borrowing
+falls between No Borrowing and Full Borrowing, indicating a trade-off between these two
+approaches. Figure 5 shows that, given the observed confounder X, Conformal Selective
+Borrowing tends to select ECs whose outcomes are more similar to RCs, reducing hidden
+bias that cannot be addressed by balancing X alone. The combination of FRT and con-
+formal p-values may raise computational concerns, though they can be accelerated with
+parallel computing. In our real data analysis, 10,000 Monte Carlo iterations for FRT and
+Jackknife+ with n0 = 168 took about 23 minutes on a personal MacBook using 8 cores.
+27
+6
+Conclusion and discussion
+This paper extends the FRT to hybrid controlled trials and proposes Conformal Selective
+Borrowing to mitigate hidden bias when incorporating ECs. Without hidden bias among
+ECs, Full Borrowing combined with FRT controls the type I error rate and increases
+power, as expected based on previous literature (Li et al. 2023, Valancius et al. 2024).
+In the presence of hidden bias among ECs, Full Borrowing with FRT still controls the
+type I error rate due to the merit of randomization in RCTs, but it reduces power, high-
+lighting that EC borrowing comes with trade-offs. Regardless of hidden bias in ECs, FRT
+with Conformal Selective Borrowing controls the type I error rate and increases power
+in most scenarios. The Conformal Selective Borrowing ATE estimator with the adap-
+tive selection threshold improves the efficiency compared to the No Borrowing approach in
+terms of MSE.
+In RCT, beyond the sharp null, FRTs could be asymptotically valid for testing the
+weak null using studentized/prepivoted test statistics (Wu & Ding 2021, Cohen & Fogarty
+2022). Randomization-based confidence intervals can be constructed by inverting a series
+of FRTs (Luo et al. 2021), with analytical methods for this inversion developed by Zhu &
+Liu (2023) and Fiksel (2024). Randomization inference can test bounded null hypotheses
+and construct confidence intervals for quantiles of individual treatment effects (Caughey
+et al. 2023). Extending these methods to hybrid controlled trials would be valuable.
+Hidden bias or heterogeneity among multiple sources is common in data integration and
+transfer learning tasks, causing efficiency loss even after balancing measured confounders.
+The mainstream approach often involves penalized bias estimation methods like adaptive
+Lasso. Our work shows that conformal inference provides more stable performance and
+flexibility in finite samples.
+Extending our method to other tasks, such as developing
+28
+individual treatment regimes (Chu et al. 2023, Li et al. 2024), exploring treatment effect
+heterogeneity (Wu & Yang 2022), and improving experimental design (Ventz et al. 2022,
+Guo et al. 2024, Ruan et al. 2024), would be of significant interest.
+Acknowledgement
+This project is supported by the Food and Drug Administration (FDA) of the U.S.
+Department of Health and Human Services (HHS) as part of a financial assistance award
+U01FD007934 totaling $1,674,013 over two years funded by FDA/HHS. It is also supported
+by the National Institute On Aging of the National Institutes of Health under Award
+Number R01AG06688, totaling $1,565,763 over four years. The contents are those of the
+authors and do not necessarily represent the official views of, nor an endorsement by,
+FDA/HHS, the National Institutes of Health, or the U.S. Government.
+Supplementary Material
+The Supplementary Material provides proofs and additional numerical results. The R
+package intFRT is available at https://github.com/ke-zhu/intFRT.
+References
+Alt, E. M., Chang, X., Jiang, X., Liu, Q., Mo, M., Xia, H. A. & Ibrahim, J. G. (2024),
+‘LEAP: The latent exchangeability prior for borrowing information from historical data’,
+Biometrics 80(3), ujae083.
+Andersen, P. K., Klein, J. P. & Rosthøj, S. (2003), ‘Generalised linear models for correlated
+pseudo-observations, with applications to multi-state models’, Biometrika 90(1), 15–27.
+Andersen, P. K. & Pohar Perme, M. (2010), ‘Pseudo-observations in survival analysis’,
+Statistical Methods in Medical Research 19(1), 71–99.
+Andersen, P. K., Syriopoulou, E. & Parner, E. T. (2017), ‘Causal inference in survival
+29
+analysis using pseudo-observations’, Statistics in Medicine 36(17), 2669–2681.
+Angelopoulos, A. N., Bates, S. et al. (2023), ‘Conformal prediction: A gentle introduction’,
+Foundations and Trends® in Machine Learning 16(4), 494–591.
+Barber, R. F., Candes, E. J., Ramdas, A. & Tibshirani, R. J. (2021), ‘Predictive inference
+with the jackknife+’, The Annals of Statistics 49(1), 486–507.
+Bates, S., Cand`es, E., Lei, L., Romano, Y. & Sesia, M. (2023), ‘Testing for outliers with
+conformal p-values’, The Annals of Statistics 51(1), 149–178.
+Bind, M.-A. C. & Rubin, D. B. (2020), ‘When possible, report a Fisher-exact P value
+and display its underlying null randomization distribution’, Proceedings of the National
+Academy of Sciences 117(32), 19151–19158.
+Bugni, F. A., Canay, I. A. & Shaikh, A. M. (2018), ‘Inference under covariate-adaptive
+randomization’, Journal of the American Statistical Association 113(524), 1784–1796.
+Cai, T., Li, M. & Liu, M. (2024), ‘Semi-supervised triply robust inductive transfer learning’,
+Journal of the American Statistical Association in press.
+Cao, W., Tsiatis, A. A. & Davidian, M. (2009), ‘Improving efficiency and robustness of
+the doubly robust estimator for a population mean with incomplete data’, Biometrika
+96(3), 723–734.
+Carter, K., Scheffold, A. L., Renteria, J., Berger, V. W., Luo, Y. A., Chipman, J. J. &
+Sverdlov, O. (2023), ‘Regulatory guidance on randomization and the use of randomization
+tests in clinical trials: A systematic review’, Statistics in Biopharmaceutical Research
+16(4), 428–440.
+Caughey, D., Dafoe, A., Li, X. & Miratrix, L. (2023), ‘Randomisation inference beyond
+the sharp null: Bounded null hypotheses and quantiles of individual treatment effects’,
+Journal of the Royal Statistical Society Series B: Statistical Methodology 85(5), 1471–
+1491.
+Chen, C., Wang, M. & Chen, S. (2023), ‘An efficient data integration scheme for synthe-
+30
+sizing information from multiple secondary datasets for the parameter inference of the
+main analysis’, Biometrics 79(4), 2947–2960.
+Chen, S., Zhang, B. & Ye, T. (2021), ‘Minimax rates and adaptivity in combining experi-
+mental and observational data’, arXiv preprint arXiv:2109.10522 .
+Chen, W.-C., Wang, C., Li, H., Lu, N., Tiwari, R., Xu, Y. & Yue, L. Q. (2020), ‘Propensity
+score-integrated composite likelihood approach for augmenting the control arm of a ran-
+domized controlled trial by incorporating real-world data’, Journal of Biopharmaceutical
+Statistics 30(3), 508–520.
+Chen, Z., Ning, J., Shen, Y. & Qin, J. (2021), ‘Combining primary cohort data with external
+aggregate information without assuming comparability’, Biometrics 77(3), 1024–1036.
+Cheng, D. & Cai, T. (2021), ‘Adaptive combination of randomized and observational data’,
+arXiv preprint arXiv:2111.15012 .
+Cheng, Y., Wu, L. & Yang, S. (2023), Enhancing treatment effect estimation: A model
+robust approach integrating randomized experiments and external controls using the
+double penalty integration estimator, in ‘Proceedings of the Thirty-Ninth Conference
+on Uncertainty in Artificial Intelligence’, Vol. 216 of Proceedings of Machine Learning
+Research, pp. 381–390.
+Chernozhukov, V., W¨uthrich, K. & Zhu, Y. (2021), ‘An exact and robust conformal infer-
+ence method for counterfactual and synthetic controls’, Journal of the American Statis-
+tical Association 116(536), 1849–1864.
+Chu, J., Lu, W. & Yang, S. (2023), ‘Targeted optimal treatment regime learning using
+summary statistics’, Biometrika 110(4), 913–931.
+Cohen, P. L. & Fogarty, C. B. (2022), ‘Gaussian prepivoting for finite population causal
+inference’, Journal of the Royal Statistical Society Series B: Statistical Methodology
+84(2), 295–320.
+Colnet, B., Mayer, I., Chen, G., Dieng, A., Li, R., Varoquaux, G., Vert, J.-P., Josse,
+31
+J. & Yang, S. (2024), ‘Causal inference methods for combining randomized trials and
+observational studies: A review’, Statistical Science 39(1), 165–191.
+Dang, L. E., Tarp, J. M., Abrahamsen, T. J., Kvist, K., Buse, J. B., Petersen, M. &
+van der Laan, M. (2023), ‘A cross-validated targeted maximum likelihood estimator for
+data-adaptive experiment selection applied to the augmentation of RCT control arms
+with external data’, arXiv preprint arXiv:2210.05802v3 .
+European
+Medicines
+Agency
+(2015),
+‘Guideline
+on
+adjustment
+for
+base-
+line
+covariates
+in
+clinical
+trials’,
+https://www.ema.europa.eu/en/
+adjustment-baseline-covariates-clinical-trials-scientific-guideline.
+Fiksel, J. (2024), ‘On exact randomization-based covariate-adjusted confidence intervals’,
+Biometrics 80(2), ujae051.
+Fisher, R. (1926), ‘The arrangement of field experiments’, Journal of the Ministry of Agri-
+culture 33, 503–515.
+Fisher, R. A. (1935), The Design of Experiments, 1st edn, Oliver and Boyd, Edinburgh.
+Freidling, T., Zhao, Q. & Gao, Z. (2024), ‘Selective randomization inference for adaptive
+experiments’, arXiv preprint arXiv:2405.07026 .
+Gagnon-Bartsch, J. A., Sales, A. C., Wu, E., Botelho, A. F., Erickson, J. A., Miratrix, L. W.
+& Heffernan, N. T. (2023), ‘Precise unbiased estimation in randomized experiments using
+auxiliary observational data’, Journal of Causal Inference 11(1), 20220011.
+Gao, C. & Yang, S. (2023), ‘Pretest estimation in combining probability and non-
+probability samples’, Electronic Journal of Statistics 17(1), 1492–1546.
+Gao, C., Yang, S., Shan, M., Ye, W., Lipkovich, I. & Faries, D. (2023), ‘Integrating ran-
+domized placebo-controlled trial data with external controls: A semiparametric approach
+with selective borrowing’, arXiv preprint arXiv:2306.16642 .
+Guan, L. & Tibshirani, R. (2022), ‘Prediction and outlier detection in classification
+problems’, Journal of the Royal Statistical Society Series B: Statistical Methodology
+32
+84(2), 524–546.
+Guo, B., Laird, G., Song, Y., Chen, J. & Yuan, Y. (2024), ‘Adaptive hybrid control design
+for comparative clinical trials with historical control data’, Journal of the Royal Statistical
+Society Series C: Applied Statistics 73(2), 444–459.
+Hern´an, M. A. (2010), ‘The hazards of hazard ratios’, Epidemiology 21(1), 13–15.
+Ho, D. E., Imai, K., King, G. & Stuart, E. A. (2007), ‘Matching as nonparametric prepro-
+cessing for reducing model dependence in parametric causal inference’, Political Analysis
+15(3), 199–236.
+Ho, D., Imai, K., King, G. & Stuart, E. A. (2011), ‘Matchit: Nonparametric preprocessing
+for parametric causal inference’, Journal of Statistical Software 42(8), 1–28.
+Hobbs, B. P., Carlin, B. P., Mandrekar, S. J. & Sargent, D. J. (2011), ‘Hierarchical com-
+mensurate and power prior models for adaptive incorporation of historical information
+in clinical trials’, Biometrics 67(3), 1047–1056.
+Huang, Y., Huang, C.-Y. & Kim, M.-O. (2023), ‘Simultaneous selection and incorporation
+of consistent external aggregate information’, Statistics in Medicine 42(30), 5630–5645.
+Imbens, G. W. & Rubin, D. B. (2015), Causal Inference in Statistics, Social, and Biomedical
+Sciences, Cambridge University Press.
+Karlsson, R., Wang, G., Krijthe, J. H. & Dahabreh, I. J. (2024), ‘Robust integration of
+external control data in randomized trials’, arXiv preprint arXiv:2406.17971 .
+Kwiatkowski, E., Zhu, J., Li, X., Pang, H., Lieberman, G. & Psioda, M. A. (2024), ‘Case
+weighted power priors for hybrid control analyses with time-to-event data’, Biometrics
+80(2), ujae019.
+Le Cam, L. (1953), ‘On some asymptotic properties of maximum likelihood estimates and
+related Bayes estimates’, University of California Publications in Statistics 1, 277–330.
+Lehmann, E. & Romano, J. P. (2022), Testing Statistical Hypotheses, 4th edn, Springer
+International Publishing.
+Lei, J., G’Sell, M., Rinaldo, A., Tibshirani, R. J. & Wasserman, L. (2018), ‘Distribution-
+33
+free predictive inference for regression’, Journal of the American Statistical Association
+113(523), 1094–1111.
+Lei, L. & Cand`es, E. J. (2021), ‘Conformal inference of counterfactuals and individual treat-
+ment effects’, Journal of the Royal Statistical Society Series B: Statistical Methodology
+83(5), 911–938.
+Li, L. & Jemielita, T. (2023), ‘Confounding adjustment in the analysis of augmented ran-
+domized controlled trial with hybrid control arm’, Statistics in Medicine 42(16), 2855–
+2872.
+Li, S. & Luedtke, A. (2023), ‘Efficient estimation under data fusion’, Biometrika
+110(4), 1041–1054.
+Li, T., Shi, C., Wen, Q., Sui, Y., Qin, Y., Lai, C. & Zhu, H. (2024), Combining experimen-
+tal and historical data for policy evaluation, in ‘Proceedings of the 41st International
+Conference on Machine Learning (ICML)’, Vol. 235.
+Li, W., Liu, F. & Snavely, D. (2020), ‘Revisit of test-then-pool methods and some practical
+considerations’, Pharmaceutical Statistics 19(5), 498–517.
+Li, X., Miao, W., Lu, F. & Zhou, X.-H. (2023), ‘Improving efficiency of inference in clinical
+trials with external control data’, Biometrics 79(1), 394–403.
+Liang, Z., Sesia, M. & Sun, W. (2024), ‘Integrative conformal p-values for out-of-
+distribution testing with labelled outliers’, Journal of the Royal Statistical Society Series
+B: Statistical Methodology p. qkad138.
+Lin, X., Tarp, J. M. & Evans, R. J. (2024), ‘Data fusion for efficiency gain in ATE estima-
+tion: A practical review with simulations’, arXiv preprint arXiv:2407.01186 .
+Luo, X., Dasgupta, T., Xie, M. & Liu, R. Y. (2021), ‘Leveraging the Fisher randomization
+test using confidence distributions: Inference, combination and fusion learning’, Journal
+of the Royal Statistical Society Series B: Statistical Methodology 83(4), 777–797.
+Miller, F. & Joffe, S. (2011), ‘Equipoise and the dilemma of randomized clinical trials.’,
+34
+The New England Journal of Medicine 364(5), 476–480.
+Morgan, K. L. & Rubin, D. B. (2012), ‘Rerandomization to improve covariate balance in
+experiments’, The Annals of Statistics 40(2), 1263–1282.
+Nair, Y. & Janson, L. (2023), ‘Randomization tests for adaptively collected data’, arXiv
+preprint arXiv:2301.05365 .
+Oberst, M., D’Amour, A., Chen, M., Wang, Y., Sontag, D. & Yadlowsky, S. (2022), ‘Un-
+derstanding the risks and rewards of combining unbiased and possibly biased estimators,
+with applications to causal inference’, arXiv preprint arXiv:2205.10467 .
+Overgaard, M., Parner, E. T. & Pedersen, J. (2017), ‘Asymptotic theory of generalized
+estimating equations based on jack-knife pseudo-observations’, The Annals of Statistics
+45(5), 1988–2015.
+Papadopoulos, H., Proedrou, K., Vovk, V. & Gammerman, A. (2002), Inductive confidence
+machines for regression, in ‘Machine learning: ECML 2002: 13th European conference
+on machine learning Helsinki, Finland, August 19–23, 2002 proceedings 13’, Springer,
+pp. 345–356.
+Phipson, B. & Smyth, G. K. (2010), ‘Permutation p-values should never be zero: Calculat-
+ing exact p-values when permutations are randomly drawn’, Statistical Applications in
+Genetics and Molecular Biology 9(1), 1–12.
+Plamadeala, V. & Rosenberger, W. F. (2012), ‘Sequential monitoring with conditional
+randomization tests’, The Annals of Statistics 40(1), 30–44.
+Pocock, S. J. (1976), ‘The combination of randomized and historical controls in clinical
+trials’, Journal of Chronic Diseases 29(3), 175–188.
+Proschan, M. A. & Dodd, L. E. (2019), ‘Re-randomization tests in clinical trials’, Statistics
+in Medicine 38(12), 2292–2302.
+Puelz, D., Basse, G., Feller, A. & Toulis, P. (2022), ‘A graph-theoretic approach to random-
+ization tests of causal effects under general interference’, Journal of the Royal Statistical
+35
+Society Series B: Statistical Methodology 84(1), 174–204.
+Rabideau, D. J. & Wang, R. (2021), ‘Randomization-based confidence intervals for cluster
+randomized trials’, Biostatistics 22(4), 913–927.
+Ritzwoller, D. M., Romano, J. P. & Shaikh, A. M. (2024), ‘Randomization inference:
+Theory and applications’, arXiv preprint arXiv:2406.09521 .
+Romano, Y., Patterson, E. & Cand`es, E. J. (2019), Conformalized quantile regression,
+in ‘Proceedings of the 33rd International Conference on Neural Information Processing
+Systems’, pp. 3543–3553.
+Rosenberger, W. F. & Lachin, J. M. (2015), Randomization in Clinical Trials: Theory and
+Practice, John Wiley & Sons.
+Rosenberger, W. F., Uschner, D. & Wang, Y. (2019), ‘Randomization: The forgotten
+component of the randomized clinical trial’, Statistics in Medicine 38(1), 1–12.
+Rosenman, E. T., Basse, G., Owen, A. B. & Baiocchi, M. (2023), ‘Combining observational
+and experimental datasets using shrinkage estimators’, Biometrics 79(4), 2961–2973.
+Rothenh¨ausler, D. (2020), ‘Model selection for estimation of causal parameters’, arXiv
+preprint arXiv:2008.12892 .
+Rothenh¨ausler, D., Meinshausen, N., B¨uhlmann, P. & Peters, J. (2021), ‘Anchor regression:
+Heterogeneous data meet causality’, Journal of the Royal Statistical Society Series B:
+Statistical Methodology 83(2), 215–246.
+Royston, P. & Parmar, M. K. (2013), ‘Restricted mean survival time: an alternative to
+the hazard ratio for the design and analysis of randomized trials with a time-to-event
+outcome’, BMC Medical Research Methodology 13(1), 1–15.
+Ruan, X., Wang, J., Wang, Y. & Wei, W. (2024), Electronic medical records assisted
+digital clinical trial design, in ‘Proceedings of The 27th International Conference on Ar-
+tificial Intelligence and Statistics’, Vol. 238 of Proceedings of Machine Learning Research,
+pp. 2836–2844.
+36
+Sachs, M. C. & Gabriel, E. E. (2022), ‘Event history regression with pseudo-observations:
+computational approaches and an implementation in R’, Journal of Statistical Software
+102, 1–34.
+Schuler, A., Walsh, D., Hall, D., Walsh, J., Fisher, C., for Alzheimer’s Disease, C. P.,
+Initiative, A. D. N. & Study, A. D. C. (2022), ‘Increasing the efficiency of randomized
+trial estimates via linear adjustment for a prognostic score’, The International Journal
+of Biostatistics 18(2), 329–356.
+Shafer, G. & Vovk, V. (2008), ‘A tutorial on conformal prediction.’, Journal of Machine
+Learning Research 9(3), 371–421.
+Simon, R. & Simon, N. R. (2011), ‘Using randomization tests to preserve type I error with
+response adaptive and covariate adaptive randomization’, Statistics & Probability Letters
+81(7), 767–772.
+Strauss, G. M., Herndon, J. E., Maddaus, M. A., Johnstone, D. W., Johnson, E. A.,
+Harpole, D. H., Gillenwater, H. H., Watson, D. M., Sugarbaker, D. J., Schilsky, R. L. et al.
+(2008), ‘Adjuvant paclitaxel plus carboplatin compared with observation in stage IB non-
+small-cell lung cancer: CALGB 9633 with the cancer and leukemia group B, radiation
+therapy oncology group, and north central cancer treatment group study groups’, Journal
+of Clinical Oncology 26(31), 5043–5051.
+Stuart, E. A. & Rubin, D. B. (2008), ‘Matching with multiple control groups with adjust-
+ment for group differences’, Journal of Educational and Behavioral Statistics 33(3), 279–
+306.
+U.S. Food and Drug Administration (2019), ‘Adaptive design clinical trials for drugs and
+biologics guidance for industry’, https://www.fda.gov/media/78495/download.
+U.S. Food and Drug Administration (2022), ‘Rare Diseases at FDA’, https://www.fda.
+gov/patients/rare-diseases-fda.
+U.S. Food and Drug Administration (2023), ‘Considerations for the design and conduct
+37
+of externally controlled trials for drug and biological products guidance for industry’,
+https://www.fda.gov/media/164960/download.
+Valancius, M., Pang, H., Zhu, J., Cole, S. R., Funk, M. J. & Kosorok, M. R. (2024), ‘A
+causal inference framework for leveraging external controls in hybrid trials’, Biometrics
+80(4), ujae095.
+van der Laan, M., Qiu, S. & van der Laan, L. (2024), ‘Adaptive-TMLE for the average
+treatment effect based on randomized controlled trial augmented with real-world data’,
+arXiv preprint arXiv:2405.07186 .
+Ventz, S., Khozin, S., Louv, B., Sands, J., Wen, P. Y., Rahman, R., Comment, L., Alexan-
+der, B. M. & Trippa, L. (2022), ‘The design and evaluation of hybrid controlled trials
+that leverage external data and randomization’, Nature Communications 13(1), 5783.
+Viele, K., Berry, S., Neuenschwander, B., Amzal, B., Chen, F., Enas, N., Hobbs, B.,
+Ibrahim, J. G., Kinnersley, N., Lindborg, S. et al. (2014), ‘Use of historical control data
+for assessing treatment effects in clinical trials’, Pharmaceutical Statistics 13(1), 41–54.
+Vovk, V., Gammerman, A. & Shafer, G. (2005), Algorithmic Learning in a Random World,
+Vol. 29, Springer.
+Wainwright, M. J. (2019), High-dimensional statistics:
+A non-asymptotic viewpoint,
+Vol. 48, Cambridge university press.
+Wu, J. & Ding, P. (2021), ‘Randomization tests for weak null hypotheses in randomized
+experiments’, Journal of the American Statistical Association 116(536), 1898–1913.
+Wu, L. & Yang, S. (2022), Integrative R-learner of heterogeneous treatment effects combin-
+ing experimental and observational studies, in ‘Proceedings of the First Conference on
+Causal Learning and Reasoning’, Vol. 177 of Proceedings of Machine Learning Research,
+pp. 904–926.
+Yang, S., Gao, C., Zeng, D. & Wang, X. (2023), ‘Elastic integrative analysis of randomised
+trial and real-world data for treatment heterogeneity estimation’, Journal of the Royal
+38
+Statistical Society Series B: Statistical Methodology 85(3), 575–596.
+Yi, Y., Zhang, Y., Du, Y. & Ye, T. (2023), ‘Testing for treatment effect twice using internal
+and external controls in clinical trials’, Journal of Causal Inference 11(1), 20220018.
+Young, A. (2019), ‘Channeling Fisher: Randomization tests and the statistical insignifi-
+cance of seemingly significant experimental results’, The Quarterly Journal of Economics
+134(2), 557–598.
+Zeng, S., Li, F., Hu, L. & Li, F. (2023), ‘Propensity score weighting analysis of survival
+outcomes using pseudo-observations’, Statistica Sinica 33(3), 2161–2184.
+Zhang, Y. & Zhao, Q. (2023), ‘What is a randomization test?’, Journal of the American
+Statistical Association 118(544), 2928–2942.
+Zhu, K. & Liu, H. (2023), ‘Pair-switching rerandomization’, Biometrics 79(3), 2127–2142.
+39
+SUPPLEMENTARY MATERIAL
+Section A presents the proofs, Section B includes additional simulation results, and
+Section C provides further details on the real data.
+A
+Proofs
+A.1
+Proof of Theorem 1
+Proof of Theorem 1. Under H0, the imputed potential outcomes are the same as the true
+potential outcomes. Thus, the distribution of T ∗≡T(A∗) is the same as that of T ≡T(A).
+With simplified notations, we have
+PA(pFRT ≤α) = PA {PA∗(T ∗≥T) ≤α} .
+In a finite sample, A can take only a finite set of values, which implies that T must also
+take on a finite set of values. Suppose these values are
+T1 > . . . > Tm > . . . > TM,
+and
+PA(T = Tm) = PA∗(T ∗= Tm) = αm,
+m = 1, . . . , M.
+For T ∈{T1, . . . , TM}, we have α1 ≤PA∗(T ∗≥T) ≤PM
+m=1 αm = 1. If 0 < α < α1, we
+have
+PA(pFRT ≤α) = PA {PA∗(T ∗≥T) ≤α} = 0 ≤α.
+40
+If α1 ≤α < 1, ∃˜
+M ∈{1, . . . , M −1}, such that P ˜
+M
+m=1 αm ≤α and P ˜
+M+1
+m=1 αm > α. Then,
+we have
+PA(pFRT ≤α) = PA {PA∗(T ∗≥T) ≤α} = PA {T ∈{T1, . . . , T ˜
+M}} =
+˜
+M
+X
+m=1
+αm ≤α.
+If T(A) takes distinct values for different A ∈A, pFRT is uniformly distributed:
+PA
+
+pFRT = a
+|A|
+
+=
+1
+|A|,
+a = 1, . . . , |A|.
+Thus, we have
+PA(pFRT ≤α) = ⌊α|A|⌋
+|A|
+> α|A| −1
+|A|
+= α −1
+|A|.
+Remark S1. If T is a continuous random variable, suppose its distribution function is
+F(t) = P(T ≤t), then the proof could be simplified as
+PA {PA∗(T ∗≥T) ≤α} = P {1 −F(T) ≤α}
+= P
+
+T ≥F −1(1 −α)
+	
+= 1 −F{F −1(1 −α)}
+= α.
+However, T is discrete with finite values, and we provide a rigorous proof in the finite-
+sample setting.
+A.2
+Proof of Theorem 2
+We invoke two lemmas from the Supplementary Material of Puelz et al. (2022).
+41
+Lemma S1 (Lemma 5 in Puelz et al. (2022)). Suppose Assumptions (b) and (c) in Theorem
+2 hold, for some r ∈(0.5, 1 + O(log−1 M)), we have
+E(F1,n(qα) −F1,n(qα,M)) ≥−O(M −r),
+Lemma S2 (Lemma 4 in Puelz et al. (2022)). Suppose Assumption (a) of Theorem 2 holds,
+for any 0 < ι < 0.5 and large enough M, we have
+E(F1,n,M(z) −F1,n(z)) = O(M −0.5+ι),
+for any z ∈R.
+Proof of Theorem 2. Let qα,M = F −1
+0,n,M(1 −α) and qα = F −1
+0,n(1 −α). Thus, we have
+ψN,M = 1 −F1,n,M
+ F −1
+0,n,M(1 −α)
+
+= 1 −F1,n,M
+ qα,M
+
+= 1 −F1,n(qα)
+|
+{z
+}
+T1
++ F1,n(qα) −F1,n(qα,M)
+|
+{z
+}
+T2
++ F1,n(qα,M) −F1,n,M(qα,M)
+|
+{z
+}
+T3
+.
+(S1)
+By Assumptions (b) and (c), we have
+T1 = 1 −F1,n
+ F −1
+0,n(1 −α)
+
+= 1 −F
+ F −1(1 −α) −τ/σN
+
+.
+Combined with Lemmas S1 and S2, we have
+E(ψN,M) ≥1 −F
+ F −1(1 −α) −τ/σN
+
+−O(M −r) −O(M −0.5+ι).
+The result follows from that r > 0.5 > 0.5 −ι > 0.
+42
+A.3
+Proof of Proposition 1
+Proof of Proposition 1. Since the calibration set (Xi, Yj)i∈C and external control (Xj, Yj)
+are exchangeable, we have (si)i∈C and sj are exchangeable. Thus, we have
+P(pfull
+j
+≤γ) =P
+P
+i∈C I(si ≥sj) + 1
+|C| + 1
+≤γ
+
+≤⌊γ (|C| + 1)⌋
+|C| + 1
+≤γ,
+where the first inequality is due to exchangeability and the possibility of ties in (si)i∈C and
+sj.
+If sj and {si}i∈C have distinct values, pfull
+j
+is uniformly distributed due to exchangeability.
+That is,
+P
+
+pfull
+j
+=
+a
+|C| + 1
+
+=
+1
+|C| + 1,
+a = 1, . . . , |C| + 1.
+Thus, we have
+P(pfull
+j
+≤γ) = ⌊γ (|C| + 1)⌋
+|C| + 1
+> γ (|C| + 1) −1
+|C| + 1
+= γ −
+1
+|C| + 1.
+43
+A.4
+Proof of Proposition 2
+Proof of Proposition 2. Since the calibration set (Xi, Yj)i∈C and external control (Xj, Yj)
+are exchangeable, we have (si)i∈C1 and sj are exchangeable. Thus, we have
+P(psplit
+j
+≤γ) =P
+P
+i∈C1 I(si ≥sj) + 1
+|C1| + 1
+≤γ
+
+≤⌊γ(|C1| + 1)⌋
+|C1| + 1
+≤γ,
+where the first inequality is due to exchangeability and the possibility of ties in (si)i∈C1 and
+sj.
+If sj and {si}i∈C1 have distinct values, psplit
+j
+is uniformly distributed due to exchange-
+ability. That is,
+P
+
+psplit
+j
+=
+a
+|C1| + 1
+
+=
+1
+|C1| + 1,
+a = 1, . . . , |C1| + 1.
+Thus, we have
+P(psplit
+j
+≤γ) = ⌊γ(|C1| + 1)⌋
+|C1| + 1
+> γ(|C1| + 1) −1
+|C1| + 1
+= γ −
+1
+|C1| + 1.
+A.5
+Proof of Proposition 3
+Lemma S3. Consider a matrix R ∈R(n+1)×(n+1) with elements Rij. Define the set
+S =
+(
+j ∈{1, . . . , n + 1} :
+n+1
+X
+i=1
+I(Rij < Rji) ≥(1 −γ)(n + 1)
+)
+,
+γ ∈(0, 1).
+44
+Then, we have
+s ≤2γ(n + 1) −1 < 2γ(n + 1),
+where s = |S|.
+Proof. Since
+n+1
+X
+i=1
+I(Rij < Rji) ≥(1 −γ)(n + 1)
+⇔
+n+1
+X
+i=1
+I(Rij ≥Rji) ≤γ(n + 1),
+by summing over all j ∈S, we have
+X
+j∈S
+n+1
+X
+i=1
+I(Rij ≥Rji) ≤sγ(n + 1).
+For i ̸= j, since I(Rij ≥Rji) + I(Rji ≥Rij) ≥1, we have
+X
+j∈S
+X
+i∈S
+I(Rij ≥Rji) =
+X
+j∈S
+X
+i∈S,i̸=j
+I(Rij ≥Rji) + s
+≥s(s −1)
+2
++ s.
+By combining these two inequalities, we obtain
+s(s −1)
+2
++ s ≤
+X
+j∈S
+X
+i∈S
+I(Rij ≥Rji)
+≤
+X
+j∈S
+n+1
+X
+i=1
+I(Rij ≥Rji)
+≤sγ(n + 1).
+45
+Thus, we have
+(s −1)
+2
++ 1 ≤γ(n + 1)
+⇒
+s ≤2γ(n + 1) −1 < 2γ(n + 1).
+Proof of Proposition 3. For i′, j′ ∈C ∪{j}, we define
+Ri′j′ =
+
+
+
+
+
+
+
+
+
++∞
+i′ = j′,
+Yi′ −ˆf−(i′,j′) (Xi′)
+
+i′ ̸= j′,
+where ˆf−(i′,j′) is a prediction model fitted by the leave-two-out augmented set (C ∪{j}) \
+{i′, j′}. For i ∈C, since (C ∪{j}) \ {i, j} = C \ {i}, we have ˆf−i(x) = ˆf−(i,j)(x), thereby,
+si = |Yi −ˆf−i(Xi)| = Rij,
+s(i)
+j
+= |Yj −ˆf−i(Xj)| = Rji.
+Thus, we have
+P(pjackknife+
+j
+≤γ) =P
+ P
+i∈C I(si ≥s(i)
+j ) + 1
+|C| + 1
+≤γ
+!
+=P
+ P
+i∈C∪{j} I(Rij ≥Rji)
+|C| + 1
+≤γ
+!
+=P
+
+X
+i∈C∪{j}
+I(Rij < Rji) ≥(1 −γ)(|C| + 1)
+
+
+≤2γ −
+1
+|C| + 1
+<2γ,
+46
+where first inequality is due to exchangeability and Lemma S3.
+A.6
+Proof of Proposition 4
+Lemma S4. Suppose m = n/K is an integer, and the n + m units are evenly divided into
+K + 1 sets, denoted by C1, . . . , CK+1. Consider a matrix R ∈R(n+m)×(n+m) with elements
+Rij = Rji if i and j belong to the same set. Define the set
+S =
+(
+j ∈{1, . . . , n + m} :
+n+m
+X
+i=1
+I(Rij < Rji) ≥(1 −γ)(n + 1)
+)
+,
+γ ∈(0, 1).
+Then, we have
+s ≤2γ(n + 1) + m −2,
+where s = |S|.
+Proof. For j ∈S, by definition, we have
+n+m
+X
+i=1
+I(Rij ≥Rji) ≤(n + m) −(1 −γ)(n + 1).
+Since Rij = Rji if i and j belong to the same set, we have
+n+m
+X
+i=1
+I(Rij ≥Rji) =
+X
+i/∈Ck(j)
+I(Rij ≥Rji) +
+X
+i∈Ck(j)
+I(Rij ≥Rji)
+=
+X
+i/∈Ck(j)
+I(Rij ≥Rji) + m,
+47
+where Ck(j) is the set containing unit j. Thus, we have
+X
+i/∈Ck(j)
+I(Rij ≥Rji) ≤(n + m) −(1 −γ)(n + 1) −m
+=γ(n + 1) −1.
+By summing over all j ∈S, we have
+X
+j∈S
+X
+i/∈Ck(j)
+I(Rij ≥Rji) ≤s{γ(n + 1) −1}.
+(S2)
+On the other hand, for i ̸= j, since I(Rij ≥Rji) + I(Rji ≥Rij) ≥1, we have
+X
+j∈S
+X
+i∈S,i̸=j
+I(Rij ≥Rji) ≥s(s −1)
+2
+.
+Since Rij = Rji if i and j belong to the same set, we have
+X
+j∈S
+X
+i∈S,i̸=j
+I(Rij ≥Rji) =
+X
+j∈S
+X
+i∈S,i/∈Ck(j)
+I(Rij ≥Rji) +
+X
+j∈S
+X
+i∈S,i∈Ck(j),i̸=j
+I(Rij ≥Rji)
+=
+X
+j∈S
+X
+i∈S,i/∈Ck(j)
+I(Rij ≥Rji) +
+K+1
+X
+k=1
+sk(sk −1)
+2
+,
+where sk = |Ck ∩S|. Thus, we have
+X
+j∈S
+X
+i∈S,i/∈Ck(j)
+I(Rij ≥Rji) ≥s(s −1)
+2
+−
+K+1
+X
+k=1
+sk(sk −1)
+2
+.
+(S3)
+48
+By combining (S2) and (S3), we have
+s(s −1)
+2
+−
+K+1
+X
+k=1
+sk(sk −1)
+2
+≤
+X
+j∈S
+X
+i∈S,i/∈Ck(j)
+I(Rij ≥Rji)
+≤
+X
+j∈S
+X
+i/∈Ck(j)
+I(Rij ≥Rji)
+≤s{γ(n + 1) −1}.
+Since sk ≤m, we have
+K+1
+X
+k=1
+sk(sk −1)
+2
+≤s(m −1)
+2
+.
+Thus, we have
+s ≤2γ(n + 1) + m −2.
+Proof of Proposition 4. We consider m = |C|/K is an integer for simplicity.
+Let CK+1
+contain j and other m −1 hypothetical points. For i′, j′ ∈∪K+1
+k=1 Ck, we define
+Ri′j′ =
+
+
+
+
+
+
+
+
+
++∞
+k(i′) = k(j′),
+Yi′ −ˆf−(Ck(i′),Ck(j′)) (Xi′)
+
+k(i′) ̸= k(j′),
+where ˆf−(Ck(i′),Ck(j′)) is a prediction model fitted by the leave-two-set-out augmented set
+(∪K+1
+k=1 Ck) \ (Ck(i′) ∪Ck(j′)). Since C = ∪K
+k=1Ck and Ck(j) = CK+1, we have (∪K+1
+k=1 Ck) \ (Ck(i) ∪
+49
+Ck(j)) = C \ Ck(i) for i ∈C. Thus, for i ∈C, we have ˆf−Ck(i)(x) = ˆf−(Ck(i),Ck(j))(x), thereby,
+si = |Yi −ˆf−Ck(i)(Xi)| = Rij,
+s(i)
+j
+= |Yj −ˆf−Ck(i)(Xj)| = Rji.
+Thus, we have
+P(pcv+
+j
+≤γ) =P
+ P
+i∈C I(si ≥s(i)
+j ) + 1
+|C| + 1
+≤γ
+!
+=P
+ P
+i∈C∪{j} I(Rij ≥Rji)
+|C| + 1
+≤γ
+!
+=P
+
+X
+i∈C∪{j}
+I(Rij < Rji) ≥(1 −γ)(|C| + 1)
+
+
+≤P
+
+
+X
+i∈∪K+1
+k=1 Ck
+I(Rij < Rji) ≥(1 −γ)(|C| + 1)
+
+
+≤2γ(|C| + 1) + m −2
+|C| + m
+≤2γ + (1 −2γ)(m −1) −1
+|C| + m
+≤2γ + 1 −K/|C|
+K + 1
+,
+where the second inequality is due to exchangeability and Lemma S4.
+A.7
+Proof of Theorem 3
+Proof of Theorem 3. Since ϵγ is a centered sub-Gaussian variable with parameter ϕγ, we
+have ϵγ −ϵ1 as a centered sub-Gaussian variable with parameter 2Φ, where Φ = maxγ∈Γ ϕγ.
+Moreover, we have (ϵγ −ϵ1)2 −κ2
+γ is a centered sub-exponential variable with parameters
+(c1Φ2, c1Φ2), where c1 is a constant. By ˆτγ −ˆτ1 = (δγ −δ1) + (ϵγ −ϵ1) and using the con-
+centration inequalities for sub-Gaussian and sub-exponential variables (Wainwright 2019),
+50
+it follows that, with probability at least 1 −4ι,
+max
+γ∈Γ |(ˆτγ −ˆτ1)2 −(δγ −δ1)2 −κ2
+γ|
+= max
+γ∈Γ |2(δγ −δ1)(ϵγ −ϵ1) + (ϵγ −ϵ1)2 −κ2
+γ|
+≤8
+√
+2∆Φ
+p
+log (|Γ|/ι) + max
+n√
+2c1Φ2p
+log (|Γ|/ι), 2c1Φ2 log (|Γ|/ι)
+o
+,
+(S4)
+where ∆= maxγ∈Γ |δγ|.
+By (S4), it follows that, with probability at least 1 −4ι,
+max
+γ∈Γ
+[
+MSE(γ) −MSE(γ)
+
+= max
+γ∈Γ
+(ˆτγ −ˆτ1)2 −bV(ˆτγ −ˆτ1) + bV(ˆτγ) −δ2
+γ −σ2
+γ
+
+≤max
+γ∈Γ
+(ˆτγ −ˆτ1)2 −κ2
+γ + σ2
+γ −δ2
+γ −σ2
+γ
+ + max
+γ∈Γ |bV(ˆτγ −ˆτ1) −κ2
+γ| + max
+γ∈Γ |bV(ˆτγ) −σ2
+γ|
+≤max
+γ∈Γ
+(δγ −δ1)2 −δ2
+γ
+ + c∆Φ
+p
+log (|Γ|/ι) + max
+n
+cΦ2p
+log (|Γ|/ι), cΦ2 log (|Γ|/ι)
+o
++ max
+γ∈Γ |bV(ˆτγ −ˆτ1) −κ2
+γ| + max
+γ∈Γ |bV(ˆτγ) −σ2
+γ|
+≤c∆|δ1| + c∆Φ
+p
+log (|Γ|/ι) + max
+n
+cΦ2p
+log (|Γ|/ι), cΦ2 log (|Γ|/ι)
+o
++ max
+γ∈Γ |bV(ˆτγ −ˆτ1) −κ2
+γ| + max
+γ∈Γ |bV(ˆτγ) −σ2
+γ|,
+where c is a constant.
+A.8
+Proof of Theorem 4
+Proof of Theorem 4. Since ϵγ is a centered sub-Gaussian variable with parameter ϕγ, we
+have ϵ2
+γ −σ2
+γ as a centered sub-exponential variable with parameter (c2Φ2, c2Φ2), where c2
+is a constant. By ˆτγ −τ = δγ +ϵγ and using the concentration inequalities for sub-Gaussian
+and sub-exponential variables (Wainwright 2019), it follows that, with probability at least
+51
+1 −4ι,
+max
+γ∈Γ |(ˆτγ −τ)2 −δ2
+γ −σ2
+γ|
+= max
+γ∈Γ |2δγϵγ + ϵ2
+γ −σ2
+γ|
+≤2
+√
+2∆Φ
+p
+log (|Γ|/ι) + max
+n√
+2c2Φ2p
+log (|Γ|/ι), 2c2Φ2 log (|Γ|/ι)
+o
+.
+(S5)
+By (S4) and (S5), it follows that, with probability at least 1 −8ι,
+max
+γ∈Γ
+[
+MSE(γ) −(ˆτγ −τ)2
+= max
+γ∈Γ
+(ˆτγ −ˆτ1)2 −bV(ˆτγ −ˆτ1) + bV(ˆτγ) −(ˆτγ −τ)2
+≤max
+γ∈Γ
+(ˆτγ −ˆτ1)2 −κ2
+γ + σ2
+γ −(ˆτγ −τ)2 + max
+γ∈Γ |bV(ˆτγ −ˆτ1) −κ2
+γ| + max
+γ∈Γ |bV(ˆτγ) −σ2
+γ|
+≤max
+γ∈Γ
+(δγ −δ1)2 −δ2
+γ
+ + c∆Φ
+p
+log (|Γ|/ι) + max
+n
+cΦ2p
+log (|Γ|/ι), cΦ2 log (|Γ|/ι)
+o
++ max
+γ∈Γ |bV(ˆτγ −ˆτ1) −κ2
+γ| + max
+γ∈Γ |bV(ˆτγ) −σ2
+γ|
+≤c∆|δ1| + c∆Φ
+p
+log (|Γ|/ι) + max
+n
+cΦ2p
+log (|Γ|/ι), cΦ2 log (|Γ|/ι)
+o
++ max
+γ∈Γ |bV(ˆτγ −ˆτ1) −κ2
+γ| + max
+γ∈Γ |bV(ˆτγ) −σ2
+γ|,
+(S6)
+where c is a constant.
+Since
+min
+γ∈Γ
+[
+MSE(γ) −min
+γ∈Γ (ˆτγ −τ)2
+ ≤max
+γ∈Γ
+[
+MSE(γ) −(ˆτγ −τ)2 ,
+and
+min
+γ∈Γ
+[
+MSE(γ) −(ˆτˆγ −τ)2
+ =
+[
+MSE(ˆγ) −(ˆτˆγ −τ)2 ≤max
+γ∈Γ
+[
+MSE(γ) −(ˆτγ −τ)2 ,
+52
+we have
+(ˆτˆγ −τ)2 −min
+γ∈Γ (ˆτγ −τ)2 ≤2 max
+γ∈Γ
+[
+MSE(γ) −(ˆτγ −τ)2 .
+The result follows from (S6).
+B
+Additional simulation results
+B.1
+Adaptivity of the selection threshold
+Figure S1 illustrates how ˆγ changes with the magnitude of b: (i) When there is no
+bias (b = 0), ˆγ approaches 0 to borrow all ECs and maximize power; (ii) with moderate
+bias (b = 1, 2, 3), where distinguishing between biased and unbiased ECs is challenging, ˆγ
+increases to help discard the biased ECs; (iii) when the bias is large (b ≥4), ˆγ decreases
+but remains non-zero, retaining more unbiased ECs while easily discarding the biased ones.
+B.2
+Various selection thresholds
+Figure S2 shows the performance of the fixed selection threshold γ and the adaptive
+selection threshold ˆγ when nE = 50. As discussed in Section 3.2, smaller γ selects more ECs
+but risks greater bias when distinguishing between biased and unbiased ECs is difficult.
+This creates a power trade-off across different bias levels, similar to MSE simulation results
+in data integration (Yang et al. 2023, Oberst et al. 2022, Lin et al. 2024). We find that (i)
+CSB with γ = 0.6 improves power compared to NB, except in extreme cases like b = 2, 3,
+where it decreases power slightly, and (ii) CSB with ˆγ further improves power but also risks
+power loss in difficult scenarios. The power trade-off does not compromise the Type I error
+rate, which remains controlled with all selection thresholds.
+53
+b: 0
+b: 1
+b: 2
+b: 3
+b: 4
+b: 5
+b: 6
+b: 7
+b: 8
+0
+100 200 300 0
+100 200 300 0
+100 200 300 0
+100 200 300 0
+100 200 300 0
+100 200 300 0
+100 200 300 0
+100 200 300 0
+100 200 300
+0.00
+0.25
+0.50
+0.75
+1.00
+count
+γ^
+Figure S1: ˆγ versus b when nE = 50.
+0.00
+0.05
+0.10
+0.15
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(A) Absolute Bias
+0.07
+0.08
+0.09
+0.10
+0.11
+0.12
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(B) Variance
+0.07
+0.08
+0.10
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(C) MSE
+0.0
+0.2
+0.4
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(D) Type I Error Rate
+0.2
+0.3
+0.4
+0.5
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(E) Power
+0.0
+0.1
+0.2
+0.3
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(F) #Biased / #Selected
+Method
+No Borrow (γ = 1)
+Conformal Selective Borrow (γ = 0.8)
+Conformal Selective Borrow (γ = 0.6)
+Conformal Selective Borrow (γ = 0.4)
+Conformal Selective Borrow (γ^)
+Figure S2: Simulation results for various selection threshold γ’s when nE = 50.
+54
+B.3
+Adaptive Lasso Selective Borrowing
+Figure S3 presents the simulation results for ALSB with asymptotic inference. Un-
+like FRTs, ALSB with asymptotic inference fails to control the type I error rate in this
+small sample size scenario. Additionally, CSB demonstrates better estimation and selection
+performance in most cases.
+B.4
+A larger sample size of ECs
+Figures S4, S5, S6, S7, and S8 show the simulation results for nE = 300. The conclusion
+is similar to that in the main text.
+55
+0.00
+0.02
+0.04
+0.06
+0.08
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(A) Absolute Bias
+0.09
+0.10
+0.11
+0.12
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(B) Variance
+0.09
+0.10
+0.11
+0.12
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(C) MSE
+0.0
+0.2
+0.4
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(D) Type I Error Rate
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(E) Power
+0.0
+0.1
+0.2
+0.3
+0.4
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(F) #Biased / #Selected
+Method
+No Borrow (γ = 1)
+Adaptive Lasso Selective Borrow
+Conformal Selective Borrow (γ^)
+Figure S3: Comparison of CSB + FRT and ALSB + asymptotic inference when nE = 50.
+56
+0.0
+0.5
+1.0
+1.5
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(A) Absolute Bias
+0.075
+0.100
+0.125
+0.150
+0.175
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(B) Variance
+0.1
+0.3
+1.0
+3.0
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(C) MSE
+0.0
+0.2
+0.4
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(D) Type I Error Rate
+0.00
+0.25
+0.50
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(E) Power
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(F) #Biased / #Selected
+Method
+No Borrow (γ = 1)
+Full Borrow (γ = 0)
+Conformal Selective Borrow (γ^)
+Figure S4: Simulation results when nE = 300. ALSB’s exact p-value is unavailable due to
+computation.
+57
+b: 6
+b: 7
+b: 8
+b: 3
+b: 4
+b: 5
+b: 0
+b: 1
+b: 2
+0.16
+0.18
+0.20
+0.16
+0.18
+0.20
+0.16
+0.18
+0.20
+−10
+−5
+0
+−10
+−5
+0
+−10
+−5
+0
+Sampling Score
+Outcome
+RCT Controlled
+EC (Selected)
+EC (Unselected)
+Figure S5: Selection performance of Conformal Selective Borrowing (ˆγ) when nE = 300.
+b: 0
+b: 1
+b: 2
+b: 3
+b: 4
+b: 5
+b: 6
+b: 7
+b: 8
+0
+100 200 3000
+100 200 3000
+100 200 3000
+100 200 3000
+100 200 3000
+100 200 3000
+100 200 3000
+100 200 3000
+100 200 300
+0.00
+0.25
+0.50
+0.75
+1.00
+count
+γ^
+Figure S6: ˆγ versus b when nE = 300.
+58
+0.00
+0.05
+0.10
+0.15
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(A) Absolute Bias
+0.07
+0.08
+0.09
+0.10
+0.11
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(B) Variance
+0.07
+0.08
+0.10
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(C) MSE
+0.0
+0.2
+0.4
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(D) Type I Error Rate
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(E) Power
+0.0
+0.1
+0.2
+0.3
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(F) #Biased / #Selected
+Method
+No Borrow (γ = 1)
+Conformal Selective Borrow (γ = 0.8)
+Conformal Selective Borrow (γ = 0.6)
+Conformal Selective Borrow (γ = 0.4)
+Conformal Selective Borrow (γ^)
+Figure S7: Simulation results for various selection threshold γ’s when nE = 300.
+59
+0.0
+0.1
+0.2
+0.3
+0.4
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(A) Absolute Bias
+0.08
+0.09
+0.10
+0.11
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(B) Variance
+0.1
+0.2
+0.3
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(C) MSE
+0.0
+0.2
+0.4
+0.6
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(D) Type I Error Rate
+0.25
+0.50
+0.75
+1.00
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(E) Power
+0.0
+0.1
+0.2
+0.3
+0.4
+0
+2
+4
+6
+8
+Magnitude of Hidden Bias
+(F) #Biased / #Selected
+Method
+No Borrow (γ = 1)
+Adaptive Lasso Selective Borrow
+Conformal Selective Borrow (γ^)
+Figure S8: Comparison of CSB + FRT and ALSB + asymptotic inference when nE = 300.
+60
+Table S1: Summary statistics of the pre-processed data.
+C9633 Treated
+C9633 Controlled
+NCDB Controlled
+(n1 = 167)
+(n0 = 168)
+(nE = 335)
+Sex
+Male
+109 (65.3%)
+106 (63.1%)
+219 (65.4%)
+Female
+58 (34.7%)
+62 (36.9%)
+116 (34.6%)
+Age (years)
+Mean (SD)
+60.4 (10.2)
+61.2 (9.28)
+60.8 (9.69)
+Median [Min, Max]
+61.0 [34.0, 78.0]
+62.0 [40.0, 81.0]
+61.0 [34.0, 80.0]
+Race
+White
+151 (90.4%)
+148 (88.1%)
+300 (89.6%)
+Non-white
+16 (9.6%)
+20 (11.9%)
+35 (10.4%)
+Histology
+Squamous
+66 (39.5%)
+65 (38.7%)
+131 (39.1%)
+Other
+101 (60.5%)
+103 (61.3%)
+204 (60.9%)
+Tumor Size (cm)
+Mean (SD)
+4.60 (2.04)
+4.56 (2.05)
+4.77 (1.42)
+Median [Min, Max]
+4.00 [1.00, 12.0]
+4.00 [1.00, 12.0]
+4.50 [3.10, 12.0]
+Outcome: 3-year RMST*
+Mean (SD)
+2.77 (0.596)
+2.64 (0.720)
+2.43 (0.947)
+Median [Min, Max]
+3.00 [0.383, 3.00]
+3.00 [0.181, 3.00]
+3.00 [0.0242, 3.00]
+*Pseudo-observations transformed from censored survival time.
+C
+More details about the real data
+Pseudo-observations. Figure S9 shows the pseudo-observations versus censored times
+for CALGB 9633 and NCDB, illustrating that: (i) all pseudo-observations are less than or
+equal to the truncation time of 3 years; (ii) when an event occurs before 3 years, pseudo-
+observations are generally equal to the event time; and (iii) when censoring occurs before
+3 years, pseudo-observations are typically greater than the censored time.
+Matching. Figure S10 shows that distributional balance for the five baseline covariates
+and the estimated sampling score ˆP(S = 1|X) improves significantly.
+Pre-processing. Table S1 shows the summary statistics of the pre-processed data.
+61
+CALGB 9633
+NCDB
+0
+5
+10
+0
+1
+2
+3
+0
+1
+2
+3
+Censored Time
+Pseudo−observation
+Censored
+Yes
+No
+Figure S9: Pseudo-observation vs. Censored Time for CALGB 9633 and NCDB datasets.
+62
+Unmatched
+Matched
+0
+1
+0
+1
+0.0
+0.2
+0.4
+0.6
+Sex
+Proportion
+Unmatched
+Matched
+40 50 60 70 80
+40 50 60 70 80
+0.00
+0.01
+0.02
+0.03
+0.04
+Age
+Density
+Unmatched
+Matched
+0
+1
+0
+1
+0.00
+0.25
+0.50
+0.75
+Race
+Proportion
+Unmatched
+Matched
+0
+1
+0
+1
+0.0
+0.2
+0.4
+0.6
+Histology
+Proportion
+Unmatched
+Matched
+2.5 5.0 7.510.012.5 2.5 5.0 7.510.012.5
+0.0
+0.1
+0.2
+0.3
+0.4
+Tumor Size
+Density
+Unmatched
+Matched
+0.0
+0.1
+0.2
+0.0
+0.1
+0.2
+0
+5
+10
+15
+20
+25
+Sampling Score
+Density
+Sample
+NCDB (S = 0)
+CALGB 9633 (S = 1)
+Figure S10: Distributional balance (unmatched and matched) between CALGB 9633 (S = 1)
+and NCDB (S = 0) for baseline covariates and the estimated sampling score ˆP(S = 1|X).
+63

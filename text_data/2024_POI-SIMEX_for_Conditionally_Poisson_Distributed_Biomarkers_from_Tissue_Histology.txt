@@ -1,0 +1,2578 @@
+arXiv:2409.14256v2  [stat.ME]  3 Nov 2024
+XXX Journal 00 (2024) 00, zzz–zzz / DOI: 10.1002/bimj.200100000
+POI-SIMEX for Conditionally Poisson Distributed Biomarkers
+from Tissue Histology
+Aijun Yang 1, Phineas T. Hamilton 2, Brad H. Nelson 2,3, Julian J. Lum 2,3,
+Mary Lesperance 1, and Farouk S. Nathoo ∗,1
+1 3800 Finnerty Rd (Department of Mathematics & Statistics,University of Victoria, V8P5C2, BC, Canada)
+2 2410 Lee Avenue, Victoria (Deeley Research Center, BC Cancer Agency, V8R6V5, BC, Canada)
+3 3800 Finnerty Rd (Department of Biochemistry and Microbiology,University of Victoria, V8P5C2, BC,
+Canada)
+Received zzz, revised zzz, accepted zzz
+Covariate measurement error in regression analysis is an important issue that has been studied extensively
+under the classical additive and the Berkson error models. Here, we consider cases where covariates are
+derived from tumor tissue histology, and in particular tissue microarrays. In such settings, biomarkers are
+evaluated from tissue cores that are subsampled from a larger tissue section so that these biomarkers are
+only estimates of the true cell densities. The resulting measurement error is non-negligible but is seldom
+accounted for in the analysis of cancer studies involving tissue microarrays.
+To adjust for this type of measurement error, we assume that these discrete-valued biomarkers are con-
+ditionally Poisson distributed, based on a Poisson process model governing the spatial locations of marker-
+positive cells. Existing methods for addressing conditional Poisson surrogates, particularly in the absence
+of internal validation data, are limited. We extend the simulation extrapolation (SIMEX) algorithm to ac-
+commodate the conditional Poisson case (POI-SIMEX), where measurement errors are non-Gaussian with
+heteroscedastic variance. The proposed estimator is shown to be strongly consistent in a linear regression
+model under the assumption of a conditional Poisson distribution for the observed biomarker.
+Simulation studies evaluate the performance of POI-SIMEX, comparing it with the naive method and an
+alternative corrected likelihood approach in linear regression and survival analysis contexts. POI-SIMEX
+is then applied to a study of high-grade serous cancer, examining the association between survival and the
+presence of triple-positive biomarker (CD3+CD8+FOXP3+ cells).
+Key words: Corrected Likelihood; Covariate Measurement Error; Poisson Surrogate; POI-
+SIMEX; Tissue Microarrays
+1
+Introduction
+The presence of covariate measurement error in regression analysis can distort the estimated coefﬁcients,
+leading to biased estimators with increased variance (Carroll et al., 2006; Fuller, 1986). This issue is
+generally well-studied, but there is limited work considering situations where the observed covariates are
+discrete and follow a Poisson distribution conditional on the true covariate. This situation arises when
+biomarkers are derived from cell counts, as is common in the analysis of histological sections and tumor
+tissue microarrays (TMAs) used in cancer studies.
+Understanding and correcting for the approximate nature of the observed biomarker in this context is
+crucial for ensuring better accuracy and reliability of statistical analyses for studies involving TMAs, such
+as those involving measurements of immune cells in cancer, where measurement error and the discrete
+∗Corresponding author: Farouk S. Nathoo e-mail: nathoo@uvic.ca
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+2
+Yang A. et al. and 2024-10-25: POI-SIMEX
+nature of the observed surrogate are often not considered. We take into account this speciﬁc context
+and make the following contributions: 1) the formulation of a conditional Poisson biomarker model for
+TMA-based biomarkers; 2) extension of the simulation extrapolation (SIMEX) method to the Poisson
+case (POI-SIMEX), where the variance of the measurement error is heteroscedastic and only a single
+replicate of the observed covariate may be available; 3) establishing conditions for strong consistency of
+the POI-SIMEX estimator in the case of linear regression; 4) evaluation of the POI-SIMEX estimator
+in both simulations and an application to a survival analysis of high-grade serous carcinoma (HGSC).
+These simulations demonstrate that the POI-SIMEX estimator effectively adjusts for measurement error
+and performs generally better than competing methodology; 5) companion R software for POI-SIMEX is
+available on GitHub (https://github.com/Aijunyan/POI-SIMEX).
+The literature on adjustments for covariate measurement error is substantial and includes book-length
+reviews by Fuller (1986), Carroll et al. (2006), and Yi et al. (2021). Given the current methodology,
+approaches for handling conditional Poisson surrogates in contexts lacking validation data where regres-
+sion calibration cannot be applied have been largely overlooked. These approaches become particularly
+important when biomarkers are derived from tissue cores subsampled from a larger tissue area, making
+these biomarkers mere estimates of true cell densities. The resulting measurement error is signiﬁcant but
+is seldom addressed in cancer studies involving tissue microarrays.
+Regression analysis and measurement error modeling approaches often rely on classical errors-in-
+variables models. These methods attempt to correct bias by explicitly modeling measurement errors in the
+independent variables, usually assuming Gaussian distributed errors. Regression calibration (Spiegelman et al. ,
+1997) is commonly used for bias correction in settings where internal validation data are available.
+Nakamura (1990) discusses the corrected score function approach for generalized linear models and
+shows that the solution to the unbiased score equations will yield a consistent estimator. Li et al. (2004)
+adopt this approach and derive the corrected score function for linear regression with Poisson-distributed
+covariates. They derive explicit forms for the solutions to the corrected score equation, under the assump-
+tion that the true covariate, the mean of the observed covariate, follows a Gamma distribution.
+Bayesian methods incorporate prior information and better allow for uncertainty quantiﬁcation with
+ﬁnite sample inference. A Bayesian approach to covariate measurement error can be formulated directly
+by treating the true covariates as missing data and using data augmentation (Richardson and Gilks , 1993).
+On the other hand, nonparametric regression techniques (Carroll et al., 1999, 2009), like kernel regression,
+spline smoothing, and Dirichlet process mixtures (Sarkar , 2014; Sinha and Wang , 2017), offer ﬂexibility
+without assuming speciﬁc functional or distributional forms.
+Among existing methods, simulation-extrapolation (SIMEX) requires only weak assumptions about the
+distribution of the true predictor and has been extended in several directions (Cook , 1994; Carroll et al.,
+1995). Kuchenhoff et al.(2006) develop misclassiﬁcation simulation-extrapolation (MC-SIMEX) to deal
+with measurement error for categorical variables. Parveen et al. (2021) extend SIMEX to allow for
+non-zero mean measurement error. In certain situations where the variance of the measurement error
+is unknown, and it is heteroscedastic, Devanarayan and Stefanski (2002) propose an empirical SIMEX
+estimator where the pseudo errors are generated from random linear contrasts of the observed replicate
+measurements. A comprehensive review of SIMEX and related developments is presented in Sevilimedu
+and Yu (2022).
+In survival analysis, also known as time-to-event analysis, the goal is to model the time until a speciﬁed
+event occurs. However, the presence of measurement error in covariates, which are used as predictors of the
+time-to-event outcome, can complicate this analysis. Measurement error can lead to biased estimates and
+incorrect inference if not properly addressed. To correct for measurement error in survival analysis, vari-
+ous methods have been adapted and developed for different models and assumptions (Carroll et al., 2006).
+In the context of the Cox proportional hazards model, Nakamura (1992), introduces a corrected score
+method to account for measurement error. This method has since been reﬁned by subsequent research to
+improve estimation under various assumptions and conditions (Kongetal et al., 1998; Kong and Gu , 1999;
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+3
+Augustin, 2004; Yi and Lawless , 2007; Yan and Yi , 2015). More recently, Cao and Wong (2022) pro-
+poses an approximate proﬁle likelihood estimation approach, offering an alternative to the corrected score
+method. Another widely used technique is the regression calibration (RC) method, which involves replac-
+ing the mismeasured covariate with an estimated version derived from a calibration model. This approach
+has been discussed in detail by Prentice (1982) and later by Wang et al.(2008), providing a straightforward
+solution when the measurement error is relatively small. For parametric models, such as parametric ac-
+celerated failure time (AFT) models, He et al. (2007) utilizes SIMEX technique and introduces a ﬂexible
+approach that allows for non-linear relationships between covariates and the time-to-event outcome. The
+SIMEX method has also been applied to AFT models in other studies (Zhang et al., 2014; Greene and Cai ,
+2004). Recently, Bayesian approaches have gained attention in addressing measurement error in time-to-
+event analysis. Tang (2022) proposes a Bayesian framework for AFT models with measurement error in
+covariates, offering a ﬂexible alternative that can incorporate prior information and address complex error
+structures. Bayesian methods are particularly valuable when dealing with small sample sizes or when prior
+knowledge about the measurement error is available.
+Our methodological development is motivated by studies investigating the prognostic signiﬁcance of
+tumor-inﬁltrating lymphocytes with TMAs, and our example application considers this in a study of HGSC.
+HGSC remains the deadliest gynecological malignancy primarily because of its early spread and the de-
+velopment of resistance to platinum-based chemotherapy Havasi et al. (2023). There is thus a critical
+need for dependable biomarkers that complement clinical data to support advances in patient care. These
+biomarkers are typically measured through sub-sampling a single disease site; therefore, they are prone to
+measurement errors arising from TMA construction, and leading to non-Gaussian, heteroscedastic mea-
+surement errors associated with discrete biomarkers. The corrected score estimator for Poisson surrogates
+proposed by Li et al. is limited to linear regression. In contrast, SIMEX can be applied more broadly, but
+it has yet to be developed for conditionally Poisson-distributed surrogates. As far as we are aware, there is
+no theoretical justiﬁcation for using SIMEX within this context. Initiating a theoretical justiﬁcation for an
+appropriately devised SIMEX (POI-SIMEX) in this setting is one of our primary contributions.
+Subsequent sections of the paper proceed as follows. Section 2 presents an introduction to TMA-
+based biomarkers and describes the mechanisms that lead to measurement error. Section 3 focuses on the
+Poisson error model framework and SIMEX estimation, including model formulation, demonstration of
+estimation bias if measurement error is ignored, and the proposed POI-SIMEX estimator. In Section 4, we
+establish the strong consistency of the POI-SIMEX estimator in simple linear regression for a conditionally
+Poisson-distributed observed covariate. Section 5 presents the results from simulation studies, followed by
+an application to our motivating study in Section 6. The paper concludes with a discussion of our results,
+including the relevance to both statistical methodology and cancer research.
+2
+Tissue Microarrays and Cancer Biomarkers
+Patients diagnosed with cancer have traditionally received standardized treatment protocols, however, it is
+now clear that unique characteristics of a patient’s tumor can guide tailored therapies even among cases
+of the same cancer type. Beyond clinically-approved biomarkers, such as the expression of PD-L1 by
+cancer and tumor inﬁltrating immune cells, biomarker characterization has become increasingly important
+to guide research and clinical development. Many studies investigate associations between certain cell
+types and patient outcomes. At the same time, advances in digital pathology are leading to increasingly
+quantitative characterization of tissue biomarkers that go beyond binary positive or negative status for a
+given marker. The consideration of measurement error for these biomarkers is of great importance.
+Tissue microarrays are widely used in cancer research because they enable the high-throughput analy-
+sis of multiple tissue samples on a single slide, signiﬁcantly increasing research efﬁciency and reducing
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+4
+Yang A. et al. and 2024-10-25: POI-SIMEX
+Figure 1
+(A): Tissue microarray construction. TMA Cores are extracted from donor blocks using an
+automated arrayer guided by the annotated digital slides. Slides containing the desired target tissue are
+digitally scanned and annotated using the 3D Histotech system. (image credit (Eskaros et al., 2017)); (B)
+Tissue core of a Hodgkin’s lymphoma tumor. Inset: Magniﬁcation of the framed region where the ”owl’s
+eye” shape is a Reed-Sternberg cell (image credit (Ronald and Guido, 2002)).
+costs. TMAs ensure consistency and standardization in sample processing, enhancing reliability and re-
+producibility. They also conserve valuable tissue specimens by using small cores and allow for compre-
+hensive biomarker analysis, facilitating the validation of known markers, the discovery of new markers and
+the analysis of marker interaction. Their ability to utilize archival tissue further supports their extensive
+application in cancer research (Kononen et al., 1998).
+Tissue cores are extracted by puncturing solid tissue using a circular needle typically ranging from
+0.6 mm to 4.0 mm in diameter, depending on tissue availability, resulting in only small subregions of
+tumors that are sampled as cores. Consequently, a TMA will only approximate the cell density of interest
+(BioChain Institute, 2024). In addition, these measures are discrete rather than continuous as they are
+computed based on cell counts. The resulting measurement error is non-negligible and the discrete nature
+of the observed covariate makes this a challenging problem that is rarely considered in the analysis of
+TMAs. Figure 1 (A) illustrates a TMA sample construction (Eskaros et al., 2017). In this case, a TMA
+core (red circle) with area A and biomarker cell count W is extracted from a whole donor tissue (denoted
+as T) with an area AT and a total biomarker cell count WT , where A << AT . Inaccuracies can arise
+when analyzing marker expression based on these core counts and core areas leading to bias and inﬂated
+variance in regression analysis when TMA-based biomarkers are incorporated into a regression analysis.
+3
+Poisson Error Model Framework
+3.1
+Error model assumptions
+We model Y , the response variable, as a function of X, the true biomarker of interest, where X typically
+represents cell density WT /AT over a larger tissue area, which cannot be measured directly with TMAs.
+Instead, the variable W, representing the biomarker cell count of the selected TMA core with area A is
+measured. The estimated or observed cell density is W/A and is used as the surrogate for WT /AT . Other
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+5
+covariates Z are assumed to be measured without error. Cell locations within a tissue sample are assumed
+to be distributed according to a homogeneous Poisson process with intensity X = WT
+AT . Under the Poisson
+process model for the cell distribution we have for subject i,
+Wi|Xi ind
+∼Poisson(XiAi) i = 1, ..., N,
+(1)
+where Xi is the unobserved true tissue cell density for the ith subject and Wi is the observed number of
+cells on the core with area Ai. Thus, E[Wi|Xi] = V ar[Wi|Xi] = AiXi, and E[Wi] = AiE[Xi]. We note
+that the model is Poisson conditional on Xi, and so overdispersion in the observed Wi does not preclude
+the use of this model.
+In what follows, we assume (Yi, Zi, Wi, Ai, Xi), corresponding to the response, covariate without mea-
+surement error, observed cell count, observed core area, and true cell density, respectively, are independent
+across subjects i = 1, ...N. For simplicity, we illustrate the conditional Poisson measurement error model
+in the context of a linear model and assume both Xi and Zi are scalars. We then have
+Yi = β0 + βXXi + βZZi + ǫi, ǫi i.i.d
+∼N(0, σ2
+ǫ), Wi|Xi ind
+∼Poisson(XiAi),
+(2)
+where Xi > 0 is the true cell density, and (Yi, Zi, Wi, Ai) i = 1, ..., N are the observed data. We ﬁrst
+discuss asymptotic bias for the case when Xi is replaced by Wi/Ai, the so-called naive estimator.
+3.2
+The Asymptotic bias of the naive estimator
+The bias analysis associated with the conditionally Poisson distributed surrogate follows that in Li et al.
+(2004), though we provide more detail, which clarify the results. Letting Qt = ( W1
+A1 , ..., WN
+AN ), Λ =
+(X1, ..., XN)t, M t =
+ 
+1 1 ...1
+Z1Z2...ZN
+!
+, the least squares estimator for the regression coefﬁcient associ-
+ated with the naive model, Yi = β0 + βX(Wi/Ai) + βZZi + ǫ∗
+i , Y = (Y1, ..., YN)t, ǫ∗
+i
+i.i.d
+∼N(0, σ2
+ǫ∗),
+when (2) is the true model, can be written as in Li et al. (2004)
+ˆ
+βX
+(N) =
+
+Qt −QtM(M tM)−1M t
+Y
+QtQ −QtM(M tM)−1M tQ ,
+from which we obtain the conditional expectation
+E
+h
+ˆ
+βX
+(N)|M, Q, Λ
+i
+=
+
+Qt −QtM(M tM)−1M t
+Λ
+QtQ −QtM(M tM)−1M tQ βX .
+Taking the limit of this conditional expectation
+lim
+N→∞
+
+Qt −QtM(M tM)−1M t
+Λ
+QtQ −QtM(M tM)−1M tQ βX = lim
+N→∞
+ 1
+N QtΛ −1
+N QtM( 1
+N M tM)−1 1
+N M tΛ
+
+1
+N QtQ −1
+N QtM( 1
+N M tM)−1 1
+N M tQ βX .
+Taking the limit of each term on the right-hand side:
+i)
+lim
+N→∞
+1
+N QtΛ = lim
+N→∞
+1
+N
+N
+X
+i=1
+Wi
+Ai
+Xi
+p→E
+Wi
+Ai
+Xi
+
+= E
+
+E
+Wi
+Ai
+Xi|Xi
+
+= E
+
+X2
+i
+
+ii)
+lim
+N→∞
+1
+N QtQ = lim
+N→∞
+1
+N
+N
+X
+i=1
+W 2
+i
+A2
+i
+p→E
+W 2
+i
+A2
+i
+
+= 1
+A2
+i
+E
+
+E
+
+W 2
+i |Xi
+	
+= 1
+A2
+i
+E
+
+XiAi + X2
+i A2
+i
+
+= E [Xi]
+Ai
++ E
+
+X2
+i
+
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+6
+Yang A. et al. and 2024-10-25: POI-SIMEX
+iii)
+lim
+N→∞
+1
+N QtM = lim
+N→∞
+ 
+1
+N
+N
+X
+i=1
+Wi
+Ai
+, 1
+N
+N
+X
+i=1
+WiZi
+Ai
+!
+p→
+
+E
+Wi
+Ai
+
+, E
+WiZi
+Ai
+
+=
+
+E
+
+E
+Wi
+Ai
+|Xi
+
+, E
+
+E
+WiZi
+Ai
+|Xi
+
+=
+
+E [Xi] , 1
+Ai
+E {E [Wi|Xi] E [Zi|Xi]}
+
+= (E [Xi] , E {XiE [Zi|Xi]}) = E {Xi (1, E [Zi|Xi])}
+= E {Xi (E [1|Xi] , E [Zi|Xi])} = E {XiE [(1, Zi)|Xi]}
+= E
+
+XiE
+
+M t
+i |Xi
+	
+= E
+
+E
+
+XiM t
+i |Xi
+	
+= E [XiMi]t where Mi is the i
+th column of M
+iv)
+lim
+N→∞
+1
+N M tΛ = lim
+N→∞
+ 
+1
+N
+PN
+i=1 Xi
+1
+N
+PN
+i=1 ZiXi
+!
+=
+ E[Xi]
+E[ZiXi]
+
+= E[XiMi]
+v)
+lim
+N→∞
+1
+N M tM = E[MiM t
+i ]
+Putting (i) to (v) together we obtain
+lim
+N→∞E[ ˆ
+βX
+(N)|M, Q, Λ] =
+E[X2
+i ] −E[XiMi]t(E[MiM t
+i ])−1E[XiMi]
+E[X2
+i ] + E[ Xi
+Ai ] −E[XiMi]t(E[MiM t
+i ])−1E[XiMi]βX
+= ωβX, where 0 < ω < 1.
+Thus, analogous to the case of the additive measurement error model, we see the asymptotic bias of the
+naive estimator in the case of a conditional Poisson model for the observed covariate in a linear regression
+analysis.
+3.3
+The SIMEX algorithm for Poisson distributed surrogates
+The SIMEX algorithm, introduced by Cook and Stefanski in 1994 (Cook , 1994), is commonly employed
+to correct the bias from measurement error in regression analysis, operating under certain assumptions
+regarding the measurement error structure. In practice, the standard SIMEX algorithm assumes the mea-
+surement error follows an additive structure with errors distributed as N(0, σ2), where σ2 is either known
+or estimated. The standard SIMEX method involves three main steps: simulation, estimation, and extrap-
+olation. In the simulation step, additional measurement error is artiﬁcially introduced into the data. In the
+estimation step, the model’s parameters are estimated repeatedly with varying levels of introduced error.
+Finally, in the extrapolation step, the relationship between the introduced error and the estimated param-
+eters is analyzed, and this information is used to extrapolate the estimators back to the scenario with no
+measurement error.
+In departing with standard SIMEX methodology, the non-Gaussian measurement error structure in our
+setup is Ui =
+Wi
+Ai −Xi, where Wi is assumed conditionally Poisson, Ai is ﬁxed and known, and the
+distribution of Xi is continuous but unspeciﬁed. In addition, the measurement error variance is not constant
+and varies across subjects. Thus our model lies outside the standard assumptions within which SIMEX
+is applied (Carroll and Stefanski, 1997). Remarkably, the use of Gaussian pseudo errors in the proposed
+SIMEX algorithm produces an estimator that exhibits strong consistency (Theorem 1) and uniformly better
+ﬁnite sample performance in terms of MSE than existing methodology for Poisson covariates based on
+corrected score equations (Li et al., 2004) (Section 5.1). We further do not assume any replication of the
+biomarkers or knowledge of the measurement error variance, so our framework is broadly applicable.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+7
+In the simulation step, we simulate b = 1, ..., B new sets of the observed covariate Wi,b(λ) = Wi +
+λ1/2ˆσiUi,b by adding Gaussian error λ1/2 ˆσiUi,b, where ˆσ2
+i is an estimate of V AR[Wi/Ai −Xi] and
+Ui,b i.i.d
+∼N(0, 1). The variance of the total measurement error in Wi,b(λ) is σ2
+i (1 + λ). The regression
+coefﬁcient estimates of Wi,b(λ), ˆβλ,b are computed for each of the B simulated datasets, and the average of
+these estimates 1
+B
+PB
+b=1 ˆβλ,b is computed as an approximation to EU[ˆβλ,b|Y, W]. These computations are
+repeated over a grid of λ values. After the simulation step, one analyzes how the computed expectations
+vary as λ changes by ﬁtting a functional form, such as linear, quadratic, or nonlinear. The SIMEX estimator
+is obtained by extrapolating the resulting curve to the value corresponding to the absence of measurement
+error, i.e., when λ = −1, σ2
+i (1 + λ) = 0; thus, the variance of the total measurement error is 0.
+The implementation of SIMEX requires estimation of σ2
+i , the variance of the measurement error for
+subject i, i=1,...,N. A key aspect of our proposed POI-SIMEX and an important issue for TMA data is
+consistent estimation of the heteroskedastic measurement error variance from the observed data with only
+a single TMA replicate.
+Proposition 3.1 If Wi|Xi
+ind
+∼Poisson(XiAi) and X1, ..., XN are i.i.d. with E[Xi] < ∞, then
+ˆσ2
+i =
+¯V
+Ai , where ¯V = 1
+N
+PN
+i Vi and Vi = Wi/Ai, is a strongly consistent estimator of σ2
+i = V ar[Wi/Ai−
+Xi], i = 1, . . . , N.
+P r o o f. The Vi = Wi/Ai are independent with E[Vi] = E[E[Vi|Xi]] = E[Xi] < ∞. So, the
+SLLN applies to ¯V with ¯V
+a.s.
+→E[Wi/Ai]. It sufﬁces to show that σ2
+i = E[Wi/Ai]/Ai. We have σ2
+i =
+V ar[Wi/Ai−Xi] = E[V ar[Wi/Ai−Xi|Xi]]+V ar[E[Wi/Ai−Xi|Xi]] = E[Xi]/Ai = E[Wi/Ai]/Ai,
+so that ˆσ2
+i
+a.s.
+→σ2
+i , i = 1, . . . , N.
+3.4
+Variance estimation of the SIMEX estimator
+The variance (σ2
+βSIMEX) of the SIMEX estimator is comprised of two components: the sampling variance
+of the ˆβλ estimates obtained at each λ value, denoted as ˆη2
+β(λ), and the variance of ˆβλ derived using
+its information matrix at each level of λ, denoted as ˆσ2
+β(λ). Carroll et al.(2006) suggest computing this
+variance by extrapolating the difference of ˆσ2
+β(λ) −ˆη2
+β(λ) to λ = −1. We illustrate this procedure in the
+one covariate case. In a simulation step, for a given λ and the bth simulated dataset (b = 1, .., B), let
+ˆβλ,b and ˆσ2
+β(λ, b) be the naive estimator of the bth simulation for a given λ and its corresponding variance
+estimator. We obtain B estimates of ˆβλ,b and ˆσ2
+β(λ, b) from B simulated datasets. Then, we estimate ˆσ2
+β(λ)
+by
+PB
+b=1 ˆσ2
+β(λ,b)
+B
+, and ˆη2
+β(λ) is the sample variance of the ˆβλ,b, b = 1, . . . , B. We apply extrapolation to
+the ﬁtted function of positive ˆσ2
+diff(λ) = ˆσ2
+β(λ) −ˆη2
+β(λ) versus λ values. The estimated variance of the
+SIMEX estimator is then ˆσ2
+βSIMEX = ˆσ2
+diff(λ = −1).
+Another approach to estimating the variance of the SIMEX estimator is proposed by Lin and Carroll
+(2000), who employ the sandwich formula for variance estimation of the naive estimate. This method then
+adjusts the result by multiplying it with a factor incorporating the extrapolation function to accommodate
+for extrapolation. It is well known that the bootstrap (Efron , 1979) method can estimate the variance
+robustly. The variance estimate from the ﬁrst approach is compared to that obtained using the bootstrap in
+our application.
+4
+Consistency of the SIMEX estimator with Conditionally Poisson-distributed
+surrogates in simple Linear Regression
+Carroll et al. (1996; 1997) develop the asymptotic theory for SIMEX under the Gaussian and additive
+measurement error model framework. In this section, we demonstrate the consistency of the SIMEX
+estimator in simple linear regression models with conditionally Poisson-distributed surrogates. Let Yi =
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+8
+Yang A. et al. and 2024-10-25: POI-SIMEX
+β0 +β1Xi +ǫi, ǫi
+i.i.d
+∼N(0, τ 2) and Wi|Xi
+ind
+∼Poisson (XiAi), i = 1, .., N; Wi⊥Yi|Xi with observed data
+{(Yi, Wi)N
+i=1}. For convenience, we assume Ai = 1 and consider the SIMEX estimator of (β0 β1) deﬁned
+as:
+ˆβSIMEX,σ =
+lim
+λ→−1 E[ˆβl,U(λ)|{(Yi, Wi)N
+i=1}], l = 0, 1
+where
+ˆβ1,U(λ) =
+N
+P
+i=1
+(Yi −¯Y )(Wi,U(λ) −¯WU(λ))
+N
+P
+i=1
+(Wi,U(λ) −¯
+WU(λ))2
+, ˆβ0,U(λ) = ¯Y −ˆβ1,U(λ) ¯
+WU(λ) and Wi,U(λ) = Wi+λ
+1
+2 σUi,
+Ui
+iid
+∼N(0, 1) with ¯WU(λ) = 1
+N
+N
+X
+i=1
+Wi,U(λ), and σ2 = var[Wi −Xi] is assumed known.
+Theorem 4.1 Under the following regularity conditions:
+(R1) limN→∞E[ˆβl,U(λ)|{(Yi, Wi)N
+i=1}] converges uniformly in λ on a set having λ = −1 as a limit point,
+l=0,1.
+(R2) limλ→−1 E[ˆβl,U(λ)|{(Yi, Wi)N
+i=1}] exists for each N, l = 0, 1
+(R3) limN→∞E[ˆβl,U(λ)|{(Yi, Wi)N
+i=1}] = E[limN→∞ˆβl,U(λ)|{(Yi, Wi)N
+i=1}]
+(R4) E[XiWi] < ∞, E[Xi] < ∞, E[W 2
+i ] < ∞
+We have that
+lim
+N→∞lim
+λ→−1 E[ˆβl,U(λ)|{(Yi, Wi)N
+i=1}] = βl a.s.
+The SIMEX estimator for simple linear regression with conditional Poisson measurement error is therefore
+strongly consistent when σ2 is known.
+P r o o f. Given (R1 and R2), we have from Theorem 7.11 (Rudin , 1976) that
+lim
+N→∞lim
+λ→−1 E[ˆβl,U(λ)|{(Yi, Wi)N
+i=1}] = lim
+λ→−1 lim
+N→∞E[ˆβl,U(λ)|{(Yi, Wi)N
+i=1}]
+= lim
+λ→−1 E[ lim
+N→∞
+ˆβl,U(λ)|{(Yi, Wi)N
+i=1}],
+(3)
+the later equality being from (R3).
+Consider now the limit, limN→∞ˆβl,U(λ) for l=1.
+ˆβ1,U(λ) =
+PN
+i=1(Yi −¯Y )(Wi,U(λ) −¯WU(λ))
+PN
+i=1(Wi,U(λ) −¯WU(λ))2
+=
+PN
+i=1(Yi −¯Y )(Wi −¯
+W + λ
+1
+2 σUi −λ
+1
+2 σ ¯U)
+PN
+i=1(Wi −¯
+W + λ
+1
+2 σUi −λ
+1
+2 σ ¯U)2
+=
+PN
+i=1(β1(Xi −¯X) + (ǫi −¯ǫ)(Wi −¯W + λ
+1
+2 σUi −λ
+1
+2 σ ¯U)
+PN
+i=1(Wi −¯W + λ
+1
+2 σUi −λ
+1
+2 σ ¯U)2
+,
+=
+h
+β1SXW + β1λ
+1
+2 σSXU + SǫW + λ
+1
+2 σSǫU
+i
+hPN
+i=1(Wi −¯W)2 + 2λ
+1
+2 σ PN
+i=1(Wi −¯W)(Ui −¯U) + λσ2 PN
+i=1(Ui −¯U)2
+i,
+where SXW = PN
+i=1(Xi−¯X)(Wi−¯W), SXU = PN
+i=1(Xi−¯X)(Ui−¯U), SǫW = PN
+i=1(ǫi−¯ǫ)(Wi−¯W),
+SǫU = PN
+i=1(ǫi −¯ǫ)(Ui −¯U).
+Next, multiply the numerator and denominator by 1
+N , and by (R4) we apply the strong law of large numbers
+(Theorem 5.44 (Ross , 2006)) as well as the Slutsky theorem (Theorem 6 (Ferguson,, 1996)). Hence,
+ˆβ1,U(λ)
+a.s.
+→
+h
+β1Cov[X, W] + β1λ
+1
+2 σCov[X, U] + Cov[ǫ, W] + λ
+1
+2 σCov[ǫ, U]
+i
+h
+Var[W] + 2λ
+1
+2 σCov[W, U] + λσ2Var[U]
+i
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+9
+We have Cov[X, U] = 0, Cov[ǫ, W] = 0, Cov[ǫ, U] = 0, Cov[W, U] = 0 so that ˆβ1,U(λ)
+a.s
+→β1Cov[X,W]
+Var[W]+λσ2 .
+Now, under the conditional Poisson measurement error model,
+given Var[W] = E[V ar[W|X]] + V ar[E[W|X]] = E[X] + V ar[X] and Cov[X, W] = E[XW] −
+E[X]E[W] = E[E[XW|X]] −E[X]E[W] = E[XE[W|X]] −E[X]E[E[W|X]] = E[X2] −E2[X] =
+V ar[X], hence, ˆβ1,U(λ)
+a.s
+→
+β1V ar[X]
+V ar[X]+E[X]+λσ2 .
+Then, note that σ2 = V ar[Wi −Xi] = E[V ar[Wi −Xi|Xi]] + V ar[E[Wi −Xi|Xi]] = E[Xi], so
+ˆβ1,U(λ)
+a.s
+→
+β1V ar[X]
+V ar[X]+(1+λ)E[X].
+Therefore, we have from Equation 3
+lim
+N→∞lim
+λ→−1 E[ˆβ1,U(λ)|{Yi, Wi}N
+i=1] = lim
+λ→−1 E
+
+β1V ar[X]
+V ar[X] + (1 + λ)E[X]|{Yi, Wi}∞
+i=1
+
+= lim
+λ→−1
+β1V ar[X]
+V ar[X] + (1 + λ)E[X]
+= β1 (a.s)
+Next, consider
+ˆβ0,U(λ) = ¯Y −ˆβ1,U(λ) ¯
+WU(λ)
+= 1
+N
+N
+X
+i=1
+(β0 + β1Xi + ǫi) −ˆβ1,U(λ) 1
+N
+N
+X
+i=1
+(Wi + λ
+1
+2 σUi)
+= β0 + β1 ¯X + ¯ǫ −ˆβ1,U(λ)( ¯
+W + λ
+1
+2 σ ¯U)
+= β0 + β1 ¯X + ¯ǫ −ˆβ1,U(λ) ¯
+W −λ
+1
+2 σ ˆβ1,U(λ) ¯U
+and taking the limit,
+lim
+N→∞
+ˆβ0,U(λ) = β0 + β1E[X] + E[ǫ] −
+β1V ar[X]E[W]
+V ar[X] + (1 + λ)E[X] −
+λ
+1
+2 σE[U]β1V ar[X]
+V ar[X] + (1 + λ)E[X]
+= β0 + β1E[X] −
+β1V ar[X]E[W]
+V ar[X] + (1 + λ)E[X] (a.s.) (SLLN)
+then by Equation 3,
+lim
+N→∞lim
+λ→−1 E[ˆβ0,U(λ)|{Yi, Wi}∞
+i=1 = β0 + β1E[X] −β1E[W] = β0 (a.s),
+since E[W] = E[E[W|X]] = E[X].
+so that ˆβSIMEX,σ is strongly consistent for β0, β1 when σ is known.
+Corollary
+Under the conditions of Theorem (1) and Proposition (1) with Ai = 1, we have that ˆβSIMEX,ˆσ with
+ˆσ2 = ¯
+W, is strongly consistent. The proof proceeds in the same way as that of Theorem (4.1), with ¯W
+replacing σ2 and further application of Slutsky’s theorem when taking the limit.
+5
+Simulation studies
+Simulation studies are carried out to empirically evaluate the bias and mean squared error (MSE) of POI-
+SIMEX, the estimator obtained using the true covariate, the Naive estimator, and the Adj-LM approach
+proposed by Li et al. (2004). We use a consistent estimator of the measurement error variance, based
+on Proposition (3.1), when implementing POI-SIMEX and adopt a quadratic extrapolant function (Cook ,
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+10
+Yang A. et al. and 2024-10-25: POI-SIMEX
+1994). An extensive range of settings are considered, including those considered in Li et al. and various
+other settings based on ratios of the variance of the true covariate and the observed covariate. These ratios
+inversely represent the relative magnitude of the measurement error in the observed covariate.
+5.1
+Simulation settings in Li et al.
+The data are simulated assuming the linear regression model (2) and the observed count W in an area
+A follows a Poisson distribution with the mean deﬁned as the product of the true covariate (X) and the
+area (A). Hence, the surrogate for the true covariate is W/A where W ∼Poisson(XA). For simplicity,
+the area A is set to 1 in the simulations. In addition to the covariate with measurement error, there is
+another covariate Z measured without error generated from a uniform distribution between 0.5 and 9.
+The coefﬁcients associated with the intercept, covariate with measurement error and without measurement
+error, respectively β0, βX, βZ, are set to 2, 1, and 0.5, following Li et al. (2004). The sample size N
+is set to be 50, 100, or 200. The standard deviation of the error (σǫ) in the regression model is set to 5.
+Three scenarios are considered: Xi’s are generated independently from a Gamma distribution with shape
+parameter, a, and scale parameter, b as follows: (1) a = 1 and b = 2; (2) a = 1 and b =10; (3) a = 2 and b =
+Zi. In the third case, the two covariates, X and Z, are dependent, as one of the parameters used to simulate
+Xi is set to Zi.
+In all instances, the bias and mean squared error (MSE), along with their associated Monte Carlo (MC)
+standard errors, are reported from 1000 simulated data sets using the batch mean method with ten batches.
+The results for all estimated β′s and methods are summarized in Tables 1, 2, and 3. In all settings, POI-
+SIMEX and Adj-LM outperform the Naive method. In scenarios 1 and 2, POI-SIMEX consistently out-
+performs Adj-LM, exhibiting lower MSE and bias across all settings. In scenario 3, POI-SIMEX performs
+better than Adj-LM with smaller MSE and bias for N=50 and N=100. For N=200, POI-SIMEX has a
+smaller MSE but a slightly larger bias than Adj-LM. Overall, POI-SIMEX emerges as a better method
+for dealing with Poisson surrogates in linear regression. However, perhaps the greatest advantage of POI-
+SIMEX over Adj-LM is that it can be easily adapted to settings with censoring or non-linear regression
+settings while Adj-LM cannot and is based explicitly on linear regression. This is demonstrated in Section
+5.2.
+We also perform simulation studies to investigate the performance under different ratios, deﬁned as the
+ratio of the variance of true covariate (σ2
+X) and the variance of the observed covariate (σ2
+W ). The data
+are simulated using the settings described above, except that the Gamma shape and scale parameters are
+chosen such that the ratio, deﬁned as σ2
+X
+σ2
+W [=ab2/(ab + ab2)] in the conditional Poisson error model given
+the Gamma distributed true covariate, are (1) r = 0.9, for a = 0.1, b = 9; (2) r = 0.75, for a = 2/3, b = 3;
+(3) r = 0.5, for a = 2, b = 1. The sample size N is 100.
+For each setting, the bias and MSE, and their Monte Carlo standard errors, are reported for 1000 data
+sets. The results corresponding to the covariate with measurement error are summarized in Table 4.
+In scenario 1, when the variance of the true covariate is relatively large compared to its mean, the
+Naive method has the smallest MSE but a signiﬁcant bias. If we consider both MSE and bias, POI-
+SIMEX exhibits the second smallest MSE and the smallest bias. In scenario 2, POI-SIMEX outperforms
+the Adj-LM method with the smallest MSE and bias. In scenario 3, the Adj-LM method has the largest
+MSE, whereas POI-SIMEX has the smallest MSE. Overall, POI-SIMEX is recommended for correcting
+measurement errors in settings such as Scenario 1 and 2, where the average biomarker density is small with
+considerable variation.
+In the Appendix we report on four additional simulation studies that investigate performance under
+model misspeciﬁcation, where the observed covariate conditional on the true covariate is drawn from either
+a binomial distribution (two studies) or a negative binomial distribution (two studies) and the conditional
+Poisson approach is applied. All four studies represent very strong deviations from the model assumptions,
+with the speciﬁc simulation settings and results reported in Appendix Tables 1 to 4. As might be expected,
+the performance of both approaches based on the conditional Poisson assumption exhibit performance
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+11
+Table 1
+Simulation results for scenario 1: Xi ∼Gamma(1, 2), Wi|Xi ∼Poisson(Xi) and sample sizes 50, 100, and 200
+N=50∗
+N=100∗
+N=200∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0=2
+Adj-LM
+1.7814
+3.9389(0.1607)
+-0.2186(0.0310)
+1.8514
+1.8773(0.1110)
+-0.1486(0.0404)
+1.9750
+0.9396(0.0582)
+-0.0250(0.0285)
+Naive-LM
+2.6465
+3.1129(0.1135)
+0.6465(0.0365)
+2.6228
+1.8252(0.0920)
+0.6228(0.0342)
+2.6798
+1.2412(0.0467)
+0.6798(0.0221)
+POI-SIMEX
+2.1732
+3.1792(0.1287)
+0.1732(0.0347)
+2.1455
+1.6623(0.0937)
+0.1455(0.0381)
+2.2159
+0.9086(0.0509)
+0.2159(0.0270)
+True-LM
+1.9547
+2.8366(0.1082)
+-0.0453(0.0267)
+1.9496
+1.4553(0.0837)
+-0.0504(0.0381)
+2.0175
+0.7487(0.0475)
+0.0175(0.0261)
+βx=1
+Adj-LM
+1.1231
+0.5178(0.0419)
+0.1231(0.0209)
+1.0685
+0.1564(0.0081)
+0.0685(0.0069)
+1.0243
+0.0684(0.0033)
+0.0243(0.0084)
+Naive-LM
+0.6693
+0.2290(0.0087)
+-0.3307(0.0097)
+0.6738
+0.1576(0.0030)
+-0.3262(0.0033)
+0.6677
+0.1350(0.0039)
+-0.3323(0.0054)
+POI-SIMEX
+0.9100
+0.2442(0.0093)
+-0.0900(0.0136)
+0.9160
+0.1042(0.0035)
+-0.0840(0.0047)
+0.9014
+0.0569(0.0027)
+-0.0986(0.0074)
+True-LM
+1.0121
+0.1600(0.0060)
+0.0121(0.0149)
+1.0119
+0.0671(0.0039)
+0.0119(0.0047)
+0.9984
+0.0325(0.0018)
+-0.0016(0.0048)
+βz=0.5
+Adj-LM
+0.5058
+0.0936(0.0045)
+0.0058(0.0079)
+0.5019
+0.0420(0.0024)
+0.0019(0.0065)
+0.4997
+0.0231(0.0016)
+-0.0003(0.0045)
+Naive-LM
+0.5077
+0.0829(0.0030)
+0.0077(0.0069)
+0.5032
+0.0397(0.0022)
+0.0032(0.0058)
+0.5007
+0.0224(0.0015)
+0.0007(0.0041)
+POI-SIMEX
+0.5073
+0.0862(0.0032)
+0.0073(0.0072)
+0.5026
+0.0409(0.0024)
+0.0026(0.0062)
+0.5000
+0.0227(0.0016)
+0.0000(0.0044)
+True-LM
+0.5065
+0.0813(0.0028)
+0.0065(0.0072)
+0.5017
+0.0378(0.0019)
+0.0017(0.0062)
+0.4995
+0.0205(0.0015)
+-0.0005(0.0044)
+∗In all settings, mean squared error (MSE), Bias and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets.
+∗∗Adj-LM:Li et al. (2004) proposed bias correction method; Naive-LM:Without bias correction (i.e., use observed covariate);POI-SIMEX: Poisson SIMEX bias correction; True-LM: Use the true covariate from
+the simulation.
+Table 2
+Simulation results for scenario 2:Xi ∼Gamma(1, 10), Wi|Xi ∼Poisson(Xi) and sample sizes 50, 100, and 200
+N=50∗
+N=100∗
+N=200∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MSSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0=2
+Adj-LM
+1.9112
+4.0535(0.2398)
+-0.0888(0.0631)
+1.9159
+2.1064(0.1545)
+-0.0841(0.0491)
+1.9163
+1.1559(0.0455)
+-0.0837(0.0204)
+Naive-LM
+2.9471
+4.5793(0.2203)
+0.9471(0.0631)
+2.8994
+2.7660(0.1096)
+0.8994(0.0415)
+2.8717
+1.8024(0.0384)
+0.8717(0.0200)
+POI-SIMEX
+2.0622
+3.9916(0.2276)
+0.0622(0.0656)
+1.9971
+2.1163(0.1572)
+-0.0029(0.0472)
+1.9794
+1.1521(0.0429)
+-0.0206(0.0193)
+True-LM
+1.9986
+2.7964(0.1706)
+-0.0014(0.0588)
+1.9897
+1.4272(0.1096)
+-0.0103(0.0355)
+1.9845
+0.7636(0.0214)
+-0.0155(0.0230)
+βx=1
+Adj-LM
+1.0121
+0.0144(0.0007)
+0.0121(0.0040)
+1.006
+0.0062(0.0003)
+0.0060(0.0024)
+1.0057
+0.0035(0.0001)
+0.0057(0.0020)
+Naive-LM
+0.9061
+0.0186(0.0008)
+-0.0939(0.0034)
+0.9072
+0.0133(0.0003)
+-0.0928(0.0020)
+0.9100
+0.0107(0.0004)
+-0.0900(0.0018)
+POI-SIMEX
+0.9970
+0.0131(0.0006)
+-0.0030(0.0039)
+0.9973
+0.0060(0.0002)
+-0.0027(0.0023)
+0.9994
+0.0034(0.0001)
+-0.0006(0.0019)
+True-LM
+1.0000
+0.0061(0.0004)
+0.0000(0.0015)
+0.9999
+0.0027(0.0001)
+-0.0001(0.0014)
+1.0002
+0.0014(0.0001)
+0.0002(0.0010)
+βz=0.5
+Adj-LM
+0.5034
+0.1126(0.0057)
+0.0034(0.0137)
+0.5047
+0.0572(0.0040)
+0.0047(0.0070)
+0.5066
+0.0272(0.0012)
+0.0066(0.0028)
+Naive-LM
+0.5037
+0.1079(0.0060)
+0.0037(0.0130)
+0.5037
+0.0559(0.0038)
+0.0037(0.0065)
+0.5058
+0.0261(0.0013)
+0.0058(0.0032)
+POI-SIMEX
+0.5020
+0.1134(0.0057)
+0.0020(0.0139)
+0.5054
+0.0580(0.0042)
+0.0054(0.0070)
+0.5064
+0.0272(0.0012)
+0.0064(0.0030)
+True-LM
+0.5068
+0.0803(0.0040)
+0.0068(0.0100)
+0.5041
+0.0401(0.0025)
+0.0041(0.0057)
+0.5031
+0.0191(0.0009)
+0.0031(0.0029)
+∗In all settings, mean squared error (MSE), Bias and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets.
+∗∗Adj-LM:Li et al. (2004) proposed bias correction method; Naive-LM:Without bias correction (i.e., use observed covariate);POI-SIMEX: Poisson SIMEX bias correction; True-LM: use the true covariate from the
+simulation.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+12
+Yang A. et al. and 2024-10-25: POI-SIMEX
+Table 3
+Simulation results for scenario 3: Xi ∼Gamma(2, Z), Z ∼Uniform(0.5, 9), Wi|Xi ∼Poisson(Xi) and sample sizes 50, 100, and 200
+N=50∗
+N=100∗
+N=200∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0=2
+Adj-LM
+1.9721
+2.9498(0.0632)
+-0.0279(0.0670)
+1.9717
+1.4085(0.0506)
+-0.0283(0.0385)
+2.0037
+0.7688(0.0445)
+0.0037(0.0284)
+Naive-LM
+1.9950
+2.7955(0.0723)
+-0.0050(0.0700)
+1.9845
+1.3651(0.0488)
+-0.0155(0.0374)
+2.0099
+0.7451(0.0428)
+0.0099(0.0274)
+POI-SIMEX
+1.9753
+2.9162(0.0593)
+-0.0247(0.0699)
+1.9726
+1.3946(0.0541)
+-0.0274(0.0375)
+2.0100
+0.7647(0.0438)
+0.0100(0.0291)
+True-LM
+1.9645
+2.4152(0.0879)
+-0.0355(0.0731)
+1.9879
+1.1474(0.0375)
+-0.0121(0.0247)
+1.9956
+0.6462(0.0303)
+-0.0044(0.0259)
+βx=1
+Adj-LM
+1.0298
+0.0285(0.0016)
+0.0298(0.0039)
+1.0121
+0.0117(0.0004)
+0.0121(0.0037)
+1.0049
+0.0055(0.0002)
+0.0049(0.0021)
+Naive-LM
+0.8550
+0.0364(0.0011)
+-0.1450(0.0032)
+0.8580
+0.0275(0.0008)
+-0.1420(0.0027)
+0.8617
+0.0227(0.0005)
+-0.1383(0.0018)
+POI-SIMEX
+0.9943
+0.0232(0.0011)
+-0.0057(0.0038)
+0.9906
+0.0106(0.0003)
+-0.0094(0.0034)
+0.9892
+0.0052(0.0002)
+-0.0108(0.0021)
+True-LM
+1.0009
+0.0106(0.0007)
+0.0009(0.0033)
+1.0012
+0.0046(0.0002)
+0.0012(0.0016)
+0.9981
+0.0021(0.0001)
+-0.0019(0.0017)
+βz=0.5
+Adj-LM
+0.4458
+0.1888(0.0099)
+-0.0542(0.0120)
+0.4748
+0.0820(0.0034)
+-0.0252(0.0130)
+0.4916
+0.0427(0.0020)
+-0.0084(0.0066)
+Naive-LM
+0.7851
+0.2243(0.0132)
+0.2851(0.0128)
+0.7774
+0.1449(0.0067)
+0.2774(0.0120)
+0.7757
+0.1114(0.0023)
+0.2757(0.0059)
+POI-SIMEX
+0.5139
+0.1718(0.0103)
+0.0139(0.0122)
+0.5169
+0.0786(0.0034)
+0.0169(0.0126)
+0.5219
+0.0417(0.0016)
+0.0219(0.0067)
+True-LM
+0.5050
+0.1187(0.0069)
+0.0050(0.0092)
+0.4940
+0.0540(0.0029)
+-0.0060(0.0083)
+0.5062
+0.0271(0.0010)
+0.0062(0.0051)
+∗In all settings, mean squared error (MSE), Bias and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets.
+∗∗Adj-LM:Li et al. (2004) proposed bias correction method; Naive-LM:Without bias correction (i.e., use observed covariate);POI-SIMEX: Poisson SIMEX bias correction; True-LM: use the true covariate from the
+simulation.
+Table 4
+Simulation results under different ratios of the variance of true covariate over the observed covariate
+Gamma(0.1,9)∗
+Gamma(2/3,3)∗
+Gamma(2,1)∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0 = 2
+Adj-LM
+1.9538
+1.2186( 0.0659)
+-0.0462(0.0441)
+1.9776
+1.5991( 0.0389)
+-0.0224(0.0360)
+1.7675
+3.5009( 0.2143)
+-0.2325(0.0683)
+Naive-LM
+2.0742
+1.1820( 0.0623)
+0.0742(0.0430)
+2.5503
+1.6960( 0.0555)
+0.5503(0.0318)
+2.9984
+2.5109( 0.1145)
+0.9984(0.0507)
+POI-SIMEX
+1.9730
+1.2041( 0.0635)
+-0.0270(0.0435)
+2.1359
+1.5322( 0.0348)
+0.1359(0.0347)
+2.5023
+2.2108( 0.0935)
+0.5023(0.0548)
+True-LM
+1.9794
+1.1468( 0.0673)
+-0.0206(0.0426)
+2.0641
+1.3416( 0.0503)
+0.0641(0.0360)
+1.9898
+1.7354( 0.0748)
+-0.0102(0.0556)
+βx = 1
+Adj-LM
+1.0513
+0.1184( 0.0072)
+0.0513(0.0128)
+1.0481
+0.0991( 0.0048)
+0.0481(0.0093)
+1.0951
+0.5245( 0.0268)
+0.0951(0.0185)
+Naive-LM
+0.8969
+0.0784( 0.0034)
+-0.1031(0.0097)
+0.7561
+0.1027( 0.0025)
+-0.2439(0.0054)
+0.4861
+0.3332( 0.0070)
+-0.5139(0.0064)
+POI-SIMEX
+1.0257
+0.1006( 0.0046)
+0.0257(0.0118)
+0.9656
+0.0757( 0.0031)
+-0.0344(0.0077)
+0.7287
+0.2341( 0.0091)
+-0.2713(0.0100)
+True-LM
+0.9963
+0.0549( 0.0023)
+-0.0037(0.0073)
+1.0018
+0.0462( 0.0014)
+0.0018(0.0064)
+0.9891
+0.1369( 0.0060)
+-0.0109(0.0097)
+βz = 0.5
+Adj-LM
+0.5053
+0.0400( 0.0022)
+0.0053(0.0075)
+0.4872
+0.0452( 0.0016)
+-0.0128(0.0055)
+0.5115
+0.0463( 0.0027)
+0.0115(0.0088)
+Naive-LM
+0.5051
+0.0393( 0.0022)
+0.0051(0.0075)
+0.4868
+0.0434( 0.0017)
+-0.0132(0.0052)
+0.5065
+0.0395( 0.0021)
+0.0065(0.0092)
+POI-SIMEX
+0.5047
+0.0399( 0.0021)
+0.0047(0.0075)
+0.4869
+0.0445( 0.0017)
+-0.0131(0.0053)
+0.5088
+0.0411( 0.0022)
+0.0088(0.0090)
+True-LM
+0.5065
+0.0378( 0.0023)
+0.0065(0.0072)
+0.4851
+0.0411( 0.0014)
+-0.0149(0.0052)
+0.5058
+0.0390( 0.0021)
+0.0058(0.0090)
+∗In all settings, N=100, mean squared error (MSE), Bias, and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets using batch mean method with 10 batches. Ratios (left to right): 0.9, 0.75,
+0.5, deﬁned as
+σ2
+X
+σ2
+W
+.
+∗∗Adj-LM:Li et al. (2004) proposed bias correction method; Naive-LM: Without bias correction (i.e., use observed covariate); POI-SIMEX: Poisson SIMEX bias correction; True-LM: use the true covariate from
+the simulation.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+13
+degradation under strong forms of model misspeciﬁcation. Even in these cases, however, we observe that
+the degradation of POI-SIMEX is generally less severe than the degradation of Adj-LM, and thus it exhibits
+better performance under misspeciﬁcation as well.
+5.2
+Simulation with log-normal censored survival data
+We evaluate the performance of POI-SIMEX with data generated using an accelerated failure time survival
+model with a conditionally Poisson-distributed error-prone covariate. We simulate log-normal survival
+times with 20 percent random censoring. The Poisson rate Xis are generated independently from a Gamma
+distribution with shape parameter, a = 1, and scale parameter, b = 2. The scale parameter (σ) for the log-
+normal distribution of the error is set to 2. The covariate without measurement error, Z, is drawn from a
+uniform distribution between 0.5 and 9. The intercept and coefﬁcients associated with log survival time
+are β0 = 2, βx = 1, and βz = 0.5. The sample size N is 50, 100, or 200. In all instances, the bias, mean
+squared error (MSE), and their Monte Carlo standard errors, are reported from 1000 datasets generated.
+The results for all parameters are summarized in Table 5. We compare POI-SIMEX only with the Naive
+method as Adj-LM can not be applied in settings with censoring. However, POI-SIMEX is easily adapted
+to this and other regression settings with Poisson surrogates. The POI-SIMEX method outperforms the
+Naive method with a smaller bias and mean squared error (MSE) in all scenarios. For instance, when
+N = 50, the bias correction is signiﬁcant for the intercept term (β0), the coefﬁcient of the error-prone
+covariate (βX), and the scale parameter (σ). With β0 = 2, the naive method has an average estimate of
+3.105, while POI-SIMEX has an average estimate of 2.596. For βX = 1, the naive method has an average
+estimate of 0.673, whereas POI-SIMEX has an average estimate of 0.914. For σ = 2, the Naive method
+gives an average estimate of 2.364, and POI-SIMEX gives an average estimate of 2.160. Similar patterns
+are observed for N = 100 and N = 200. Both methods closely estimate the βZ, as expected due to the
+assumed independence between covariates.
+6
+Application to the COEUR HGSC cohort
+Despite being ten times less common than breast cancer, epithelial ovarian cancer (EOC) ranks as the
+ﬁfth-leading cause of cancer-related deaths among women in Canada (Arora et al., 2018). Over the past
+decade, advancements in therapeutic targets and drug developments have notably increased survival rates.
+However, despite these improvements, patients’ survival rates and the overall quality of life remain sub-
+optimal. High-grade serous carcinoma (HGSC) is a subtype of EOC. Epithelial ovarian cancer is a broad
+category of cancers that arise from the epithelial cells covering the surface of the ovaries or, as current
+research suggests, the fallopian tube (Labidi et al. , 2017). It includes several subtypes, with high-grade
+serous carcinoma being one of the most common and aggressive forms. Thus, there is a pressing need
+to ﬁnd biomarkers that are relevant to survival. COEUR comprises 12 ovarian cancer biobanks across
+Canada. This repository includes a central retrospective cohort of over 2,000 patient tissue samples with
+associated clinical data, of which 1,246 are HGSC. Our study cohort of 716 is a subset of the HGSC
+samples, that only includes patients with linked TMA data, complete clinical information, and demo-
+graphic details such as treatment, survival, or follow-up time. We apply multivariable linear regression,
+assuming the log survival time is normally distributed and correct the bias in coefﬁcient estimation using
+POI-SIMEX. Table (6) displays summary statistics of subject characteristics stratiﬁed by death status, and
+Kaplan-Meier survival curves in Figure (2) show that optimal debulking, early FIGO stage (I or II), and
+presenting CD3+CD8+FoxP3+ ∼E (∼E refers to the cells measured in epithelial regions) are positively
+associated with survival.
+The CD3+CD8+FoxP3+ ∼E triple-positive biomarker, derived from TMA data, highlights the critical
+role of immune cell inﬁltration, such as tumor-inﬁltrating lymphocytes (TILs), which are key prognostic
+indicators for survival across various cancers. Regulatory T cells (Tregs), characterized by FoxP3 expres-
+sion, are primarily recognized for their immunosuppressive function, maintaining immune homeostasis by
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+14
+Yang A. et al. and 2024-10-25: POI-SIMEX
+Table 5
+Simulation for survival data (20% random right censoring) from log-normal with scale parameter (σ = 2) and sample sizes 50, 100, and 200
+N=50∗
+N=100∗
+N=200∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0 = 2
+Naive-AFT
+3.1055
+1.8954(0.0609)
+1.1055(0.0233)
+3.1394
+1.6334(0.0470)
+1.1394(0.0212)
+3.1504
+1.5199(0.0273)
+1.1504(0.0116)
+SIMEX-AFT
+2.5960
+1.1946(0.0497)
+0.5960(0.0244)
+2.6288
+0.8033(0.0325)
+0.6288(0.0254)
+2.6446
+0.6464(0.0182)
+0.6446(0.0130)
+True-AFT
+2.3963
+0.7038(0.0340)
+0.3963(0.0167)
+2.4136
+0.4399(0.0196)
+0.4136(0.0195)
+2.4174
+0.3276(0.0108)
+0.4174(0.0106)
+βx = 1
+Naive-AFT
+0.6731
+0.1440(0.0033)
+-0.3269(0.0058)
+0.6747
+0.1230(0.0032)
+-0.3253(0.0051)
+0.6712
+0.1160(0.0010)
+-0.3288(0.0012)
+SIMEX-AFT
+0.9138
+0.0845(0.0028)
+-0.0862(0.0089)
+0.9109
+0.0426(0.0023)
+-0.0891(0.0071)
+0.9040
+0.0251(0.0009)
+-0.0960(0.0020)
+True-AFT
+1.0059
+0.0312(0.0016)
+0.0059(0.0068)
+1.0019
+0.0145(0.0009)
+0.0019(0.0035)
+1.0026
+0.0067(0.0004)
+0.0026(0.0019)
+βz = 0.5
+Naive-AFT
+0.4993
+0.0217(0.0010)
+-0.0007(0.0041)
+0.4997
+0.0097(0.0006)
+-0.0003(0.0039)
+0.4975
+0.0055(0.0002)
+-0.0025(0.0019)
+SIMEX-AFT
+0.4991
+0.0224(0.0010)
+-0.0009(0.0036)
+0.5003
+0.0099(0.0006)
+0.0003(0.0040)
+0.4978
+0.0057(0.0002)
+-0.0022(0.0018)
+True-AFT
+0.4977
+0.0158(0.0008)
+-0.0023(0.0026)
+0.5011
+0.0073(0.0004)
+0.0011(0.0037)
+0.4994
+0.0042(0.0002)
+-0.0006(0.0015)
+σ = 2
+Naive-AFT
+2.3642
+0.2118(0.0100)
+0.3642(0.0095)
+2.4232
+0.2189(0.0033)
+0.4232(0.0043)
+2.4339
+0.2089(0.0027)
+0.4339(0.0034)
+SIMEX-AFT
+2.1599
+0.1263(0.0075)
+0.1599(0.0101)
+2.2163
+0.0955(0.0028)
+0.2163(0.0061)
+2.2258
+0.0761(0.0015)
+0.2258(0.0033)
+True-AFT
+2.0499
+0.0571(0.0024)
+0.0499(0.0098)
+2.1019
+0.0382(0.0015)
+0.1019(0.0042)
+2.109
+0.0259(0.0008)
+0.1090(0.0034)
+∗In all settings, true X ∼Gamma(1,2), mean squared error (MSE), Bias, and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets.
+∗∗Naive-AFT:log-normal AFT model without bias correction (i.e., use observed covariate); SIMEX-AFT: log-normal AFT model using POI-SIMEX for bias correction; True-AFT: log-normal use the true covariate
+from the simulation.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+15
+downregulating immune responses and preventing autoimmunity. However, in the tumor microenviron-
+ment, Tregs’ suppressive activity can hinder anti-tumor immunity, often correlating with poor prognosis
+(Curiel et al., 2004; Curiel, 2008; Elkoshi, 2022). In some cancer subtypes, including ovarian cancer, im-
+mune inﬁltration has been linked to overall prognosis. Speciﬁcally, CD8+FoxP3+ T cells have been sug-
+gested to form a unique regulatory population with suppressive effects on inﬁltrating B cells(Preston et al.,
+2013; Liston and Aloulou, 2022; Warfvinge et al, 2017). In advanced-stage ovarian cancer, the presence of
+CD8+ cells, FoxP3+ Tregs, or a high CD8/FoxP3 ratio in tumor tissue has been linked to improved disease-
+speciﬁc survival Leffers et al. (2009). Similarly, in high-grade serous tumors from optimally debulked
+patients, disease-speciﬁc survival was positively correlated with CD8 and FoxP3 markers (Milne et al.,
+2009). Nevertheless, the speciﬁc impact of these triple-positive cells on HGSC patient survival remains
+unclear and and we hope that the results from applying POI-SIMEX will provide further insights. Notably,
+the estimated coefﬁcient of the biomarker obtained from POI-SIMEX is larger than the estimate obtained
+from the naive model with a slightly increased standard error relative to the naive approach (Table 7). We
+have added the standard error from the bootstrap method to the POI-SIMEX estimator, which is compara-
+ble with the standard error obtained using SIMEX and its standard variance estimation. As shown in Table
+7, for each unit increase in the density (per mm2) of CD3+CD8+FoxP3+ ∼E, the estimated increase in
+log survival time is 0.0148 (SE:0.0053), given that the other covariates are held ﬁxed. Compared to the
+naive method, this represents a relative increase in the estimated regression coefﬁcient of approximately
+25 percent. There is clearly a non-trivial correction to the estimate associated with the biomarker.
+Table 6
+Summary statistics of patient characteristics stratiﬁed by death event status for COEUR HGSOC
+cohort
+Alive
+Dead
+Total
+CD3+CD8+FoxP3+ ∼E∗
+0
+159
+424
+583
+¿0
+50
+83
+133
+Age (60+)
+Yes
+119
+297
+416
+No
+90
+210
+300
+Non-optimal debulking
+Yes
+42
+244
+286
+No
+115
+151
+266
+NA
+52
+112
+164
+FIGO stage (III/IV)
+Yes
+134
+450
+584
+No
+75
+57
+132
+∗Indication of the expression of Tregs CD3+CD8+FoxP3+ in the epithelial area
+7
+Conclusion
+Motivated by the importance of adjusting for measurement error in TMA-based studies of cancer, we
+develop POI-SIMEX, an adjustment approach for handling conditionally Poisson-distributed surrogates,
+and applied it to linear regression models and parametric accelerated failure time survival models. For
+cases with unknown measurement error variance, our proposed method only requires one replicate to obtain
+a strongly consistent estimate of the measurement error variance for POI-SIMEX. Our simulation studies
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+16
+Yang A. et al. and 2024-10-25: POI-SIMEX
+Figure 2
+Kaplan-Meier survival curves with 95% conﬁdence interval band, log-rank test p-value, and
+median survival time (dash line) by strata
+Table 7
+Log-normal accelerated survival time regression with Poisson distributed biomarker
+CD3+CD8+FoxP3+ ∼E
+Naivea
+POI-SIMEXb
+Parameters
+Estimate
+SE
+p-value
+Estimate
+SE
+SE(Bootstrap)
+p-value
+| rel.pct chg.|c
+Intercept
+4.8238
+0.1298
+<0.001
+4.8191
+0.1297
+0.1248
+<0.001
+0.0974
+CD3+CD8+FoxP3+ ∼E∗
+0.0118
+0.0041
+0.004
+0.0148
+0.0053
+0.0070
+0.005
+25.4237
+Age 60+
+-0.2131
+0.0844
+0.012
+-0.2136
+0.0845
+0.0760
+0.011
+0.2346
+Non-optimal debulking (Yes)
+-0.5967
+0.1072
+<0.001
+-0.5963
+0.1071
+0.0891
+<0.001
+0.0670
+Non-optimal debulking (NA)
+-0.4722
+0.1071
+<0.001
+-0.4735
+0.1072
+0.1031
+<0.001
+0.2753
+FIGO stage (III/IV)
+-0.6628
+0.1312
+<0.001
+-0.6653
+0.1311
+0.1199
+<0.001
+0.3772
+∗Indication of the expression of Tregs CD8+FoxP3+ in the epithelial area
+aEstimated scale parameter of lognormal:1.3126.
+bEstimated scale parameter of lognormal:1.0600.
+cThe absolute relative percent change is computed by 100 ∗| (EstimateP OI−SIMEX−EstimateNaive)/EstimateNaive|
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+17
+show that the proposed method outperforms the correction method proposed in Li et al. (2004) within
+the setting of linear regression and also has broad applicability for the analysis of TMAs beyond linear
+regression. The POI-SIMEX approach is also appealing as it does not require speciﬁcation of the true
+covariate process. While performance degradation is observed under model misspeciﬁcation, the degree of
+degradation is less severe than that of competing methodology.
+Biologically, the ﬁnding that CD3+CD8+FOXP3+ T cells are associated with increased overall sur-
+vival is intriguing. One might speculate that these FOXP3+ T cells mediate direct killing of tumor cells,
+as FOXP3 is a marker of T cell activation. Alternatively, these cells could play an immunoregulatory
+role by reducing inﬂammatory signals such as TNF-a, a critical tumor factor, thereby indirectly block-
+ing tumor growth and metastasis (Ostrand-Rosenberg, 2010). It may also be possible that these cells
+limit the activity of myeloid-derived suppressor cells (Gabrilovich and Nagaraj, 2009).
+Further func-
+tional studies are needed clarify these potential scenarios (Liu et al., 2015). While this paper has ini-
+tiated the theoretical justiﬁcation for POI-SIMEX, more general theory including the consideration of
+POI-SIMEX for semiparametric survival modeling with the Cox proportional hazard model is part of
+ongoing work. By providing detailed performance metrics, some theoretical results, and comparative
+analysis with real data, we provide an approach for improving the analysis of TMA-based studies of
+biomarkers, immunology and cancer survival. Companion R code for POI-SIMEX is available on GitHub
+(https://github.com/Aijunyan/POI-SIMEX).
+Acknowledgements
+We thank the patients who contributed tumor samples and clinical data to the COEUR cohort.
+Nathoo acknowledges funding from CIHR (PJT−186124) and the Terry Fox Research Institute (TFRI1136 −03).
+Nathoo and Lesperance acknowledge funding from NSERC (RGPIN−04044−2020, RGPIN−07079−2020) through
+the Discovery Grants Program. Yang acknowledges funding from the University of Victoria and the Paciﬁc Leaders
+Scholarship Program. Nelson acknowledges the BC Cancer Foundation, CIHR (PJT−427647), and Terry Fox Re-
+search Institute (TFRI1060)for funding. Lum acknowledges funding from CIHR (PJT−192015), Terry Fox Research
+Institute, and Lotte & John Hecht Memorial Foundation (TFRI1125).
+Conﬂict of Interest
+The authors have declared no conﬂict of interest.
+Appendix
+To evaluate the model performance under misspeciﬁcation, we conduct two simulation studies to evaluate
+the model’s performance when the conditional Poisson assumption does not hold for covariates with mea-
+surement error. The same parameters from Section 5.1 are used. However, we assume one scenario where
+observations are drawn from a binomial distribution and another from a negative binomial distribution with
+the mean set to the true covariate.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+18
+Yang A. et al. and 2024-10-25: POI-SIMEX
+Table 1
+Appendix: Simulation results for misspeciﬁcation: Xi ∼Gamma(a, b), Wi|Xi ∼Binormial(40, Pi) where Pi = Xi/40, and sample
+size 100
+Gamma(1,2)∗
+Gamma(1,10)∗
+Gamma(2,Z), Z ∼Uniform(0.5, 9)∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0 = 2
+Adj-LM
+1.7553
+1.9951 (0.099)
+-0.2447 (0.0556)
+1.0037
+3.3613 (0.1679)
+-0.9963 (0.0477)
+1.8882
+1.3779 (0.0719)
+-0.1118 (0.0229)
+Naive-LM
+2.5795
+1.7739 (0.0785)
+0.5795 (0.0476)
+2.2435
+2.1818 (0.101)
+0.2435 (0.0446)
+1.9232
+1.2978 (0.0628)
+-0.0768 (0.0267)
+POI-SIMEX
+2.0796
+1.6822 (0.0673)
+0.0796 (0.0503)
+1.1186
+3.1261 (0.1625)
+-0.8814 (0.0481)
+1.8895
+1.3757 (0.075)
+-0.1105 (0.0238)
+True-LM
+1.9708
+1.4294 (0.0468)
+-0.0292 (0.0456)
+2.0488
+1.5041 (0.0842)
+0.0488 (0.0336)
+2.0478
+1.0983 (0.0552)
+0.0478 (0.0227)
+βx = 1
+Adj-LM
+1.1147
+0.1708 (0.0105)
+0.1147 (0.0158)
+1.1251
+0.0244 (0.0009)
+0.1251 (0.0031)
+1.1603
+0.0408 (0.0014)
+0.1603 (0.0034)
+Naive-LM
+0.6937
+0.1438 (0.0051)
+-0.3063 (0.0084)
+0.9980
+0.0074 (0.0004)
+-0.002 (0.0028)
+0.9556
+0.0122 (0.0002)
+-0.0444 (0.0028)
+POI-SIMEX
+0.9469
+0.1002 (0.0038)
+-0.0531 (0.0122)
+1.1128
+0.0213 (0.0008)
+0.1128 (0.003)
+1.1277
+0.0303 (0.0011)
+0.1277 (0.0033)
+True-LM
+1.0010
+0.0673 (0.0026)
+0.0010 (0.0103)
+0.9993
+0.0027 (0.0002)
+-0.0007 (0.0019)
+1.0019
+0.0045 (0.0002)
+0.0019 (0.0012)
+βz = 0.5
+Adj-LM
+0.5038
+0.0434 (0.0017)
+0.0038 (0.0079)
+0.4914
+0.0601 (0.0025)
+-0.0086 (0.006)
+0.2304
+0.1643 (0.0061)
+-0.2696 (0.0068)
+Naive-LM
+0.5048
+0.0407 (0.0016)
+0.0048 (0.0079)
+0.4909
+0.0582 (0.0023)
+-0.0091 (0.0054)
+0.6258
+0.0824 (0.0038)
+0.1258 (0.0063)
+POI-SIMEX
+0.5044
+0.0419 (0.0017)
+0.0044 (0.0079)
+0.4925
+0.0596 (0.0025)
+-0.0075 (0.0058)
+0.2935
+0.1287 (0.0054)
+-0.2065 (0.0064)
+True-LM
+0.5038
+0.0384 (0.0013)
+0.0038 (0.0075)
+0.4943
+0.0428 (0.0022)
+-0.0057 (0.0031)
+0.4857
+0.0525 (0.0029)
+-0.0143 (0.0058)
+∗In all settings, mean squared error (MSE), Bias and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets.
+∗∗Adj-LM:Li et al.(2004) proposed bias correction method; Naive-LM:Without bias correction (i.e., use observed covariate);POI-SIMEX: Poisson SIMEX bias correction; True-LM: use the true covariate from the
+simulation.
+Table 2
+Appendix: Simulation results for misspeciﬁcation: Xi ∼Gamma(a, b), Wi|Xi ∼Binomial(60, Pi) where Pi = Xi/60, and sample size
+100
+Gamma(1,2)∗
+Gamma(10,1)∗
+Gamma(2,Z), Z ∼Uniform(0.5, 9)∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0 = 2
+Adj-LM
+1.8379
+1.7823 (0.0714)
+-0.1621 (0.0321)
+1.5212
+2.2016 (0.1038)
+-0.4788 (0.0467)
+0.203
+1.4037 (0.0655)
+-0.032 (0.0311)
+Naive-LM
+2.6384
+1.7339 (0.088)
+0.6384 (0.0289)
+2.593
+2.1571 (0.1038)
+0.593 (0.0486)
+0.7526
+1.3298 (0.0665)
+-0.0206 (0.0322)
+POI-SIMEX
+2.1474
+1.5458 (0.0736)
+0.1474 (0.0295)
+1.6232
+2.1037 (0.0965)
+-0.3768 (0.0491)
+0.3627
+1.3972 (0.0661)
+-0.0325 (0.0304)
+True-LM
+2.0019
+1.3486 (0.0625)
+0.0019 (0.0291)
+2.0483
+1.3455 (0.0571)
+0.0483 (0.0415)
+2.0050
+1.1637 (0.0737)
+-0.0280 (0.0262)
+βx = 1
+Adj-LM
+1.0932
+0.1747 (0.0108)
+0.0932 (0.0121)
+1.0520
+0.0088 (0.0006)
+0.0520 (0.0023)
+1.7082
+0.0151 (0.0005)
+0.0764 (0.0017)
+Naive-LM
+0.6870
+0.1512 (0.0048)
+-0.3130 (0.0068)
+0.9442
+0.0081 (0.0004)
+-0.0558 (0.0024)
+1.1763
+0.0156 (0.0006)
+-0.0965 (0.0019)
+POI-SIMEX
+0.9343
+0.1080 (0.0047)
+-0.0657 (0.0097)
+1.0422
+0.0077 (0.0006)
+0.0422 (0.0023)
+1.5431
+0.0110 (0.0004)
+0.0512 (0.0017)
+True-LM
+1.0081
+0.0705 (0.0035)
+0.0081 (0.0073)
+0.9985
+0.0028 (0.0002)
+-0.0015 (0.0015)
+1.0008
+0.0047 (0.0003)
+0.0014 (0.0017)
+βz = 0.5
+Adj-LM
+0.4953
+0.0425 (0.0024)
+-0.0047 (0.0060)
+0.4984
+0.0492 (0.0020)
+-0.0016 (0.0055)
+-0.1663
+0.1068 (0.0044)
+-0.1388 (0.0061)
+Naive-LM
+0.4953
+0.0403 (0.0024)
+-0.0047 (0.0062)
+0.4970
+0.0472 (0.0019)
+-0.003 (0.0060)
+0.6672
+0.1088 (0.0051)
+0.2007 (0.0063)
+POI-SIMEX
+0.4953
+0.0413 (0.0023)
+-0.0047 (0.0062)
+0.4973
+0.0495 (0.0022)
+-0.0027 (0.0055)
+0.0962
+0.0910 (0.0044)
+-0.0894 (0.0059)
+True-LM
+0.4952
+0.0383 (0.0020)
+-0.0048 (0.0060)
+0.4928
+0.0358 (0.0015)
+-0.0072 (0.0055)
+0.4965
+0.0600 (0.0028)
+0.0035 (0.0037)
+∗In all settings, mean squared error (MSE), Bias and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets.
+∗∗Adj-LM:Li et al.Li et al. (2004) proposed bias correction method; Naive-LM:Without bias correction (i.e., use observed covariate);POI-SIMEX: Poisson SIMEX bias correction; True-LM: use the true covariate
+from the simulation.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+19
+Table 3
+Appendix: Simulation results for misspeciﬁcation: Xi ∼Gamma(a, b), Wi|Xi ∼Neg −Binomial(5, Pi) where Pi = 5/(5 + Xi), and
+sample size 100
+Gamma(1,2)∗
+Gamma(1,10)∗
+Gamma(2,Z), Z ∼Uniform(0.5, 9)∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0 = 2
+Adj-LM
+4.0798
+5.8195 (0.1451)
+2.0798 (0.0236)
+12.242
+111.5304 (1.1759)
+10.242 (0.0617)
+2.1839
+2.7965 (0.1335)
+0.1839 (0.0501)
+Naive-LM
+4.0685
+5.6941 (0.1389)
+2.0685 (0.0239)
+12.2115
+110.7669 (1.1811)
+10.2115 (0.0614)
+2.1617
+2.7111 (0.1292)
+0.1617 (0.0491)
+POI-SIMEX
+4.0792
+5.8068 (0.1441)
+2.0792 (0.0238)
+12.2386
+111.4459 (1.1728)
+10.2386 (0.0616)
+2.1810
+2.7928 (0.1313)
+0.181 (0.0495)
+True-LM
+2.0091
+1.2885 (0.0194)
+0.0091 (0.0311)
+1.9987
+1.4193 (0.0459)
+-0.0013 (0.0375)
+2.0033
+1.2667 (0.0442)
+0.0033 (0.0464)
+βx = 1
+Adj-LM
+-0.0133
+1.0393 (0.0117)
+-1.0133 (0.0055)
+-0.0574
+1.1561 (0.0125)
+-1.0574 (0.0058)
+-0.0387
+1.1006 (0.0144)
+-1.0387 (0.0068)
+Naive-LM
+-0.0108
+1.0308 (0.0096)
+-1.0108 (0.0046)
+-0.0498
+1.1331 (0.0109)
+-1.0498 (0.0052)
+-0.0339
+1.0869 (0.0131)
+-1.0339 (0.0062)
+POI-SIMEX
+-0.0131
+1.0384 (0.0113)
+-1.0131 (0.0053)
+-0.0566
+1.1539 (0.0125)
+-1.0566 (0.0058)
+-0.0380
+1.0988 (0.0143)
+-1.0380 (0.0067)
+True-LM
+1.0064
+0.0681 (0.0027)
+0.0064 (0.0051)
+1.0018
+0.0028 (0.0001)
+0.0018 (0.0017)
+0.9951
+0.0045 (0.0002)
+-0.0049 (0.0018)
+βz = 0.5
+Adj-LM
+0.4965
+0.0427 (0.0013)
+-0.0035 (0.0055)
+0.5027
+0.1976 (0.0111)
+0.0027 (0.0141)
+2.4879
+4.0938 (0.0402)
+1.9879 (0.0098)
+Naive-LM
+0.4967
+0.0426 (0.0013)
+-0.0033 (0.0055)
+0.5027
+0.1973 (0.0111)
+0.0027 (0.0141)
+2.4884
+4.0953 (0.0402)
+1.9884 (0.0098)
+POI-SIMEX
+0.4965
+0.0427 (0.0013)
+-0.0035 (0.0055)
+0.5027
+0.1977 (0.0111)
+0.0027 (0.0141)
+2.4879
+4.0936 (0.0402)
+1.9879 (0.0098)
+True-LM
+0.4953
+0.0373 (0.0013)
+-0.0047 (0.0058)
+0.4987
+0.0361 (0.0014)
+-0.0013 (0.0054)
+0.5039
+0.0589 (0.0028)
+0.0039 (0.0096)
+∗In all settings, mean squared error (MSE), Bias and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets.
+∗∗Adj-LM:Li et al.Li et al. (2004) proposed bias correction method; Naive-LM:Without bias correction (i.e., use observed covariate);POI-SIMEX: Poisson SIMEX bias correction; True-LM: use the true covariate
+from the simulation.
+Table 4
+Appendix: Simulation results for misspeciﬁcation: Xi ∼Gamma(a, b), Wi|Xi ∼Neg −Binomial(10, Pi) where Pi = 10/(10 + Xi),
+and sample size 100
+Gamma(1,2)∗
+Gamma(1,10)∗
+Gamma(2,Z). Z ∼Uniform(0.5, 9)∗
+Parameter
+Method∗∗
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+Estimate
+MSE(MCSE)
+Bias(MCSE)
+β0 = 2
+Adj-LM
+3.9969
+5.6742 (0.1712)
+1.9969 (0.0332)
+12.2751
+112.3795 (1.296)
+10.2751 (0.0675)
+2.1397
+3 (0.1276)
+0.1397 (0.0681)
+Naive-LM
+3.997
+5.6196 (0.1669)
+1.997 (0.0319)
+12.2575
+111.896 (1.294)
+10.2575 (0.0671)
+2.1278
+2.9236 (0.1227)
+0.1278 (0.0681)
+POI-SIMEX
+3.9968
+5.6720 (0.1729)
+1.9968 (0.0337)
+12.2731
+112.3322 (1.2921)
+10.2731 (0.0675)
+2.1399
+3.0070 (0.1263)
+0.1399 (0.0687)
+True-LM
+1.9877
+1.4421 (0.0890)
+-0.0123 (0.0197)
+2.0121
+1.4706 (0.0772)
+0.0121 (0.0458)
+2.0098
+1.2022 (0.0485)
+0.0098 (0.0427)
+βx = 1
+Adj-LM
+0.0007
+1.0021 (0.0042)
+-0.9993 (0.0021)
+-0.0245
+1.0611 (0.0088)
+-1.0245 (0.0044)
+-0.0129
+1.0329 (0.0038)
+-1.0129 (0.0018)
+Naive-LM
+0.0007
+1.0015 (0.0039)
+-0.9993 (0.0019)
+-0.0223
+1.0553 (0.0084)
+-1.0223 (0.0042)
+-0.0117
+1.0297 (0.0035)
+-1.0117 (0.0017)
+POI-SIMEX
+0.0007
+1.0020 (0.0043)
+-0.9993 (0.0021)
+-0.0242
+1.0606 (0.009)
+-1.0242 (0.0045)
+-0.0129
+1.0329 (0.0038)
+-1.0129 (0.0018)
+True-LM
+1.0125
+0.0694 (0.0040)
+0.0125 (0.0075)
+1.0004
+0.0028 (0.0001)
+0.0004 (0.0012)
+1.0005
+0.0043 (0.0003)
+0.0005 (0.0024)
+βz = 0.5
+Adj-LM
+0.4990
+0.0452 (0.0024)
+-0.0010 (0.0061)
+0.4736
+0.1862 (0.0084)
+-0.0264 (0.0103)
+2.4864
+4.093 (0.0643)
+1.9864 (0.0155)
+Naive-LM
+0.4990
+0.0451 (0.0024)
+-0.0010 (0.0060)
+0.4736
+0.1860 (0.0084)
+-0.0264 (0.0103)
+2.4868
+4.0943 (0.0641)
+1.9868 (0.0155)
+POI-SIMEX
+0.4991
+0.0452 (0.0024)
+-0.0009 (0.0061)
+0.4737
+0.1862 (0.0085)
+-0.0263 (0.0102)
+2.4863
+4.0926 (0.0642)
+1.9863 (0.0155)
+True-LM
+0.4977
+0.0380 (0.0021)
+-0.0023 (0.0048)
+0.4972
+0.0394 (0.0022)
+-0.0028 (0.0045)
+0.4930
+0.0567 (0.0029)
+-0.0070 (0.0096)
+∗In all settings, mean squared error (MSE), Bias and Monte Carlo standard error (MCSE) are based on the 1000 simulated datasets.
+∗∗Adj-LM:Li et al.Li et al. (2004) proposed bias correction method; Naive-LM:Without bias correction (i.e., use observed covariate);POI-SIMEX: Poisson SIMEX bias correction; True-LM: use the true covariate
+from the simulation.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+20
+Yang A. et al. and 2024-10-25: POI-SIMEX
+References
+Carroll, R., Ruppert, D., Stefanski, L. & Crainiceanu, C. (2006) Measurement Error in Nonlinear Models: A Modern
+Perspective. Chapman and Hall, London.
+Fuller, W. (1986). Measurement error models. John Wiley & Sons, Inc., USA.
+Yi, G., Delaigle, A. & Gustafson, P. (2021) Handbook of Measurement Error Models (1st ed.). Chapman and
+Hall/CRC, New York, https://doi.org/10.1201/9781315101279.
+Spiegelman, D., McDermott, A. & Rosner, B. (1997). Regression calibration method for correcting measurement-error
+bias in nutritional epidemiology. Am J Clin Nutr. 65, https://doi:10.1093/ajcn/65.4.1179S.
+Nakamura, T. (1990). Corrected score functions for errors-in-variables models: methodology and application to gen-
+eralized linear models. Biometrika.77.
+Li, L, Palta, M, Shao, J (2004). A measurement error model with a Poisson distributed surrogate. Stat Med. 23(16),
+2527-2536, https://doi: 10.1002/sim.1838.
+Richardson, S. & Gilks , W. (1993). A Bayesian approach to measurement error problems in epidemiology using
+conditional independence models.Am J Epidemiol. 138, https://doi:10.1093/oxfordjournals.aje.a116875.
+Carroll, R., Delaigle, A. & Hall, P. (1999). Nonparametric Regression in the Presence of Measurement Error.
+Biometrika. 86, http://www.jstor.org/stable/2673653.
+Carroll, R., Delaigle , A. & Hall, P. (2009). Nonparametric Prediction in Measurement Error Models. J Am Stat Assoc.
+104, 10.1198/jasa.2009.tm07543.
+Sarkar, A. (2014). Bayesian Semiparametric Density Deconvolution and Regression in the Presence of Measurement
+Errors. Doctoral Dissertation, Texas A & M University, https : / /hdl .handle .net /1969 .1 /153327.
+Sinha, S. & Wang, S. Semiparametric Bayesian analysis of censored linear regression with errors-in-covariates. Statis-
+tical Methods In Medical Research. 26, 1389-1415, doi:10.1177/0962280215580668.
+Cook, J. & Stefanski, L. (1994) Simulation-Extrapolation Estimation in Parametric Measurement Error Models. J Am
+Stat Assoc. 89, https://doi.org/10.1080/01621459.1994.10476871
+Carroll, R., Ruppert, D., Stefanski, L. & Crainiceanu, C. (1995). Measurement Error in Nonlinear Models. Chapman
+and Hall, London.
+Kuchenhoff, H., Mwalili, S. & Lesaffre, E. (2006). A General Method for Dealing with Misclassiﬁcation in Regression:
+The Misclassiﬁcation Simex. Biometrics. 62.
+Parveen, N., Moodie, E. & Brenner, B. (2021). The non-zero mean SIMEX: Improving estimation in the face of
+measurement error. Observational Studies. 1 pp. 90-123, https://api.semanticscholar.org/CorpusID:63160969.
+Devanarayan, V. & Stefanski, L. (2002). Empirical simulation extrapolation for measurement error models with repli-
+cate measurements. Statistics & Probability Letters. 59, 219-225.
+Sevilimedu, V. & Yu, L. (2022). Simulation extrapolation method for measurement error: A review. Stat Med Med Res.
+31, 1617-1636, https://doi:10.1177/09622802221102619.
+Nakamura, T. (1992). Proportional hazards model with covariates subject to measurement error. Biometrika. 79, 387-
+395.
+Kong, F., Huang, W. & Li, X. (1998). Estimating survival curves under proportional hazards model with covariate
+measurement errors. Scand. J. Statist. 25 pp. 573-587.
+Kong, F. & Gu, M. (1999) Consistent estimation in Cox proportional hazards model with covariate measurement errors.
+Statistica Sinica. 9 pp. 953-969.
+Tsiatis, A. & Davidian, M. (2001) A semiparametric estimator for the proportional hazards model with longitudinal
+covariates measured with error. Biometrika. 88, 447-458.
+Augustin, T. (2004). An Exact Corrected Log-Likelihood Function for Cox’s Proportional Hazards Model
+under
+Measurement
+Error
+and
+Some
+Extensions.
+Scandinavian
+Journal
+Of
+Statistics.
+31,
+43-50,
+https://www.jstor.org/stable/4616810.
+Yi, G. & Lawless, J.(2007) A corrected likelihood method for the proportional hazards model with covariates subject
+to measurement error. J Stat Plan Infer. 137 pp. 1816-1828.
+Yan, Y. & Yi, G.(2015). A corrected proﬁle likelihood method for survival data with covariate measurement error
+under the Cox model. Can J Stat. 43 pp. 454-480.
+Cao, Z. & Wong, M. (2022). Approximate proﬁle likelihood estimation for Cox regression with covariate measurement
+error. Stat Med.. 41, 910-931, https://doi: 10.1002/sim.9324.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+XXX Journal 00 (2024) 00
+21
+Prentice, R. (1982). Covariate measurement errors and parameter estimation in a failure time regression model.
+Biometrika. 69, 331-342.
+Wang, C., Hsu, L., Feng, Z. & Prentice, R. (1997). Regression calibration in failure time regression. Biometrics. 53 pp.
+131-145.
+Wang, L. & Wang, X. (2008). A new method for survival analysis with covariates subject to measurement error. Joural
+Of The Royal Statistics Society:Series B. 70, 519-530.
+He, W., Yi, G. & Xiong, J. Accelerated failure time models with covariates subject to measurement error. Stat Med.
+26, 4817-4832.
+Zhang, J., He, W. & H, L. (2014). A semiparametric approach for accelerated failure time models with covariates
+subject to measurement error. Commun Stat Simul Comput. 43, 329-341.
+Greene, W. & Cai, J. Measurement error in covariates in the marginal hazards model for multivariate failure time data.
+Biometrics. 60, 987-996.
+Tang, Y., Song, X. & Yi, G. (2022) Bayesian analysis under accelerated failure time models with error-prone time-to-
+event outcomes. Lifetime Data Anal. 28 pp. 139-168, https://doi.org/10.1007/s10985-021-09543-3.
+Havasi, A., Cainap, S. (2023). Ovarian Cancer—Insights into Platinum Resistance and Overcoming It.Medicina. 59,
+https://doi.org/10.3390/medicina59030544.
+Kononen, J., Bubendorf, L., Kallioniemi, A. & et al.(1998). Tissue microarrays for high-throughput molecular proﬁl-
+ing of tumor specimens. Nature Medicine. 4 pp. 844.
+BioChain Institute Inc. (2024). The Tissue Microarray: Tissue Analysis from Research to Treatment - Blog-. ,
+Accessed at 2024-2-26. https://www.biochain.com/blog/the-tissue-microarray-tissue-analysis-from-research-to-
+treatment/.
+Eskaros, A., Egloff, S. & Boyd, K. (2017). Larger core size has superior technical and analytical accuracy in bladder
+tissue microarray. Lab Invest. 97 pp. 335-342, https://doi.org/10.1038/labinvest.2016.151.
+Ronald, S. & Guido, S. (2002). Tissue microarrays for miniaturized high-throughput molecular proﬁling of tu-
+mors.Experimental Hematology. 30, 1365-1372, https://doi.org/10.1016/S0301-472X(02)00965-7.
+Carroll, R. & Stefanski, L. (1997).Asymptotic Theory for the Simex Estimator in Measurement Error Models. Statistics
+For Industry And Technology. https://doi.org/10.1007/978-1-4612-2308-5-10.
+Lin, X. & Carroll, R.(2000). Nonparametric function estimation for clustered data when the predictor is measured
+without/with error. Am Stat Assoc. 95 pp. 520-534.
+Efron, B. (1979). Bootstrap Methods:
+Another Look at the Jackknife. The Annals Of Statistics. 7, 1-26,
+http://links.jstor.org/sici?sici=0090-5364
+Carroll, R., Kiichenhoff, H., Lombard, F. & Stefanski, L. (1996). Asymptotics for the SIMEX estimator in nonlinear
+measurement error models. American Statistical Association. 91 pp. 242-250.
+Rudin, W. (1976).Principles of Mathematical Analysis (3rd ed.). McGraw-Hill.
+Ross, S. (2006). Introduction to Probability Models (9th ed.). Academic Press.
+Ferguson, T. (1996). A Course in Large Sample Theory (1st ed.). Chapman, ISBN 9780412043710.
+Arora, N., Talhouk, A., McAlpine, J., Law, M. & Hanley, G. (2018). Long-term mortality among women with ep-
+ithelial ovarian cancer: a population-based study in British Columbia, Canada. BMC Cancer. 18 pp. 1039,
+https://doi.org/10.1186/s12885-018-4970-9.
+Labidi-Galy, S., Papp, E., Hallberg, D., Niknafs, N., Adleff, V., Noe, M., Bhattacharya, R., Novak, M., Jones, S., Phallen
+, J., Hruban, C., Hirsch, M., Lin, D., Schwartz, L., Maire, C., Tille, J., Bowden, M., Ayhan, Wood, L., Scharpf,
+R., Kurman, T., Shih, I., Karchi, R. & Drapkin, V. (2017). High grade serous ovarian carcinomas originate in the
+fallopian tube. Nat Commun. 8, https://doi: 10.1038/s41467-017-00962-1.
+Curiel, T., Coukos, G., Zou, L., Alvarez, X., Cheng , P., Mottram, P., Evdemon-Hogan, M., Conejo-Garcia, J., Zhang,
+L., Burow, Zhu, Y., Wei, S., Kryczek, I., Daniel, B., Gordon, A., Myers, L., Lackner, A., Disis, M., Knutson, K.,
+Chen, L. & Zou, W. Speciﬁc recruitment of regulatory T cells in ovarian carcinoma fosters immune privilege and
+predicts reduced survival. Nat Med.. 10 (2004), https://doi: 10.1038/nm1093
+Curiel, T. (2008). Regulatory T cells and treatment of cancer. Current Opinion In Immunology. 20, 241-246,
+https://www.sciencedirect.com/science/article/pii/S0952791508000502.
+Elkoshi, Z. (2022). On the Prognostic Power of TumorInﬁltrating Lymphocytes – A Critical Commentary. Front. Im-
+munol. 13, https:doi: 10.3389/ﬁmmu.2022.892543.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics
+22
+Yang A. et al. and 2024-10-25: POI-SIMEX
+Preston, C., Maurer, M., Oberg, A., Visscher, D., Kalli, K., Hartmann, L., Goode, E. & Knutson, K. (2013). The ratios
+of CD8+ T cells to CD4+CD25+ FOXP3+ and FOXP3- T cells correlate with poor clinical outcome in human
+serous ovarian cancer. PLoS One. 8, https://10.1371/journal.pone.0080063.
+Liston, A. & Aloulou, M.(2022). A fresh look at a neglected regulatory lineage: CD8+Foxp3+ Regulatory T cells.
+Immunology Letters. 247, https://doi.org/10.1016/j.imlet.2022.05.004.
+Warfvinge, C., Lundgren, S., Elebro, J., Margareta Heby, M., Krzyzanowska, A., Bjartell, A., Nodin, B., Jakob Eber-
+hard, J., Leandersson, K. & Jirstrom, K. (2017). The prognostic impact of CD3, CD8, FoxP3, and IL17 tumor-
+inﬁltrating immune cells in periampullary cancer differs by morphological type and adjuvant chemotherapy.
+Clinical Oncology. 35, https://doi.org/10.1200/JCO.2017.35.7-suppl.53.
+Leffers, N., Gooden, M., Jong, R., Hoogeboom , B., Hoor, K., Hollema, H. & et al. (2009). Prognostic Signiﬁcance of
+Tumor-Inﬁltrating T-Lymphocytes in Primary and Metastatic Lesions of Advanced Stage Ovarian Cancer. Cancer
+Immunol Immun. 58, https://doi: 10.1007/s00262-008-0583-5.
+Milne, K., K¨obel, M., Kalloger, S., Barnes , R., Gao, D., Gilks, C., Watson, P. & Nelson, B.(2009). Systematic Anal-
+ysis of Immune Inﬁltrates in High-Grade Serous Ovarian Cancer Reveals CD20, FoxP3 and TIA-1 as Positive
+Prognostic Factors. PLoS ONE. 4, https://doi.org/10.1371/journal.pone.0006412.
+Ostrand-Rosenberg, S.(2010). Myeloid-derived suppressor cells: more mechanisms for inhibiting antitumor immunity.
+Cancer Immunology, Immunotherapy. 59, 1593-1600, https://doi.org/10.1007/s00262-010-0855-8.
+Gabrilovich, D. & Nagaraj, S. 2009. Myeloid-derived suppressor cells as regulators of the immune system. Nature
+Reviews Immunology. 9, 162-174, https://doi.org/10.1038/nri2506
+Liu, C., Yu, S., Kappes, J., Wang, J., Grizzle, W., Zinn, K. & Zhang, H. 2015. Expansion of Myeloid-Derived Suppressor
+Cells (MDSCs) in Cancer Is Driven by MTDH-Dependent IL-6 Secretion. Cellular And Molecular Immunology.
+12, 609-622, https://doi.org/10.1038/cmi.2014.84.
+© 2024 University of Victoria
+www.uvic.ca/science/math-statistics

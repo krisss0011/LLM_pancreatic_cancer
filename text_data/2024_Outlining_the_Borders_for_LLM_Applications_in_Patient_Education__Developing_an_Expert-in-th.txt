@@ -1,0 +1,1573 @@
+Outlining the Borders for LLM Applications in Patient Education: Developing an
+Expert-in-the-Loop LLM-Powered Chatbot for Prostate Cancer Patient
+Education
+YUEXING HAO, Cornell University & Mayo Clinic & Massachusetts Institute of Technology, USA
+JASON HOLMES, Mayo Clinic Arizona, USA
+MARK WADDLE, Mayo Clinic Rochester, USA
+NATHAN YU, Mayo Clinic Arizona, USA
+KIRSTIN VICKERS, Mayo Clinic Rochester, USA
+HEATHER PRESTON, Mayo Clinic Rochester, USA
+DREW MARGOLIN, Cornell University, USA
+CORINNA E. LÖCKENHOFF, Cornell University, USA
+ADITYA VASHISTHA, Cornell University, USA
+MARZYEH GHASSEMI, Massachusetts Institute of Technology, USA
+SALEH KALANTARI, Cornell University, USA
+WEI LIU, Mayo Clinic Arizona, USA
+Cancer patients often struggle to transition swiftly to treatment due to limited institutional resources, lack of sophisticated professional
+guidance, and low health literacy. The emergence of Large Language Models (LLMs) offers new opportunities for such patients to
+access the wealth of existing patient education materials. The current paper presents the development process for an LLM-based
+chatbot focused on prostate cancer education, including needs assessment, co-design, and usability studies. The resulting application,
+MedEduChat, integrates with patients’ electronic health record data and features a closed-domain, semi-structured, patient-centered
+approach to address real-world needs. This paper contributes to the growing field of patient-LLM interaction by demonstrating
+the potential of LLM-based chatbots to enhance prostate cancer patient education and by offering co-design guidelines for future
+LLM-based healthcare downstream applications.
+CCS Concepts: • Human-centered computing →Empirical studies in interaction design; Accessibility systems and tools; • Social
+and professional topics →Seniors; • Applied computing →Consumer health.
+Additional Key Words and Phrases: Patient Education; Large Language Model; Prostate Cancer; Accessibility.
+ACM Reference Format:
+Yuexing Hao, Jason Holmes, Mark Waddle, Nathan Yu, Kirstin Vickers, Heather Preston, Drew Margolin, Corinna E. Löckenhoff,
+Aditya Vashistha, Marzyeh Ghassemi, Saleh Kalantari, and Wei Liu. 2025. Outlining the Borders for LLM Applications in Patient
+Education: Developing an Expert-in-the-Loop LLM-Powered Chatbot for Prostate Cancer Patient Education. In . ACM, New York, NY,
+USA, 31 pages. https://doi.org/XXXXXXX.XXXXXXX
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not
+made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for components
+of this work owned by others than ACM must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to
+redistribute to lists, requires prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+© 2025 Association for Computing Machinery.
+Manuscript submitted to ACM
+1
+arXiv:2409.19100v1  [cs.HC]  27 Sep 2024
+Conference, Sep, 2024
+Anonymous
+1
+INTRODUCTION
+Cancer patients are vulnerable and face high uncertainty, and they are in need of information and social support to
+help them maintain agency and make informed decisions about their treatment [8, 22, 62]. In addition to learning
+about the specific details of potential biomedical treatments, they may also need assistance with psychological and
+social concerns [72]. However, current cancer treatment regimens often lack a comprehensive and timely educational
+component, leaving patients without the support they urgently need during these challenging and stressful times [7, 29].
+Because of the need to understand and the burdens of dealing with cancer, patients would like to consult with clinical
+professionals regarding these issues [86, 93]. However, in current medical systems, clinical professionals have limited
+time and capacity to engage in this kind of dialogue [32], and understanding the evolving personal and cognitive needs
+of patients is often the first thing that is cut when healthcare resources are strained [83].
+Large language models (LLMs) offer the capability of acting as chatbot companions for cancer patients by providing
+both medical information and emotional support [25, 90]. Leveraging LLMs’ capabilities for information summarization,
+explanation, and real-time interactions in natural language processing tasks, a chatbot built on strong LLM features that
+are tailored to a particular cancer domain can offer unique personalized interactions that respond to patient inquiries
+[27, 75]. Unlike conventional chatbots, LLM-based chatbots have the potential for more nuanced and individualized
+engagement [70], providing real-time interactions and clinical education enhancement for patient users. By providing
+timely and useful information, these chatbots can help patients understand what to expect physically and emotionally
+after a diagnosis or at the start of treatment [104]. Among various LLMs, Chat Generative Pre-Trained Transformer
+4 (ChatGPT-4) stands out for its lower error rates [41, 42, 58, 87, 97], making it the current preferred choice for such
+data processing and interactions. Structured peer support can bridge gaps in patients’ needs and alleviate negative
+emotions [44]. As patients navigate different stages of their cancer journey, an interactive chatbot can empower them
+with essential information and educational support [73, 80]. Additionally, internet health information resources play a
+supportive, stimulating, and interactive role in the patient’s treatment journey [20, 34, 77].
+In this paper, we evaluated three research questions regarding the usefulness of educational LLMs for patients: (RQ1)
+What are the current challenges in prostate cancer patient education? (RQ2) How can we enact a successful
+co-design and co-development process with patients, AI practitioners, and medical experts for an LLM-based
+educational tool? (RQ3) Can the resulting LLM-based chatbot enhance prostate cancer patients’ educational
+experience? To answer RQ1 we conducted a needs-assessment survey with prostate cancer patients currently using
+electronic learning (e-learning) modules. The e-learning module is a web-based patient education intervention that is
+mediated electronically via the Internet asynchronously [81]. For RQ2, we engaged in a co-design study with clinicians,
+AI researchers, and patient advocates to develop guidelines for the LLM-based chatbot, MedEduChat. To address RQ3,
+we assessed MedEduChat’s effectiveness through a usability study with seven patients and gathered feedback from
+three clinicians on the chatbot’s responses.
+To conduct the study in the clinical setting, we partnered with a clinic’s radiation oncology department in the western
+United States to develop and evaluate the patient-centered chatbot1. This department provides services including
+radiation therapy (both proton and photon therapy), imaging, and consultations. Partnership with the clinic eliminates
+barriers to gaining comprehensive insights into real-world prostate cancer cases. Rather than simply presenting a
+new LLM-based chatbot product, our goal is to offer a nuanced, practical, and reflective perspective on defining and
+developing LLM-based applications in healthcare. This process, which we refer to as outlining the borders, seeks to
+1The clinic’s name will remain anonymous until publication.
+2
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+illuminate the structural conditions that influence researchers’ and practitioners’ approaches to achieving meaningful
+and sustainable impact within healthcare systems. The full study was approved by the Ethical Review Board of the
+clinic where the study took place.
+This research made three main contributions to the field of patient-LLM interaction. First, it made strides in identifying
+the current challenges and scenarios that patients face during prostate cancer education. Second, we encompassed a
+collaborative process between researchers, clinical professionals, artificial intelligence (AI) researchers, and prostate
+cancer patient advocates to co-design MedEduChat, a patient-centered, closed-domain, semi-structured cancer education
+chatbot. We recruited clinical professionals who offered guidance on providing accurate information, AI researchers
+contributed insights on feasibility and technical capabilities, and patient advocates shared perspectives on which
+information is most important for patients and the best ways to deliver and understand it. Third, we evaluated the
+resulting chatbot’s effectiveness in patient education through feedback from real-world prostate cancer patients and
+clinical professionals. This study, therefore, presented a comprehensive design paradigm for LLM-based healthcare
+technologies in the high-stakes setting of cancer patient education and addressed the personalized educational needs of
+different patient users in an empirical fashion. Future research will focus on assessing and validating the chatbot’s
+performance and large-scale interaction experiences with broader patient populations.
+2
+RELATED WORK
+2.1
+Prostate Cancer Patients’ Educational Demands
+Prostate cancer is the most common cancer and the second leading cause of cancer death among men in the United
+States [84]. The survival rate for five years or more after a prostate cancer diagnosis is 97.5% [46]. Approximately 1 in 8
+men will be diagnosed with prostate cancer at some point in their lives. Despite limited research on prostate cancer
+patient education, patients are actively seeking various methods to meet their educational needs.
+Patients’ health information-seeking behavior from online sources about their diseases has significantly increased
+[40, 47, 56]. Cancer patients and survivors have many information needs that are not covered by the written documents
+they typically receive, as McRoy et al. suggest that current materials address at most 33% of their questions [63]. DeWalt
+et al.’s systematic review highlights that low literacy is linked to various negative health outcomes [26]. By 2020, 54% of
+Americans had reading proficiency below the sixth-grade level [67], which can adversely impact patients’ health-related
+behaviors [52].
+Online platforms like social media and forums have potential to serve as sustainable, lay-language tools for enhancing
+patient education and potentially improving health outcomes [22, 92]. These platforms are particularly valuable for
+addressing the sensitive nature of cancer, as online cancer communities allow patients to discuss potentially embarrassing
+or taboo topics while maintaining privacy [30, 96]. Additionally, online cancer offers a welcoming space for patients
+without clinical backgrounds to share their experiences in simple language, facilitating narrative medicine [47]. Narrative-
+based medicine emphasizes a patient-centered perspective in diagnosis and encourages self-reflection on the treatment
+journey, offering valuable support to both clinicians and patients navigating through the uncertain time [66, 85, 99].
+Multiple online resources currently exist to help with patient education, such as virtual support group communities
+(which may include social media and online forums) and websites recommended by search engines. Although they
+generally lack visual and aural cues and other features of face-to-face interactions, such sites can make it easier
+for patients to connect with their target populations and overcome communication challenges [96]. There is also
+considerable support for the potential of virtual environments to provide patients with a sense of empowerment, control,
+3
+Conference, Sep, 2024
+Anonymous
+and knowledge [19]. For example, a study on online prostate cancer communities indicated that sharing information
+helped the patients to feel more positive about their diagnosis and treatment side effects and that patients also gained a
+sense of friendship with others who shared similar experiences [74].
+However, these online resources are also sometimes associated with drawbacks, such as inaccurate information,
+skepticism toward medical providers, and clinical inefficacy due to the need to counter those effects. Patients may
+develop a dependence on online resources that leads them to distance. They may be exposed to unpleasant or aggressive
+experiences typical of social engagement in cyberspace [14]. Clinical professionals have a great deal of concern about
+maintaining the integrity of medical information and about the erosion of trust in expertise that has been driven at least
+in part by the growth of online information-seeking [19]. Relying on information from questionable online sources
+is sometimes associated with refusing or discontinuing effective treatments or making unadvised modifications to
+treatments, which can negatively affect a patient’s prognosis [89].
+2.2
+AI-Based Chatbots for Patient Education
+Perceiving the need for an efficient means of patient education, multiple research studies have focused on developing
+AI or LLM-based medical chatbots, particularly in the contest of distance and online learning [9, 50, 54, 79]. Chatbots
+offer an interactive approach that can engage patients in a flexible, open-ended manner, enabling researchers to observe
+intuitive behaviors and thought processes [12]. There is hope that such chatbots, if firmly grounded in high-quality
+information sources, could serve as valuable resources for patients, while alleviating the burden on expert clinicians
+[6, 98]. Prior to the ChatGPT era, the IBM Watson Assistant platform was capable of interacting with patients to
+share therapy information and provide additional details upon request [24]. Additionally, PROSCA in Germany had
+success in automating repetitive tasks of patient education, allowing physicians to focus on the more personalized and
+empathetic aspects of care [36]. Multiple other virtual assistants and interactive communication technologies have
+gained popularity for providing health information [71].
+Various types of machine learning (ML) models have been used to extract cancer-related information from text,
+examples include Latent Dirichlet Allocation and Bidirectional long-short-term memory models [13, 65]. Established
+LLMs, such as Flan-PaLM, have tended to be strongest in the medical context, achieving top-tier accuracy across multiple-
+choice datasets such as MultiMedQA and MedQA [82, 101]. Several new LLMs have shown improved performance on
+modifying cancer-related terminologies and clinical terms, including RadOnc-GPT [60, 61], Radiology-LLaMa2[59],
+ClinicalRadioBERT[76], CancerBert [102], SMARThealth GPT [3], BiomedGPT[100], or CancerGPT [57]. Studies have
+found these LLMs to be successful at explaining and summarizing cancer-related knowledge [2].
+Although AI or LLM shows its strong promise in the medical domain, there are some concerns about output coherence
+and accuracy, as well as "AI hesitancy" among patients (that is, resistance against or suspicion of these tools) [68]. Wei
+and colleagues compared patients’ use of standard Google search vs. ChatGPT for cancer-related questions, and found
+out that ChatGPT had poorer reliability and accuracy [95]. ChatGPT’s answers also demonstrate high accuracy in
+dispelling common cancer myths [49]. However, Ayers and colleagues found that the patients regarded an AI-based
+chatbot as being a better communicator than physicians’ responses to queries, and suggested that clinical professionals
+could improve their communication skills by reviewing and modifying AI-written drafts [10].
+Despite the usefulness of these systems, it is important to remember that auto-generated summaries may introduce
+misinterpretations, fabrications, attribution errors, and incomprehensiveness [4, 69, 87]. A cautionary note emerges
+from a study that found as many as one-third of treatments recommended by GPT-3, did not have full concordance with
+the National Comprehensive Cancer Network guidelines [23]. The effectiveness of current LLMs is also influenced by
+4
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+users’ prompts, meaning that the output generated by skilled researchers who are familiar with LLMs may not be the
+same as that received by a patient [1]. Even when LLMs are trained specifically on medical data and health information,
+accurate responses cannot be guaranteed [38, 43, 55, 103].
+3
+STUDY 1: NEEDS ASSESSMENT STUDY
+3.1
+Needs Assessment Study on Patient Education
+The existing e-learning module was created by the clinic’s care team; they are accessible via a web page, tailored
+for an audience of eighth-grade level and above and recommended for patients after diagnosis but before beginning
+treatment. The information presented includes videos, data visualizations, and other engaging content, all developed and
+fact-checked by board-certified clinical professionals. Access is restricted, requiring a passcode or clinician supervision.
+The education module takes about 20 minutes to complete and is divided into six categories: 1) "A message from your
+care team"; 2) "How serious is prostate cancer?" 3) "What are your treatment options?" 4) "What about side effects?" 5)
+"How do you decide on treatment?" 6) "A final word from your care team." The e-learning module is designed for all
+types of prostate cancer patients, and the information provide is static and the same for all viewers.
+To evaluate the clinic’s current patient education experience, we administered an optional, anonymous, seven-item
+feedback survey to 204 prostate cancer patients who had completed the clinic’s e-learning modules. The survey was
+collected from September 2023 until June 2024. Due to the clinic’s protocol, every question was optional, resulting in a
+slightly varying number of responses for each question. The survey questions focused on users’ experience with the
+e-learning modules. The survey questions are presented in full in Appendix A.1.
+Regarding the total time that the respondents had spent researching prostate cancer diagnosis and treatment options:
+54% of respondents reported spending three or more hours, 32% reported spending between one and three hours,
+13% reported spending less than one hour, and 1% reported spending no time at all. In regard to the many times they
+accessed the e-learning content, 75% of respondents reported accessing it only once, 24% had accessed it between two
+and four times, and 1% had accessed it five or more times.
+3.2
+Survey Result
+From the survey result, we conducted a quantitative analysis to interpret and evaluate the prostate cancer e-learning
+module. The average age for all the users who answered any part of the survey was 70.02 years old (SD 6.53, n = 204).
+The respondents generally gave a high evaluation of the existing e-learning module. A strong majority (90.2%) agreed
+that the e-learning module better prepared them for discussing their prostate cancer diagnosis with the healthcare team,
+with 19.8% feeling neutral and no respondents disagreeing. In terms of understanding their prostate cancer diagnosis,
+71% found the information helpful helpful, 26% felt neutral, and 3% disagreed. Large majorities of respondents also
+agreed that the module’s length and level of detail were about right, and they would recommend the e-learning module
+to other patients. (The full quantitative outcomes are shown in Figure 1.) It is important to be aware that these numbers
+could be somewhat skewed toward positive responses, since patients who did not like the e-learning modules may have
+been less likely to complete them and then answer the survey questions.
+Three of the survey questions allowed for short answer feedback. In regard to their favorite parts of the learning
+experience, 65 participants responded, and the most commonly mentioned themes were, "comparison between treatment
+options," "explanations of what to expect," "during treatment, treatment option details," and "simple vocabulary/ease of
+understanding." When asked about their least favorite part, three main feedback themes from 58 respondents were
+5
+Conference, Sep, 2024
+Anonymous
+Agree
+Neutral
+Disagree
+ Helped me better
+understand my
+prostate cancer
+diagnosis.
+(n=101)
+Helped me feel more
+prepared to discuss my
+prostate cancer diagnosis
+with my healthcare team
+(n=100)
+is about the
+right length
+(n=103)
+Rate (%)
+25
+50
+75
+100
+0
+The amount of detail
+was about right
+(n=101)
+Recommend to
+other patients like
+me
+(n=101)
+This Prostate Cancer
+E-Learning Module ...
+80.2%
+19.8%
+0.0%
+71.0%
+26.0%
+3.0%
+89.3%
+7.8%
+2.9%
+14.9%
+9.9%
+75.3%
+93.1%
+5.0%
+2.0%
+Fig. 1. Needs assessment survey quantitative results.
+"didn’t mention different machines for radiation delivery," "looking for possible additional options," and "maybe more depth
+of details would have been helpful."
+In the open-ended "Other Comments" section, 32 participants responded with diverse feedback on the e-learning
+module. Positive feedback included the e-learning module saves time in searching: "After millions of web pages, this
+e-learning module centered me. I wish I would have been to see this before my appointments." "Definitely informing. Made
+me feel more confident about types of treatments." Comments included: "Would it be nice to have a conversation so I
+could get certain questions answered instead of simply deal with a material that’s statically presented?" and "I have SBRT
+[stereotactic body radiation therapy] questions that are unanswered." Several participants also raised questions about the
+dating of statistics used in the material, noting that it appeared to have not been updated in many years.
+Overall, respondents were happy with the e-learning modules. They found the modules were good for reliable
+and trustworthy information, an overview of the upcoming treatment process, layman’s terms, and patient-friendly
+treatment explanations. However, there were several areas where the e-learning modules were not sufficient. The survey
+feedback indicated that while patients appreciated having a dedicated online resource direct from their provider, they
+were unhappy with the static one-module-fits-all approach, which left some of their specific questions unanswered.
+Some respondents felt significantly slighted that they were not getting this information directly from their physicians,
+but most understood it as a useful way to gain basic information so that they could then have more focused in-person
+conversations. From a design standpoint, the needs assessment survey highlighted three key areas of interest: the need
+for greater personalization and customization, the need for more detailed information-delivery options, and the need to
+account for diverse learning methods.
+4
+STUDY 2: CO-DESIGN STUDY
+To address the limitations of e-learning module, we next (RQ2) co-designed a patient-centered LLM-based chatbot.
+Based on the collective mode of patient-healthcare expert-AI interaction [51, 105], our diverse team consisted of design
+researchers, clinical professionals, and specialists in human-computer interaction, patient education, clinical settings,
+psychology, and AI. Following the needs assessment survey to understand prostate cancer patients’ education demand,
+6
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+we then recruited three board-certified clinical professionals, three AI practitioners specializing in cancer or the general
+healthcare domain, and three experienced cancer patient advocates from the local community to co-design the chatbot.
+All participants (except the patient advocates) have received the highest degree in their own field (Ph.D. or M.D.). They
+have rich experience working or observing in the healthcare field and possess knowledge of each other’s areas of
+expertise. The study participants’ details are displayed in Table 1.
+AI
+Practitioners
+Affiliation
+Use AI For...
+Experience
+Clinical
+Professionals
+Clinical Domain
+Experience
+A1
+Hospital
+Radiation
+Oncology
+10-30 yrs
+C1
+Oncology/
+Hematology
+39 yrs
+A2
+Academia
+Clinical Notes
+5-10 yrs
+C2
+Oncology
+21 yrs
+A3
+Hospital
+System
+Management
+10-30 yrs
+C3
+Urology
+4 yrs
+Patient Advocate
+Cancer Domain
+Active years since diagnosis
+PA1
+Prostate & Breast Cancer
+13 yrs
+PA2
+Prostate Cancer
+4 yrs
+PA3
+Prostate Cancer
+2 yrs
+Table 1. Co-Design study participants.
+To better understand these experts’ outlook on patient education needs, we conducted semi-structured one-on-one
+interviews, each lasting around 60 minutes. During the first half of each interview, we sought to (1) understand the
+participants’ daily practices regarding patient education, (2) learn about current solutions and resources for patient
+education, and (3) identify existing challenges and gaps in AI integration in healthcare settings. In the second half of the
+interview, we proposed the LLM-based chatbot as a potential solution and gathered the participants’ feedback on this
+approach and on chatbot design. For the clinical professionals, we focused on the tasks they would like the chatbot to
+address and their concerns about its capabilities. We discussed the technical capabilities of the LLM with AI researchers.
+For patient advocates, we emphasized their insights on how to conduct effective interactions with patients and useful
+approaches to patient education. All of the interviews were conducted through Zoom and were audio-recorded and
+transcribed for further analysis. Each of the participant was rewarded with $50 after the interview in compensation
+for their time and contributions. The first author conducted the thematic analysis [18, 91], with ongoing discussions
+among the research team to refine the emerging themes and coding framework.
+4.1
+Experts’ Design Recommendations
+All of the 9 participants in the co-design process (3 clinical professionals, 3 AI researchers, and 3 patient advocates),
+expressed interests in a patient-centered educational chatbot and believed that it could be useful for enhancing health
+outcomes. There are ten main themes emerged from these qualitative interviews, which are “need for patient education,”
+"chatbot design," “patients’ trust,” “communication,” “chatbot’s efficacy,” “AI integrations,” “AI evaluations,” “patient
+education resources,” “expert involvements,” and “diversity.” One of the most common advantages mentioned by these
+experts was that such an application could alleviate the time pressure on clinical professionals by explaining basic
+concepts and preparing patients to ask more targeted questions during in-person consultations. (Of course, given
+the self-selection bias of study participation, this process omitted experts who might be completely skeptical of such
+7
+Conference, Sep, 2024
+Anonymous
+approaches.) Several specific themes regarding design considerations for the chatbot are discussed in the following
+sections.
+4.1.1
+Reliability of LLM-Generated Information. The expert participants largely ignored concerns about the reliabil-
+ity/accuracy of LLM-generated information and instead focused on patients’ tendency to turn to even-more-questionable
+information sources. These participants did not perceive an increase in human-based patient education within the
+medical system as a feasible goal. According to our interviews, patients have limited options for asking questions, and
+they frequently turn to Internet searches since clinicians do not have sufficient time allotted to address their needs.
+Although clinicians do their best to respond to patient queries, doing so in an effective fashion is not realistic within
+current institutional structures; thus patients often endure long waiting times for consultation appointments or online
+responses, from their physicians and when they do receive such response they are likely to be rushed and unsatisfactory.
+As one advocate noted, "Sometimes the patient needs a chance to ask questions on an ongoing basis. Questions keep popping
+up" (PA1, Advocate). Frustrated with the inability of the existing medical system to meet their needs, patients typically
+turn to online public searches, where they may encounter a vast amount of conflicting and unverified information,
+leading to misunderstandings and confusion. Even when such public online resources are well-intentioned and grounded
+in evidence-based medical practice, they may not be personalized to the patient’s specific health conditions or individual
+situation, resulting in perspectives that conflict with sound clinical advice. The ideal health education chatbot, according
+to these experts, would be one that can answer patents’ questions accurately and in a way that is tailored to their overall
+medical status.
+4.1.2
+Chatbot Tone. The contributing experts were also concerned with the prevalence of negative or discouraging
+perspectives in online spaces. They indicated that effective chatbots should maintain an optimistic and encouraging
+tone, avoiding pessimistic opinions and assumptions. The chatbot should recognize inquiries with a pessimistic outlook
+and respond supportively, and if it detects concerning phenomena such as suicidal thoughts, then it should refer the
+user to appropriate in-person clinical support. Given the significant mental health challenges associated with cancer,
+chatbots need to be sensitive to these issues. Fortunately, good information sources can help to alleviate mental stress.
+As one of the expert patient advocates stated: "Each treatment is filled with uncertainty. As a patient, without proper
+education, I feel like I’m shooting in the dark. Educating cancer patients with easily understandable evidence can improve
+mental health and alleviate stress" (PA3, Advocate).
+4.1.3
+Chatbot’s Capability and Liability. Clinician participants pointed out that medical experts are liable for responsible
+and ethical professional practice, and expressed concerns that a chatbot might not be held to the standards. For example,
+one clinical professional noted that "Clinicians usually take responsibility, but can LLM take it? Probably not. We cannot
+blindly trust LLM" (C1, Oncologist). This same participant went on to say that, "We do not accept some online resources or
+evidence because their references are often not provided, and they lack the precision needed to translate absolute risks and
+risk reductions. We highly value clinical practice guidelines, which typically involve a thorough review of the literature" (C1).
+Another clinician emphasized that "Cancer patients want to be very focused and set clear boundaries on the information
+they receive because every aspect of their lives has been completely transformed" (C2, Oncologist). The concern in these
+outlooks is that chatbots may be developed with a profit-seeking motive that is not grounded in care and professional
+ethical responsibility. However, the respondents were also aware that current institutional practices made it difficult for
+clinicians to enact such ethical ideals. They perceived that chatbots could potentially offer hope for better solutions,
+while also remaining skeptical about their implementation. This highlights the importance of clearly defining the limits
+8
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+and scope of chatbot use for patient education, and the vital issue of addressing the technology’s shortcomings in
+delivering precise and trustworthy information.
+4.1.4
+Design Guidelines for LLM-Based Chatbot in Cancer. After analyzing the qualitative co-design study results, we
+summarized seven co-design features for developing the MedEduChat, as summarized in Table 2.
+Co-Design Features
+Explanation
+Quotes
+Closed Domain
+Reduce misinformation or bias in the
+chatbot’s output, it should provide
+information only after fact-checking
+from trustworthy organizations [94]
+[Advocate, PA1] "A lot of what I did in the commu-
+nity was to direct them to good sites. Drawing the
+borderline and extracting the correct information is
+very important [for cancer education]."
+Semi-Structured
+Provide guidance and instructions in
+a clear and understandable format
+[Oncology, C2] "Patient participation in these edu-
+cational resources is very spotty, and their ability to
+comprehend the information is also often lacking...
+There should be some guidance to help direct patients."
+Patient-Centered
+Offer personalized, individualized in-
+formation tailored to the health liter-
+acy level of each patient user [22, 45],
+rather than a one-size-fits-all approach
+[Oncology/Hematology, C1] "Getting patients to go
+to these authoritative [prostate cancer] websites and
+to receive education there is challenging. A very big
+reason is that it’s not individualized."
+No Harm
+Avoid any harmful responses from the
+chatbot
+[Oncology, C2] "LLM-generated responses must not
+contain harmful information. The chatbot should
+avoid causing harm even if it isn’t always helpful."
+Data Privacy
+Since MedEduChat connects with pa-
+tients’ health data, it needs to strictly
+comply with HIPAA guidelines for
+data protection 1
+[AI Practitioner, A1] "Handling clinical patient data
+requires extreme sensitivity and caution."
+Education Model
+Provide an effective learning experi-
+ence based on well-tested educational
+practices
+[Advocate, PA1] "... beginning with a theoretical or
+instructional model can lead to more effective educa-
+tional outcomes."
+Diverse & Iterative
+Feedback
+Routinely collect user feedback from
+diverse patients and incorporate it to
+enhance the chatbot’s functionality
+[Oncology, C2] "It’s crucial to study and test tools
+within diverse populations. Effective solutions in-
+volve designing tools and understanding how they
+can be implemented and adopted in practice."
+[AI Practitioner, A3] "LLM can continuously improve
+by learning from patient users’ evaluations."
+1 HIPAA: Health Insurance Portability and Accountability Act
+Table 2. Recommended features from co-design study participants for LLM-Based chatbots in cancer patient education
+It is critical that the materials provided by the chatbot adhere to up-to-date information and professional guidelines
+[5, 78], and that they are grounded in a user’s current medical information via integration with their clinic’s internal
+database. This is regard as a "closed domain" since the chatbot does not draw from random external information
+sources (2a: Closed Domain). Accordingly, we designed MedEduChat to connect with our partnered clinic’s patient
+EHR databases and library, incorporating information such as family and medical history, lab results, diagnosis details,
+treatment details, and clinical notes. From the EHR system, we also retrieved patient self-reported educationdetails,
+such as the clinical learner assessments in Appendix A.2.1 and/or co-learner assessments in Appendix A.2.2, and
+in-basket messages. This closed-domain, comprehensive, and personalized medical information enables patients to
+9
+Conference, Sep, 2024
+Anonymous
+begin exploring and educating themselves about their own prostate cancer. Since patients may struggle to interpret
+health data, provided in standard medical formats, MedEduChat was designed to analyze existing health profiles and
+generate relevant patient-centered learning materials. This approach allows patients to focus on disease-specific and
+treatment-related information relevant to their individual conditions.
+Defining MedEduChat’s borders helps prevent the dissemination of misguided medical advice, misinformation,
+or harmful inaccuracies. It ensures that MedEduChat provides sufficient information support without replacing the
+importance of clinician-patient consultations. Public search engines are not effective educational tools for the prostate
+cancer domain. While search engines can collect data from diverse sources, they often yield misinformation, lack
+rigorous evidence or references, and bias. Therefore, for cancer consultation and education, it’s important to carefully
+select the materials for the closed-domain chatbot.
+Clinicians are concerned about the lack of guidance in LLM-based chatbots compared to the existing e-learning
+modules. To make sure patient users receive sufficient education, MedEduChat follows the education model and asks
+patient users to experience the full education cycles (Figure 2b: Semi-Structured). Unlike static e-learning modules that
+lack flexibility and personalization, MedEduChat also offers a semi-structured approach: it partially guides patients to
+ask the right questions and responds to their requested level of detail.
+Additionally, the chatbot was designed to improve during the educational session, as more patient-specific context
+is gained, making it more aligned with specific users’ needs, such as literacy level, response length and tone, and
+educational interests (Figure 2c: Patient-Centered).
+Hi! Welcome to MedEduChat. We are
+happy to address any questions that you
+have. It will take 20-30 mins to chat and
+learn!
+We identified your ID 1234567. You were
+diagnosed with prostate cancer that had
+spread to your L1 bone on June 28,
+2021. Your treatment plan was designed
+to cure the disease. You underwent a
+type of radiation therapy started from
+September 1, 2021, and ended on
+September 7, 2021. It consisted of 5
+sessions, during which you received a
+total radiation dose of 20 Gray (Gy).
+Closed Domain
+More specific?
+What are the risk factors
+associated with developing
+prostate cancer other than family
+history? I know my family history
+because my dad and brother also
+diagnosed with prostate cancer
+before.
+I understand you may have several
+questions. Please choose from the
+preset prompts below or feel free to
+ask your own questions if you
+already know what you need to ask:
+.......
+Semi-Structured
+What is prostate cancer?
+What are the prostate cancer
+symptoms?
+What are the risk factors associated
+with developing prostate cancer?
+The materials are so hard to understand. I
+would like easier version please... Thanks.
+.......
+Patient-Centered
+Adjust MedEduChat:
+Change literacy to
+Divide the long context into different
+steps
+Specify the source of evidence,
+include external websites or materials 
+Grade
+5
+7
+College 
+Professional
+.......
+a. 
+b. 
+c. 
+Fig. 2. Features incorporated in the LLM-based chatbot design.
+4.2
+MedEduChat Development Details
+The educational model that we adopted is known as "5E," including the steps of Engage, Explore, Explain, Elaborate,
+and Evaluate [21, 28, 88]. To apply this model to the chatbot prostate cancer education context, we synthesized the
+five steps into three main stages: health outcome explanation, learning enhancement, and engagement. The
+health outcome explanation component offers lay-language information to help users understand their diagnosis and
+treatment options. Users can further explore the details of treatments through the learning enhancement options,
+depending on their level of interest and literacy. Ultimately, the goal is to help them engage in their treatment in a
+knowledgeable and intentional fashion promoting agency and understanding (Figure 3).
+10
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+Our research team designed the chatbot, using the code-free conversational AI platform Generative Studio X (GSX)
+from OneReach.ai2. OneReach.ai is a conversational AI platform designed to create and deploy interactive conversational
+experiences. GSX allows users to create and deploy conversational LLM experiences, as well as deliver surveys, share
+information, and collect data from users. This platform can be integrated and powered by GPT-4 or Turbo models to
+develop an LLM-based chatbot. We then integrated MedEduChat with OpenAI’s GPT-4o through the clinic’s Azure-
+hosted endpoint, which is HIPAA compliant. This setup allows for the sharing of the patient’s aforementioned health
+information with GPT-4o without the concern of patient privacy and patient data security.
+MedEduChat used a retrieval augmented generation (RAG) technique to retrieve information from the clinic’s
+backend database. The clinical data were recorded and stored using the clinic-wide Electrical Medical Record (EMR)
+system, Epic (Epic Systems, Verona, WI)3, and the radiation oncology-specific oncology information system, Aria ver.
+16 (Varian Medical System, Palo Alto, CA). MedEduChat followed specific instructions defined in its system prompt
+on how to retrieve data for a patient, given the patient ID. Four data retrieval functions were defined for this work:
+get_patient_details(), get_patient_treatment_details(), get_patient_diagnosis_details(), get_patient_clinical_notes(), and
+get_patient_treatment_details(). When MedEduChat initiated the call to process these functions, based on the context
+of the conversation with the patient, a data server uses SQL to query the specific information that was requested by the
+patient. The returned data was then added to the conversation history so that MedEduChat can use it as context.
+4.3
+Sample MedEduChat Scenarios
+MedEduChat incorporated details of a particular user’s case, including the cancer type, stage, lab results, treatment
+history, symptoms, medication history, family medical background, and demographic data. If the patient already received
+treatment, then MedEduChat also incorporated relevant treatment details. After compiling an overview of the patient’s
+health conditions, MedEduChat offered pre-set prompts to guide the patient toward asking questions that are most
+relevant to their interests. (These semi-structured pre-set prompts are listed in full in Appendix A.3).
+Using these prompts and the patient’s clinical profile, MedEduChat was able to incorporate the retrieved patient data
+as part of the educational session. The chatbot then generated answers using partnered clinic’s fine-tuned LLM tailored
+to the patient’s requests. Upon reviewing the answers, patients can choose to explore more in-depth details or modify
+their prompts if desired. The goal of these step-by-step interactions was to help patients gain a clearer understanding of
+their cancer diagnosis, treatment options, treatment history (if any), and potential side effects (Figure 3, Stage I).
+During the "Learning Enhancement" stage, patients can learn about their treatment experience or weigh trade-offs in
+treatment burdens and statistical health outcomes (Figure 3, Stage II). For example, if a shorter distance to the treatment
+location is a priority for the patient, then they can assess this factor in relation to treatment efficacy. This iterative
+assessment process enhanced the learning experience and improved patients’ comprehension of clinical decisions.
+The final "Engagement" stage encouraged patient users to continue taking the initiative in their treatment process
+and provides an opportunity to evaluate MedEduChat’s performance, including any suggestions to help developers
+fine-tune the chatbot (Figure 3, Stage III). Users also had the option to save or print their conversation history for future
+reference, and they can receive LLM-generated summaries that highlight key learning points and outcomes.
+We anticipate that patients may return to the chatbot for more information and ask questions as their treatment
+journey continues. They can continue interacting with MedEduChat after their follow-up visits or at any time during
+3https://www.epic.com/
+3https://onereach.ai/
+11
+Conference, Sep, 2024
+Anonymous
+Step 2. Explore: 
+Present ordinary-languages summaries
+based on the patient’s medical records
+Step 1. Engage: 
+Prompt users to ask questions and
+participate in an interactive dialogue about
+their medical condition
+Stage I.
+Health Outcome 
+Explanation
+Step 4. Elaborate: 
+Elaborate on topics of interest to the user,
+in a personalized fashion
+Step 5. Evaluate: 
+Encourage the user to participate actively
+in their treatment and to provide feedback
+to fine-tune the chatbot for future use
+Stage II.
+Learning 
+Enhancement
+Stage III.
+Patient
+Engagement
+Step 3. Explain: 
+Provide explanations of prostate cancer
+and available treatment options
+Fig. 3. Stages and steps of the LLM-based chatbot design.
+their treatments. A demo video and a sample chat history in the supplementary material show a full typical scenario of
+how a prostate cancer patient user may interact with MedEduChat.
+5
+STUDY 3: USABILITY EVALUATION
+5.1
+Methodology
+To evaluate the usability, feasibility, and acceptance of MedEduChat, we conducted a study involving seven prostate
+cancer patients (mean age 74.57 yrs; SD 7.55) (Table 3). The inclusion criteria were that participants had a formal
+diagnosis of prostate cancer (any stage), that their cancer was non-metastatic, that they had a basic level of computer
+literacy, and that they were willing to engage with an experimental educational chatbot. Participants were asked to sign
+a consent form before the study, which explained that they would be asked to share their chat history and survey results.
+The sessions were conducted individually for each participant and took approximately 45-60 minutes to complete.
+Participants who completed their session received a $30 compensation for their time and contributions. Figure 4 shows
+an overview of the usability study design.
+The participants were first asked to fill out a pre-intervention survey, which took approximately 6 to 10 minutes.
+They were then asked to engage in interactions with MedEduChat for approximately 20 to 30 minutes. Finally, they
+were asked to complete a post-intervention survey and provide feedback about the chatbot, which took around 15 to 20
+minutes. Since MedEduChat is still a developing prototype and may generate errors, users accessed it through screens
+shared by the researchers, allowing us to monitor the interactions and intervene if necessary. However, the patients
+were allowed to interact freely with MedEduChat without external instructions, and interruptions occurred only if a
+usability problem, misinformation, or bug was encountered.
+The pre-intervention survey included demographic information, a 4-item health confidence score scale (HCS) [16, 17]
+and a 5-item patient health engagement scale (PHE) [37]. The post-intervention survey repeated the HCS scale and
+also presented the 4-item Usability Metric for User Experience (UMUX) [31], and 5 questions regarding participants’
+interaction experience with MedEduChat. These 5 questions were adapted from the e-learning Needs Assessment
+12
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+Assessments
+ 
+A1, A2, A3
+Patient Participants
+(Prostate Cancer)
+Intervention:
+MedEduChat
+Enrollment
+Pre- Survey
+A1. Education Experience
+A2. Patient Engagement
+A3. Chatbot Evaluations
+Complete
+20-30 mins
+Interactions
+Post- Survey
+Fig. 4. Usability study design.
+Survey (questions 2, 3, 4, 5, and 7) by replacing references to "online learning course" with "MedEduChat" (for details, see
+Appendix A.1). All these items were adapted to the prostate cancer setting. We substituted some general survey items,
+such as "my health" or "my illness," with "my prostate cancer," and phrases like "This system is easy to use" were changed
+to "MedEduChat is easy to use." The pre- and post-intervention survey items were displayed in the supplementary
+materials.
+The survey results and chat histories produced during this study were used to address RQ3: Can MedEduChat
+enhance patients’ educational experience? We analyzed the data across three dimensions: patient education
+experience, patient engagement, and chatbot efficacy. Three clinicians were recruited to assist in quantitatively reviewing
+the chat histories from a patient-education perspective and to evaluate them for instances of factual inaccuracy
+MedEduChat’s protocols for instances of factual inaccuracies (Table 4). The commentary provided by these experts was
+audio-recorded, transcribed, and summarized, and each clinician received $70 in compensation for their assistance.
+Patient
+Participant ID
+Age
+Education
+Level
+Race/Ethnicity
+Prostate Cancer Stage
+P1
+84
+Ph.D.
+White
+IIB stage
+P2
+80
+M.S.
+White
+III stage
+P3
+67
+M.S.
+White
+II stage
+P4
+68
+Ph.D.
+White
+III stage
+P5
+71
+M.S.
+Asian
+III stage
+P6
+76
+Ph.D.
+White
+II stage
+P7
+68
+D.D.S.
+White
+IV stage
+Table 3. Demographic profiles of patient participants in the MedEduChat’s usability study.
+5.2
+Descriptive Survey Results
+Prior to participating in this study, five out of the seven patient participants had spent more than three hours learning
+about their prostate cancer diagnosis and treatment options. One participant spent less than one hour, and another
+13
+Conference, Sep, 2024
+Anonymous
+Clinical
+Professionals
+Clinical Domain
+Experience
+C4
+Medical Physics
+18 yrs
+C5
+Radiation Oncology
+4 yrs
+C6
+Prostate Cancer Education (i.e. anxiety disorder, depression)
+12 yrs
+Table 4. Demographic profiles of clinical professionals who were asked to analyze the MedEduChat interaction data during the
+usability study
+spent between one and three hours. The 5-item PHE score was 8.71 out of 15 (SD = 2.50), showing a moderate level of
+patient engagement across the participant sample prior to the use of MedEduChat.
+We compared the HCS score, indicating patient confidence, from before to after the use of MedEduChat. The mean
+pre-interaction HCS was 9.57 (SD 1.38), while the mean post-interaction HCS score increased to 10.71 (SD 1.40). While
+the participant sample was too small to establish statistical significance, this increase in a scoring range from 0 to 12
+indicated a notable improvement in patients’ health confidence.
+We also administered the same 5-item clinic survey shown in Figure 1. In regard to the interaction-experience
+questions, all 7 patient participants gave MedEduChat a 100% on every item, except for "the amount of detail in
+MedEduChat was about right," where one participant (P2) expressed a neutral response.
+The average score for the UMUX was 92.86 out of 100 (SD 6.23), indicating a high degree of perceived usability.
+The most variable responses were in regard to the UMUX survey item "Using MedEduChat is a frustrating experience."
+In the follow-up short answers, some patients commentedon design elements, for example ny mentioning that the
+presentation"Need more visuals" (P3). The most common concerns however, were about the impact of the information
+and its mental health implications. Some participants felt that using the MedEduChat left them feeling isolated and
+lacking support for handling the weighty information that they received. One comment indicated, for example: "Some
+suggestions are pretty radical, like preventive surgery. Although greater awareness never hurts, I can end up becoming an
+emotional wreck by getting that information" (P6). Another participant noted that "Some words sound scary, especially
+when ’death’ is mentioned in the sentences" (P7).
+5.3
+MedEduChat Impacts on Patient Education
+5.3.1
+Education Scope and Borders. We observed that some users did not adhere to the intended scope and structure of
+MedEduChat for prostate cancer education. Since MedEduChat is semi-structured and allows for open-ended questions,
+some patients skipped the prescribed steps and stages, posing inquiries like, "What is my survival rate" (P7)? "What are
+the risk factors of polycythemia" (P6)? "Should I stop drinking whole milk? I heard dairy products affect prostate cancer" (P3).
+These types of questions, especially those lacking rigorous research confirmation or stemming from unresolved and
+inconclusive studies, were challenging to address and fell beyond MedEduChat’s capabilities. Given that MedEduChat
+provided information only after thorough fact-checking, it responded with, "As an AI model, I am trained on all of the
+established facts in medical science about prostate cancer. I am not able to answer your question on ... It’s best to discuss
+with your healthcare provider, who can give you personalized advice based on your specific situation." If robust information
+is available for an unexpected inquiry, MedEduChat will provide those reliable resources, such as the clinic’s internal
+materials, PubMed literature, and information from external cancer society websites (i.e., National Cancer Institute,
+American Cancer Society), but then it also prompted the user to return to the original structured educational goals.
+14
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+This process appeared to be effective in our usability study; patients who initially sought to ask questions outside of the
+intended scope soon returned to the original intended educational content and subsequently more closely followed the
+structured model. This left users with unanswered questions, but they seemed to largely accept the limitations of the
+chatbot and of scientific knowledge in a positive manner. For example, after receiving feedback from MedEduChat
+suggesting the need to consult a healthcare provider for further information, one participant commented: "MedEduChat
+is like a gatekeeper for my questions, which helps ease the anxiety of waiting for answers. It’s even good to know that it is
+unresolved yet" (P6).
+5.3.2
+Iterative Learning Process. Although the usability study provided patient participants with only a single 20-30
+minute interaction session with the chatbot, some participants commented on the value of engaging with the learning
+process in an ongoing or iterative fashion: "I would encourage someone to use the chatbot several times rather than
+just once... [Patient users] might get different, more thorough, or more focused answers each time" (C4). The memory
+function of MedEduChat, which saves previous chat history, supported this process and allowed for more personalized
+interactions over time. Users may also learn over time to improve the phrasing of their queries to elicit more relevant
+and comprehensive responses. As one patient participant explained, "The nature of AI, in my experience, isn’t a one-stop
+shot. It’s beneficial to go through it once, and then maybe a second time, to get more comprehensive responses. The answers
+might not necessarily be better, but they could be different and provide a better description" (P1). Through this iterative
+learning process, MedEduChat became more personalized and better adapted to the specific educational needs of diverse
+individual patients. The clinicians who helped to review the chatbot output also emphasized the need for iterative
+information delivery and pointed out the repetition with variation can be valuable in the learning process while also
+improving trust in the reliability of the answers received.
+5.3.3
+Unlearning and relearning processes. Three of the patient participants (P3, P6, P7) described a process that can be
+summarized as "unlearning," in which their misconceptions and false assumptions about prostate cancer and treatments
+were challenged by the information MedEduChat provided. For example, one participant stated: "My question is about
+the medication Zanubrutinib, which is used for non-lymphoma cancers and is reported to destroy lymphoma cells. Can
+it also be effective in destroying prostate cancer?" and he commented, "I know I cannot get a ’yes’ or ’no’ answer from
+this esoteric question. This drug (Zanubrutinib) is very rarely used [in prostate cancer]. But it explains not only what the
+drug was but also how it differed from what caused prostate cancer" (P3). This interaction showed how the chatbot can
+assist patients in "unlearning" questionable assumptions and relearning" more accurate perspectives relevant to their
+treatment. While the unlearning" process helps adjust patients’ expectations to become more realistic, it can also offer a
+sense of emotional relief, agency, and competency by connecting patients to reliable and relevant information.
+5.4
+Clinical Efficacy and Accuracy
+The clinicians who participated in reviewing the chatbot histories reaffirmed our findings in co-design study regarding
+the difficulties of patient education, even without being asked. One clinician, for example, noted that delivering patient
+education during consultations was "repetitive and time-consuming" (C4), and indicated that such activities were not an
+optimal use of their time. Simultaneously however, the clinicians also recognized that patients need to be informed about
+their coniditions, maintaining agency and engagement during the diagnosis and treatment process, and feel confident
+about making decisions in consultation with their medical providers. As one clinician stated, "The level of data and level
+of depth determines patient health outcomes. Patient education helps patients become familiar with concepts and engage
+in complex discussions" (C6). The clinicians agreed that robust patient-education technology could enhance clinical
+15
+Conference, Sep, 2024
+Anonymous
+efficacy by empowering patients to better prepare for face-to-face consultations, so they could focus on decision-making,
+treatment details, and other specific health concerns.
+The clinicians further suggested that collaborations among patients, technological resources, and clinical experts
+may lead to better outcomes and experiences compared to either patient autonomous self-learning (which may create
+more confusing and misinformation than actual learning) or traditional patient-clinician consultations (as they may
+lack sufficient time or communication abilities to effectively assist in patients’ learning). They were optimistic that
+technologies such as MedEduChat could act as a bridge connecting patients and clinicians outside of regular hours and
+allow clinicians to set borders within which patients can freely explore: "If we deploy MedEduChat, I can forsee that we
+don’t need to answer 100% of all patient inquiries but 30% questions that MedEduChat couldn’t answer or doesn’t answer well"
+(C6). While individual clinical professional or patient situations are influenced by various factors, MedEduChat can serve
+as a responsive companion, offering empathy, personalized feedback, and timely responses. Although MedEduChat’s
+understanding of language and medical domain knowledge remained uncertain, and there were many tasks that cannot
+rely solely on LLM, MedEduChat’s closed domain data pool can still "offer valuable after-hours patient education support"
+(C5). Patient education, without providing clinical advice or decisions, represented an ideal area for patient-LLM-clinician
+collaboration.
+We also evaluated the reading level of information presented by MedEduChat using the Flesch Reading Ease (FRE)
+score and the Flesch–Kincaid Grade Level score (FKGL) [33, 48, 53]. In regard to reading level, MedEduChat’s responses
+had an average FRE score of 49.90 (SD 8.41) and a mean FKGL score of 8.9 (SD 1.71), both of which indicate a reading
+level of 10th to 12th grade. On average, MedEduChat generated 283 sentences (SD 91.21) per response, with a mean
+total word count of 2,622.71 (SD 827.14) during the user sessions. The average number of words per sentence was 9.97
+(SD 3.60).
+5.5
+Information Delivery
+At the same time, the clinicians had concerns about MedEduChat’s ability to provide accurate medical information, and
+pointed out that there were many tasks that cannot rely solely on LLMs. One issue that emerged is that MedEduChat
+relied on extracting information from medical record systems that were often chaotically organized, unstructured,
+and/or incompleted. The information added to these systems by harried clinicians is often poorly structured and may
+require clinical expertise to interpret; in some cases it may even be inaccurate or misleading. Each clinician had their own
+way of presenting patient health results, especially in clinical notes and in-basket message communications. Pathology
+reports, imaging annotations, and lab results often needed extra interpretation as well. Because of this variation, our
+data retrieval methods might not work equally well for all patients. Even with accurate original data, LLMs can still
+make false claims, affecting the accuracy of the information delivered. "Closed domain data doesn’t guarantee it’s 100%
+correct. There are some manual errors, confusing abbreviations, or missing data in EHR profiles" (C5). If the EHR contained
+mistakes, the accuracy of LLM-generated responses were also at risk. Given the complexity of clinical content-created
+by different professionals at different times, summarizing it accurately for non-expert patients can be a real challenge.
+6
+DISCUSSION
+6.1
+Integration of LLMs in Prostate Cancer Education
+6.1.1
+Suitability of LLMs for Cancer Domain Design Context. Given the sensitivity and complexity of the prostate
+cancer domain, implementing downstream designs with LLMs was inherently challenging and requires heightened
+16
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+monitoring. Our co-design and usability studies for MedEduChat revealed the prevalence of concerns about information
+accuracy, as well as a great deal of hope that such technologies may eventually serve to relieve burdens on clinicians by
+providing clear, layman-language answers to patients’ questions. Although MedEduChat was restricted from offering
+medical treatment advice or making treatment decisions, it was designed to deliver relevant medical information and
+explanations.
+However, LLMs still face challenges in processing multimedia materials, which are crucial in prostate cancer care.
+While LLMs can interpret text and statistics effectively, their performance with images, audio, and videos is less
+reliable. Despite MedEduChat’s integration with comprehensive patient health profiles, important information from
+patient-clinical team interactions—such as in-person consultations and telehealth sessions—often remains untranslatable
+into text suitable for LLM fine-tuning. Establishing clear borders for what LLMs can and cannot do is essential for their
+effective adaptation to the prostate cancer domain.
+6.1.2
+Concerns on LLMs’ Technical Ability. The LLMs may present misinformation because cancer experiences and
+treatments vary widely from case to case. While online misinformation can be quickly updated and spread, fact-checking
+information often takes longer to become available. Therefore, deploying MedEduChat in a clinical setting requires
+careful consideration. Additionally, some users may express negative views about their treatments or medications, which
+can affect the responses generated by MedEduChat, especially if they deviate from the semi-structured instructions.
+The variability in patient inquiries and even minor differences in prompts can result in diverse outputs. The lack
+of standardization in patient inquiries challenges the LLM’s ability to generate accurate responses from existing data.
+Misinterpretation of these inquiries can result in misinformation and increase patient anxiety. To mitigate these issues,
+the backend design should incorporate features for prompt autocorrection and response tone adjustment to reduce any
+passive tone in conversations.
+6.1.3
+Establish clear expectations for what LLMs can and cannot do within the medical domain. Where can non-expert
+prostate cancer patients be involved in the LLM-based chatbot? Instead of designing a perfect MedEduChat, we focus on
+defining the chatbot’s borders and developing guidelines to help future researchers and practitioners develop LLM-based
+downstream tasks in the patient education domain.
+Ideally, we can seek to find a sweet spot of patient-LLM clinician collaboration in which the strengths of the
+technology are combined with the strengths of human expertise and oversight. Doing so will require an ongoing
+dialogue between technology developers and medical practitioners. With our needs assessment, co-design, and usability
+studies, we can draw a borderline that optimizes the patient-LLM-clinician collaboration performance and improve the
+outcome of prostate cancer patient education.
+6.2
+How AI/LLMs Complement Human Patient Educators?
+One of the most common concerns among our participants was that AI/LLM chatbots might come to be seen as a
+substitute for information provided by human clinical professionals. While the clinical process is logical and rigorous, it
+is not simply algorithmic, and often it is based on wide-varying information about the patient that is hard to distill
+into a digital format. Even if AI makes accurate information summaries (which it will not always do), there are some
+nuances that clinicians may capture in regard to patients’ conditions or communication needs that AI does not have the
+capacity to notice. Thus, AI cannot hold authority and replace the importance of human clinicians. It is important to
+understand the role and scope of the tool—and to treat it skeptically as a touchstone and starting point rather than
+as a an authoritative expert. The twin risks are that patients may not be aware of these concerns and thus accept the
+17
+Conference, Sep, 2024
+Anonymous
+chatbot’s pronouncements too naively, or that patients may feel slighted and frustrated by being diverted to a chatbot
+and thus refuse to use it altogether, losing faith in the medical system in the process.
+The best way to understand AI’s role in clinical practice is that it can potentially help reduce the burden of repetitive
+explanatory tasks and thus freeing human clinicians to focus on higher-level questions and concerns. One of our
+participants noted that: “Radiology would come first with the AI integration since it’s more diagnostic. So AI could
+assist in accurate observing and aids in recognition to identify things” (C3). While AI views each clinical case as a data
+point, expert cancer clinicians see it as a complex canvas of puzzles. AI excels at tasks within fixed-scope contexts,
+efficiently responding to well-defined queries in a predictable fashion based on its information sources. In contrast,
+expert clinicians offer a comprehensive perspective, providing flexible evaluations and making decisions based on a
+nuanced understanding of each patient’s case and a broader grasp of relevant scientific knowledge. By teaming up,
+AI and clinical professionals can combine their strengths, with AI handling precise, data-driven tasks and clinicians
+providing nuanced observation and guidance from the overview standpoint.
+6.3
+Human-Computer Interaction Research for LLM Integration in Healthcare
+Without access to real-world clinical data, human-computer interaction (HCI) research on AI in healthcare is often based
+on researchers’ assumptions, studies with small sample sizes, specific participant roles, and subjective self-reported
+information rather than standardized reports. This can introduce biases due to the busy and sensitive nature of healthcare
+settings. While there are many innovative HCI designs for healthcare systems or tools, there is still a significant gap
+between hypothetical patient cases and real-world clinical applications.
+To effectively integrate LLM-based technologies into healthcare, future HCI researchers need to address several
+key questions before designing or evaluating these systems: What are the borders of AI/LLM-based applications in
+healthcare? Who are the primary and secondary users in these settings? How can HCI research better guide LLM
+integration by considering human factors, beyond just efficiency and accuracy? What are the biases or errors that can
+be mitigated in healthcare information delivery [35, 64]?
+Defining HCI’s role in LLM integration is crucial as we tackle this emerging problem in the interdisciplinary field of
+Health and AI. We need to understand the future steps necessary for successful implementation, ensuring that LLM
+applications are user-centered and incorporate inputs from all stakeholders.
+6.4
+Limitation and Future Work
+Our usability study involved a very small sample of prostate cancer patients and clinicians, which may be unrepre-
+sentative of the broader prostate cancer patient community. It is particularly notable that the overwhelming majority
+of the patient participants are identified as White and that all of the participants were highly educated, which limits
+the usability study’s diverse feedback. Due to the nature of our recruitment and the participating clinic, we did not
+have the opportunity to include more diverse patients, but future research should seek to better address this issue, as
+demographic characteristics may be highly salient to chatbot use. In particular, non-English speaking patients, those
+with lower education levels, and those of different ethnic and geographic backgrounds should be studied in regard to
+the usability of health education technologies.
+Because patients experience numerous barriers to learning (e.g., stress, anxiety, fatigue, pain, low health literacy,
+medical jargon, complexity of information, and time pressure, among others), it is important for patient education to be
+as accessible as possible and minimize the burden of learning [15, 39]. Beyond the general qualitative feedback, the
+current study did not evaluate cognitive stress metrics or other potential difficulties that might be associated with chatbot
+18
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+usel these should be carefully examined in future research. Developers may be able to draw from specific established
+techniques to minimize cognitive demands and barriers to learning when creating patient education technologies [11].
+Our study was specifically focused on the use of an LLM-based educational chatbot by non-metastatic prostate
+cancer patients, and the results may not be generalizable to other types of illness. Some of the topics and concerns that
+emerged during our research and some of the co-design outcomes may potentially be useful for broader healthcare
+technology development, but caution should be used in overgeneralizing the results. Future researchers should consider
+the unique characteristics of different illnesses before extending our approach to other medical contexts.
+7
+CONCLUSION
+In this paper, we presented the development and usability evaluation of MedEduchat, an LLM-based chatbot for prostate
+cancer patient education. The chatbot is able to securely link with users’ electronic health records and provide responses
+to their medical questions via semi-structured interactions and personalized explanations. We envision MedEduChat as
+an initial effort to curate personalized educational content and harness the technical capabilities of LLMs to improve
+patient educational experiences. Our work contributes to the field of patient-LLM interaction by emphasizing co-design
+features and in-depth collaborations between patients, medical experts, and technology experts. This approach and the
+insights gathered can contribute to the development of future LLM-based applications in healthcare and help improve
+the patient experience. With MedEduChat, prostate cancer patients of varying educational needs can engage with
+personalized education more easily and accessibly, making the learning process more enjoyable.
+19
+Conference, Sep, 2024
+Anonymous
+REFERENCES
+[1] David Adam. 2024. Medical AI could be ‘dangerous’ for poorer nations, WHO warns. Nature (Jan. 2024). https://doi.org/10.1038/d41586-024-00161-1
+Bandiera_abtest: a Cg_type: News Publisher: Nature Publishing Group Subject_term: Health care, Public health, Ethics, Technology.
+[2] Sangzin Ahn. 2023. The impending impacts of large language models on medical education. Korean Journal of Medical Education 35, 1 (March
+2023), 103–107. https://doi.org/10.3946/kjme.2023.253
+[3] Yasmina Al Ghadban, Huiqi (Yvonne) Lu, Uday Adavi, Ankita Sharma, Sridevi Gara, Neelanjana Das, Bhaskar Kumar, Renu John,
+Praveen Devarsetty, and Jane E. Hirst. 2023.
+Transforming Healthcare Education: Harnessing Large Language Models for Frontline
+Health Worker Capacity Building using Retrieval-Augmented Generation.
+medRxiv (2023).
+https://doi.org/10.1101/2023.12.15.23300009
+arXiv:https://www.medrxiv.org/content/early/2023/12/17/2023.12.15.23300009.full.pdf
+[4] Maria Antoniak, Aakanksha Naik, Carla S. Alvarado, Lucy Lu Wang, and Irene Y. Chen. 2023. Designing Guiding Principles for NLP for Healthcare:
+A Case Study of Maternal Health. https://doi.org/10.48550/arXiv.2312.11803 arXiv:2312.11803 [cs].
+[5] American Medical Association. 2023. Principles for Augmented Intelligence Development, Deployment, and Use. https://www.ama-assn.org/
+system/files/ama-ai-principles.pdf
+[6] Lekha Athota, Vinod Kumar Shukla, Nitin Pandey, and Ajay Rana. 2020. Chatbot for healthcare system using artificial intelligence. In 2020 8th
+International conference on reliability, infocom technologies and optimization (trends and future directions)(ICRITO). IEEE, 619–622.
+[7] Siv Tove Aunan, Gry Ciekals Wallgren, and Britt Saetre Hansen. 2021. The value of information and support; Experiences among patients with
+prostate cancer. Journal of Clinical Nursing 30, 11-12 (2021), 1653–1664.
+[8] Elizabeth J. Austin, Jenney R. Lee, Brandelyn Bergstedt, Anita Isler Mitchell, Sara H. Javid, Cynthia W. Ko, and John L. Gore. 2021. “Help me figure
+this out”: Qualitative explorations of patient experiences with cancer pathology reports. Patient Education and Counseling 104, 1 (Jan. 2021), 40–44.
+https://doi.org/10.1016/j.pec.2020.07.020
+[9] Oyebola Olusola Ayeni, Nancy Mohd Al Hamad, Onyebuchi Nneamaka Chisom, Blessing Osawaru, and Ololade Elizabeth Adewusi. 2024. AI in
+education: A review of personalized learning and educational technology. GSC Advanced Research and Reviews 18, 2 (2024), 261–271.
+[10] John W. Ayers, Adam Poliak, Mark Dredze, Eric C. Leas, Zechariah Zhu, Jessica B. Kelley, Dennis J. Faix, Aaron M. Goodman, Christopher A.
+Longhurst, Michael Hogarth, and Davey M. Smith. 2023. Comparing Physician and Artificial Intelligence Chatbot Responses to Patient Questions
+Posted to a Public Social Media Forum. JAMA Internal Medicine 183, 6 (June 2023), 589–596. https://doi.org/10.1001/jamainternmed.2023.1838
+[11] Paul Ayres, Joy Yeonjoo Lee, Fred Paas, and Jeroen JG Van Merrienboer. 2021. The validity of physiological measures to identify differences in
+intrinsic cognitive load. Frontiers in psychology 12 (2021), 702538.
+[12] Leif Azzopardi, Mateusz Dubiel, Martin Halvey, and Jeffery Dalton. 2018. Conceptualizing agent-human interactions during the conversational
+search process. In The second international workshop on conversational approaches to information retrieval.
+[13] Athira Balakrishnan, Sumam Mary Idicula, and Josette Jones. 2021. Deep learning based analysis of sentiment dynamics in online cancer community
+forums: An experience. Health Informatics Journal 27, 2 (2021), 14604582211007537. https://doi.org/10.1177/14604582211007537
+[14] Azy Barak, Meyran Boniel-Nissim, and John Suler. 2008. Fostering empowerment in online support groups. Computers in Human Behavior 24, 5
+(Sept. 2008), 1867–1883. https://doi.org/10.1016/j.chb.2008.02.004
+[15] Linda Beagley. 2011. Educating patients: understanding barriers, learning styles, and teaching techniques. Journal of PeriAnesthesia Nursing 26, 5
+(2011), 331–337.
+[16] T Benson, HW Potts, and C Bowman. 2016. Development and validation of a short health confidence score. Value in Health 19, 3 (2016), A94.
+[17] Tim Benson, Henry WW Potts, Pippa Bark, and Clive Bowman. 2019. Development and initial testing of a Health Confidence Score (HCS). BMJ
+open quality 8, 2 (2019), e000411.
+[18] Virginia Braun and Victoria Clarke. 2012. Thematic analysis. American Psychological Association.
+[19] Alex Broom. 2005. The eMale: Prostate cancer, masculinity and online support as a challenge to medical expertise. Journal of Sociology 41, 1 (March
+2005), 87–104. https://doi.org/10.1177/1440783305050965 Publisher: SAGE Publications Ltd.
+[20] Lauren Georgia Bussey and Elizabeth Sillence. 2019. The role of internet resources in health decision-making: a qualitative study. DIGITAL
+HEALTH 5 (Jan. 2019), 2055207619888073. https://doi.org/10.1177/2055207619888073 Publisher: SAGE Publications Ltd.
+[21] Rodger W Bybee, Joseph A Taylor, April Gardner, Pamela Van Scotter, J Carlson Powell, Anne Westbrook, and Nancy Landes. 2006. The BSCS 5E
+instructional model: Origins and effectiveness. Colorado Springs, Co: BSCS 5, 88-98 (2006).
+[22] Jane Harper Chelf, Patricia Agre, Alan Axelrod, Lydia Cheney, Diane D Cole, Kathryn Conrad, Sally Hooper, Irene Liu, Annette Mercurio, Karen
+Stepan, et al. 2001. Cancer-related patient education: an overview of the last decade of evaluation and research.. In Oncology nursing forum, Vol. 28.
+[23] Shan Chen, Benjamin H. Kann, Michael B. Foote, Hugo J. W. L. Aerts, Guergana K. Savova, Raymond H. Mak, and Danielle S. Bitterman. 2023. Use
+of Artificial Intelligence Chatbots for Cancer Treatment Information. JAMA Oncology (Aug. 2023). https://doi.org/10.1001/jamaoncol.2023.2954
+[24] James CL Chow, Valerie Wong, Leslie Sanders, and Kay Li. 2023. Developing an AI-assisted educational chatbot for radiotherapy using the IBM
+Watson assistant platform. In Healthcare, Vol. 11. MDPI, 2417.
+[25] Harry Collin, Kandice Keogh, Marnique Basto, Stacy Loeb, and Matthew J Roberts. 2024. ChatGPT can help guide and empower patients after
+prostate cancer diagnosis. Prostate Cancer and Prostatic Diseases (2024), 1–3.
+[26] Darren A. DeWalt, Nancy D. Berkman, Stacey Sheridan, Kathleen N. Lohr, and Michael P. Pignone. 2004. Literacy and health outcomes. Journal of
+General Internal Medicine 19, 12 (Dec. 2004), 1228–1239. https://doi.org/10.1111/j.1525-1497.2004.40153.x
+20
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+[27] Alexander J Didier, Gabriel Moss, and Jeffrey M Sutton. 2024. Applications of Artificial Intelligence for Cancer Patient Education. , 2 pages.
+[28] Arthur Eisenkraft. 2003. Expanding the 5E model. The Science Teacher 70, 6 (Sept. 2003), 56. https://www.proquest.com/scholarly-journals/
+expanding-5e-model/docview/214619031/se-2 ISBN: 00368555.
+[29] Angela Fagerlin, David Rovner, Sue Stableford, Christophir Jentoft, John T Wei, and Margaret Holmes-Rovner. 2004. Patient education materials
+about the treatment of early-stage prostate cancer: a critical review. Annals of internal medicine 140, 9 (2004), 721–728.
+[30] Giulia Ferraris, Dario Monzani, Veronica Coppini, Lorenzo Conti, Silvia Francesca Maria Pizzoli, Roberto Grasso, and Gabriella Pravettoni. 2023.
+Barriers to and facilitators of online health information-seeking behaviours among cancer patients: a systematic review. Digital Health 9 (2023),
+20552076231210663.
+[31] Kraig Finstad. 2010. The usability metric for user experience. Interacting with computers 22, 5 (2010), 323–327.
+[32] Kevin Fiscella and Ronald M Epstein. 2008. SO MUCH TO DO, SO LITTLE TIME: CARE FOR THE SOCIALLY DISADVANTAGED AND THE
+15-MINUTE VISIT. Archives of internal medicine 168, 17 (Sept. 2008), 1843–1852. https://doi.org/10.1001/archinte.168.17.1843
+[33] Rudolph Flesch. 1948. A new readability yardstick. Journal of applied psychology 32, 3 (1948), 221.
+[34] Rachel Flynn, Christine Cassidy, Lauren Dobson, Joyce Al-Rassi, Jodi Langley, Jennifer Swindle, Ian D. Graham, and Shannon D. Scott. 2023.
+Knowledge translation strategies to support the sustainability of evidence-based interventions in healthcare: a scoping review. Implementation
+science: IS 18, 1 (Dec. 2023), 69. https://doi.org/10.1186/s13012-023-01320-0
+[35] Marzyeh Ghassemi. 2023. Presentation matters for AI-generated clinical advice. Nature Human Behaviour 7, 11 (2023), 1833–1835.
+[36] Magdalena Görtz, Kilian Baumgärtner, Tamara Schmid, Marc Muschko, Philipp Woessner, Axel Gerlach, Michael Byczkowski, Holger Sültmann,
+Stefan Duensing, and Markus Hohenfellner. 2023. An artificial intelligence-based chatbot for prostate cancer education: Design and patient
+evaluation study. Digital Health 9 (2023), 20552076231173304.
+[37] Guendalina Graffigna, Serena Barello, Brenda K Wiederhold, A Claudio Bosio, and Giuseppe Riva. 2013. Positive technology as a driver for health
+engagement. Annual Review of Cybertherapy and Telemedicine 2013 (2013), 9–17.
+[38] Paul Hager, Friederike Jungmann, Robbie Holland, Kunal Bhagat, Inga Hubrecht, Manuel Knauer, Jakob Vielhauer, Marcus Makowski, Rickmer
+Braren, Georgios Kaissis, et al. 2024. Evaluation and mitigation of the limitations of large language models in clinical decision-making. Nature
+Medicine (2024), 1–10.
+[39] Elizabeth Harry, Read G Pierce, Patrick Kneeland, Grace Huang, Jason Stein, and John Sweller. 2018. Cognitive load and its implications for health
+care. NEJM Catalyst 4, 2 (2018).
+[40] Bradford W Hesse, Alexandra J Greenberg, Emily B Peterson, and Wen-Ying Sylvia Chou. 2017. The health information national trends survey
+(HINTS): A resource for consumer engagement and health communication research. Information Services & Use 37, 2 (2017), 205–218.
+[41] Jason Holmes, Zhengliang Liu, Lian Zhang, Yuzhen Ding, Terence T. Sio, Lisa A. McGee, Jonathan B. Ashman, Xiang Li, Tianming Liu, Jiajian Shen,
+and Wei Liu. 2023. Evaluating large language models on a highly-specialized topic, radiation oncology physics. Frontiers in Oncology 13 (2023).
+https://doi.org/10.3389/fonc.2023.1219326
+[42] Jason M. Holmes, Lian-Cheng Zhang, Yuzhen Ding, Hongying Feng, Zheng Liu, Tianming Liu, William W. Wong, Sujay A. Vora, Jonathan B.
+Ashman, and Wei Liu. 2023. Benchmarking a foundation LLM on its ability to re-label structure names in accordance with the AAPM TG-263
+report. Practical Radiation Oncology (2023). https://doi.org/10.48550/arXiv.2310.03874 accepted.
+[43] Ashley M Hopkins, Jessica M Logan, Ganessan Kichenadasse, and Michael J Sorich. 2023. Artificial intelligence chatbots will revolutionize how
+cancer patients access information: ChatGPT represents a paradigm-shift. JNCI Cancer Spectrum 7, 2 (Feb. 2023), pkad010. https://doi.org/10.1093/
+jncics/pkad010
+[44] Jieman Hu, Xue Wang, Shaoning Guo, Fangfang Chen, Yuan-yu Wu, Fu-jian Ji, and Xuedong Fang. 2019. Peer support interventions for breast
+cancer patients: a systematic review. Breast Cancer Research and Treatment 174, 2 (April 2019), 325–341. https://doi.org/10.1007/s10549-018-5033-2
+[45] Alyson L Huntley, Anna JL King, Theresa HM Moore, Charlotte Paterson, Raj Persad, Debbie Sharp, and Maggie Evans. 2017. Methodological
+exemplar of integrating quantitative and qualitative evidence–supportive care for men with prostate cancer: what are the most important
+components? Journal of advanced nursing 73, 1 (2017), 5–20.
+[46] National Cancer Institute. 2024. Cancer Stat Facts: Prostate Cancer. https://seer.cancer.gov/statfacts/html/prost.html. Accessed: 2024-08-07.
+[47] Wura Jacobs, Ann O. Amuta, and Kwon Chan Jeon. 2017. Health information seeking in the digital age: An analysis of health information seeking
+behavior among US adults. Cogent Social Sciences 3, 1 (Jan. 2017), 1302785. https://doi.org/10.1080/23311886.2017.1302785 Publisher: Cogent OA
+_eprint: https://doi.org/10.1080/23311886.2017.1302785.
+[48] Pranay Jindal and Joy C MacDermid. 2017. Assessing reading levels of health information: uses and limitations of flesch formula. Education for
+Health 30, 1 (2017), 84–88.
+[49] Skyler B Johnson, Andy J King, Echo L Warner, Sanjay Aneja, Benjamin H Kann, and Carma L Bylund. 2023. Using ChatGPT to evaluate
+cancer myths and misconceptions: artificial intelligence and cancer information. JNCI Cancer Spectrum 7, 2 (April 2023), pkad015.
+https:
+//doi.org/10.1093/jncics/pkad015
+[50] Enkelejda Kasneci, Kathrin Seßler, Stefan Küchemann, Maria Bannert, Daryna Dementieva, Frank Fischer, Urs Gasser, Georg Groh, Stephan
+Günnemann, Eyke Hüllermeier, et al. 2023. ChatGPT for good? On opportunities and challenges of large language models for education. Learning
+and individual differences 103 (2023), 102274.
+[51] Dajung Kim, Niko Vegt, Valentijn Visch, and Marina Bos-De Vos. 2024. How Much Decision Power Should (A) I Have?: Investigating Patients’
+Preferences Towards AI Autonomy in Healthcare Decision Making. In Proceedings of the CHI Conference on Human Factors in Computing Systems.
+21
+Conference, Sep, 2024
+Anonymous
+1–17.
+[52] Keonhee Kim, Sangyoon Shin, Seungyeon Kim, and Euni Lee. 2023. The Relation Between eHealth Literacy and Health-Related Behaviors:
+Systematic Review and Meta-analysis. Journal of Medical Internet Research 25, 1 (Jan. 2023), e40778. https://doi.org/10.2196/40778 Company:
+Journal of Medical Internet Research Distributor: Journal of Medical Internet Research Institution: Journal of Medical Internet Research Label:
+Journal of Medical Internet Research Publisher: JMIR Publications Inc., Toronto, Canada.
+[53] J Peter Kincaid, Robert P Fishburne Jr, Richard L Rogers, and Brad S Chissom. 1975. Derivation of new readability formulas (automated readability
+index, fog count and flesch reading ease formula) for navy enlisted personnel. (1975).
+[54] Ian J. Kuckelman, Paul H. Yi, Molinna Bui, Ifeanyi Onuh, Jade A. Anderson, and Andrew B. Ross. 2024. Assessing AI-Powered Patient Education: A
+Case Study in Radiology. Academic Radiology 31, 1 (Jan. 2024), 338–342. https://doi.org/10.1016/j.acra.2023.08.020
+[55] Prathit A. Kulkarni and Hardeep Singh. 2023. Artificial Intelligence in Clinical Diagnosis: Opportunities, Challenges, and Hype. JAMA 330, 4 (July
+2023), 317–318. https://doi.org/10.1001/jama.2023.11440
+[56] Sylvie D. Lambert and Carmen G. Loiselle. 2007. Health Information—Seeking Behavior. Qualitative Health Research 17, 8 (Oct. 2007), 1006–1019.
+https://doi.org/10.1177/1049732307305199 Publisher: SAGE Publications Inc.
+[57] Tianhao Li, Sandesh Shetty, Advaith Kamath, Ajay Jaiswal, Xiaoqian Jiang, Ying Ding, and Yejin Kim. 2023. CancerGPT: Few-shot Drug Pair
+Synergy Prediction using Large Pre-trained Language Models. ArXiv (April 2023), arXiv:2304.10946v1.
+https://www.ncbi.nlm.nih.gov/pmc/
+articles/PMC10153348/
+[58] Z. Liu, M. He, Z. Jiang, Z. Wu, H. Dai, L. Zhang, S. Luo, T. Han, X. Li, X. Jiang, D. Zhu, X. Cai, B. Ge, W. Liu, J. Liu, D. Shen, and T. Liu.
+2022. Survey on natural language processing in medical image analysis. Zhong Nan Da Xue Xue Bao Yi Xue Ban 47, 8 (2022), 981–993. https:
+//doi.org/10.11817/j.issn.1672-7347.2022.220376
+[59] Zhengliang Liu, Yiwei Li, Peng Shu, Aoxiao Zhong, Longtao Yang, Chao Ju, Zihao Wu, Chong Ma, Jie Luo, Cheng Chen, et al. 2023. Radiology-llama2:
+Best-in-class large language model for radiology. arXiv preprint arXiv:2309.06419 (2023).
+[60] Zhengliang Liu, Peilong Wang, Yiwei Li, Jason Holmes, Peng Shu, Lian Zhang, Chenbin Liu, Ninghao Liu, Dajiang Zhu, Xiang Li, Quanzheng
+Li, Samir H. Patel, Terence T. Sio, Tianming Liu, and Wei Liu. 2023.
+RadOnc-GPT: A Large Language Model for Radiation Oncology.
+arXiv:2309.10160 [physics.med-ph]
+[61] Zhengliang Liu, Aoxiao Zhong, Yiwei Li, Longtao Yang, Chao Ju, Zihao Wu, Chong Ma, Peng Shu, Cheng Chen, Sekeun Kim, Haixing Dai, Lin Zhao,
+Dajiang Zhu, Jun Liu, Wei Liu, Dinggang Shen, Quanzheng Li, Tianming Liu, and Xiang Li. 2024. Tailoring Large Language Models to Radiology: A
+Preliminary Approach to LLM Adaptation for a Highly Specialized Domain. In Machine Learning in Medical Imaging, Xiaohuan Cao, Xuanang Xu,
+Islem Rekik, Zhiming Cui, and Xi Ouyang (Eds.). Springer Nature Switzerland, 464–473.
+[62] Chiara Marzorati, Luca Bailo, Ketti Mazzocco, and Gabriella Pravettoni. 2018. Empowerment from patient’s and caregiver’s perspective in cancer
+care. Health Psychology Open 5, 2 (Dec. 2018), 2055102918815318. https://doi.org/10.1177/2055102918815318
+[63] Susan McRoy, Majid Rastegar-Mojarad, Yanshan Wang, Kathryn J. Ruddy, Tufia C. Haddad, and Hongfang Liu. 2018. Assessing Unmet Information
+Needs of Breast Cancer Survivors: Exploratory Study of Online Health Forums Using Text Classification and Retrieval. JMIR Cancer 4, 1 (May
+2018), e9050. https://doi.org/10.2196/cancer.9050 Company: JMIR Cancer Distributor: JMIR Cancer Institution: JMIR Cancer Label: JMIR Cancer
+Publisher: JMIR Publications Inc., Toronto, Canada.
+[64] Bertalan Meskó and Eric J. Topol. 2023. The imperative for regulatory oversight of large language models (or generative AI) in healthcare. npj
+Digital Medicine 6, 1 (July 2023), 120. https://doi.org/10.1038/s41746-023-00873-0
+[65] Samuel Miles, Lixia Yao, Weilin Meng, Christopher M. Black, and Zina Ben Miled. 2021. Topic Extraction from A Cancer Health Forum. In 2021
+IEEE 9th International Conference on Healthcare Informatics (ICHI). 491–492. https://doi.org/10.1109/ICHI52183.2021.00085 ISSN: 2575-2634.
+[66] M. M. Milota, G. J. M. W. van Thiel, and J. J. M. van Delden. 2019.
+Narrative medicine as a medical education tool: A systematic re-
+view.
+Medical Teacher 41, 7 (July 2019), 802–810.
+https://doi.org/10.1080/0142159X.2019.1584274
+Publisher: Taylor & Francis _eprint:
+https://doi.org/10.1080/0142159X.2019.1584274.
+[67] Fatima N Mirza, Oliver Y Tang, Ian D Connolly, Hael A Abdulrazeq, Rachel K Lim, G Dean Roye, Cedric Priebe, Cheryl Chandler, Tiffany J Libby,
+Michael W Groff, et al. 2024. Using chatgpt to facilitate truly informed medical consent. NEJM AI 1, 2 (2024), AIcs2300145.
+[68] Tom Nadarzynski, Oliver Miles, Aimee Cowie, and Damien Ridge. 2019. Acceptability of artificial intelligence (AI)-led chatbot services in healthcare:
+A mixed-methods study. Digital health 5 (2019), 2055207619871808.
+[69] World Health Organization. 2024. Ethics and governance of artificial intelligence for health: guidance on large multi-modal models. World Health
+Organization. Type: Publications.
+[70] Long Ouyang, Jeff Wu, Xu Jiang, Diogo Almeida, Carroll L. Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex
+Ray, John Schulman, Jacob Hilton, Fraser Kelton, Luke Miller, Maddie Simens, Amanda Askell, Peter Welinder, Paul Christiano, Jan Leike, and Ryan
+Lowe. 2022. Training language models to follow instructions with human feedback. https://doi.org/10.48550/arXiv.2203.02155 arXiv:2203.02155
+[cs].
+[71] Otis L Owens, Michael Leonard, and Aman Singh. 2023. Efficacy of Alexa, Google Assistant, and Siri for Supporting Informed Prostate Cancer
+Screening Decisions for African-American Men. Journal of Cancer Education 38, 5 (2023), 1752–1759.
+[72] Ann EK Page, Nancy E Adler, and others. 2008. Cancer care for the whole patient: Meeting psychosocial health needs. (2008). Publisher: National
+Academies Press.
+22
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+[73] M. T. E. Puts, A. Papoutsis, E. Springall, and A. E. Tourangeau. 2012. A systematic review of unmet needs of newly diagnosed older cancer patients
+undergoing active cancer treatment. Supportive Care in Cancer 20, 7 (July 2012), 1377–1394. https://doi.org/10.1007/s00520-012-1450-7
+[74] Denise Pyle, Amanda Perry, Andrea Lamont-Mills, Gerry Tehan, and Suzanne K. Chambers. 2021. A scoping review of the characteristics and
+benefits of online prostate cancer communities. Psycho-Oncology 30, 5 (May 2021), 659–668. https://doi.org/10.1002/pon.5618
+[75] Pragnya Ramjee, Bhuvan Sachdeva, Satvik Golechha, Shreyas Kulkarni, Geeta Fulari, Kaushik Murali, and Mohit Jain. 2024. CataractBot: An
+LLM-Powered Expert-in-the-Loop Chatbot for Cataract Patients. arXiv:2402.04620 [cs.HC] https://arxiv.org/abs/2402.04620
+[76] Saed Rezayi, Haixing Dai, Zhengliang Liu, Zihao Wu, Akarsh Hebbar, Andrew H Burns, Lin Zhao, Dajiang Zhu, Quanzheng Li, Wei Liu, et al. 2022.
+Clinicalradiobert: Knowledge-infused few shot learning for clinical notes named entity recognition. In International Workshop on Machine Learning
+in Medical Imaging. Springer Nature Switzerland Cham, 269–278.
+[77] Anna Robinson, Andrew K. Husband, Robert D. Slight, and Sarah P. Slight. 2020. Digital Support for Patients Undergoing Bariatric Surgery: Narrative
+Review of the Roles and Challenges of Online Forums. JMIR Perioperative Medicine 3, 2 (July 2020), e17230. https://doi.org/10.2196/17230 Company:
+JMIR Perioperative Medicine Distributor: JMIR Perioperative Medicine Institution: JMIR Perioperative Medicine Label: JMIR Perioperative Medicine
+Publisher: JMIR Publications Inc., Toronto, Canada.
+[78] Edward M Schaeffer, Sandy Srinivas, Nabil Adra, Yi An, Daniel Barocas, Rhonda Bitting, Alan Bryce, Brian Chapin, Heather H Cheng, Anthony Victor
+D’Amico, et al. 2023. Prostate cancer, version 4.2023, NCCN clinical practice guidelines in oncology. Journal of the National Comprehensive Cancer
+Network 21, 10 (2023), 1067–1096.
+[79] Yash B Shah, Anushka Ghosh, Aaron R Hochberg, Eli Rapoport, Costas D Lallas, Mihir S Shah, and Seth D Cohen. 2024. Comparison of ChatGPT
+and traditional patient education materials for men’s health. Urology Practice 11, 1 (2024), 87–94.
+[80] Daswin De Silva, Weranja Ranasinghe, Tharindu Bandaragoda, Achini Adikari, Nishan Mills, Lahiru Iddamalgoda, Damminda Alahakoon, Nathan
+Lawrentschuk, Raj Persad, Evgeny Osipov, Richard Gray, and Damien Bolton. 2018. Machine learning to support social media empowered patients
+in cancer care and cancer treatment decisions. PLOS ONE 13, 10 (Oct. 2018), e0205855. https://doi.org/10.1371/journal.pone.0205855 Publisher:
+Public Library of Science.
+[81] Peter M Sinclair, Ashley Kable, Tracy Levett-Jones, and Debbie Booth. 2016. The effectiveness of Internet-based e-learning on clinician behaviour
+and patient outcomes: a systematic review. International journal of nursing studies 57 (2016), 70–81.
+[82] Karan Singhal, Shekoofeh Azizi, Tao Tu, S. Sara Mahdavi, Jason Wei, Hyung Won Chung, Nathan Scales, Ajay Tanwani, Heather Cole-Lewis,
+Stephen Pfohl, Perry Payne, Martin Seneviratne, Paul Gamble, Chris Kelly, Abubakr Babiker, Nathanael Schärli, Aakanksha Chowdhery, Philip
+Mansfield, Dina Demner-Fushman, Blaise Agüera y Arcas, Dale Webster, Greg S. Corrado, Yossi Matias, Katherine Chou, Juraj Gottweis, Nenad
+Tomasev, Yun Liu, Alvin Rajkomar, Joelle Barral, Christopher Semturs, Alan Karthikesalingam, and Vivek Natarajan. 2023. Large language models
+encode clinical knowledge. Nature 620, 7972 (Aug. 2023), 172–180. https://doi.org/10.1038/s41586-023-06291-2 Number: 7972 Publisher: Nature
+Publishing Group.
+[83] Rowan G. M. Smeets, Mariëlle E. A. L. Kroese, Dirk Ruwaard, Niels Hameleers, and Arianne M. J. Elissen. 2020. Person-centred and efficient
+care delivery for high-need, high-cost patients: primary care professionals’ experiences. BMC Family Practice 21, 1 (June 2020), 106.
+https:
+//doi.org/10.1186/s12875-020-01172-3
+[84] American Cancer Society. 2024. Facts & Figures 2024. Atlanta: American Cancer Society.
+[85] Daniel E Spratt, Neal Shore, Oliver Sartor, Dana Rathkopf, and Kara Olivier. 2021. Treating the patient and not just the cancer: therapeutic burden
+in prostate cancer. Prostate cancer and prostatic diseases 24, 3 (2021), 647–661.
+[86] Una Stenberg, Cornelia M Ruland, and Christine Miaskowski. 2010. Review of the literature on the effects of caring for a patient with cancer.
+Psycho-oncology 19, 10 (2010), 1013–1025.
+[87] Liyan Tang, Zhaoyi Sun, Betina Idnay, Jordan G. Nestor, Ali Soroush, Pierre A. Elias, Ziyang Xu, Ying Ding, Greg Durrett, Justin F. Rousseau,
+Chunhua Weng, and Yifan Peng. 2023. Evaluating large language models on medical evidence summarization. npj Digital Medicine 6, 1 (Aug. 2023),
+1–8. https://doi.org/10.1038/s41746-023-00896-7 Number: 1 Publisher: Nature Publishing Group.
+[88] Kimberly D. Tanner. 2010. Order Matters: Using the 5E Model to Align Teaching with How People Learn. CBE—Life Sciences Education 9, 3 (Sept.
+2010), 159–164. https://doi.org/10.1187/cbe.10-06-0082 Publisher: American Society for Cell Biology (lse).
+[89] Deependra K Thapa, Denis C Visentin, Rachel Kornhaber, Sancia West, and Michelle Cleary. 2021. The influence of online health information on
+health decisions: A systematic review. Patient education and counseling 104, 4 (2021), 770–784.
+[90] Arun James Thirunavukarasu, Darren Shu Jeng Ting, Kabilan Elangovan, Laura Gutierrez, Ting Fang Tan, and Daniel Shu Wei Ting. 2023. Large
+language models in medicine. Nature medicine 29, 8 (2023), 1930–1940.
+[91] Allison Tong, Peter Sainsbury, and Jonathan Craig. 2007. Consolidated criteria for reporting qualitative research (COREQ): a 32-item checklist for
+interviews and focus groups. International journal for quality in health care 19, 6 (2007), 349–357.
+[92] Alexandre Vallée, Jacques Blacher, Alain Cariou, and Emmanuel Sorbets. 2020. Blended Learning Compared to Traditional Learning in Medical
+Education: Systematic Review and Meta-Analysis. Journal of Medical Internet Research 22, 8 (Aug. 2020), e16504. https://doi.org/10.2196/16504
+Company: Journal of Medical Internet Research Distributor: Journal of Medical Internet Research Institution: Journal of Medical Internet Research
+Label: Journal of Medical Internet Research Publisher: JMIR Publications Inc., Toronto, Canada.
+[93] Joris van de Haar, Louisa R Hoes, Charlotte E Coles, Kenneth Seamon, Stefan Fröhling, Dirk Jäger, Franco Valenza, Filippo de Braud, Luigi De Petris,
+Jonas Bergh, et al. 2020. Caring for patients with cancer in the COVID-19 era. Nature medicine 26, 5 (2020), 665–671.
+23
+Conference, Sep, 2024
+Anonymous
+[94] Peixing Wan, Zigeng Huang, Wenjun Tang, Yulan Nie, Dajun Pei, Shaofen Deng, Jing Chen, Yizhi Zhou, Hongru Duan, Qingyu Chen, et al. 2024.
+Outpatient reception via collaboration between nurses and a large language model: a randomized controlled trial. Nature Medicine (2024), 1–8.
+[95] Kimberly Wei, Christian Fritz, and Karthik Rajasekaran. 2024. Answering head and neck cancer questions: An assessment of ChatGPT responses.
+American Journal of Otolaryngology 45, 1 (2024), 104085.
+[96] Marsha White and Steve M. Dorman. 2001. Receiving social support online: implications for health education. Health Education Research 16, 6 (Dec.
+2001), 693–707. https://doi.org/10.1093/her/16.6.693
+[97] Zihao Wu, Lu Zhang, Chao Cao, Xiaowei Yu, Haixing Dai, Ma Chong, Zhengliang Liu, Lin Zhao, Gang Li, Wei Liu, Quanzheng Li, Xiang Li, Dajiang
+Zhu, and Tianming Liu. 2024. Exploring the Trade-Offs: Unified Large Language Models vs Local Fine-Tuned Models for Highly-Specific Radiology
+NLI Task. IEEE Transactions on Big Data (2024). https://doi.org/10.48550/arXiv.2304.09138 accepted.
+[98] Lu Xu, Leslie Sanders, Kay Li, James CL Chow, et al. 2021. Chatbot for health care and oncology applications using artificial intelligence and
+machine learning: systematic review. JMIR cancer 7, 4 (2021), e27850.
+[99] George Zaharias. 2018. What is narrative-based medicine? Canadian Family Physician 64, 3 (March 2018), 176–180. https://www.ncbi.nlm.nih.
+gov/pmc/articles/PMC5851389/
+[100] Kai Zhang, Rong Zhou, Eashan Adhikarla, Zhiling Yan, Yixin Liu, Jun Yu, Zhengliang Liu, Xun Chen, Brian D. Davison, Hui Ren, Jing Huang, Chen
+Chen, Yuyin Zhou, Sunyang Fu, Wei Liu, Tianming Liu, Xiang Li, Yong Chen, Lifang He, James Zou, Quanzheng Li, Hongfang Liu, and Lichao Sun.
+2024. A generalist vision–language foundation model for diverse biomedical tasks. Nature Medicine (2024). https://doi.org/10.1038/s41591-024-
+03185-2
+[101] Yunkun Zhang, Jin Gao, Zheling Tan, Lingfeng Zhou, Kexin Ding, Mu Zhou, Shaoting Zhang, and Dequan Wang. 2024. Data-Centric Foundation
+Models in Computational Healthcare: A Survey. _eprint: 2401.02458.
+[102] Sicheng Zhou, Nan Wang, Liwei Wang, Hongfang Liu, and Rui Zhang. 2022. CancerBERT: a cancer domain-specific language model for extracting
+breast cancer phenotypes from electronic health records. Journal of the American Medical Informatics Association 29, 7 (July 2022), 1208–1216.
+https://doi.org/10.1093/jamia/ocac040
+[103] Lingxuan Zhu, Weiming Mou, and Rui Chen. 2023. Can the ChatGPT and other large language models with internet-connected database solve the
+questions and concerns of patient with prostate cancer and help democratize medical knowledge? Journal of translational medicine 21, 1 (2023),
+269.
+[104] Elâ Ziegler, Josephine Hill, Berit Lieske, Jens Klein, Olaf von dem Knesebeck, and Christopher Kofahl. 2022. Empowerment in cancer patients:
+Does peer support make a difference? A systematic review. Psycho-Oncology 31, 5 (2022), 683–704. https://doi.org/10.1002/pon.5869 _eprint:
+https://onlinelibrary.wiley.com/doi/pdf/10.1002/pon.5869.
+[105] Lena Christine Zuchowski, Matthias Lukas Zuchowski, and Eckhard Nagel. 2024. A trust based framework for the envelopment of medical AI. npj
+Digital Medicine 7, 1 (27 Aug 2024), 230. https://doi.org/10.1038/s41746-024-01224-3
+24
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+A
+APPENDIX
+A.1
+Survey Items
+Survey Introduction: This brief, anonymous survey will take just a few minutes to complete. Your feedback is important
+and will help us improve this online learning course. Thank you.
+(1) [Short Answer]What is your age?
+(2) [Multiple Choice] Prior to viewing this online learning course, about how much time did you spend learning
+about your prostate cancer diagnosis and treatment options?
+(3) [Likert Scale] Please answer the following:
+(a) This online learning course helped me feel more prepared to discuss my prostate cancer diagnosis with my
+healthcare team
+(b) This online learning course helped me better understand my prostate cancer diagnosis
+(c) The online learning course was about the right length
+(d) The amount of detail in this online learning course was about right
+(e) I would recommend this online learning course to other patients like me
+(4) [Short Answer] What did you like most about this online learning course?
+(5) [Short Answer] What did you like least about this online learning course?
+(6) [Multiple Choice]How many times did you open and use this online learning course?
+(7) [Short Answer]Other comments?
+A.2
+Learning Assessment
+A.2.1
+Primary Learner.
+(1) Primary Learner Name
+(2) Relationship to Primary Learner
+- Patient
+- Family
+- Significant Other
+- Caregiver
+- Mother
+- Father
+- Guardian
+- Foster Parent
+- Other (Comment)
+(3) Does the patient express the desire and motivation to learn?
+- Yes
+- No
+- Unable to assess
+- Other (Comment)
+(4) What is the preferred language of the primary learner for medical teaching?
+(5) Is an interpreter required?
+(6) How does the primary learner prefer to learn new concepts?
+25
+Conference, Sep, 2024
+Anonymous
+- Listening
+- Reading
+- Demonstrating / Seeing
+- Doing
+- Pictures / Videos
+- Other (Comment)
+A.2.2
+[Optional] Co-Learner(s). Every item is the same as A.2.1 with changing primary learner to co-learner.
+A.3
+MedEduChat Chatbot Structure
+Category
+Contents
+Introduction
+Hi, my name is MedEduChat. I have been designed to help you with answering questions
+about your prostate cancer diagnosis and treatment. If at anytime you would like me to
+clarify, use less medical jargon, be more concise, or discuss a different question, please let
+me know. Before we begin, will you please enter you patient ID?
+Patient ID
+• Patient Details
+– Name, Date of Birth, Sex, Race, Language, Ethnicity Group, Learner/Co-Learner
+Assessment Outcomes, Attending Physician(s)
+• Diagnosis Details
+– Primary Diagnosis, Primary Diagnosis Onset Date, Stage, Secondary Diagnosis,
+Secondary Diagnosis Onset Date, Stage, Gleason Score, prostate-specific antigen
+(PSA) test result
+• Treatment Details (if available)
+• Clinical Notes Summary
+– Follow-Up Visits, Symptoms, Imaging Results
+• In-Basket Message Takeaway (if available)
+Pre-Set Instructions
+I understand that you may have several questions. Please choose from the pre-set prompts
+below, and we will personalize this educational journey for you:
+• Pre-Set Prompt 1
+• Pre-Set Prompt 2
+• Pre-Set Prompt 3
+Which question would you like to start with, or do you have any specific concerns or
+questions about your diagnosis and treatment so far?
+26
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+Pre-Set Prompt 1
+What is prostate cancer and how serious is prostate cancer?
+• What is the PSA level?
+• What is Gleason’s score?
+– How is a Gleason score determined?
+– What is a typical Gleason score?
+– What’s the difference between a Gleason score and a grade?
+• Is your cancer low-risk or high-risk?
+Pre-Set Prompt 2
+Is my cancer low-risk or high-risk?
+• What are my treatment options?
+• What are active surveillance, surgery, external beam radiation, and brachytherapy?
+Pre-Set Prompt 3
+What are the risk factors associated with developing prostate cancer?
+• Erectile dysfunction.
+• Leaking urine.
+• Frequent urination.
+• Loose stools.
+If not cover all mate-
+rials
+Are you interested in exploring the other questions? For example, question prompts 2.1,
+3.1, 3.3?
+Ending
+If you would like to learn more, please visit this prostate cancer education module website:
+XXX.
+Thank you for participating in the MedEduChat journey! We hope you enjoy this edu-
+cational experience. Please complete this evaluation form to receive your participation
+incentive: XXXXX.
+Table 5. MedEduChat workflow structure and the pre-set prompts.
+B
+MEDEDUCHAT SAMPLE CHAT HISTORY
+B.1
+Introduction
+The following chat history has been carefully reviewed and edited to remove all identifiable patient health information
+(PHI) in compliance with study IRB and the clinic’s privacy regulations. The de-identified content retains the original
+context and intent of the conversation ensuring that the key insights and exchanges remain intact while fully protecting
+patient confidentiality.
+In this sample chat history, blue annotations represent patient participant responses, underlined annotations
+denote pre-set prompts, and ’XXX’ indicates where PHI has been removed.
+27
+Conference, Sep, 2024
+Anonymous
+B.2
+Sample Chat Content
+MedEduChat: Hi, my name is MedEduChat. I have been designed to help you with answering questions about your
+prostate cancer diagnosis and treatment. If at any time you would like me to clarify, use less medical jargon, be more
+concise, or discuss a different question, please let me know. Before we begin, will you please enter your patient ID?
+Me: XXXXXXXX
+MedEduChat: Thank you. I will now retrieve your patient details, diagnosis details, treatment planning details, and
+clinical notes. This will help us have a more informed discussion.
+Diagnosis and Treatment Details
+Patient Details:
+• Name: XXXXXXX
+• Date of Birth: XXX XX XXXX
+• Sex: Male
+• Race: XXX
+• Language: XXXX
+• Ethnicity: XXXXX
+• Attending Physician: Dr. XXXX
+Diagnosis Details:
+• Primary Diagnosis: Malignant neoplasm of prostate (ICD-XX: XX)
+• Onset Date: XXX XX XXXX
+• Stage: Not specified
+• Secondary Diagnosis: Right upper lobe nodule radiographic NSCLC (ICD-10-CM: XXXX)
+• Onset Date: XXX XX XXXX
+• Stage: Stage IA3 (T1c N0 M0)
+Clinical Notes:
+• Follow-up Visits: Regular follow-ups with no significant issues reported. The most recent follow-up on XXX XX
+XXXX indicated a stable condition without evidence of recurrence.
+• Symptoms: No significant symptoms reported. Good appetite, stable weight, no pain, and no respiratory issues.
+• Imaging Results: Stable findings with no evidence of metastatic disease.
+MedEduChat: Now let’s discuss the three main questions we want to cover in this session:
+• What is prostate cancer and how serious is it?
+• How is prostate cancer typically treated?
+• What are the risk factors associated with developing prostate cancer?
+Which question would you like to start with, or do you have any specific concerns or questions about your diagnosis
+and treatment so far?
+Me: Sure, let’s do the first one: What is prostate cancer and how serious is it?
+MedEduChat: Great! Let’s start with What is prostate cancer and how serious is it?
+What is Prostate Cancer? Prostate cancer is a type of cancer that occurs in the prostate, a small walnut-shaped
+gland in men that produces seminal fluid which nourishes and transports sperm. It is one of the most common types of
+cancer in men.
+28
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+How Serious is Prostate Cancer? The seriousness of prostate cancer can vary widely. Some types of prostate
+cancer grow slowly and may need minimal or even no treatment, while other types are aggressive and can spread
+quickly. The seriousness is often determined by several factors including:
+• Stage of Cancer: This indicates how far the cancer has spread. Early-stage prostate cancer (confined to the
+prostate) is generally less serious and more treatable than advanced-stage cancer (spread to other parts of the
+body).
+• Gleason Score: This score helps to evaluate the aggressiveness of the cancer. A higher Gleason score indicates a
+more aggressive cancer.
+• PSA Levels: Prostate-specific antigen (PSA) levels in the blood can help to detect prostate cancer early and
+monitor its progression.
+Additional Information:
+• Symptoms: Early prostate cancer usually causes no symptoms. Advanced prostate cancer can cause symptoms
+such as difficulty urinating, blood in the urine, bone pain, and erectile dysfunction.
+• Prognosis: The prognosis for prostate cancer is generally good, especially when detected early. The 5-year
+survival rate for localized prostate cancer is nearly 100
+Would you like to delve deeper into any specific aspect of prostate cancer, such as PSA levels, Gleason score, or
+whether your cancer is considered low-risk or high-risk? Or shall we move on to the next main question?
+Me: Yes, I am interested in knowing more about my PSA level please.
+MedEduChat: Sure, let’s discuss PSA levels.
+What is PSA? PSA stands for Prostate-Specific Antigen, a protein produced by both normal and malignant cells of
+the prostate gland. The PSA test measures the level of PSA in a man’s blood and is used as a screening tool for prostate
+cancer.
+Understanding PSA Levels:
+• Normal PSA Levels: Generally, a PSA level below 4.0 ng/mL is considered normal. However, this can vary
+based on age and other factors.
+• Elevated PSA Levels: Higher levels of PSA can indicate the presence of prostate cancer, but they can also
+be caused by other conditions such as benign prostatic hyperplasia (BPH) or prostatitis (inflammation of the
+prostate).
+Your PSA Levels: From your clinical notes, here is a summary of your PSA levels over time:
+• XXX 20XX: PSA X.X (initial diagnosis)
+• XXX 20XX: PSA nadir 0.XX (after initial treatment)
+• XXX 20XX: PSA rise to X.X
+• XXX 20XX: PSA up to X.X
+Importance of PSA Levels:
+• Monitoring: PSA levels are used to monitor the effectiveness of treatment and to check for recurrence of cancer.
+• Trend: The trend in PSA levels over time is more important than a single measurement. A rising PSA level may
+indicate the need for further investigation or treatment.
+Would you like to know more about how PSA levels are used in your specific treatment plan, or shall we move on
+to the next main question?
+29
+Conference, Sep, 2024
+Anonymous
+Me: Good to know. Sure, next main question.
+MedEduChat: Great! Let’s move on to the second main question: How is prostate cancer typically treated?
+How is Prostate Cancer Typically Treated?
+The treatment for prostate cancer depends on several factors, including the stage of the cancer, the Gleason score, PSA
+levels, the patient’s age, overall health, and personal preferences. Here are some common treatment options:
+Active Surveillance:
+• Suitable for low-risk, slow-growing prostate cancer.
+• Involves regular monitoring with PSA tests, digital rectal exams (DRE), and possibly biopsies.
+• Treatment is initiated if the cancer shows signs of progression.
+Surgery:
+• Radical Prostatectomy: Removal of the entire prostate gland and some surrounding tissue. This can be done
+through open surgery or minimally invasive techniques like laparoscopic or robotic surgery.
+• Transurethral Resection of the Prostate (TURP): Used to relieve symptoms in advanced cases by removing
+part of the prostate.
+Radiation Therapy:
+• External Beam Radiation Therapy (EBRT): Uses high-energy beams to target and kill cancer cells.
+• Brachytherapy: Involves placing radioactive seeds directly into the prostate.
+Hormone Therapy (Androgen Deprivation Therapy - ADT):
+• Reduces levels of male hormones (androgens) that can stimulate the growth of prostate cancer cells.
+• Can be used in combination with other treatments or for advanced cancer.
+Chemotherapy:
+Uses drugs to kill rapidly growing cancer cells. Typically used for advanced prostate cancer that has spread to other
+parts of the body.
+Immunotherapy:
+Uses the body’s immune system to fight cancer.
+• Sipuleucel-T (Provenge): A type of immunotherapy specifically for prostate cancer.
+Targeted Therapy:
+Uses drugs that target specific molecules involved in cancer growth and spread.
+• PARP Inhibitors: Used for prostate cancers with specific genetic mutations.
+Your Treatment Plan:
+Based on your records, you have not undergone any therapy yet. Would you like to know more about any specific
+treatment option, such as active surveillance, surgery, or other treatments available? Or shall we move on to the next
+main question?
+Me: I don’t know, I heard surgery + radiation therapy could be a good combination for my prostate cancer treatment,
+right?
+MedEduChat:
+Combining surgery and radiation therapy can indeed be an effective treatment strategy for prostate cancer, especially
+in certain cases. Here’s a bit more detail on how these treatments can work together:
+Surgery (Radical Prostatectomy):
+30
+Outlining the Borders for LLM Applications in Patient Education
+Conference, Sep, 2024
+• Purpose: To remove the entire prostate gland and some surrounding tissue.
+• When Used: Often used for localized prostate cancer that has not spread beyond the prostate gland.
+• Benefits: Can be curative if the cancer is confined to the prostate. Provides a clear pathology report to guide
+further treatment.
+Radiation Therapy:
+• Purpose: To kill any remaining cancer cells in the prostate area or surrounding tissues.
+• When Used: Can be used as an adjuvant therapy (after surgery) to reduce the risk of recurrence, or as a salvage
+therapy if the cancer returns after surgery.
+• Types:
+– External Beam Radiation Therapy (EBRT): High-energy beams target the prostate area.
+– Brachytherapy: Radioactive seeds are implanted directly into the prostate.
+Combination Benefits:
+• Higher Efficacy: Combining surgery and radiation can be more effective in eliminating cancer cells and reducing
+the risk of recurrence.
+• Targeted Approach: Surgery removes the primary tumor, while radiation targets any remaining cancer cells.
+• Personalized Treatment: The combination can be tailored based on the stage, Gleason score, and other
+individual factors.
+Considerations:
+• Side Effects: Both treatments have potential side effects, such as urinary incontinence, erectile dysfunction, and
+bowel issues. Combining treatments may increase the risk of these side effects.
+• Recovery Time: Surgery requires a recovery period, and radiation therapy may extend the overall treatment
+time.
+Prostate Cancer Side Effects:
+• Surgery (Radical Prostatectomy): Urinary incontinence, erectile dysfunction, infection, bleeding, bowel
+dysfunction.
+• Radiation Therapy: Urinary problems, bowel issues, erectile dysfunction, fatigue, skin reactions.
+• Hormone Therapy: Hot flashes, loss of libido, erectile dysfunction, bone thinning, weight gain, mood changes,
+fatigue.
+• Chemotherapy: Nausea, hair loss, fatigue, increased infection risk, mouth sores.
+• Immunotherapy/Targeted Therapy: Immune-related side effects, skin reactions, fatigue, diarrhea.
+Managing Side Effects:
+Medications, lifestyle changes, and supportive care can help manage symptoms like nausea, pain, or erectile dysfunction.
+Physical therapy, counseling, and support groups provide additional support.
+Would you like to explore more about any specific risk factor, or do you have any other questions or concerns about
+your prostate cancer diagnosis and treatment?
+Me: No, I am all good. Thank you!
+MedEduChat: You’re welcome! Thank you for participating in the MedEduChat journey! We hope you enjoy this
+educational experience. Please complete this evaluation form: XXXXX.
+31

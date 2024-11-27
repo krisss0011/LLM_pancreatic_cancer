@@ -1,0 +1,771 @@
+Enabling Clinical Use of Linear Energy Transfer in Proton Therapy for Head and Neck 
+Cancer— A Review of Implications for Treatment Planning and Adverse Events Study 
+Authors: 
+Jingyuan Chen, PhD1, Yunze Yang, PhD2, Hongying Feng, PhD1,3,4, Chenbin Liu, PhD5, Lian 
+Zhang, PhD1,6, Jason Holmes, PhD1, Zhengliang Liu, MS7, Haibo Lin, PhD8, Tianming Liu, 
+PhD7, Charles B. Simone II, MD8, Nancy Y. Lee, MD9, Steven E. Frank, MD10, Daniel J. Ma, 
+MD11, Samir H. Patel, MD1, Wei Liu, PhD1 
+ 
+1Department of Radiation Oncology, Mayo Clinic, Phoenix, AZ 85054, USA 
+2Department of Radiation Oncology, the University of Miami, FL 33136, USA 
+3College of Mechanical and Power Engineering, China Three Gorges University, Yichang, Hubei 
+443002, People’s Republic of China 
+4Department of Radiation Oncology, Guangzhou Concord Cancer Center, Guangzhou, Guangdong, 
+510555, People’s Republic of China 
+5Cancer Hospital & Shenzhen Hospital, Chinese Academy of Medical Sciences and Peking Union 
+Medical College, Shenzhen, China 
+6Department of Oncology, The First Hospital of Hebei Medical University, Shijiazhuang, Hebei, 
+050023, People’s Republic of China 
+7School of Computing, the University of Georgia, Athens, GA 30602, USA 
+8New York Proton Center, New York, NY 10035, USA 
+9Department of Radiation Oncology, Memorial Sloan Kettering Cancer Center, New York, NY 
+10065, USA 
+10Department of Radiation Oncology, The University of Texas MD Anderson Cancer Center, 
+Houston, TX 77030, USA  
+11Department of Radiation Oncology, Mayo Clinic, Rochester, MN 55905, USA 
+ 
+Corresponding author: Wei Liu, PhD, Professor of Radiation Oncology, Department of Radiation 
+Oncology, Mayo Clinic Arizona; E-mail: Liu.Wei@mayo.edu. 
+ 
+ 
+ 
+Conflicts of Interest Disclosure Statement  
+No 
+ 
+Funding Statement 
+This research was supported by the National Cancer Institute (NCI) R01CA280134, the Eric & 
+Wendy Schmidt Fund for AI Research & Innovation, The Fred C. and Katherine B. Anderson 
+Foundation, and the Kemper Marley Foundation. 
+Acknowledgments 
+This research was supported by the National Cancer Institute (NCI) R01CA280134, the Eric & 
+Wendy Schmidt Fund for AI Research & Innovation, The Fred C. and Katherine B. Anderson 
+Foundation, and the Kemper Marley Foundation. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Abstract 
+Proton therapy offers significant advantages due to its unique physical and biological properties, 
+particularly the Bragg peak, enabling precise dose delivery to tumors while sparing healthy tissues. 
+However, the clinical implementation is challenged by the oversimplification of the relative 
+biological effectiveness (RBE) as a fixed value of 1.1, which does not account for the complex 
+interplay between dose, linear energy transfer (LET), and biological endpoints. Lack of 
+heterogeneity control or the understanding of the complex interplay may result in unexpected 
+adverse events and suboptimal patient outcomes.  On the other hand, expanding our knowledge of 
+variable tumor RBE and LET optimization may provide a better management strategy for 
+radioresistant tumors.  
+This review examines recent advancements in LET calculation methods, including analytical 
+models and Monte Carlo simulations. The integration of LET into plan evaluation is assessed to 
+enhance plan quality control. LET-guided robust optimization demonstrates promise in minimizing 
+high-LET exposure to organs at risk, thereby reducing the risk of adverse events.  
+Dosimetric seed spot analysis is discussed to show its importance in revealing the true LET-related 
+effect upon the adverse event initialization by finding the lesion origins and eliminating the 
+confounding factors from the biological processes. Dose-LET volume histograms (DLVH) are 
+discussed as effective tools for correlating physical dose and LET with clinical outcomes, enabling 
+the derivation of clinically relevant dose-LET volume constraints without reliance on uncertain 
+RBE models. Based on DLVH, the dose-LET volume constraints (DLVC)-guided robust 
+optimization is introduced to upgrade conventional dose-volume constraints-based robust 
+optimization, which optimizes the joint distribution of dose and LET simultaneously.  
+In conclusion, translating the advances in LET-related research into clinical practice necessitates 
+a better understanding of the LET-related biological mechanisms and the development of clinically 
+relevant LET-related volume constraints directly derived from the clinical outcomes. Future 
+research is needed to refine these models and conduct prospective trials to assess the clinical 
+benefits of LET-guided optimization on patient outcomes. 
+ 
+ 
+ 
+ 
+Introduction 
+Radiation therapy (RT) is a standard treatment option used for 50-75% of cancer patients (1-3). 
+Over recent decades, proton therapy has seen significant technological advancements and 
+increased clinical applications(4,5). The proton beam is characterized by its Bragg peak, which 
+has a sharp dose fall-off after the target. This characteristic allows proton therapy to achieve a 
+lower entrance to peak dose ratio, improved dose conformality to the target and enhanced dose 
+protection to organs at risk (OARs) compared to conventional photon therapy(6-13).  
+Despite the dosimetric benefits, proton therapy faces a major challenge of relative biological 
+effectiveness (RBE) (14-19). In contrast to photons, protons impart most of their energy over a 
+short distance, and thus, induce high linear energy transfer (LET) near the distal end of the Bragg 
+Peak. Hence, the biological effect of proton therapy should be determined by both dose and LET 
+(and possibly other factors) (14,15,20-23). Various studies on in vitro cell experiments(24,25) 
+show that RBE increases with elevated LET, while clinical outcome data are less clear regarding 
+the impact of LET on RBE(26-39). An RBE >1.1 for adverse events (AEs) associated with higher 
+LET within OARs has been reported for rib fracture(40), rectal bleeding(41), mandible 
+osteoradionecrosis(42,43), brain necrosis(26,28,34,44), and late-phase pulmonary changes(29) in 
+cancer patients treated with proton therapy. An improved understanding of the relationship 
+between physical dose, LET, and AEs in proton therapy planning is greatly needed to improve 
+treatment planning.  
+Several phenomenological and mechanistic RBE models have been developed to calculate RBE 
+from LET and physical dose (45-54). However, systematic evaluations have shown that in vitro 
+RBE predictions can vary greatly across different models (55). This significant variability is 
+largely due to the use of tissue-specific α/β ratios in these models, which themselves can have 
+significant parameter uncertainties (46,56). Moreover, substantial discrepancies have been 
+reported between in vitro and in vivo RBE results (24). Since outcomes from clonogenic assays 
+do not necessarily reflect the clinical responses of cancer patients undergoing proton therapy, 
+current RBE models are hindered by considerable biological and parametric uncertainties, limiting 
+the clinical application of LET. 
+In clinical practice, a fixed RBE value of 1.1 represents higher cell-killing effect compared to 
+photons. Proton therapy planning typically relies solely on dose calculations and overlooks critical 
+LET information as well as variable RBE of tumors based on histology and fraction size(17,18). 
+This oversimplification has adversely affected the efficacy of proton therapy, leading to 
+unexpected AEs that place additional burdens on the healthcare system and increase financial costs 
+(20,57-59). Therefore, there is an urgent need to incorporate LET considerations into plan 
+optimization and evaluation to reduce AEs. 
+In this paper, we first review and summarize the current research on LET calculation, LET-guided 
+plan evaluation, and LET-guided plan optimization. Then, we discussed the most recent 
+developments in LET-related AE studies, with particular focuses on dosimetric seed spot analysis, 
+dose-LET volume histogram (DLVH), and how use dose LET volume constraint-based robust 
+optimization is used prospectively to adjust the dose and LET distribution simultaneously 
+potentially to minimize the incidence rates of AEs.  
+ 
+LET calculation 
+Analytical calculations and Monte Carlo simulations are two main methods to calculate the LET. 
+The analytical LET calculation methods(47,60-67) have been used in clinical practice owing to 
+their high efficiency, acceptable computational accuracy, and other historical reasons. One-
+dimensional LET models(45,60,61) assumed uniform lateral LET(64-66). Three-dimensional LET 
+calculation models considered lateral LET variations(64-66). Monte Carlo (MC) simulations (68-
+73) typically offer greater accuracy than analytical methods, especially in inhomogeneous 
+geometries, but they require significantly longer computation times, particularly when general-
+purpose MC algorithms(69,74-76) are used. Fast MC codes(77-83) have been developed and 
+clinically implemented, speeding up proton dose calculations using simplified physics models, 
+GPU acceleration or combined. Moreover, commercial treatment planning systems like RayStation 
+(RaySearch Laboratories, Stockholm, Sweden) (84) and Eclipse (Varian Medical Systems, Palo 
+Alto, CA, USA) (85,86) now feature fast MC capabilities for routine dose calculations(87-90). 
+However, despite the progress in MC-based robust optimization (91,92) and robustness 
+evaluation(93-95), LET calculations based on fast MC have yet to be incorporated into any 
+commercial TPSs for clinical use. Recently, the deep learning-based dose and LET calculation 
+engines were also proposed (96,97). 
+ 
+LET-guided plan evaluation  
+Studies have found a strong correlation between high dose and high LET distribution in OARs and 
+AEs(42,43). The lack of accountability of variable and high LET distributions in clinical practice 
+may result in severe AEs and undesirable patient outcomes in proton therapy. LET-guided 
+dosimetric evaluation has become more common in proton therapy centers, serving as a biological 
+effect evaluation tool for intensity-modulated proton therapy (IMPT) plans (98,99). A recent 
+survey showed that 16 of 25 European proton centers called for more retrospective or prospective 
+outcome studies, investigating the effect of variable RBEs induced by high LET, and 18 centers 
+called for LET and RBE calculation and visualization tools(100). Typically, LET distributions of 
+IMPT treatment plans are generated through analytical calculations or Monte Carlo simulations 
+for further review. To assess the biological effects of an IMPT plan, physicians or physicists may 
+examine areas where high doses and high LET overlap, aiming to minimize such overlaps in 
+critical structures, or they may analyze the biological dose distribution based on dose and LET 
+using various RBE models. In some centers, like the Mayo Clinic in Arizona, LET-guided plan 
+evaluation is now a routine process for all patients undergoing IMPT, while at other centers, LET 
+evaluation and optimization are performed on a more ad-hoc basis. 
+ 
+LET-guided plan optimization  
+MC simulations and experiments on water phantom have shown that similar dose distributions can 
+lead to significantly different LET distributions(101). Therefore, during treatment planning, it is 
+necessary to optimize LET to reduce potential AE risks (102,103). Building on top of dose 
+optimization algorithms, various LET/RBE-guided plan optimization approaches have been 
+developed. Some of these algorithms directly use LET in the objective function(25,104-107), 
+whereas others use LET-related terms indirectly in the optimization process(15,106,108,109). 
+However, in LET-guided optimization, it is crucial to balance the trade-off between the LET and 
+dose distributions during the optimization process to ensure that optimizing LET does not 
+compromise overall plan quality (110). 
+Robust optimization (RO) is common in proton therapy(87,111-116). Proton therapy is highly 
+sensitive to range and setup uncertainties, especially IMPT (117-121), and RO can generate robust 
+plans by accounting for either the voxel-wise or objective-wise worst-case scenarios during 
+optimization (11,12,106,112,122-140). LET-guided robust optimization has also been developed, 
+which generally incorporates LET/RBE-related constraints for OARs in the dose-based robust 
+optimization and adds additional LET/RBE-related penalty terms in the objective function 
+(105,106,109,141-146). These methods have improved the LET distribution in OARs while 
+maintaining comparable plan quality and robustness. 
+The LET peak of proton beams occurs beyond the Bragg peak; therefore, optimizing proton beam 
+angles and spot locations to deposit the LET peak at less hazardous regions while keeping the dose 
+peaks not moved can result in a superior LET distribution (147-153). However, most current 
+optimization methods focus solely on beam weight optimization. Incorporating beam angle 
+optimization may be more beneficial for treatment plans in anatomically complex regions, but 
+beam angle optimization will significantly increase the computation time (104,109,146). 
+Additionally, increasing the number of beams can also optimize LET distribution in some patients 
+(31,154). Spot-scanning proton arc therapy (SPArcT) with infinite beams can achieve superior 
+dose and LET target conformity(155). However, further research is needed to establish its clinical 
+advantages (156-159). 
+ 
+Studying LET-related clinical outcomes 
+Two main approaches are currently used in studying LET-related clinical outcomes. One approach 
+is voxel-based analysis, which compares regions exhibiting AEs with a matched healthy region. 
+(26,28,30,31,160-162). The second approach is to study AEs at the organ level, which involves a 
+population-based analysis that establishes a relationship between the epidemiological probability 
+of complications and the treatment modality, whether the difference involves photon or proton 
+therapy. (29,37,43) 
+In the first approach, individual voxels are utilized as data points for analysis. The potential 
+correlation between clinical outcomes (such as whether a voxel is damaged) and both dose and 
+LET was investigated. This approach was based on two fundamental assumptions: (1) all damaged 
+voxels are a result of dosimetric effects, namely dose and LET; (2) within the AE regions of the 
+same patients, voxels are considered to be independent of one another. However, these assumptions 
+are not universally applicable. Clinical observations suggest that the AE region will expand/shrink 
+over time because of biological processes. Voxels in one single lesion are not fully independent 
+from each other. In addition, the potential volume effect is not considered in this approach. The 
+established normal tissue complication probability (NTCP) is at voxel-level and only considers the 
+dose and/or LET values. 
+In the second approach, organ-level NTCP is established by comparing clinical outcome 
+differences between photon and proton patient cohorts. Although there are indications of increased 
+RBE with protons, the quantification is solely based on dose-volume metrics. The precise 
+contribution from LET is challenging to assess, not only due to the absence of meaningful LET 
+quantification at the organ level, but also because LET is highly heterogeneous. Its distribution 
+within the organ and its relation to dose distribution matter. 
+ 
+Novel approaches for LET-based outcome studies 
+Dose-LET volume histogram in the organ-level adverse event analysis  
+Dose-LET volume histogram (DLVH) is a novel tool for studying the combined effects of the dose 
+and LET on patient outcomes. As shown in Fig.1, DLVH is a cumulative volume histogram tool 
+following a similar statistical concept as a dose volume histogram (DVH) (41). Different from a 
+2D plot of DVH, DLVH is a 3D surface plot. Well-defined physical quantities - dose (Gy) and LET 
+(keV/µm) - are constructed as two horizontal axes, whereas the third vertical dimension shows the 
+normalized volume. With DLVH, well-defined physics quantities can be associated, such as dose, 
+LET, and volume of OARs with AEs. Clinically relevant dose-LET volume constraints (DLVCs) 
+can be obtained(41) without the inclusion of RBE models(41) to bypass the uncertainties in the 
+current RBE models.  
+The DLVH approach offers several advantages: 1) It accounts for the volume effect, beyond just 
+the numerical values of dose and LET; 2) It is possible to establish the relation of outcome versus 
+the DLVH index, V(d, l), the specific volume having both a certain dose and a certain LET. Thus, 
+the interplay of dose and LET distributions within the organ will be considered; 3) Instead of 
+incorporating assumed dose-LET relations as variables into the regression analysis, it is possible 
+to derive the dose-LET relations based on patterns observed from the regression analysis; and 4) 
+DLVH maintains the integrity of LET information. DLVH analysis allows one to use patient cohort 
+data at the organ level while precisely investigating the LET contribution. This avoids the data 
+independence issue in the voxel-based analysis. 
+Based on DLVH, DLVC-guided robust optimization has been proposed as an efficient method to 
+simultaneously control 3D dose and LET distributions during proton therapy treatment 
+planning(163). This method upgrades proton therapy treatment planning from 2D DVH-based 
+(164,165) to 3D DLVH-based by considering dose, LET, and volume, and implements DLVCs as 
+soft constraints in the objective function(166-168), thereby effectively reducing the number of 
+potential seed spots and lowering the incidence of corresponding AEs. 
+ 
+Figure 1: Sketches about the dose linear-energy-transfer (LET) volume histogram (DLVH). (a) 
+Three-dimensional DLVH surface. The solid lines on the surface are the iso-volume contour lines 
+DL𝑣%. (b) The projected two-dimensional DLVH of (a) and the iso-volume contour lines. The 
+gray dots represent the voxels of the structure. 
+ 
+Dosimetric seed spot analysis in the voxel-level adverse event analysis 
+As mentioned above, the AE sites progress over time. Once radiation damage is initialized by dose 
+and LET (i.e., radiation effect), biological processes may take over and the original AE sites may 
+expand spatially(43). Analysis using all voxels, especially those low dose/LET voxels in the 
+expanded AE sites, may have masked the importance of the radiation effect that triggered the AEs 
+initialization (26,28,32,39,43,44,169). In addition, in such analysis(28,32,34,169,170), each voxel 
+was treated as an independent data point to establish the relationship of dose and LET with the 
+patient outcome. This approach breaks the fundamental assumption that “any regression methods 
+require independent data points” (26). 
+Recently, dosimetric seed spot analysis proposed a spatial clustering method to eliminate “noises” 
+from biological processes to study AE initialization. As illustrated in Fig. 2, this approach finds 
+several clusters (seed spots), each representing a spatially independent lesion origin. Although it 
+is impossible to fully get rid of the biological impacts, reducing the number of data points for 
+analysis and finding their independent representatives improves the data independence and reduces 
+the noise from the overrepresentation of non-contributing voxels. Based on dosimetric seed spot 
+analysis, some research(42,43) suggested that RBEs are underestimated in current clinical practice 
+and the LET-enhancing effect is critical for AE initialization in head and neck patients.  
+ 
+Figure 2: An example of the dosimetric seed spot analysis in the voxel-level adverse event analysis. 
+(a) Dose linear-energy-transfer (LET) volume histogram (DLVH) of an adverse event (AE) region 
+in one head-and-neck (H&N) patient. The grey dots represent voxels of the structure. The solid 
+lines are the iso-volume contour lines DL𝑣% of the DLVH. The assumed critical voxels for seed 
+spot analysis are represented by the red dots, which are the highest 5% LET voxels selected from 
+each dose bin within the moderate to high dose range. Potential voxels influenced by biological 
+effects in in-field AE regions with low doses and low LET are enclosed within the light blue dashed 
+oval. The purple dashed circle and green dashed oval respectively denote possible voxels in in-
+field AE regions typically characterized by high doses, and out-of-field AE regions typically 
+characterized by high LET. (b) Identification of seed spots within an AE region. The spatial 
+distribution of seed spots is shown for mandibular osteoradionecrosis in a representative patient. 
+Critical voxels in DLVH are identified and grouped into two seed spots, each highlighted in a 
+different color. Other AE voxels are depicted in gray, while the high-dose clinical target volume 
+(CTVHigh) is shown in blue. The figure is presented in DICOM coordinates. 
+  
+ 
+Conclusion 
+With the development of hardware and software in proton therapy, LET-related research has 
+recently made significant progress, including studies on precise LET calculation, LET-guided plan 
+evaluation, LET-guided plan optimization, and LET-related patient outcomes. However, LET-
+guided plan evaluation and optimization require a better understanding of the LET-related 
+biological mechanisms and clinically relevant LET-related volume constraints directly derived 
+from the clinical outcomes, both of which need further research. 
+ 
+ 
+ 
+References 
+1. Miller KD, Nogueira L, Mariotto AB, et al. Cancer treatment and survivorship statistics, 
+2019. CA: a cancer journal for clinicians 2019;69:363-385. 
+2. Borras JM, Lievens Y, Barton M, et al. How many new cancer patients in europe will 
+require radiotherapy by 2025? An estro-hero analysis. Radiotherapy and Oncology 
+2016;119:5-11. 
+3. Baskar R, Lee KA, Yeo R, et al. Cancer and radiation therapy: Current advances and 
+future directions. International journal of medical sciences 2012;9:193. 
+4. Younkin J, Bues M, Sio T, et al. Multiple energy extraction reduces beam delivery time for 
+a synchrotron-based proton spot-scanning system. Advances in radiation oncology 
+2018;3:412-420. 
+5. Shen J, Taylor P, Vargas C, et al. The status and challenges for prostate stereotactic body 
+radiation therapy treatments in united states proton therapy centers: An nrg oncology 
+practice survey. International Journal of Particle Therapy 2024;11. 
+6. Rwigema J-CM, Langendijk JA, van der Laan HP, et al. A model-based approach to predict 
+short-term toxicity benefits with proton therapy for oropharyngeal cancer. International 
+Journal of Radiation Oncology* Biology* Physics 2019;104:553-562. 
+7. Blanchard P, Wong AJ, Gunn GB, et al. Toward a model-based patient selection strategy 
+for proton therapy: External validation of photon-derived normal tissue complication 
+probability models in a head and neck proton therapy cohort. Radiotherapy and Oncology 
+2016;121:381-386. 
+8. Blanchard P, Garden AS, Gunn GB, et al. Intensity-modulated proton beam therapy 
+(impt) versus intensity-modulated photon therapy (imrt) for patients with oropharynx 
+cancer–a case matched analysis. Radiotherapy and Oncology 2016;120:48-55. 
+9. Water TA, Bijl HP, Schilstra C, et al. The potential benefit of radiotherapy with protons in 
+head and neck cancer with respect to normal tissue sparing: A systematic review of 
+literature. The oncologist 2011;16:366-377. 
+10. Lin A, Swisher-McClure S, Millar LB, et al. Proton therapy for head and neck cancer: 
+Current applications and future directions. Translational Cancer Research 2013;1. 
+11. Liu W, Zhang X, Li Y, et al. Robust optimization of intensity modulated proton therapy. 
+Med Phys 2012;39:1079-91. 
+12. Liu W, Frank SJ, Li X, et al. Ptv-based impt optimization incorporating planning risk 
+volumes vs robust optimization. Medical Physics 2013;40:021709-8. 
+13. Chiang J, Nathan Y, Daniels T, et al. Proton beam radiotherapy for patients with early-
+stage and advanced lung cancer: A narrative review with contemporary clinical 
+recommendations. Journal of Thoracic Disease 2021;13:1270-1270. 
+14. Paganetti H, Niemierko A, Ancukiewicz M, et al. Relative biological effectiveness (rbe) 
+values for proton beam therapy. International Journal of Radiation Oncology* Biology* 
+Physics 2002;53:407-421. 
+15. Unkelbach J, Botas P, Giantsoudi D, et al. Reoptimization of intensity modulated proton 
+therapy plans based on linear energy transfer. International Journal of Radiation Oncology* 
+Biology* Physics 2016;96:1097-1106. 
+16. Paganetti H, II CS, Bosch W, et al. Nrg oncology white paper on the relative biological 
+effectiveness in proton therapy. International Journal of Radiation Oncology* Biology* 
+Physics 2024. 
+17. Wang L, Wang X, Li Y, et al. Human papillomavirus status and the relative biological 
+effectiveness of proton radiotherapy in head and neck cancer cells. Head & neck 
+2017;39:708-715. 
+18. Wang L, Fossati P, Paganetti H, et al. The biological basis for enhanced effects of proton 
+radiation therapy relative to photon radiation therapy for head and neck squamous cell 
+carcinoma. International journal of particle therapy 2021;8:3-13. 
+19. Yepes P, Adair A, Frank SJ, et al. Fixed-versus variable-rbe computations for intensity 
+modulated proton therapy. Advances in radiation oncology 2019;4:156-167. 
+20. Von Sonntag C. The chemical basis of radiation biology. In: Editor, editor^editors. Book 
+The chemical basis of radiation biology: Taylor & Francis; 1987. 
+21. von Sonntag C. Free-radical-induced DNA damage as approached by quantum-
+mechanical and monte carlo calculations: An overview from the standpoint of an 
+experimentalist. In: Sabin JR, editor Advances in quantum chemistry, vol 52; 2007. pp. 5-
+20. 
+22. Hirayama R, Ito A, Tomita M, et al. Contributions of direct and indirect actions in cell 
+killing by high-let radiations. Radiation Research 2009;171:212-218. 
+23. Ito A, Nakano H, Kusano Y, et al. Contribution of indirect action to radiation-induced 
+mammalian cell inactivation: Dependence on photon energy and heavy-ion let. Radiation 
+Research 2006;165:703-712. 
+24. Paganetti H. Relative biological effectiveness (rbe) values for proton beam therapy. 
+Variations as a function of biological endpoint, dose, and linear energy transfer. Physics in 
+Medicine & Biology 2014;59:R419. 
+25. Cao W, Khabazian A, Yepes PP, et al. Linear energy transfer incorporated intensity 
+modulated proton therapy optimization. Physics in Medicine & Biology 2017;63:015013. 
+26. Niemierko A, Schuemann J, Niyazi M, et al. Brain necrosis in adult patients after proton 
+therapy: Is there evidence for dependency on linear energy transfer? Int J Radiat Oncol Biol 
+Phys 2021;109:109-119. 
+27. Gentile MS, Yeap BY, Paganetti H, et al. Brainstem injury in pediatric patients with 
+posterior fossa tumors treated with proton beam therapy and associated dosimetric 
+factors. International Journal of Radiation Oncology* Biology* Physics 2018;100:719-729. 
+28. Peeler CR, Mirkovic D, Titt U, et al. Clinical evidence of variable proton biological 
+effectiveness in pediatric patients treated for ependymoma. Radiotherapy and Oncology 
+2016;121:395-401. 
+29. Underwood TS, Grassberger C, Bass R, et al. Asymptomatic late-phase radiographic 
+changes among chest-wall patients are associated with a proton rbe exceeding 1.1. 
+International Journal of Radiation Oncology* Biology* Physics 2018;101:809-819. 
+30. Bolsi A, Placidi L, Pica A, et al. Pencil beam scanning proton therapy for the treatment 
+of craniopharyngioma complicated with radiation-induced cerebral vasculopathies: A 
+dosimetric and linear energy transfer (let) evaluation. Radiotherapy and Oncology 
+2020;149:197-204. 
+31. Ödén J, Toma‐Dasu I, Witt Nyström P, et al. Spatial correlation of linear energy transfer 
+and relative biological effectiveness with suspected treatment‐related toxicities following 
+proton therapy for intracranial tumors. Medical physics 2020;47:342-351. 
+32. Eulitz J, Lutz B, Wohlfahrt P, et al. A monte carlo based radiation response modelling 
+framework to assess variability of clinical rbe in proton therapy. Physics in Medicine & 
+Biology 2019;64:225020. 
+33. Bauer J, Bahn E, Harrabi S, et al. How can scanned proton beam treatment planning for 
+low‐grade glioma cope with increased distal rbe and locally increased radiosensitivity for 
+late mr‐detected brain lesions? Medical Physics 2021;48:1497-1507. 
+34. Bahn E, Bauer J, Harrabi S, et al. Late contrast enhancing brain lesions in proton-treated 
+patients with low-grade glioma: Clinical evidence for increased periventricular sensitivity 
+and variable rbe. International Journal of Radiation Oncology Biology Physics 
+2020;107:571-578. 
+35. Niemierko A, Schuemann J, Niyazi M, et al. Brain necrosis in adult patients after proton 
+therapy: Is there evidence for dependency on linear energy transfer? International Journal 
+of Radiation Oncology* Biology* Physics 2020;109:109-119. 
+36. Marteinsdottir M, Wang C-C, McNamara AL, et al. The impact of variable rbe in proton 
+therapy for left-sided breast cancer when estimating normal tissue complications in the 
+heart and lung. Physics in Medicine and Biology 2020. 
+37. Zhang YY, Huo WL, Goldberg SI, et al. Brain-specific relative biological effectiveness of 
+protons based on long-term outcome of patients with nasopharyngeal carcinoma. Int J 
+Radiat Oncol Biol Phys 2021;110:984-992. 
+38. Engeseth GM, He R, Mirkovic D, et al. Mixed effect modeling of dose and linear energy 
+transfer correlations with brain image changes after intensity modulated proton therapy for 
+skull base head and neck cancer. Int J Radiat Oncol Biol Phys 2021;111:684-692. 
+39. Garbacz M, Cordoni FG, Durante M, et al. Study of relationship between dose, let and 
+the risk of brain necrosis after proton therapy for skull base tumors. Radiother Oncol 
+2021;163:143-149. 
+40. Wang CC, McNamara AL, Shin J, et al. End-of-range radiobiological effect on rib 
+fractures in patients receiving proton therapy for breast cancer. Int J Radiat Oncol Biol Phys 
+2020;107:449-454. 
+41. Yang Y, Vargas CE, Bhangoo RS, et al. Exploratory investigation of dose-linear energy 
+transfer (let) volume histogram (dlvh) for adverse events study in intensity modulated 
+proton therapy (impt). Int J Radiat Oncol Biol Phys 2021;110:1189-1199. 
+42. Yang Y, Muller OM, Shiraishi S, et al. Empirical relative biological effectiveness (rbe) for 
+osteoradionecrosis (orn) at the mandible in head and neck cancer patients treated with 
+intensity modulated proton therapy (impt): A multicenter, retrospective, cohort study. JAMA 
+Network Open 2021. 
+43. Yang Y, Patel SH, Bridhikitti J, et al. Exploratory study of seed spots analysis to 
+characterize dose and linear-energy-transfer effect in adverse event initialization of pencil-
+beam-scanning proton therapy. Med Phys 2022;49:6237-6252. 
+44. Bertolet A, Abolfath R, Carlson DJ, et al. Correlation of let with mri changes in brain and 
+potential implications for normal tissue complication probability for patients with 
+meningioma treated with pencil beam scanning proton therapy. International Journal of 
+Radiation Oncology* Biology* Physics 2022;112:237-246. 
+45. Wilkens J, Oelfke U. A phenomenological model for the relative biological effectiveness 
+in therapeutic proton beams. Physics in Medicine & Biology 2004;49:2811. 
+46. Carabe A, Moteabbed M, Depauw N, et al. Range uncertainty in proton therapy due to 
+variable biological effectiveness. Phys Med Biol 2012;57:1159-72. 
+47. Wedenberg M, Lind BK, Hårdemark B. A model for the relative biological effectiveness 
+of protons: The tissue specific parameter α/β of photons is a predictor for the sensitivity to 
+let changes. Acta Oncologica 2013;52:580-588. 
+48. McNamara AL, Schuemann J, Paganetti H. A phenomenological relative biological 
+effectiveness (rbe) model for proton therapy based on all published <i>in vitro</i> cell 
+survival data. Physics in Medicine and Biology 2015;60:8399-8416. 
+49. Hawkins RB. A microdosimetric-kinetic model for the effect of non-poisson distribution 
+of lethal lesions on the variation of rbe with let. Radiation research 2003;160:61-69. 
+50. Schulz-Ertner D, Karger CP, Feuerhake A, et al. Effectiveness of carbon ion radiotherapy 
+in the treatment of skull-base chordomas. International Journal of Radiation Oncology* 
+Biology* Physics 2007;68:449-457. 
+51. Elsässer T, Scholz M. Cluster effects within the local effect model. Radiation research 
+2007;167:319-329. 
+52. Elsässer T, Krämer M, Scholz M. Accuracy of the local effect model for the prediction of 
+biologic effects of carbon ion beams in vitro and in vivo. International Journal of Radiation 
+Oncology* Biology* Physics 2008;71:866-872. 
+53. Elsässer T, Weyrather WK, Friedrich T, et al. Quantification of the relative biological 
+effectiveness for ion beam radiotherapy: Direct experimental comparison of proton and 
+carbon ion beams and a novel approach for treatment planning. International Journal of 
+Radiation Oncology* Biology* Physics 2010;78:1177-1183. 
+54. Carlson DJ, Stewart RD, Semenenko VA, et al. Combined use of monte carlo DNA 
+damage simulations and deterministic repair models to examine putative mechanisms of 
+cell killing. Radiation research 2008;169:447-459. 
+55. Stewart RD, Carlson DJ, Butkus MP, et al. A comparison of mechanism‐inspired models 
+for particle relative biological effectiveness (rbe). Medical physics 2018;45:e925-e952. 
+56. Paganetti H. Mechanisms and review of clinical evidence of variations in relative 
+biological effectiveness in proton therapy. International Journal of Radiation Oncology* 
+Biology* Physics 2022;112:222-236. 
+57. Machtay M, Moughan J, Trotti A, et al. Factors associated with severe late toxicity after 
+concurrent chemoradiation for locally advanced head and neck cancer: An rtog analysis. 
+Journal of clinical oncology : official journal of the American Society of Clinical Oncology 
+2008;26:3582-9. 
+58. Dornfeld K, Simmons JR, Karnell L, et al. Radiation doses to structures within and 
+adjacent to the larynx are correlated with long-term diet- and speech-related quality of life. 
+Int J Radiat Oncol Biol Phys 2007;68:750-7. 
+59. Eisbruch A, Schwartz M, Rasch C, et al. Dysphagia and aspiration after 
+chemoradiotherapy for head-and-neck cancer: Which anatomic structures are affected 
+and can they be spared by imrt? Int J Radiat Oncol Biol Phys 2004;60:1425-39. 
+60. Wilkens JJ, Oelfke U. Analytical linear energy transfer calculations for proton therapy. 
+Medical Physics 2003;30:806-815. 
+61. Wilkens JJ, Oelfke U. Three-dimensional let calculations for treatment planning of 
+proton therapy. Zeitschrift für medizinische Physik 2004;14:41-46. 
+62. Sanchez-Parcerisa D, Cortés-Giraldo MA, Dolney D, et al. Analytical calculation of 
+proton linear energy transfer in voxelized geometries including secondary protons. Physics 
+in Medicine and Biology 2016;61:1705-1721. 
+63. Marsolat F, De Marzi L, Pouzoulet F, et al. Analytical linear energy transfer model 
+including secondary particles: Calculations along the central axis of the proton pencil 
+beam. Physics in Medicine and Biology 2016;61:740-757. 
+64. Hirayama S, Matsuura T, Ueda H, et al. An analytical dose-averaged let calculation 
+algorithm considering the off-axis let enhancement by secondary protons for spot-
+scanning proton therapy. Medical Physics 2018;45:3404-3416. 
+65. Deng W, Ding X, Younkin J, et al. New hybrid 3d analytical linear energy transfer (let) 
+calculation algorithm based on the pre-calculated data from monte carlo (mc) simulations. 
+International Journal of Radiation Oncology, Biology, Physics 105 (1), E715- 2019:716--1. 
+66. Deng W, Ding X, Younkin JE, et al. Hybrid 3d analytical linear energy transfer calculation 
+algorithm based on precalculated data from monte carlo simulations. Med Phys 
+2020;47:745-752. 
+67. Younkin JE, Morales DH, Shen J, et al. Clinical validation of a ray-casting analytical dose 
+engine for spot scanning proton delivery systems. Technology in Cancer Research & 
+Treatment 2019;18. 
+68. Grassberger C, Paganetti H. Elevated let components in clinical proton beams. Physics 
+in Medicine & Biology 2011;56:6677. 
+69. Agostinelli S, Allison J, Amako K, et al. Geant4-a simulation toolkit. Nuclear Instruments 
+& Methods in Physics Research Section a-Accelerators Spectrometers Detectors and 
+Associated Equipment 2003;506:250-303. 
+70. Cortés-Giraldo MA, Carabe A. A critical study of different monte carlo scoring methods 
+of dose average linear-energy-transfer maps calculated in voxelized geometries irradiated 
+with clinical proton beams. Physics in Medicine and Biology 2015;60:2645-2669. 
+71. Granville DA, Sawakuchi GO. Comparison of linear energy transfer scoring techniques 
+in monte carlo simulations of proton beams. Physics in Medicine and Biology 
+2015;60:N283-N291. 
+72. Dahle TJ, Rykkelid AM, Stokkevåg CH, et al. Monte carlo simulations of a low energy 
+proton beamline for radiobiological experiments. Acta Oncologica 2017;56:779-786. 
+73. Feng H, Holmes J, Vora S, et al. Modelling small block aperture in an in-house 
+developed gpu-accelerated monte carlo-based dose engine for pencil beam scanning 
+proton therapy. Physics in Medicine &Biology 2024;69:35003-35003. 
+74. Battistoni G, Broggi F, Brugger M, et al. The fluka code and its use in hadron therapy. 
+Nuovo Cimento Della Societa Italiana Di Fisica C-Colloquia on Physics 2008;31:69-75. 
+75. Kozlowska WS, Böhlen TT, Cuccagna C, et al. Fluka particle therapy tool for monte carlo 
+independent calculation of scanned proton and carbon ion beam therapy. Physics in 
+Medicine and Biology 2019;64. 
+76. Perl J, Shin J, Schümann J, et al. Topas: An innovative proton monte carlo platform for 
+research and clinical applications. Medical Physics 2012;39:6818-6837. 
+77. Holmes J, Feng H, Zhang L, et al. Fast monte carlo dose calculation in proton therapy; 
+2024. 
+78. Tseung HWC, Ma J, Beltran C. A fast gpu-based monte carlo simulation of proton 
+transport with detailed modeling of nonelastic interactions. Medical Physics 2015;42:2967-
+2978. 
+79. Jia X, Schümann J, Paganetti H, et al. Gpu-based fast monte carlo dose calculation for 
+proton therapy. Physics in Medicine and Biology 2012;57:7783-7797. 
+80. Schiavi A, Senzacqua M, Pioli S, et al. Fred: A gpu-accelerated fast-monte carlo code 
+for rapid treatment plan recalculation in ion beam therapy. Physics in Medicine and Biology 
+2017;62:7482-7504. 
+81. Souris K, Lee JA, Sterpin E. Fast multipurpose monte carlo simulation for proton therapy 
+using multi- and many-core cpu architectures. Medical Physics 2016;43:1700-1712. 
+82. Deng W, Younkin J, Souris K, et al. Integrating an open source monte carlo code 
+“mcsquare” for clinical use in intensity‐modulated proton therapy. Medical physics 
+2020;47:2558-2574. 
+83. Shan J, Feng H, Morales DH, et al. Virtual particle monte carlo: A new concept to avoid 
+simulating secondary particles in proton therapy dose calculation. Medical physics 
+2022;49:6666-6683. 
+84. Saini J, Maes D, Egan A, et al. Dosimetric evaluation of a commercial proton spot 
+scanning monte-carlo dose algorithm: Comparisons against measurements and 
+simulations. Physics in Medicine and Biology 2017;62:7659-7681. 
+85. Lin LY, Huang S, Kang ML, et al. A benchmarking method to evaluate the accuracy of a 
+commercial proton monte carlo pencil beam scanning treatment planning system. Journal 
+of Applied Clinical Medical Physics 2017;18:44-49. 
+86. Chang CW, Huang S, Harms J, et al. A standardized commissioning framework of monte 
+carlo dose calculation algorithms for proton pencil beam scanning treatment planning 
+systems. Medical Physics 2020;47:1545-1557. 
+87. Liu W, Schild S, Chang J, et al. A novel 4-d robust optimization mitigates interplay effect 
+in intensity modulated proton therapy for lung cancer. International Journal of Radiation 
+Oncology, Biology, Physics 93 (3), S 2015;218. 
+88. Holmes J, Shen J, Shan J, et al. Evaluation and second check of a commercial monte 
+carlo dose engine for small‐field apertures in pencil beam scanning proton therapy. 
+Medical physics 2022;49:3497-3506. 
+89. Feng H, Patel S, Wong W, et al. Gpu‐accelerated monte carlo‐based online adaptive 
+proton therapy: A feasibility study. Medical physics 2022;49:3550-3563. 
+90. Deng W, Huang S, Souris K, et al. Commissioning a fast and accurate monte carlo dose 
+engine (mcsquare) in intensity-modulated proton therapy; 2019. 
+91. Buti G, Souris K, Montero AMB, et al. Towards fast and robust 4d optimization for 
+moving tumors with scanned proton therapy. Medical Physics 2019;46:5434-5443. 
+92. Ma J, Tseung H, Herman MG, et al. A robust intensity modulated proton therapy 
+optimizer based on monte carlo dose calculation. Medical Physics 2018;45:4045-4054. 
+93. Souris K, Montero AB, Janssens G, et al. Technical note: Monte carlo methods to 
+comprehensively evaluate the robustness of 4d treatments in proton therapy. Medical 
+Physics 2019;46:4676-4684. 
+94. Liu W, Patel SH, Shen JJ, et al. Robustness quantification methods comparison in 
+volumetric modulated arc therapy to treat head and neck cancer. Practical radiation 
+oncology 2016;6:e269-e275. 
+95. Liu C, Yu NY, Shan J, et al. Treatment planning system (tps) approximations matter—
+comparing intensity‐modulated proton therapy (impt) plan quality and robustness 
+between a commercial and an in‐house developed tps for nonsmall cell lung cancer 
+(nsclc). Medical physics 2019;46:4755-4762. 
+96. Tang XY, Tseung HWC, Moseley D, et al. Deep learning based linear energy transfer 
+calculation for proton therapy. Physics in Medicine and Biology 2024;69. 
+97. Zhang L, Holmes J, Liu Z, et al. Beam mask and sliding window‐facilitated deep 
+learning‐based accurate and efficient dose prediction for pencil beam scanning proton 
+therapy. Medical physics 2024;51:1484-1498. 
+98. Quan E, Liu W, Wu R, et al. Preliminary evaluation of multifield and single‐field 
+optimization for the treatment planning of spot‐scanning proton therapy of head and neck 
+cancer. Medical physics 2013;40:81709-81709. 
+99. Feng H, Shan J, Vargas CE, et al. Online adaptive proton therapy facilitated by artificial 
+intelligence-based auto segmentation in pencil beam scanning proton therapy: Prostate 
+oapt in pbspt. International Journal of Radiation Oncology* Biology* Physics 2024. 
+100. Hahn C, Heuchel L, Oden J, et al. Comparing biological effectiveness guided plan 
+optimization strategies for cranial proton therapy: Potential and challenges. Radiat Oncol 
+2022;17:169. 
+101. Bassler N, Jäkel O, Søndergaard CS, et al. Dose-and let-painting with particle therapy. 
+Acta oncologica 2010;49:1170-1176. 
+102. Penoncello G, Robertson D, Bhangoo R, et al. History and future of image-guided 
+radiation therapy in abdominal cancer; 2023. 
+103. Harrison N, Kang M, Liu R, et al. A novel inverse algorithm to solve the integrated 
+optimization of dose, dose rate, and linear energy transfer of proton flash therapy with 
+sparse filters. International Journal of Radiation Oncology* Biology* Physics 2024;119:957-
+967. 
+104. Giantsoudi D, Grassberger C, Craft D, et al. Linear energy transfer-guided optimization 
+in intensity modulated proton therapy: Feasibility study and clinical potential. International 
+Journal of Radiation Oncology* Biology* Physics 2013;87:216-222. 
+105. Inaniwa T, Kanematsu N, Noda K, et al. Treatment planning of intensity modulated 
+composite particle therapy with dose and linear energy transfer optimization. Physics in 
+Medicine & Biology 2017;62:5180. 
+106. Liu C, Patel SH, Shan J, et al. Robust optimization for intensity modulated proton 
+therapy to redistribute high linear energy transfer from nearby critical organs to tumors in 
+head and neck cancer. Int J Radiat Oncol Biol Phys 2020;107:181-193. 
+107. McIntyre M, Wilson P, Gorayski P, et al. A systematic review of let-guided treatment 
+plan optimisation in proton therapy: Identifying the current state and future needs. Cancers 
+(Basel) 2023;15. 
+108. Bai X, Lim G, Wieser H-P, et al. Robust optimization to reduce the impact of biological 
+effect variation from physical uncertainties in intensity-modulated proton therapy. Physics 
+in Medicine & Biology 2019;64:025004. 
+109. Traneus E, Ödén J. Introducing proton track-end objectives in intensity modulated 
+proton therapy optimization to reduce linear energy transfer and relative biological 
+effectiveness in critical structures. International Journal of Radiation Oncology* Biology* 
+Physics 2019;103:747-757. 
+110. Zaghian M, Cao W, Liu W, et al. Comparison of linear and nonlinear programming 
+approaches for “worst case dose” and “minmax” robust optimization of intensity‐
+modulated proton therapy dose distributions. Journal of applied clinical medical physics 
+2017;18:15-25. 
+111. Heuchel L, Hahn C, Pawelke J, et al. Clinical use and future requirements of relative 
+biological effectiveness: Survey among all european proton therapy centres. Radiotherapy 
+and Oncology 2022;172:134-139. 
+112. Liu W. System and method for robust intensity-modulated proton therapy planning. In: 
+Editor, editor^editors. Book System and method for robust intensity-modulated proton 
+therapy planning; 2019. 
+113. Li H, Zhang X, Park P, et al. Robust optimization in intensity-modulated proton therapy 
+to account for anatomy changes in lung cancer patients. Radiotherapy and Oncology 
+2015;114:367-372. 
+114. Liu W, Mohan R, Zhang X, et al. Effectiveness of robust optimization in oropharynx 
+impt planning. International Journal of Radiation Oncology, Biology, Physics 87 (2), S 
+2013;443. 
+115. Anand A, Bues M, Haddock M, et al. Robust scanned proton treatment plans provide 
+large reductions in bone marrow exposure for pelvic radiation therapy for anal cancer. 
+International Journal of Radiation Oncology, Biology, Physics 90 (1), S 2014;396. 
+116. An Y, Liang J, Liu W. System and method for novel chance-constrained optimization in 
+intensity-modulated proton therapy planning to account for range and patient setup 
+uncertainties. In: Editor, editor^editors. Book System and method for novel chance-
+constrained optimization in intensity-modulated proton therapy planning to account for 
+range and patient setup uncertainties; 2019. 
+117. Li H, Peter P, Chang J, et al. Robust optimization in intensity modulated proton therapy 
+reduces dose variation due to setup uncertainty and anatomy change. International Journal 
+of Radiation Oncology, Biology, Physics 90 (1), S 2014;143. 
+118. Park P, Cheung J, Zhu X, et al. Statistical assessment of proton treatment plans under 
+setup and range uncertainties. International Journal of Radiation Oncology* Biology* 
+Physics 2013;86:1007-1013. 
+119. Zaghian M, Lim G, Liu W, et al. An automatic approach for satisfying dose-volume 
+constraints in linear fluence map optimization for impt. J Cancer Ther 2014;5:198-207. 
+120. Tryggestad E, Liu W, Pepin M, et al. Managing treatment-related uncertainties in proton 
+beam radiotherapy for gastrointestinal cancers. Journal of gastrointestinal oncology 
+2020;11:212-212. 
+121. Shan J, Yang Y, Schild S, et al. Intensity‐modulated proton therapy (impt) interplay 
+effect evaluation of asymmetric breathing with simultaneous uncertainty considerations in 
+patients with non‐small cell lung …. Medical physics 2020;47:5428-5440. 
+122. Liu W, Liao Z, Schild SE, et al. Impact of respiratory motion on worst-case scenario 
+optimized intensity modulated proton therapy for lung cancers. Practical radiation 
+oncology 2015;5:e77-86. 
+123. An Y, Liang JM, Schild SE, et al. Robust treatment planning with conditional value at 
+risk chance constraints in intensity- modulated proton therapy. Medical Physics 
+2017;44:28-36. 
+124. Chen W, Unkelbach J, Trofimov A, et al. Including robustness in multi-criteria 
+optimization for intensity-modulated proton therapy. Physics in Medicine and Biology 
+2012;57:591-608. 
+125. Fredriksson A, Forsgren A, Hårdemark B. Minimax optimization for handling range and 
+setup uncertainties in proton therapy. Medical physics 2011;38:1672-1684. 
+126. Liu CB, Schild SE, Chang JY, et al. Impact of spot size and spacing on the quality of 
+robustly optimized intensity modulated proton therapy plans for lung cancer. International 
+Journal of Radiation Oncology Biology Physics 2018;101:479-489. 
+127. Liu W. Robustness quantification and worst-case robust optimization in intensity-
+modulated proton therapy Particle radiotherapy; 2016. pp. 139-155. 
+128. Liu W, Frank SJ, Li X, et al. Effectiveness of robust optimization in intensity-modulated 
+proton therapy planning for head and neck cancers. Med Phys 2013;40:051711-8. 
+129. Liu W, Li Y, Li X, et al. Influence of robust optimization in intensity-modulated proton 
+therapy with different dose delivery techniques. Med Phys 2012;39:3089-101. 
+130. Liu W, Mohan R, Park P, et al. Dosimetric benefits of robust treatment planning for 
+intensity modulated proton therapy for base-of-skull cancers. Practical Radiation Oncology 
+2014;4:384-91. 
+131. Liu W, Schild SE, Chang JY, et al. Exploratory study of 4d versus 3d robust optimization 
+in intensity modulated proton therapy for lung cancer. International Journal of Radiation 
+Oncology Biology Physics 2016;95:523-533. 
+132. Pflugfelder D, Wilkens J, Oelfke U. Worst case optimization: A method to account for 
+uncertainties in the optimization of intensity modulated proton therapy. Physics in 
+Medicine & Biology 2008;53:1689. 
+133. Shan J, An Y, Bues M, et al. Robust optimization in impt using quadratic objective 
+functions to account for the minimum mu constraint. Med Phys 2018;45:460-469. 
+134. Shan J, Sio T, Liu C, et al. A novel and individualized robust optimization method using 
+normalized dose interval volume constraints (ndivc) for intensity‐modulated proton 
+radiotherapy. Medical physics 2019;46:382-393. 
+135. Unkelbach J, Alber M, Bangert M, et al. Robust radiotherapy planning. Phys Med Biol 
+2018;63:22TR02. 
+136. Unkelbach J, Bortfeld T, Martin BC, et al. Reducing the sensitivity of impt treatment 
+plans to setup errors and range uncertainties via probabilistic treatment planning. Medical 
+physics 2009;36:149-163. 
+137. Unkelbach J, Chan TC, Bortfeld T. Accounting for range uncertainties in the 
+optimization of intensity modulated proton therapy. Physics in Medicine & Biology 
+2007;52:2755. 
+138. Feng H, Shan J, Vargas C, et al. Artificial intelligence-facilitated online adaptive proton 
+therapy using pencil beam scanning proton therapy; 2023. 
+139. Liu W, Schild S, Chang J, et al. Impact of spot size and spacing on the quality of 
+robustly-optimized intensity-modulated proton therapy plans for lung cancer. MEDICAL 
+PHYSICS 2016;43:3886-3887. 
+140. Liu W, Patel S, Shen J, et al. Plan robustness study of volumetric modulated arc 
+therapy versus intensity modulated radiation therapy for head and neck cancer. 
+International Journal of Radiation Oncology, Biology, Physics 93 (3), E567- 2015:568--1. 
+141. Feng H, Shan J, Anderson J, et al. Per‐voxel constraints to minimize hot spots in linear 
+energy transfer‐guided robust optimization for base of skull head and neck cancer patients 
+in impt. Medical physics 2022;49:632-647. 
+142. Feng H, Shan J, Ashman J, et al. 4d robust optimization in small spot intensity‐
+modulated proton therapy (impt) for distal esophageal carcinoma. Medical physics 
+2021;48:4636-4647. 
+143. Liu R, Charyyev S, Wahl N, et al. An integrated physical optimization framework for 
+proton stereotactic body radiation therapy flash treatment planning allows dose, dose rate, 
+and linear energy transfer …. International Journal of Radiation Oncology* Biology* Physics 
+2023;116:949-959. 
+144. An Y, Shan J, Patel SH, et al. Robust intensity-modulated proton therapy to reduce high 
+linear energy transfer in organs at risk. Med Phys 2017;44:6138-6147. 
+145. Tseung HSWC, Ma J, Kreofsky CR, et al. Clinically applicable monte carlo–based 
+biological dose optimization for the treatment of head and neck cancers with spot-
+scanning proton therapy. International Journal of Radiation Oncology* Biology* Physics 
+2016;95:1535-1543. 
+146. Bai XM, Lim G, Grosshans D, et al. A biological effect-guided optimization approach 
+using beam distal-edge avoidance for intensity-modulated proton therapy. Medical Physics 
+2020;47:3816-3825. 
+147. Gu W, Ruan D, Zou W, et al. Linear energy transfer weighted beam orientation 
+optimization for intensity‐modulated proton therapy. Medical physics 2021;48:57-70. 
+148. Bai X. Linear energy transfer (let)-guided optimization incorporating 
+biologicaleffectiveness for intensity-modulated proton therapy. In: Editor, editor^editors. 
+Book Linear energy transfer (let)-guided optimization incorporating biologicaleffectiveness 
+for intensity-modulated proton therapy: University of Houston; 2019. 
+149. Cao W, Lim G, Lee A, et al. Uncertainty incorporated beam angle optimization for impt 
+treatment planning. Medical physics 2012;39:5248-5256. 
+150. Liu C, Sio TT, Deng W, et al. Small-spot intensity-modulated proton therapy and 
+volumetric-modulated arc therapies for patients with locally advanced non-small-cell lung 
+cancer: A dosimetric comparative study. J Appl Clin Med Phys 2018;19:140-148. 
+151. Liu C, Bhangoo RS, Sio TT, et al. Dosimetric comparison of distal esophageal 
+carcinoma plans for patients treated with small-spot intensity-modulated proton versus 
+volumetric-modulated arc therapies. J Appl Clin Med Phys 2019;20:15-27. 
+152. Feng H, Sio TT, Rule WG, et al. Beam angle comparison for distal esophageal 
+carcinoma patients treated with intensity-modulated proton therapy. J Appl Clin Med Phys 
+2020;21:141-152. 
+153. Yang Y, Rwigema JM, Vargas C, et al. Technical note: Investigation of dose and let(d) 
+effect to rectum and bladder by using non-straight laterals in prostate cancer receiving 
+proton therapy. Med Phys 2022;49:7428-7437. 
+154. Shang H, Pu Y, Chen Z, et al. Impact of multiple beams on plan quality, linear energy 
+transfer distribution, and plan robustness of intensity modulated proton therapy for lung 
+cancer. ACS sensors 2020;6:408-417. 
+155. Carabe-Fernandez A, Bertolet-Reina A, Karagounis I, et al. Is there a role for arcing 
+techniques in proton therapy? The British journal of radiology 2020;93:20190469. 
+156. Toussaint L, Indelicato DJ, Holgersen KS, et al. Towards proton arc therapy: Physical 
+and biologically equivalent doses with increasing number of beams in pediatric brain 
+irradiation. Acta oncologica 2019;58:1451-1456. 
+157. Li X, Ding X, Zheng W, et al. Linear energy transfer incorporated spot-scanning proton 
+arc therapy optimization: A feasibility study. Frontiers in oncology 2021;11:698537. 
+158. Bertolet A, Carabe A. Proton monoenergetic arc therapy (pmat) to enhance letd within 
+the target. Physics in Medicine & Biology 2020;65:165006. 
+159. Li X, Liu G, Janssens G, et al. The first prototype of spot-scanning proton arc treatment 
+delivery. Radiotherapy and Oncology 2019;137:130-136. 
+160. Giantsoudi D, Sethi RV, Yeap BY, et al. Incidence of cns injury for a cohort of 111 
+patients treated with proton therapy for medulloblastoma: Let and rbe associations for 
+areas of injury. International Journal of Radiation Oncology Biology Physics 2016;95:287-
+296. 
+161. Eulitz J, Troost EGC, Raschke F, et al. Predicting late magnetic resonance image 
+changes in glioma patients after proton therapy. Acta Oncologica 2019;58:1536-1539. 
+162. Bertolet A, Cortés-Giraldo MA, Souris K, et al. A kernel-based algorithm for the 
+spectral fluence of clinical proton beams to calculate dose-averaged let and other 
+dosimetric quantities of interest. Medical Physics 2020;47:2495-2505. 
+163. Chen J, Yang Y, Feng H, et al. Robust optimization for spot scanning proton therapy 
+based on dose-linear energy transfer (let) volume constraints; 2024. 
+164. Shan J, Liu W, Au Y, et al. Dose interval volume constraint based robust optimization of 
+intensity-modulated proton therapy. MEDICAL PHYSICS 2017;44:2994-2995. 
+165. Zhang P, Fan N, Shan J, et al. Mixed integer programming with dose-volume constraints 
+in intensity-modulated proton therapy. J Appl Clin Med Phys 2017;18:29-35. 
+166. Giantsoudi D, Adams J, MacDonald S, et al. Can differences in linear energy transfer 
+and thus relative biological effectiveness compromise the dosimetric advantage of 
+intensity-modulated proton therapy as compared to passively scattered proton therapy? 
+Acta Oncologica 2018;57:1259-1264. 
+167. Carabe A, Espana S, Grassberger C, et al. Clinical consequences of relative biological 
+effectiveness variations in proton radiotherapy of the prostate, brain and liver. Physics in 
+Medicine & Biology 2013;58:2103. 
+168. Giovannini G, Böhlen T, Cabal G, et al. Variable rbe in proton therapy: Comparison of 
+different model predictions and their influence on clinical-like scenarios. Radiation 
+Oncology 2016;11. 
+169. Abolfath R, Peeler C, Mirkovic D, et al. A DNA damage multiscale model for ntcp in 
+proton and hadron therapy. Medical physics 2020;47:2005-2012. 
+170. Deng W, Yang Y, Liu C, et al. A critical review of let-based intensity-modulated proton 
+therapy plan evaluation and optimization for head and neck cancer management. 
+International Journal of Particle Therapy 2021;8:36-49. 
+ 

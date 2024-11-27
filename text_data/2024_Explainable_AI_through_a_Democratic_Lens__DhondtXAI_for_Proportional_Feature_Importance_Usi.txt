@@ -1,0 +1,855 @@
+EXPLAINABLE AI THROUGH A DEMOCRATIC LENS:
+DHONDTXAI FOR PROPORTIONAL FEATURE IMPORTANCE
+USING THE D’HONDT METHOD
+Türker Berk DÖNMEZ
+Biomedical Engineering
+Sakarya University of Applied Sciences
+Sakarya, 54050, TURKIYE
+turkerberkdonmez@yahoo.com
+ABSTRACT
+In democratic societies, electoral systems play a crucial role in translating public preferences into
+political representation. Among these, the D’Hondt method is widely used to ensure proportional
+representation, balancing fair representation with governmental stability. Recently, there has been
+a growing interest in applying similar principles of proportional representation to enhance inter-
+pretability in machine learning, specifically in Explainable AI (XAI). This study investigates the
+integration of D’Hondt-based voting principles in the DhondtXAI method, which leverages resource
+allocation concepts to interpret feature importance within AI models. Through a comparison of SHAP
+(Shapley Additive Explanations) and DhondtXAI, we evaluate their effectiveness in feature attribution
+within CatBoost and XGBoost models for breast cancer and diabetes prediction, respectively. The
+DhondtXAI approach allows for alliance formation and thresholding to enhance interpretability, rep-
+resenting feature importance as seats in a parliamentary view. Statistical correlation analyses between
+SHAP values and DhondtXAI allocations support the consistency of interpretations, demonstrating
+DhondtXAI’s potential as a complementary tool for understanding feature importance in AI models.
+The results highlight that integrating electoral principles, such as proportional representation and
+alliances, into AI explainability can improve user understanding, especially in high-stakes fields like
+healthcare.
+Keywords Explainable AI · Democratric AI · D’Hondt method · DhondtXAI
+1
+Introduction
+In democratic societies, election systems play a vital role in translating public preferences into political representation.
+These systems range from majority and proportional systems to mixed methods, each with unique mechanisms and
+impacts on representation [1]. Majority systems tend to favor larger parties and provide stable governments, whereas
+proportional systems, such as the D’Hondt method, aim to reflect the diversity of voter support across multiple parties.
+This proportional representation method, while intended to provide a balanced view of political preferences, can
+sometimes present complexities in accurately measuring democratic outcomes, as factors like district size and voter
+distribution affect representation fairness [2]. Therefore, understanding election systems is essential for assessing how
+democracies work and how well they reflect the population’s intent.
+The D’Hondt method, widely used in proportional representation systems, allocates seats to parties based on the number
+of votes they receive, adjusted by a divisor sequence to ensure representation proportional to each party’s share of votes
+[3]. Its fairness is often debated, as some argue it slightly favors larger parties due to the nature of seat allocation, which
+can contribute to governmental stability by reducing the fragmentation of legislative bodies [4]. On the other hand,
+studies on auditing, such as Stark et al. (2014)[5], indicate that the D’Hondt method offers advantages in transparency
+and verifiability, especially when risk-limiting audits are applied, ensuring election accuracy and fairness. This balance
+arXiv:2411.05196v2  [cs.AI]  13 Nov 2024
+between stability and fair representation is a core consideration in evaluating the suitability of the D’Hondt method for
+different political contexts.
+Countries across Europe and beyond utilize the D’Hondt method to various extents, including Spain, Portugal, and
+Poland, where it has been integral in ensuring proportional representation within parliamentary systems [6]. The
+method’s influence extends to both national and regional elections, as observed in nations like Turkey, which employs
+the D’Hondt method with a national threshold to balance between fair representation and governmental effectiveness
+[4]. This widespread adoption underscores the method’s adaptability and its perceived fairness in representing diverse
+political voices while maintaining governance stability.
+Artificial intelligence (AI) has significantly evolved, with neural networks and tree-based models becoming central
+techniques in various domains. Neural networks, such as multilayer perceptrons (MLPs), excel at handling complex,
+non-linear relationships by adjusting their layered connections between neurons, a structure that enables robust pattern
+recognition in tasks like disease prediction and environmental modeling [7, 8]. Tree-based models, like decision
+trees and random forests, offer a simpler yet effective structure by segmenting data into branches based on feature
+values. While tree-based models provide transparent, interpretable decision paths, neural networks remain powerful for
+capturing intricate relationships, albeit with a trade-off in interpretability. Studies comparing these approaches, like
+Sorano et al. [9], highlight that while neural networks often achieve higher accuracy, tree-based models are preferable
+in applications where clarity in model decisions is essential, underscoring the practical considerations when choosing
+between these methods.
+Explainable AI (XAI) has emerged to address the interpretability of complex AI models, aiming to make model decisions
+more understandable for human users. Traditional AI models, especially deep neural networks, operate as “black
+boxes,” with decision processes often opaque to end users. Techniques like SHAP (Shapley Additive Explanations) and
+LIME (Local Interpretable Model-agnostic Explanations) offer post-hoc explanations by highlighting the influence
+of individual features on predictions, making AI more accessible in fields such as healthcare and finance, where
+accountability is critical [10]. Furthermore, innovative methods like delta-XAI, which leverages sensitivity analysis to
+rank features’ impact on outcomes, are being developed to enhance local explanations of predictions, thus increasing
+trust and satisfaction in AI-driven decisions [11]. Counterfactual explanations, which suggest minimal changes to
+achieve a different outcome, have also shown promise in improving user understanding and confidence, further bridging
+the gap between AI’s technical complexity and human interpretability [12].
+In extending the principles of the D’Hondt method and proportional representation to AI model interpretability, it is
+conceivable that concepts like alliance systems and threshold applications—commonly used in real-world electoral
+processes—could inspire structured approaches to feature importance in complex machine learning models. For
+instance, just as electoral alliances allow smaller parties to gain representation by aligning with larger ones, AI models
+could adopt alliance-like groupings to evaluate how minor features contribute collectively alongside major features to
+influence predictions. This approach could help highlight nuanced interactions that might otherwise be overshadowed
+in traditional feature importance analyses, similar to how electoral alliances bring forward diverse voices that might not
+independently meet representation thresholds. Additionally, thresholds—like electoral cutoffs that parties must surpass
+to gain seats—could be applied in feature selection to filter out the least impactful variables, ensuring that only features
+with significant predictive influence are highlighted. This "thresholding" can enhance model clarity by focusing on the
+most informative aspects of data, improving interpretability without overwhelming users with less relevant details.
+By applying these voting principles, such as the D’Hondt system’s proportional allocation and alliance thresholds, to
+the interpretability of tree-based models, AI researchers can create a more nuanced ranking of feature importance that
+emphasizes both individual and collective feature contributions. This structured prioritization aligns with Explainable
+AI’s goals, bridging model complexity with user understanding. Moreover, leveraging alliance systems and thresholds
+could offer valuable insights for managing feature importance in neural networks and ensemble models, where
+interpreting non-linear relationships is often challenging. Such methods can support greater transparency in high-stakes
+fields like healthcare and finance by ensuring that each feature’s role in decision-making is proportionally represented
+and appropriately highlighted. Ultimately, incorporating real-world electoral principles into AI could pave the way for
+more interpretable, balanced, and democratic approaches to machine learning, enabling clearer, more accountable AI
+systems that resonate with human understanding and societal values. Here, a novel unified approach to interpreting
+model predictions is presented. 1
+1https://github.com/turkerbdonmez/dhondtxai
+2
+2
+Methodology
+The DhondtXAI library applies a structured methodology to evaluate feature importance in machine learning models,
+focusing on decision tree-based algorithms. It uses the D’Hondt proportional representation method to distribute
+importance fairly and transparently across features or feature groups. This method allows users to specify custom
+parameters, such as thresholds, exclusions, alliances, and the total numbers of votes and seats, enabling a flexible and
+insightful feature analysis.
+2.1
+User-Defined Parameters
+The following parameters are defined by the user to establish the scope and constraints of the analysis:
+• Total Number of Votes (V ): The user-specified total number of votes to be allocated proportionally among
+features based on their calculated importance values. This parameter enables direct control over the scale of
+the voting distribution.
+• Total Number of Seats (M): The user-defined total number of seats (representative units) that will be allocated
+across features based on their final calculated vote shares, reflecting the overall distribution of influence among
+features.
+• Excluded Features (Fexclude): A list of features the user wishes to remove from the analysis. These features
+will be excluded from all stages of the analysis, ensuring that they do not affect the importance-based voting or
+seating calculations.
+• Feature Alliances (Alliances): Specific groupings of features that the user defines to be evaluated together as
+a single unit. More than one alliance can be formed, and each alliance can include any number of features.
+For instance, if the user defines alliances such as {f1, f2}, {f3, f4, f5}, and {f6, f9}, each group is treated as
+a single alliance with a cumulative importance score. This score represents the combined importance of all
+features in the alliance, treated as a singular voting entity. The library is flexible in that alliances can contain
+overlapping or independent groups of features as specified by the user.
+• Threshold Value (Threshold): A minimum importance threshold defined as a percentage. Features or alliances
+whose relative importance is below this threshold are filtered out and do not receive any seats in the final
+seating allocation. This parameter allows the user to focus the analysis on only the most influential features or
+alliances.
+These parameters create a customized analytical framework, ensuring that only the user-defined aspects of the feature
+set contribute to the voting and seating allocations.
+2.2
+Calculation of Feature Importances in Tree-Based Models
+The foundation of the DhondtXAI process is the feature importance calculation, derived from tree-based models like
+Random Forests and Gradient Boosted Trees. In these models, feature importance is calculated by evaluating each
+feature’s contribution to reducing impurity at each decision node where the feature is used as a split criterion.
+Reduction in Impurity at Node Level:
+For any feature A used at a split node n, the impurity before the split, I(n),
+and after the split, I′(n), are compared to assess the feature’s contribution to predictive improvement. The impurity
+after the split is a weighted sum of the impurities in the child nodes nL and nR:
+I′(n) = |nL|
+|n| I(nL) + |nR|
+|n| I(nR)
+(1)
+where |n| is the number of samples in the parent node n, and |nL| and |nR| represent the numbers of samples in the left
+and right child nodes, respectively.
+Information Gain for Feature A:
+The reduction in impurity, or information gain ∆IA,n, from splitting on feature A
+at node n is then calculated as:
+∆IA,n = I(n) −I′(n)
+(2)
+This score reflects the extent to which feature A contributes to predicting the target variable at that specific split.
+3
+Aggregation Across Nodes and Trees:
+Summing ∆IA,n over all nodes where feature A is used across all trees in the
+ensemble provides the cumulative importance score for that feature. For feature A in a single tree, the importance is:
+ImportanceA,tree =
+X
+n∈NA
+∆IA,n
+(3)
+where NA is the set of nodes where A is used. Across all trees in an ensemble, the feature importance for A is averaged:
+ImportanceA,ensemble = 1
+|T|
+X
+t∈T
+ImportanceA,t
+(4)
+Here, T represents the set of all trees, and ImportanceA,t is feature A’s importance in tree t.
+These feature importance values form the basis for the proportional voting distribution used in the DhondtXAI
+methodology.
+2.3
+Feature Exclusion and Alliance Formation
+The first step involves applying exclusions and forming alliances to establish the final feature set that will be analyzed.
+Feature Exclusion:
+Given the initial feature set F, features specified by the user for exclusion are removed from the
+analysis. The resulting set of features used for voting and seat allocation, F ′, is defined as:
+F ′ = F \ Fexclude
+(5)
+where Fexclude denotes the set of features explicitly excluded by the user. Only features in F ′ are considered in
+subsequent steps, allowing for a refined analysis that adheres to user-defined constraints.
+Alliance Formation:
+Following feature exclusion, alliances are formed among features in F ′ based on user-defined
+groupings. Each alliance combines the importance values of its constituent features, enabling them to act as a unified
+feature. Multiple alliances are supported, each forming an independent entity that will participate in the voting and seat
+allocation process.
+Let’s assume the user specifies several alliances: {f1, f2}, {f3, f4, f5}, and {f6, f9}. Each of these alliances is assigned
+a combined importance score based on the sum of the individual importance values of the features within the group.
+The importance of each alliance alliancej is calculated as follows:
+importancealliancej =
+X
+i∈alliancej
+importancei
+(6)
+where alliancej represents each unique alliance defined by the user, and i represents the individual features within that
+alliance.
+Each alliance is treated as a single unit in the voting and seating calculations, meaning that it will receive votes and
+seats proportionate to its cumulative importance score rather than the individual scores of its constituent features. This
+cumulative score importancealliancej reflects the joint influence of all features within the alliance.
+Finalized Feature and Alliance Sets:
+After exclusions and alliances are processed, the final analysis set consists of:
+• Individual features not excluded or grouped into alliances.
+• Each user-defined alliance, treated as a unified entity with a combined importance score.
+These elements form the basis for the proportional vote and seat distribution, with each alliance’s total importance score
+influencing its share of votes relative to individual features.
+2.4
+Initial Vote Distribution Using the D’Hondt Method
+With the final feature and alliance sets established, the initial distribution of votes is calculated based on the relative
+importance values of each feature or alliance.
+4
+Vote Distribution Across Features and Alliances:
+Using the total votes V specified by the user, each feature or
+alliance i in the finalized set is allocated a proportional share of the total votes based on its importance score. The initial
+vote allocation for each feature or alliance i is calculated as follows:
+initial_votei =
+importancei
+P
+j∈F ′ importancej
+× V
+(7)
+where V represents the total votes, importancei is the importance score for feature or alliance i, and F ′ represents the
+final set of features and alliances after exclusions and groupings.
+This formula ensures that features or alliances with higher importance scores receive a larger share of the votes, aligning
+the voting allocation directly with each feature’s or alliance’s calculated significance within the model.
+Consideration for Multiple Alliances:
+Since each alliance’s importance score is cumulative, the total importance
+score for alliances is the sum of the importance scores for all individual features within each alliance. This cumulative
+approach means that, despite multiple alliances or groupings, each alliance acts as a single voting entity.
+For instance, if alliance {f1, f2} has a combined importance score of 0.30, and {f3, f4, f5} has a combined score of
+0.25, these alliances would receive initial votes proportionate to their total influence compared to other features or
+alliances.
+Establishing the Vote Basis for Each Feature and Alliance:
+The initial votes calculated for each feature or alliance
+initial_votei serve as the foundation for further calculations. These initial votes directly influence both the threshold
+application (in section 2.5) and the final seat allocation process (in section 2.6), ensuring that every feature’s or alliance’s
+share of the total votes is transparently proportional to its relative importance within the model.
+In this way, the initial vote distribution allows for a democratic and transparent reflection of each feature or alliance’s
+influence within the analysis framework, laying the groundwork for the remaining steps in the DhondtXAI process.
+2.5
+Threshold Application and Redistribution of Votes
+The third step introduces the concept of a threshold—a user-defined minimum vote percentage that each feature or
+alliance must meet to be eligible for seat allocation. This threshold allows the user to filter out features or alliances with
+lower influence, ensuring that only those with significant importance values contribute to the final seat distribution.
+Threshold Calculation:
+The threshold value threshold_vote is determined as a percentage of the total votes V . This
+value acts as a minimum criterion that all features and alliances must meet to proceed to the seat allocation phase.
+Mathematically, the threshold vote amount is calculated as follows:
+threshold_vote = threshold
+100
+× V
+(8)
+where threshold is the user-defined percentage (for example, 5%).
+If threshold = 0, this means there is no minimum vote requirement, allowing all features and alliances to move directly
+to the seat allocation phase. If threshold > 0, any feature or alliance whose initial vote count initial_votei falls below
+threshold_vote will be excluded from seat allocation, and their votes will be redistributed to the remaining features and
+alliances.
+Identifying Below-Threshold Features and Alliances:
+After calculating threshold_vote, each feature or alliance
+i is evaluated to see if it meets the threshold. If a feature’s or alliance’s initial vote count initial_votei is less than
+threshold_vote, it is classified as a below-threshold entity and is excluded from receiving seats:
+below_threshold = {i ∈F ′ : initial_votei < threshold_vote}
+(9)
+Features and alliances in this below-threshold group do not participate in the seat allocation phase, but their vote share
+is not disregarded; instead, it is redistributed to the remaining features and alliances.
+5
+Redistribution of Below-Threshold Votes:
+The votes of all below-threshold features and alliances are collected
+and proportionally redistributed to the above-threshold group based on their relative importance. This redistribution
+step ensures that the votes of lower-importance features continue to contribute to the final allocation process, albeit
+indirectly, by strengthening the influence of more impactful features.
+The total votes from below-threshold features, P
+l∈below_threshold initial_votel, is distributed across each feature j in the
+above-threshold group, proportional to each feature’s importance score:
+redistributed_votej = initial_votej +
+ 
+importancej
+P
+k∈above_threshold importancek
+×
+X
+l∈below_threshold
+initial_votel
+!
+(10)
+Here:
+• redistributed_votej represents the final vote total for each feature or alliance in the above-threshold group after
+receiving redistributed votes.
+• importancej is the importance of the feature or alliance j within the above-threshold set.
+• P
+k∈above_threshold importancek normalizes the redistributed votes based on the importance scores of the remain-
+ing, eligible features.
+This redistribution process provides a final vote count for each eligible feature or alliance, ensuring that even below-
+threshold features indirectly impact the results, thus preserving a fair representation of their cumulative influence.
+2.6
+Seat Allocation Using the D’Hondt Method
+In the final step, seats are allocated to features and alliances based on their redistributed vote totals, using the D’Hondt
+method to proportionally distribute the specified total seats M. This iterative process ensures that each feature or
+alliance receives seats in alignment with its importance and final vote count.
+Initial Seat Ratios:
+Each feature or alliance begins with an initial seat count of k = 0, meaning no seats have been
+allocated at the start. The D’Hondt method calculates a seat ratio Si for each feature or alliance i based on its final vote
+count and current seat count. This initial ratio Si is defined as:
+Si = redistributed_votei
+k + 1
+(11)
+where:
+• redistributed_votei represents the final vote count after redistribution for feature or alliance i,
+• k is the current number of seats allocated to i (initially k = 0).
+This initial seat ratio serves as the basis for the first iteration of seat allocation, with each feature or alliance’s eligibility
+for a seat determined by the highest current Si value.
+Iterative Seat Assignment:
+The D’Hondt method proceeds iteratively, allocating one seat at a time based on the
+current seat ratios of all eligible features and alliances. In each iteration:
+• The feature or alliance with the highest Si value receives one seat.
+• Once a seat is allocated, the seat count k for the awarded feature or alliance is increased by 1, and its seat ratio
+Si is recalculated to account for the updated seat count:
+Si = redistributed_votei
+k + 1
+(12)
+This recalculated Si adjusts the feature or alliance’s priority for receiving additional seats in subsequent iterations.
+Completion of Seat Allocation:
+The iterative seat assignment continues until all M seats have been allocated. Each
+time a seat is awarded, the Si values are updated to reflect the new seat distribution, ensuring that seats are consistently
+distributed according to the highest remaining influence in each iteration.
+6
+Example of Seat Calculation in Practice:
+Consider a feature with a final redistributed vote count of 1000 and an
+initial seat count k = 2. For this feature, the recalculated seat ratio Si after receiving two seats would be:
+Si = 1000
+2 + 1 = 1000
+3
+≈333.33
+(13)
+This updated seat ratio is then compared to the Si values of other features and alliances to determine the next recipient
+of a seat. By recalculating Si at each step, the D’Hondt method ensures that seats are dynamically assigned based on
+the most current distribution of influence.
+The seat allocation phase results in a final distribution of seats across features and alliances that reflects their relative
+importance, adhering to the principles of proportional representation. This approach allows users to clearly interpret the
+role of each feature or alliance within the model’s decision-making framework, providing a transparent and equitable
+view of feature influence.
+3
+Results
+3.1
+Wisconsin Breast Cancer Dataset
+In this study, our focus is on comparing SHAP (SHapley Additive exPlanations) and DhondtXAI in assessing feature
+importance for a breast cancer classification model. Using the Wisconsin Breast Cancer Dataset [13] with only the
+mean feature values, we aim to demonstrate how each explainability technique identifies the contributions of individual
+features to the model’s predictions. By contrasting SHAP and DhondtXAI, we can evaluate the interpretability and
+insights provided by each method, highlighting their effectiveness in explaining the model’s decision-making process
+in a medical context. This analysis will emphasize the practical value of explainable AI techniques in understanding
+model behavior and supporting diagnostic decision-making.
+In this analysis, we utilized the Breast Cancer Wisconsin (Diagnostic) dataset to develop a machine learning model
+using only the mean features, reducing the dataset to 10 core attributes related to the mean measurements of cell nuclei.
+We applied the CatBoost classifier to this reduced feature set to build a model capable of distinguishing between benign
+and malignant tumors. The dataset, consisting of 569 observations, was split into training and testing sets, with 70%
+allocated for training and 30% for testing. The trained CatBoost model achieved an impressive accuracy of 96%,
+with an F1 score of 0.97, recall of 0.96, and precision of 0.98. The AUC-ROC curve 1a, with an AUC value of 1.00,
+demonstrated the model’s high effectiveness in class separation. Confusion matrix of the model also given in 1b
+(a) AUC-ROC Curve
+(b) Confusion Matrix
+Figure 1: Model Performance Metrics
+3.1.1
+Applying SHAP
+SHAP (SHapley Additive exPlanations) was applied to the CatBoost model to gain insights into the impact of each
+feature on the model’s predictions. The first visualization, a SHAP summary plot(Figure 2a, was generated to provide
+an overview of the distribution of SHAP values for each feature across all observations. Through this plot, features with
+7
+the highest influence were identified, as well as how different feature values (high or low) affected the model output.
+"Mean concave points," "mean texture," and "mean concavity" were highlighted as highly impactful features, with
+their SHAP values showing the most significant effect on model predictions. In examining the direction of the SHAP
+values, it was observed that most features, including "mean concave points," "mean texture," and "mean concavity,"
+were negatively correlated with the prediction of benign tumors, indicating that higher values for these features increase
+the likelihood of malignancy. In contrast, "mean fractal dimension" showed a positive correlation, where higher values
+were associated with a benign classification, suggesting that as fractal dimension increases, the likelihood of malignancy
+decreases.
+Additionally, a global SHAP values bar plot (Figure 2b) was created to represent the average magnitude of SHAP values
+for each feature, effectively summarizing each feature’s overall contribution to the model. In this plot, "mean concave
+points" was again shown to have the highest impact, followed by "mean texture" and "mean concavity," reinforcing
+their importance in predicting breast cancer diagnosis. Through these visualizations, a comprehensive understanding of
+feature importance was provided, allowing the model’s decision-making process to be explained in a transparent and
+interpretable manner.
+(a) Detailed SHAP Summary Plot
+(b) Global SHAP Summary Plot
+Figure 2: SHAP Analysis for Feature Importance
+3.1.2
+Applying DhondtXAI
+In this analysis, the DhondtXAI method was utilized to allocate a 600-seat parliamentary representation based on
+the importance of each feature in the CatBoost model. This approach provided an intuitive and interpretable way of
+visualizing feature importance by representing each feature as a political party that receives "seats" according to its
+influence on the model’s predictions. Through this resource allocation, no variables were excluded, and no alliances
+were set, ensuring that each feature competed independently for representation. A total of 100,000,000 votes were
+distributed across the features, with each seat representing a proportionate share of influence as determined by the
+D’Hondt method.
+The parliamentary representation view (Figure 3) visualizes this allocation, where "mean concave points" stands out
+with the highest representation, occupying 124 seats. This feature’s strong influence suggests it is crucial for the
+model’s decision-making process in predicting cancer diagnosis. Following closely, "mean texture" received 121
+seats, reinforcing its significance in classification. "Mean concavity," "mean smoothness," and "mean area" also held
+prominent positions with 70, 54, and 51 seats, respectively, indicating their substantial impact on model outcomes.
+The color-coded seating arrangement showed in bar plot (Figure 4) further highlights the correlation of each feature
+with the target outcome. Features marked in red, such as "mean texture," "mean concave points," and others, are
+negatively correlated, meaning higher values increase the likelihood of a malignant diagnosis. Conversely, "mean
+fractal dimension," represented in blue, is positively correlated, with higher values indicating a greater likelihood of
+benign classification. This contrast emphasizes the diverse roles features play within the model, showing not only their
+importance but also their directional impact.
+The parliamentary view offers a unique and accessible visualization, enabling a comparative understanding of feature
+importance akin to political representation. Through this metaphorical representation, stakeholders can intuitively
+interpret the model’s internal mechanics, seeing how each feature contributes to the overall predictive performance in
+a visually structured and interpretable format. This analysis, supported by both the seat allocation and color-coded
+8
+Figure 3: 600-Seat Parliamentary Representation
+correlations, provides a comprehensive and transparent insight into the model’s feature dependencies, aiding in a deeper
+understanding of the predictive factors in breast cancer classification.
+3.1.3
+Comparing SHAP and DhondtXAI
+In comparing SHAP and DhondtXAI, both methods provide insights into feature importance in the CatBoost model, yet
+from different interpretative angles. SHAP offers a direct calculation of each feature’s contribution to individual
+predictions, giving a global SHAP value that summarizes the average impact of each feature on model output.
+DhondtXAI, on the other hand, interprets feature importance through a resource allocation perspective, where each
+feature competes for “votes” that are converted into "MPs" in a parliamentary representation. This method not only
+ranks features by importance but also visualizes their influence as seats in parliament, enhancing interpretability.
+Table 1 illustrates the outputs from both approaches, showing the votes, MP allocation, and global SHAP values for each
+feature. A clear alignment is observed between the two methods, with highly influential features, such as "mean concave
+points" and "mean texture," ranking at the top in both SHAP and DhondtXAI. Furthermore, the correlation direction
+between features and model output matches across the methods, supporting the consistency of the interpretations. For
+example, "mean concave points," "mean texture," and "mean concavity" display high importance in both SHAP values
+and DhondtXAI MP counts, while features with lower SHAP values, like "mean fractal dimension," also receive fewer
+MPs.
+Table 1: D’Hondt XAI Vote Distribution, MPs in Parliament, and Global SHAP Values
+Feature
+Votes
+MPs in Parliament
+Global SHAP Value
+mean radius
+6,271,130
+37
+0.451963
+mean texture
+20,068,244
+121
+1.040490
+mean perimeter
+7,038,052
+42
+0.529402
+mean area
+8,600,885
+51
+0.713427
+mean smoothness
+8,942,949
+54
+0.345782
+mean compactness
+5,174,850
+31
+0.158138
+mean concavity
+11,584,731
+70
+0.820642
+mean concave points
+20,593,389
+124
+1.366414
+mean symmetry
+7,344,121
+44
+0.151690
+mean fractal dimension
+4,381,644
+26
+0.107822
+A statistical test confirms the relationship between these two methods. A Spearman correlation between MP counts
+from DhondtXAI and global SHAP values yields a correlation coefficient of 0.83 with a p-value of 0.0029, indicating a
+statistically significant positive correlation (p < 0.05). This high correlation supports the agreement between SHAP
+9
+Figure 4: Bar-plot Represantation of MPs with correlation info
+and DhondtXAI in capturing feature importance, demonstrating that both methods provide reliable, complementary
+perspectives. Through this comparison, it becomes evident that DhondtXAI and SHAP together can offer robust insights,
+with DhondtXAI providing an intuitive, resource-based view that complements SHAP’s precise attribution of feature
+effects.
+3.2
+Early Stage Diabetes Risk Prediction Dataset
+In this follow-up analysis, SHAP (SHapley Additive exPlanations) and DhondtXAI were applied to assess feature
+importance in an early-stage diabetes risk prediction model. The Early Stage Diabetes Risk Prediction dataset from
+the UCI Machine Learning Repository [14] was used, with binary and categorical variables converted into numerical
+formats to prepare the data for modeling. This dataset, which includes features such as age, gender, and symptoms
+like polyuria, polydipsia, and sudden weight loss, was utilized to predict diabetes risk. An XGBoost classifier was
+trained on this dataset, achieving a strong performance with an accuracy of 98%, F1 score of 0.99, recall of 0.97, and
+precision of 1.00. The AUC-ROC curve, with an AUC value of 1.00, demonstrated excellent separation between classes,
+as reflected in the AUC-ROC plot (Figure 5a), while the confusion matrix illustrated the model’s ability to accurately
+classify diabetes risk (Figure 5b).
+As in the previous model, SHAP and DhondtXAI were employed to explore feature importance and interpretability.
+SHAP was used to reveal the direct impact of each feature on the model’s predictions, providing a global view of feature
+contributions. In contrast, DhondtXAI was applied to allocate feature importance using a resource-distribution approach,
+translating the influence of each feature into a parliamentary representation. This comparative analysis emphasizes
+10
+(a) AUC-ROC Curve
+(b) Confusion Matrix
+Figure 5: Model Performance Metrics
+the unique insights offered by both methods; SHAP highlights individual feature contributions, while DhondtXAI
+offers an intuitive, resource-based perspective that complements SHAP’s detailed feature attribution. Through these
+explainability techniques, enhanced transparency is achieved, supporting interpretability and potentially aiding in
+clinical decision-making related to diabetes risk.
+3.2.1
+Applying SHAP and Alliance-Based Feature Grouping
+SHAP (SHapley Additive exPlanations) was applied to the XGBoost model to gain insights into the impact of each
+feature on the model’s predictions. A SHAP summary plot (Figure 6a) was generated to provide an overview of the
+distribution of SHAP values for each feature across all observations. Through this plot, the most influential features
+were identified, as well as how different feature values (high or low) affected the model output.
+In this analysis, "Polyuria", "Polydipsia", and "Gender" emerged as the features with the most significant impact on
+the predictions, as indicated by their SHAP values. It was observed that higher values of "Polyuria" and "Polydipsia"
+positively influenced the likelihood of a diabetes prediction, meaning that increased levels of these features are associated
+with a higher probability of diabetes. For "Gender" (coded as 1 for male and 0 for female), being male showed a positive
+association with the likelihood of a diabetes prediction, indicating that males have a higher probability of a positive
+diagnosis according to the model. Conversely, features such as "Obesity" and "weakness" exhibited a relatively lower
+impact and did not strongly affect the model’s prediction of diabetes.
+Examining the direction of the SHAP values revealed further insights. "Polyuria", "Polydipsia", and "Gender" (where
+being male is associated with a higher probability of diabetes) showed a positive impact, indicating that higher values
+of these features increase the likelihood of a positive diabetes prediction. On the other hand, certain features such
+as "visual blurring" and "Alopecia" exhibited a negative correlation with diabetes predictions, suggesting that higher
+values for these features decrease the likelihood of a positive diagnosis.
+Additionally, a global SHAP values bar plot (Figure 6b) was produced to represent the average magnitude of SHAP
+values for each feature, effectively summarizing the overall contribution of each feature to the model. This plot
+reinforced the importance of "Polyuria", "Polydipsia", and "Gender" in predicting diabetes, as these features were
+shown to have the highest impact. Through these visualizations, a comprehensive understanding of feature importance
+was provided, facilitating an interpretable and transparent explanation of the model’s decision-making process."
+In order to enhance interpretability of the model’s predictions, features were organized into alliances, which are groups
+representing related aspects of diabetes risk factors and symptoms. Each alliance was constructed based on the logical
+association of features, allowing us to view the model’s predictions through broader thematic categories rather than
+individual variables. SHAP (SHapley Additive exPlanations) values were then computed for each alliance by calculating
+the mean of the absolute SHAP values for the features within each group. This approach offers a summarized view of
+feature importance at the alliance level, making the model’s decision-making process more interpretable and cohesive.
+The following alliances were defined for this analysis:
+11
+(a) Detailed SHAP Summary Plot
+(b) Global SHAP Summary Plot
+Figure 6: SHAP Analysis for Feature Importance
+• Metabolic_Body: This alliance includes Age, Gender, and Obesity, representing demographic and phys-
+iological factors that are known to influence general health and body composition. Age and gender are
+fundamental demographic factors, while obesity is a significant risk factor for diabetes, often associated with
+metabolic health. Together, these features provide insights into the patient’s baseline health status.
+• Diabetes_Symptoms: Composed of Polyuria, Polydipsia, sudden weight loss, and Polyphagia,
+this alliance represents the classic symptoms of diabetes. These symptoms are commonly observed in diabetic
+patients due to the body’s inability to manage blood glucose levels effectively. By grouping these features, we
+capture a holistic view of symptomatic indicators of diabetes, making this alliance critical for prediction.
+• Skin_Infection: This alliance consists of Itching, Alopecia, Genital thrush, and delayed healing,
+reflecting common skin and infection-related issues seen in individuals with diabetes. High blood glucose
+levels can impair immune function and skin health, leading to slower healing and susceptibility to infections.
+Grouping these features highlights the indirect yet relevant effects of diabetes on skin and immune health.
+• Vision_Nervous: This alliance includes visual blurring, partial paresis, muscle stiffness, and
+weakness, representing neurological and vision-related issues that may result from prolonged diabetes.
+Diabetic neuropathy and other nervous system issues can arise from poorly managed blood glucose, leading
+to symptoms affecting muscle and nerve function as well as vision. This group encapsulates the broader
+neurological impacts of diabetes.
+• Psychological: This alliance, represented by Irritability, reflects psychological and behavioral symptoms
+associated with diabetes. Changes in mood and behavior are often reported among diabetic patients, and
+irritability can stem from blood glucose fluctuations, affecting mental well-being.
+After grouping these features into alliances, the SHAP values were calculated at the alliance level, as displayed in
+Figure 7. In Figure 7, the bar plot demonstrates the relative importance of each alliance in predicting diabetes,
+based on the mean SHAP values. Diabetes_Symptoms emerged as the most influential alliance, with a mean SHAP
+value of (1.2156). This high value suggests that the classic symptoms of diabetes have the strongest impact on the
+model’s predictions, aligning with the medical understanding of these symptoms as primary indicators of diabetes. The
+Psychological alliance, with a SHAP value of (0.6160), also contributed significantly, indicating that psychological
+factors, while secondary, have a notable association with diabetes predictions.
+The Metabolic_Body alliance, with a SHAP value of (0.5780), was also impactful, underscoring the importance of
+demographic and physiological factors such as age, gender, and obesity. In comparison, the Skin_Infection alliance
+(0.3778) and Vision_Nervous alliance (0.1995) showed lower SHAP values, suggesting that while these features are
+relevant, they have a relatively minor impact on the model’s predictions of diabetes.
+12
+Figure 7: Alliance-based feature importance in diabetes prediction, showing mean SHAP values for grouped features,
+with the highest impact from classic diabetes symptoms.
+By structuring the SHAP analysis around alliances, we obtain a clearer, more interpretable view of how groups of
+related features influence the model’s decision-making process. This approach not only highlights individual feature
+importance but also emphasizes the combined effect of feature groups, providing a broader understanding of diabetes
+prediction factors as they relate to the XGBoost model.
+3.2.2
+DhondtXAI and Alliance Feature
+In this analysis, the DhondtXAI method was applied to assess feature importance within a diabetes prediction model,
+focusing on the collective influence of logically grouped features, known as alliances. Initially, the process involved
+prompting the user to input any variables to exclude from the evaluation and to define alliances among the features.
+This setup enabled a tailored approach to feature grouping, where related features were combined into alliances to
+assess their aggregate impact on the model’s predictions.
+Once the alliances were defined, a total of 100 million votes and 600 parliamentary seats were allocated to simulate the
+D’Hondt method’s distribution mechanism. This method is particularly suited for this type of analysis, as it efficiently
+distributes influence across feature groups according to their relative importance, rather than focusing on individual
+features in isolation. The DhondtXAI method enhances interpretability by providing insights into how sets of related
+features collectively impact the model, aligning with a more holistic understanding of feature importance.
+The results of this analysis are visualized in Figure 8 and Figure 9. Figure 8 presents a 600-seat parliamentary
+representation of the model’s feature importance. In this circular plot, each alliance occupies a portion proportional to its
+relative importance in the model’s decision-making process. The Diabetes_Symptoms alliance, encompassing classic
+diabetes indicators such as Polyuria and Polydipsia, occupies the largest segment with 361 seats, underscoring
+its dominant influence on the model’s predictions. Following this, the Metabolic_Body alliance, which groups
+demographic and physiological factors like Age, Gender, and Obesity, was allocated 90 seats, reflecting its substantial,
+though secondary, role. Other alliances, including Skin_Infection with 86 seats and Vision_Nervous with 41 seats,
+represent relevant but smaller contributions. Lastly, the Psychological alliance, represented solely by Irritability,
+occupies 22 seats, highlighting its smaller but still notable impact.
+Figure 9 provides a bar plot illustrating the importance of each alliance, with color coding to indicate their correlation
+with the prediction outcome. In this plot, blue bars represent alliances with a positive correlation to the likelihood
+13
+Figure 8: Bar-plot Represantation of MPs with Alliances with correlation info
+of a positive diabetes diagnosis, indicating that higher values in these features increase the likelihood of a diabetes
+prediction. Conversely, red bars indicate a negative correlation, where higher feature values decrease the likelihood of a
+positive prediction. This color coding allows us to quickly discern not only the importance of each alliance but also the
+direction of their influence on the model’s predictions.
+Together, these visualizations in Figures 8 and 9 provide a transparent and interpretable view of how alliances of related
+features influence the model’s decisions. By aggregating votes and distributing seats based on the importance of each
+alliance, the DhondtXAI method translates feature relevance into a format that is easily interpretable. This approach not
+only highlights which alliances are most influential but also conveys the relative weight each alliance contributes to the
+model’s predictions, offering a nuanced and comprehensive understanding of the model’s behavior.
+3.2.3
+Comparing SHAP and DhondtXAI
+In comparing SHAP and DhondtXAI, both methods provide insights into feature importance in the CatBoost model, yet
+from different interpretative angles. SHAP offers a direct calculation of each feature’s contribution to individual
+predictions, giving a global SHAP value that summarizes the average impact of each feature on model output.
+DhondtXAI, on the other hand, interprets feature importance through a resource allocation perspective, where each
+feature or alliance competes for “votes” that are converted into "MPs" in a parliamentary representation. This method
+not only ranks features or alliances by importance but also visualizes their influence as seats in parliament, enhancing
+interpretability.
+Table 2 illustrates the outputs from both approaches, showing the votes, MP allocation, and global SHAP values for
+each alliance. A general alignment is observed between the two methods, with highly influential alliances, such as Dia-
+betes_Symptoms and Metabolic_Body, ranking at the top in both SHAP and DhondtXAI. The Diabetes_Symptoms
+alliance, for example, received the highest allocation with 361 MPs and had the highest SHAP value of 1.2156. Similarly,
+Metabolic_Body received 90 MPs and a corresponding SHAP value of 0.5780, underscoring its importance in the
+model’s predictions.
+Table 2: D’Hondt XAI Vote Distribution, MPs in Parliament, and Global SHAP Values
+Alliances
+Votes
+MPs in Parliament
+Global SHAP Value
+Metabolic_Body
+14,950,619
+90
+0.5780
+Diabetes_Symptoms
+60,007,287
+361
+1.2156
+Skin_Infection
+14,392,427
+86
+0.3778
+Vision_Nervous
+6,851,943
+41
+0.1995
+Psychological
+3,797,721
+22
+0.6160
+The results of a Spearman correlation analysis between the MP counts from DhondtXAI and global SHAP values
+yielded a correlation coefficient of 0.40 and a p-value of 0.505, suggesting a weak positive relationship that is not
+statistically significant (p > 0.05). While the correlation did not reach statistical significance, DhondtXAI offers a
+different perspective on feature importance, providing a more intuitive, alliance-based approach. In particular, the
+14
+Figure 9: Bar-plot Represantation of MPs with Alliances with correlation info
+parliamentary visualization created by DhondtXAI presents a straightforward and interpretable view of each alliance’s
+relative importance, making it potentially more accessible and effective for end users who may benefit from a tangible
+representation of feature influence.
+Through this comparison, it becomes evident that DhondtXAI and SHAP together can offer complementary insights.
+DhondtXAI provides an intuitive, resource-based perspective that complements SHAP’s precise attribution of feature
+effects. Despite the slight lack of significance in correlation, DhondtXAI’s parliamentary representation and alliance-
+based view of feature importance contribute meaningfully to understanding model behavior, especially in cases where
+grouped features or alliances are of interest.
+15
+3.2.4
+Threshold application over DhondtXAI
+The threshold application in DhondtXAI introduces a practical mechanism to filter out variables or alliances that have a
+minimal impact on the model, enabling a focused and refined interpretation of feature importance. In this analysis, a
+10% threshold was applied, meaning only alliances receiving at least 10% of the total votes would be eligible for seat
+allocation. By implementing this threshold, DhondtXAI ensures that only the most influential feature groups contribute
+to the final interpretation, effectively reducing noise and highlighting the primary variables that affect the model’s
+predictions.
+The results are summarized in Table 3, which illustrates the change in the number of MPs for each alliance after applying
+the threshold. This adjustment led to an increase in MPs for alliances like Metabolic_Body, Diabetes_Symptoms,
+and Skin_Infection, as their vote shares exceeded the threshold, securing 100, 404, and 96 MPs, respectively.
+However, alliances such as Vision_Nervous and Psychological failed to meet the threshold requirement, resulting
+in a reduction to zero MPs. This outcome highlights the relative insignificance of these alliances under the current
+model setup, suggesting that their influence on the predictive output is limited compared to the more impactful groups.
+Table 3: Change in MP Allocation After Applying a 10% Threshold
+Alliances
+Distributed MPs
+Distributed MPs with 10% Threshold
+Change in MPs Count
+Metabolic_Body
+90
+100
++10
+Diabetes_Symptoms
+361
+404
++43
+Skin_Infection
+86
+96
++10
+Vision_Nervous
+41
+0
+-41
+Psychological
+22
+0
+-22
+Figure 10 provides a visual representation of the final allocation of MPs after threshold application, with color-coding
+to indicate positive and negative correlations with the target outcome. Alliances marked in red indicate a negative
+correlation, meaning higher values increase the likelihood of a particular model outcome (e.g., disease risk), while
+those in blue represent a positive correlation, suggesting higher values decrease the likelihood of this outcome. This
+distinction further enhances the interpretative clarity provided by DhondtXAI, allowing stakeholders to understand both
+the influence and directional impact of each alliance on the model’s predictions.
+By setting a threshold, DhondtXAI enables users to concentrate on the core variables that drive the model’s decision-
+making process, streamlining the interpretation and allowing for a clearer understanding of the main factors at play.
+In this context, the threshold not only reduces complexity but also reinforces the interpretative clarity of the analysis,
+focusing on key alliances that have a substantial role in the model’s outcomes. Such a threshold mechanism is
+particularly valuable in applications where interpretability is essential, as it ensures that only the most relevant features
+are highlighted in the decision-making framework, thereby facilitating a more effective communication of the model’s
+insights to stakeholders.
+Through this threshold application, DhondtXAI aligns with Explainable AI’s goal of enhancing transparency and
+relevance in feature importance analysis. The allocation of MPs based on the threshold-adjusted vote distribution
+provides an accessible and intuitive way to interpret feature significance, allowing users to focus on the main predictive
+drivers without being overwhelmed by less impactful variables. This approach ultimately strengthens the utility of
+DhondtXAI as a tool for interpretable machine learning, particularly in high-stakes fields where clear and reliable
+insights are essential.
+4
+Discussion
+In analyzing feature importance using both SHAP and DhondtXAI, this study provides a unique perspective on the
+interpretability of machine learning models by adapting a democratic principle to the evaluation of feature contributions.
+The integration of a democratic method, like the D’Hondt system, within the realm of Explainable AI (XAI) offers a
+structured approach that not only highlights individual feature importance but also accounts for alliances and thresholds,
+which can represent feature groups or combined influences. This form of structured prioritization mirrors real-world
+electoral systems where representation is allocated proportionally, ensuring a balance of influence that could otherwise
+be dominated by a few features. This democratic allocation may help address potential biases in feature importance by
+emphasizing collective influence, a valuable addition to the realm of interpretable machine learning models.
+One of the strengths of using DhondtXAI in combination with traditional methods like SHAP lies in its ability to
+enhance interpretability in an intuitive, visually accessible way. DhondtXAI, by representing feature influence as
+16
+Figure 10: MP Distribution with 10% Threshold and Correlation Indicators (Red = Negative Correlation, Blue =
+Positive Correlation)
+parliamentary seats, allows users to perceive model behavior in a format that resonates with societal principles of fair
+representation. This not only aids experts but also provides a framework accessible to non-technical stakeholders,
+enabling them to grasp the relative contributions of feature groups in a machine learning model. The application of the
+D’Hondt method, therefore, democratizes model interpretation by giving each feature—or alliance of features—a voice
+in the decision-making process, much like electoral systems that seek to represent diverse societal groups.
+The addition of alliances and thresholds in DhondtXAI also brings a layer of flexibility that traditional feature importance
+techniques may lack. Alliances allow users to explore the collective impact of feature groups, which can be particularly
+useful in domains where interconnected variables operate together, such as healthcare or social sciences. In this
+context, alliances make it possible to assess how minor features, which may have limited standalone influence, can
+contribute meaningfully when considered as part of a group. This is akin to smaller political parties forming alliances
+17
+to gain parliamentary representation, thus making it a relevant analogy for interpreting complex machine learning
+models. Moreover, thresholds enable the exclusion of less influential features, focusing attention on those with the most
+significant impact and improving clarity for the end-user.
+A comparative analysis of SHAP and DhondtXAI results in this study further demonstrates the reliability and consistency
+of both methods in identifying influential features. Although the two approaches differ in their methodologies—SHAP
+providing a more granular, mathematical attribution of feature contributions, and DhondtXAI focusing on a proportional
+distribution model—the outcomes are largely consistent, especially for features with high importance. This consistency
+is statistically supported by a strong positive Spearman correlation, underscoring the complementary nature of the two
+methods. While SHAP excels in detailed, precise explanations of individual feature impact, DhondtXAI offers a more
+intuitive, aggregate view that aligns well with democratic principles of proportional representation.
+In considering the democratic nature of DhondtXAI, it also opens the door to ethical and socially responsible AI
+practices. The proportional representation framework encourages fairness and transparency, which are essential qualities
+for AI models used in sensitive fields like healthcare, finance, and criminal justice. By ensuring that each feature or
+group of features is adequately represented according to its influence, DhondtXAI mitigates the risk of feature bias, a
+common challenge in AI. This approach aligns with the broader goals of Ethical AI, fostering a system that values
+interpretability and inclusivity. In a time when AI systems are increasingly scrutinized for their transparency and
+accountability, incorporating democratic methods like DhondtXAI could enhance user trust and confidence in AI-driven
+decisions.
+However, while DhondtXAI offers notable advantages, it is essential to recognize that this method may not be universally
+applicable across all types of models and datasets. The effectiveness of DhondtXAI depends on the structure of the
+data and the relationships between features, as well as the context in which interpretability is sought. For instance,
+alliance-based groupings may be less relevant in domains where features are largely independent or lack clear interaction
+effects. Additionally, for models that require highly granular insights into individual predictions, traditional XAI
+methods such as SHAP may remain more appropriate due to their precise attributions. Nevertheless, in domains where
+group interactions are crucial, DhondtXAI provides an innovative, context-sensitive tool that complements traditional
+XAI techniques.
+In conclusion, the use of DhondtXAI to assess feature importance through a democratic lens exemplifies an inno-
+vative intersection of political theory and machine learning interpretability. By leveraging the D’Hondt method to
+proportionally allocate influence among features or alliances, DhondtXAI introduces a unique, accessible approach
+to understanding complex models. The democratic principles embedded in this approach provide a balanced view
+of feature influence, fostering transparency, fairness, and accountability in AI applications. This method not only
+complements traditional XAI techniques like SHAP but also opens new pathways for ethical AI practices, supporting a
+future where AI interpretability aligns closely with societal values. The DhondtXAI method could, therefore, serve
+as a valuable addition to the toolkit of Explainable AI, particularly in high-stakes environments where democratic
+representation of feature importance is essential for building trust and understanding.
+5
+Conclusion
+In this study, we explored the application of the D’Hondt method, a well-established proportional representation
+technique, to enhance interpretability in machine learning models through the DhondtXAI library. By adapting electoral
+principles such as seat allocation and alliance formation to feature importance in AI models, DhondtXAI provides a
+novel and intuitive framework for explaining complex machine learning outputs. This method allows features or groups
+of features, treated as "parties" or "alliances," to "compete" for "seats" or representational units based on their calculated
+importance, thereby offering a structured, transparent way of distributing interpretative emphasis across model features.
+DhondtXAI’s framework aligns with recent advancements in Explainable AI (XAI) by prioritizing features propor-
+tionally according to their contributions, which enhances user understanding and trust in the model’s decisions. The
+parliamentary view, with its seat allocation visualization, makes the often complex distribution of feature importance
+accessible, intuitive, and engaging for non-technical stakeholders. This alignment with democratic principles in AI
+design has significant potential to bridge the interpretability gap, making complex models not only more understandable
+but also more accountable.
+Furthermore, the threshold application feature in DhondtXAI allows for the exclusion of less impactful features,
+focusing interpretive resources on the most influential variables. This mirrors the electoral process of excluding minor
+parties that do not meet a specified threshold, thus streamlining decision-making by concentrating on the dominant
+players. This feature can be particularly valuable in domains such as healthcare, finance, and legal systems, where only
+the most impactful variables should influence critical decisions.
+18
+The concept of democratizing AI through DhondtXAI has broader implications for ethical AI development. By
+incorporating democratic principles like proportional representation and alliances, DhondtXAI lays a foundation
+for models that represent a fair distribution of feature importance, much like a democratic parliament reflects a fair
+distribution of societal preferences. This can lead to AI systems that are more aligned with human values, ensuring that
+each feature’s role in a model is represented in a balanced, interpretable, and fair manner.
+In practice, DhondtXAI can empower stakeholders to better understand and engage with AI-driven decisions, fostering
+transparency and accountability. The method’s potential for application across various sectors highlights its flexibility
+as a tool for democratizing AI interpretability. As AI continues to play a growing role in society, approaches like
+DhondtXAI represent a significant step toward creating AI systems that are not only technically robust but also socially
+responsible and transparent.
+References
+[1] Stephen Ansolabehere and Nathaniel Persily. Measuring election system performance. NYUJ Legis. & Pub. Pol’y,
+13:445, 2010.
+[2] Yusuf Eko Nahuddin. Pemilihan umum dalam sistem demokrasi perspektif sila ke-4 pancasila. Jurnal Cakrawala
+Hukum, 8(2), 2017.
+[3] Evren Güney. A mixed integer linear program for election campaign optimization under d’hondt rule. In
+Operations Research Proceedings 2017: Selected Papers of the Annual International Conference of the German
+Operations Research Society (GOR), Freie Universiät Berlin, Germany, September 6-8, 2017, pages 73–79.
+Springer, 2018.
+[4] Battal Yilmaz. An evaluation of d’hondt method with country barrage in terms of the principle of fairness in
+representation and government stability. The Spanish Review of Financial Economics, 19(105), 2013.
+[5] Philip B Stark, Vanessa Teague, and Aleksander Essex. Verifiable european elections: Risk-limiting audits for
+{D’Hondt} and its relatives. USENIX Journal of Election Technology and Systems (JETS), 1:18–39, 2014.
+[6] Daria Boratyn, Jarosław Flis, Wojciech Słomczy´nski, and Dariusz Stolicki. A formal model of the relationship
+between the number of parties and the district magnitude. arXiv preprint arXiv:1909.12036, 2019.
+[7] Jehad Amer Yasin. Multilayer perceptron artificial neural networks and tree models as multifactorial binary
+predictors of heart disease and failure. International Journal of Medical Students, pages S69–S69, 2023.
+[8] Lorena Oliveira Barbosa, Emanuel Arnoni Costa, Cristine Tagliapietra Schons, César Augusto Guimarães Finger,
+Veraldo Liesenberg, and Polyanna da Conceição Bispo. Individual tree basal area increment models for brazilian
+pine (araucaria angustifolia) using artificial neural networks. Forests, 13(7):1108, 2022.
+[9] Ruslan Sorano, Kazi Shah Nawaz Ripon, and Lars Vidar Magnusson. Evolutionary optimization of artificial neural
+networks and tree-based ensemble models for diagnosing deep vein thrombosis. Swedish Artificial Intelligence
+Society, pages 178–187, 2024.
+[10] Rudresh Dwivedi, Devam Dave, Het Naik, Smiti Singhal, Rana Omer, Pankesh Patel, Bin Qian, Zhenyu Wen,
+Tejal Shah, Graham Morgan, et al. Explainable ai (xai): Core ideas, techniques, and solutions. ACM Computing
+Surveys, 55(9):1–33, 2023.
+[11] Alessandro De Carlo, Enea Parimbelli, Nicola Melillo, and Giovanna Nicora. Introducing {\delta}-xai: a novel
+sensitivity-based method for local ai explanations. arXiv preprint arXiv:2407.18343, 2024.
+[12] Greta Warren, Ruth MJ Byrne, and Mark T Keane. Categorical and continuous features in counterfactual
+explanations of ai systems. In Proceedings of the 28th International Conference on Intelligent User Interfaces,
+pages 171–187, 2023.
+[13] William Wolberg, Olvi Mangasarian, Nick Street, and W. Street. Breast Cancer Wisconsin (Diagnostic). UCI
+Machine Learning Repository, 1993. DOI: https://doi.org/10.24432/C5DW2B.
+[14] Early
+Stage
+Diabetes
+Risk
+Prediction.
+UCI
+Machine
+Learning
+Repository,
+2020.
+DOI:
+https://doi.org/10.24432/C5VG8H.
+19

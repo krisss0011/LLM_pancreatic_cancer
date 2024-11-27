@@ -1,0 +1,813 @@
+Digital Twin Ecosystem for Oncology Clinical Operations
+Himanshu Pandey
+himanshu@risalabs.ai
+Akhil Amod
+akhil@risalabs.ai
+Shivang
+shivang@risalabs.ai
+Kshitij Jaggi
+kj@risalabs.ai
+Dr. Ruchi Garg
+docruchi@risalabs.ai
+Abheet Jain
+abheet@risalabs.ai
+Vinayak Tantia
+vinayak@risalabs.ai
+RISA Labs Inc.
+Abstract
+Artificial Intelligence (AI) and Large Language
+Models (LLMs) hold significant promise in
+revolutionizing healthcare, especially in clini-
+cal applications. Simultaneously, Digital Twin
+technology, which models and simulates com-
+plex systems, has gained traction in enhancing
+patient care. However, despite the advances
+in experimental clinical settings, the potential
+of AI and digital twins to streamline clinical
+operations remains largely untapped. This pa-
+per introduces a novel digital twin framework
+specifically designed to enhance oncology clin-
+ical operations. We propose the integration of
+multiple specialized digital twins, such as the
+Medical Necessity Twin, Care Navigator Twin,
+and Clinical History Twin, to enhance work-
+flow efficiency and personalize care for each
+patient based on their unique data. Further-
+more, by synthesizing multiple data sources
+and aligning them with the National Compre-
+hensive Cancer Network (NCCN) guidelines,
+we create a dynamic Cancer Care Path—a con-
+tinuously evolving knowledge base that enables
+these digital twins to provide precise, tailored
+clinical recommendations.
+1
+Introduction
+Delivering optimal oncology care presents several
+challenges that complicate decision-making for
+healthcare providers. Although Electronic Health
+Records (EHRs) contain extensive patient data,
+there is often no user-friendly tool to easily ac-
+cess a patient’s complete treatment and medica-
+tion history. This lack of accessibility makes it
+difficult for providers to review past treatments
+and make informed decisions about future care.
+Additionally, aligning a patient’s specific condi-
+tion with the National Comprehensive Cancer Net-
+work (NCCN) guidelines poses another challenge.
+While the guidelines provide evidence-based rec-
+ommendations, they must be personalized to each
+patient’s unique circumstances, such as their diag-
+nosis, treatment history, and underlying conditions.
+Furthermore, even after identifying the appropriate
+treatment, it must adhere to payer-specific Prior
+Authorization (PA) criteria, adding administrative
+complexity and potentially delaying care.
+Artificial Intelligence (AI) and Large Language
+Models (LLMs) have greatly impacted healthcare
+by enabling faster, more precise care across various
+applications, including surgery, medical consulta-
+tions, administrative workflows, treatment plan-
+ning, diagnosis, and more (Väänänen et al., 2021).
+A notable advancement in this field is the devel-
+opment of digital twin technology, which facili-
+tates personalized treatment simulations and predic-
+tive modeling, directly impacting patient-specific
+outcomes. The concept of a Digital Twin (DT)
+is well-established and refers to a dynamic, real-
+time digital counterpart of a physical object or
+system, with continuous data exchange and in-
+teraction—distinguishing it from a static digital
+model that lacks real-time data integration between
+the digital and physical systems (Kritzinger et al.,
+2018). Advances in AI and LLMs have signifi-
+cantly accelerated the adoption of digital twins in
+healthcare (Erol et al., 2020; Makarov et al., 2024).
+In this context, digital twins can model human or-
+gans, tissues, and cells, constantly updating with
+new data to predict future states. Moreover, preci-
+sion medicine harnesses these technologies to tailor
+disease treatment and prevention based on individ-
+ual genetic, environmental, and lifestyle factors,
+leading to the creation of virtual human models
+that enhance clinicians’ ability to understand, di-
+agnose, and treat diseases effectively (Sun et al.,
+2023).
+While digital twin technology has revolution-
+ized clinical applications in various medical spe-
+cialties, its potential in enhancing healthcare op-
+erations remains largely under-explored. Digital
+twins can greatly assist in care coordination by
+helping providers create tailored care plans based
+on individual conditions. For instance, a coordi-
+arXiv:2409.17650v1  [cs.AI]  26 Sep 2024
+nator digital twin could streamline communica-
+tion between stakeholders, such as laboratories
+and healthcare providers, ensuring seamless in-
+formation flow throughout the cancer care jour-
+ney. Building upon the foundation of digital twins,
+agent-based models integrate AI and LLMs to cre-
+ate sophisticated multi-agent systems (MAS) that
+can simulate complex interactions within health-
+care operations. These agent-based digital twins
+serve as digital counterparts for various assets in
+healthcare operations, enhancing accuracy and effi-
+ciency. Digital twins can model not only physiolog-
+ical elements like heart functions but also complex
+processes, such as clinical decision support and
+workflows like prior authorization (Croatti et al.,
+2020).
+This paper examines the concept of agent-based
+digital twins and their role in building LLM-based
+multi-agent systems for oncology operations. The
+objectives of this paper are as follows:
+• Define the digital twin framework, highlight-
+ing various capabilities and demonstrating its
+use cases in oncology.
+• Establish a Cancer Care Path as a knowledge
+base to support digital twins in making clinical
+recommendations.
+• Present a case study illustrating how different
+agents collaborate using various knowledge
+bases to streamline workflows.
+2
+Related Work
+AI and LLMs have revolutionized healthcare in re-
+cent years. Models like ChatGPT (OpenAI, 2024)
+have matured to a point where they can signifi-
+cantly influence clinical decision-making (Wójcik
+et al., 2023), enhancing the care provided by hu-
+man healthcare professionals and improving patient
+outcomes (Javaid et al., 2023). LLM-based frame-
+works enable the creation of healthcare agents that
+integrate data sources, knowledge bases, and an-
+alytical models into their LLM-driven solutions
+(Abbasian et al., 2024). Open-source models like
+LLaMA (Touvron et al., 2023) have demonstrated
+performance comparable to proprietary models,
+particularly in radiology examination questions
+(Adams et al., 2024). LLMs show potential in
+generating accurate, concise, and comprehensive
+responses to patient queries with minimal risk of
+harm (Yalamanchili et al., 2024). Recent advance-
+ments in prompting techniques, such as Chain of
+Thought (CoT) (Wei et al., 2022) and In-Context
+Learning (ICL) (Dong et al., 2022), enable mod-
+els to think step-by-step based on provided exam-
+ples, improving both transparency and answer qual-
+ity. Prompt optimization techniques (Wen et al.,
+2024; Pryzant et al., 2023) have further boosted
+performance on specialized tasks. Additionally,
+self-consistency (Wang et al., 2023) has increased
+the reliability of LLM-generated outputs.
+LLMs have made a significant impact on health-
+care, delivering remarkable results across various
+applications. They have been utilized in generat-
+ing discharge summaries (Ellershaw et al., 2024;
+Williams et al., 2024) and improving care coor-
+dination (Nashwan and Hani, 2023; Jung et al.,
+2024). Many studies have focused on EHR-based
+applications, including information extraction (Gu
+et al., 2024; Cui et al., 2024; Ahsan et al., 2023),
+question-answering (Yan et al., 2024), and text-to-
+SQL parsing (Lee et al., 2022). In oncology, LLMs
+have been extensively employed. Domain-specific
+LLM development has been explored, particularly
+for prostate cancer (Tariq et al., 2024), and they
+have been used for decision support in personal-
+ized oncology care (Benary et al., 2023). GPT-
+4 has demonstrated the ability to answer 85% of
+examination-style multiple-choice questions from
+the American Society of Oncology (Longwell et al.,
+2024). LLMs have been applied to breast cancer
+report generation (Naik et al., 2023) and to extract
+clinical information from radiology reports, such
+as breast ultrasounds (Chen et al., 2024) and lung
+lesions from medical images (Li et al., 2024). Addi-
+tionally, LLMs have been used to interpret ESMO1
+and NCCN guidelines for lung cancer (Iivanainen
+et al., 2024), as well as to generate clinical guid-
+ance trees for decision-making (Li et al., 2023).
+Digital Twins have been applied in oncology for
+predicting cancer progression and detecting metas-
+tases (Batch et al., 2022; Kim et al., 2022), as
+well as in cardiology, where they simulate heart
+functions to optimize treatments through predictive
+modeling (Corral-Acero et al., 2020). In neurology,
+digital twins assist in therapy planning and patient
+monitoring for conditions such as Alzheimer’s and
+epilepsy (Ashraf et al., 2024). AI and Digital Twins
+also contribute to fields like stress management
+(Kumi et al., 2024), nephrology (Miao et al., 2023),
+and autism care (Iannone and Giansanti, 2024), il-
+lustrating their impact across medical disciplines.
+1Refer: https://www.esmo.org/guidelines
+Figure 1: An illustration of the Digital Twin Framework highlighting its various capabilities and their integration
+with the knowledge base.
+3
+Methodology
+Before delving into the practical applications, it is
+essential to introduce two key concepts that form
+the foundation of our approach. First is the Cancer
+Care Path, which outlines the ideal sequence of
+care a patient should follow throughout their on-
+cology journey. This serves as the benchmark for
+optimal patient care. Second, is the Digital Twin
+framework, which defines the structure and func-
+tionality of our digital twins. It outlines the capabil-
+ities and inputs of each digital twin, as well as their
+interactions and collaboration with other agents to
+achieve desired outcomes. These principles col-
+lectively inform the design and implementation of
+digital twins in oncology care.
+3.1
+Cancer Care Path
+Cancer Care Path represents a comprehensive,
+structured approach of managing patient’s journey,
+right from cancer diagnosis through treatment and
+beyond. It is designed to act as a knowledge graph
+or decision tree that outlines the ideal flow of care
+for a cancer patient. This path incorporates all
+the critical stages, starting from the early detection
+of symptoms, to the diagnostic tests that can be
+prescribed, and further to the available treatment
+options and medications. Each step or entity within
+this path is represented as an object in itself, hav-
+ing its own guidelines that dictate when and how
+it should be used. These guidelines ensure that
+decision-making is streamlined, reducing variabil-
+ity in care while improving patient outcomes by
+adhering to best practices. For example, an entity
+within the care path may represent a specific diag-
+nostic test or treatment modality, and it comes with
+associated guidelines that help determine whether
+it is appropriate for a given patient. An agent, inter-
+acting with this path, can check whether all clinical
+criteria for proceeding to the next step are fulfilled.
+This system facilitates efficient, evidence-based
+care management.
+NCCN Guidelines form the foundation of Can-
+cer Care Path. These evidence-based, research-
+backed, recommendations provide authoritative
+guidance on the treatment, management, and pre-
+vention of cancer. Developed by the National Com-
+prehensive Cancer Network (NCCN), these guide-
+lines are widely regarded as gold standard in on-
+cology for clinical decision-making. Furthermore,
+Cancer Care Path has been developed in consulta-
+tion with expert oncologists to ensure that it inte-
+grates practical clinical insights alongside NCCN’s
+evidence-based recommendations. This compre-
+hensive approach ensures that patients receive opti-
+mal care at every stage of their cancer journey, in
+alignment with the latest advancements in cancer
+treatment.
+3.2
+Digital Twin Framework
+In our framework, a digital twin represents a vir-
+tual replica of a real-world entity or process within
+oncology care. This digital twin processes multiple
+input modalities—including text, audio, imaging,
+and structured medical data—and generates outputs
+based on predefined knowledge sources and embed-
+ded intelligence. These knowledge sources may in-
+clude the cancer care path, NCCN guidelines, and
+payer guidelines for treatment acceptance. The dig-
+ital twin’s functionality is driven by dynamically
+generated prompts, which are augmented through
+techniques like In-Context Learning (ICL) (Dong
+et al., 2022) and Chain-of-Thought (CoT) reason-
+ing (Wei et al., 2022). In-Context Learning adapts
+to input data by retrieving examples from a vec-
+tor database that stores relevant cases, utilizing
+Retrieval-Augmented Generation (RAG) (Lewis
+et al., 2020) to enhance decision-making processes.
+This retrieval ensures that the prompts remain con-
+textually relevant to each individual patient case,
+thereby improving the twin’s ability to generate
+accurate and patient-specific insights.
+Multimodal large language models (LLMs), po-
+tentially fine-tuned for oncology-specific tasks, pro-
+cess the dynamically generated prompts. By gen-
+erating explicit reasoning logs, the digital twin’s
+outputs are made interpretable to healthcare profes-
+sionals, offering insight into the rationale behind
+each prediction, recommendation, or simulation.
+To handle more complex tasks that go beyond the
+capabilities of large language models (LLMs), the
+digital twin ecosystem often integrates software en-
+gineering techniques. This integration transforms
+digital twins into sophisticated software programs
+that incorporate LLMs as core components, but
+extend their functionality through symbolic reason-
+ing and algorithmic processes. For instance, these
+engineering techniques can be used to simulate the
+likelihood of a prior authorization request being ap-
+proved by a payer, modeling not just probabilistic
+outcomes but also deterministic, rule-based logic
+such as payer-specific criteria.
+In addition to its core functionality, the digital
+twin is capable of agent collaboration, wherein it
+communicates and delegates tasks to other special-
+ized agents via function calling. This distributed
+architecture ensures that complex, multi-step work-
+flows are handled efficiently. For instance, if a
+twin requires verification of whether a treatment
+aligns with payer guidelines, it can delegate this
+task to another twin specifically designed to handle
+payer-related queries. This collaborative approach,
+as illustrated in Figure 3, allows the ecosystem to
+manage interconnected processes in parallel, ensur-
+ing scalability and reducing the cognitive load on
+any single digital twin. By leveraging both mul-
+timodal data inputs and state-of-the-art machine
+learning techniques, the digital twin framework in
+oncology care provides an advanced, adaptive, and
+explainable system capable of supporting complex
+clinical decision-making.
+4
+Twin Applications for Oncology
+The application of digital twins in oncology helps
+enhancing patient care by integrating advanced data
+analysis, clinical guidelines, and real-time decision
+support. Each twin is designed to handle specific
+aspects of the oncology care journey, from deter-
+mining the medical necessity of treatments to vi-
+sualizing a patient’s clinical history and guiding
+the overall care pathway. Together, these digital
+twins form a cohesive system that supports health-
+care providers in making informed, evidence-based
+decisions at every stage of a patient’s treatment as
+depicted in Figure 3.
+4.1
+Medical Necessity Twin
+The Medical Necessity Twin assists healthcare
+providers in determining the medical necessity of
+treatments and diagnostic tests in oncology care.
+By evaluating the patient’s clinical data—such as
+symptoms, diagnostic tests, and prior treatments in
+conjunction with established guidelines such as the
+NCCN guidelines and payer-specific criteria, this
+twin ensures that proposed treatments are appro-
+priate and justified based on the patient’s medical
+history and condition.
+Figure 2: Illustrating the various agents that comprise
+the Medical Necessity Twin, highlighting how they in-
+teract and address each item on the clinical guideline
+checklist.
+As demonstrated in previous research, the Medi-
+cal Necessity Twin achieves 86% accuracy in au-
+tomating the determination of medical necessity
+(Pandey et al., 2024). Additionally, the Medical
+Necessity Twin supports other twins by providing
+Figure 3: Different twins in Digital Twin ecosystem leveraging knowledge base and interacting with other twins for
+optimal efficiency
+real-time assessments of treatment eligibility. This
+ensures that any recommendations made by other
+twins meet the specific criteria required for payer
+approval, thereby improving the overall efficiency
+of patient care.
+4.2
+Clinical History Twin
+The Clinical History Twin is designed to visual-
+ize the complete timeline of a patient’s tests, treat-
+ments, and clinical interventions in a chronolog-
+ical format. By presenting this data in a clear,
+time-sequenced manner, this twin allows health-
+care providers to quickly and efficiently interpret
+the progression of care. This visualization aids in
+identifying patterns, understanding the effective-
+ness of previous treatments, and determining the
+next steps in care. Furthermore, it allows health-
+care professionals to spot gaps or delays in care
+and assess how well the treatment plan has been
+followed.
+To implement the Clinical History Twin, a com-
+bination of structured and unstructured data is
+extracted from the patient’s EHR. LLM-based
+agents are used to extract and convert key clinical
+events into structured formats identifying important
+events, such as treatment milestones or changes in a
+patient’s condition, and organizing them within the
+timeline. Additionally, these agents map relation-
+ships between various clinical events—such as link-
+ing a diagnosis to subsequent treatments—thereby
+ensuring the timeline offers a comprehensive, in-
+terconnected view of the patient’s care history. Ex-
+periments to validate this approach are ongoing,
+and the results with a detailed architecture will be
+discussed in a future paper.
+4.3
+Care Navigator Twin
+The Care Navigator Twin plays a pivotal role in
+guiding a patient’s oncology care journey by lever-
+aging the cancer care path. By analyzing patient-
+specific data, including their EHR and clinical his-
+tory, it predicts the next optimal steps in the care
+journey, ensuring that each decision follows the
+most current clinical guidelines. This involves iden-
+tifying which diagnostic tests, treatments, or med-
+ications should be recommended at each stage of
+the patient’s journey, based on both historical data
+and current best practices.
+The Care Navigator Twin can anticipate poten-
+tial challenges or deviations from the expected care
+path by comparing the ideal cancer care path with
+the patient’s actual care journey using input from
+the Clinical History Twin. Additionally, its pre-
+dictions are further strengthened by real-time data
+from the Medical Necessity Twin, ensuring that
+treatment decisions are both clinically sound and
+meet payer-specific guidelines, increasing the like-
+lihood of treatment approval.
+5
+Case Study: Ovarian Cancer Diagnosis
+We present a case study of ovarian cancer, demon-
+strating the use of the previously mentioned twins
+at various points in the care process. First, we con-
+structed the cancer care graph using a variety of
+guidelines and online resources, particularly adher-
+ing to NCCN guidelines. We then illustrate how
+Figure 4: A visual representation of Cancer Care Graph built for Ovarian Cancer Diagnosis
+and where different agents interact throughout the
+patient’s oncology care journey.
+5.1
+Cancer Care Graph
+Using the ovarian cancer NCCN guidelines2, we ex-
+tracted key diagnostic tests and tools employed in
+diagnosing ovarian cancer. Our focus is primarily
+on the initial symptoms and the diagnostic process
+that progresses to a clinical determination of ovar-
+ian cancer a hown in Figure 4. Similar graphs can
+be developed for treatment and follow-up monitor-
+ing, and can be extended to other cancer types.
+5.2
+Diagnosis Journey
+The journey begins when a patient presents to a
+primary care provider with symptoms such as bloat-
+ing, pelvic or abdominal pain, difficulty eating
+or feeling full quickly, or urinary symptoms. If
+the provider suspects ovarian cancer after review-
+ing the patient’s history and conducting a physical
+exam, the Care Navigator Agent suggests a series
+of preliminary tests based on NCCN guidelines.
+These tests typically include CA-125 or other tu-
+mor marker tests, a Complete Blood Count (CBC)
+with Liver Function Tests (LFT), and/or a transvagi-
+nal ultrasound. At this point, the Medical Neces-
+sity Twin identifies the patient’s payer from the
+2Refer: https://www.nccn.org/guidelines/category_1
+EHR and retrieves the payer’s guidelines for each
+recommended test. It then runs simulations to de-
+termine which of these tests are likely to be ap-
+proved based on the patient’s medical condition
+and the clinical examinations already performed
+by the provider. A sample CA-125 guideline from
+Anthem3 is shown in Figure 5. The Medical Ne-
+cessity Twin evaluates the relevant data, checks if
+the clinical guidelines are satisfied, and does the
+same for all recommended tests. The provider can
+then see, in real-time, which tests are eligible for
+recommendation based on the results provided by
+the Medical Necessity Twin.
+Based on the preliminary test results, the Care
+Navigator Twin interprets the cancer care graph and
+recommends the next steps, which could include
+an abdominal/pelvic CT scan. It also recommends
+that the CT scan be conducted with oral and IV
+contrast, following NCCN guidelines. Once again,
+the Medical Necessity Twin becomes active, identi-
+fies the correct CPT code for this test—74177 (CT
+of the abdomen and pelvis with contrast) versus
+74176 (without contrast)—retrieves the relevant
+guidelines, and determines if the test will be ap-
+proved.
+Similarly, for all other tests and treatments, as
+3Refer: https://www.anthem.com/dam/medpolicies/abc/
+active/guidelines/gl_pw_e002881.html
+Tumor Marker Cancer Antigen 125 (CA-125) Testing
+CA-125 testing is considered medically
+necessary for any of the following:
+1. Evaluation of a pelvic or abdominal mass in
+postmenopausal individuals; or
+2. Evaluation of a pelvic or abdominal mass
+suspicious for an epithelial ovarian cancer
+or other specified malignancy in
+premenopausal individuals; or
+3. Evaluation of an individual with signs or
+symptoms suggestive of ovarian cancer (for
+example, ascites, abdominal distention,
+bloating, pelvic/abdominal pain, difficulty
+eating or feeling full quickly, urinary
+symptoms);
+Figure 5: An example checklist from Anthem listing
+medical necessity conditions for CA-125 testing
+shown in Figure 3, the Medical Necessity Twin
+fetches the appropriate guidelines from both the
+payer and NCCN sources. Based on simulations,
+it provides results to the provider. During each
+encounter with the provider, the Clinical History
+Twin continues to accumulate data, offering in-
+sights from prior test results to both the provider
+and the Care Navigator Twin, thus enhancing the
+decision-making process.
+6
+Conclusion
+In this paper, we introduced a framework for cre-
+ating digital twins and demonstrated its use cases
+in oncology. Specifically, we presented three key
+twins: the Medical Necessity Twin, the Care Nav-
+igator Twin, and the Clinical History Twin. We
+showcased how these twins will collaborate to en-
+hance the efficiency of care delivery. Additionally,
+we introduced the concept of the Cancer Care Path,
+which supports the twins in knowledge retrieval
+tasks. Combined with NCCN guidelines and payer-
+specific criteria, this forms a comprehensive knowl-
+edge base that the twins can leverage. This led to
+the creation of a collaborative ecosystem, where
+the twins operate within and are enriched by their
+environment. Each agent generates logs through
+chain-of-thought prompting, contributing to the ex-
+plainability of the entire twin ecosystem. Finally,
+we presented a case study to illustrate the structure
+of the Cancer Care Path and how these agents work
+together to successfully navigate the care process
+for optimal outcomes in ovarian cancer.
+7
+Future Work
+We have introduced an ecosystem that supports
+clinical decision-making and operations in oncol-
+ogy. While we defined a set of preliminary twins
+within this ecosystem, there is potential to expand
+the number of twins to support a broader range of
+operations. Each twin will adhere to the digital
+twin framework, enabling seamless collaboration
+and interaction within the ecosystem. The frame-
+work itself can also evolve to incorporate additional
+features that streamline collaboration and workflow
+management. One such enhancement could be the
+implementation of self-verification mechanisms,
+such as self-consistency or fact-checking, to mini-
+mize hallucination and ensure high-quality results.
+Future twins could focus on tasks such as am-
+bient note-taking, patient education, self-care best
+practices, and patient scheduling, each of which
+would benefit from the collaborative ecosystem.
+The knowledge base, which the twins rely on, must
+also become more sophisticated. It should not only
+include clinical guidelines but also practical in-
+sights, providing comprehensive and exhaustive
+knowledge tailored to specific use cases. Further
+work is needed to improve how knowledge is orga-
+nized and presented to these agents, ensuring that
+the system produces accurate and reliable outputs.
+While Chain of Thought (CoT) prompting en-
+hances explainability at the agent level, there is a
+need for additional tools to provide transparency
+at the twin and ecosystem levels.
+This would
+help make the entire ecosystem more interpretable
+and trusted by the medical community, fostering
+broader acceptance of this technology in clinical
+settings.
+References
+Mahyar Abbasian, Iman Azimi, Amir M. Rahmani, and
+Ramesh Jain. 2024. Conversational health agents: A
+personalized llm-powered agent framework.
+Lisa C Adams, Daniel Truhn, Felix Busch, Felix
+Dorfner, Jawed Nawabi, Marcus R Makowski, and
+Keno K Bressem. 2024. Llama 3 challenges propri-
+etary state-of-the-art large language models in radiol-
+ogy board–style examination questions. Radiology,
+312(2):e241191.
+Hiba Ahsan, Denis Jered McInerney, Jisoo Kim, Christo-
+pher Potter, Geoffrey Young, Silvio Amir, and By-
+ron C Wallace. 2023.
+Retrieving evidence from
+ehrs with llms: Possibilities and challenges. arXiv
+preprint arXiv:2309.04550.
+Taniya Ashraf, Mohammad Ahsan Chisti, and Mo-
+hamed Mahees Raheem. 2024. Digital twin for neu-
+rology: An introduction to a new frontier in health-
+care. In 2024 21st Learning and Technology Confer-
+ence (L&T), pages 284–289.
+Karen E. Batch, Jianwei Yue, Alex Darcovich, Kaelan
+Lupton, Corinne C. Liu, David P. Woodlock, Moham-
+mad Ali K. El Amine, Pamela I. Causa-Andrieu, Lior
+Gazit, Gary H. Nguyen, Farhana Zulkernine, Richard
+K. G. Do, and Amber L. Simpson. 2022. Developing
+a cancer digital twin: Supervised metastases detec-
+tion from consecutive structured radiology reports.
+Frontiers in Artificial Intelligence, 5.
+Manuela Benary, Xing David Wang, Max Schmidt, Do-
+minik Soll, Georg Hilfenhaus, Mani Nassir, Christian
+Sigler, Maren Knödler, Ulrich Keller, Dieter Beule,
+Ulrich Keilholz, Ulf Leser, and Damian T. Rieke.
+2023. Leveraging Large Language Models for De-
+cision Support in Personalized Oncology.
+JAMA
+Network Open, 6(11):e2343689–e2343689.
+Yuxuan Chen, Haoyan Yang, Hengkai Pan, Fardeen
+Siddiqui,
+Antonio Verdone,
+Qingyang Zhang,
+Sumit Chopra, Chen Zhao, and Yiqiu Shen. 2024.
+Burextract-llama: An llm for clinical concept extrac-
+tion in breast ultrasound reports.
+Jorge Corral-Acero,
+Francesca Margara,
+Maciej
+Marciniak,
+Cristobal
+Rodero,
+Filip
+Loncaric,
+Yingjing Feng, Andrew Gilbert, Joao F Fernandes,
+Hassaan A Bukhari, Ali Wajdan, et al. 2020. The
+‘digital twin’to enable the vision of precision cardiol-
+ogy. European heart journal, 41(48):4556–4564.
+Angelo Croatti, Matteo Gabellini, Sara Montagna, and
+Alessandro Ricci. 2020. On the integration of agents
+and digital twins in healthcare. Journal of Medical
+Systems, 44(9):161.
+Hejie Cui, Xinyu Fang, Ran Xu, Xuan Kan, Joyce C Ho,
+and Carl Yang. 2024. Multimodal fusion of ehr in
+structures and semantics: Integrating clinical records
+and notes with hypergraph and llm. arXiv preprint
+arXiv:2403.08818.
+Qingxiu Dong, Lei Li, Damai Dai, Ce Zheng, Zhiy-
+ong Wu, Baobao Chang, Xu Sun, Jingjing Xu, and
+Zhifang Sui. 2022. A survey on in-context learning.
+arXiv preprint arXiv:2301.00234.
+Simon Ellershaw, Christopher Tomlinson, Oliver E
+Burton, Thomas Frost, John Gerrard Hanrahan,
+Danyal Zaman Khan, Hugo Layard Horsfall, Mol-
+lie Little, Evaleen Malgapo, Joachim Starup-Hansen,
+et al. 2024. Automated generation of hospital dis-
+charge summaries using clinical guidelines and large
+language models. In AAAI 2024 Spring Symposium
+on Clinical Foundation Models.
+Tolga Erol, Arif Furkan Mendi, and Dilara Do˘gan. 2020.
+The digital twin revolution in healthcare. In 2020
+4th International Symposium on Multidisciplinary
+Studies and Innovative Technologies (ISMSIT), pages
+1–7.
+Bowen Gu, Vivian Shao, Ziqian Liao, Valentina Car-
+ducci, Santiago Romero-Brufau, Jie Yang, and Rishi
+Desai. 2024. Scalable information extraction from
+free text electronic health records using large lan-
+guage models. medRxiv, pages 2024–08.
+Antonio Iannone and Daniele Giansanti. 2024. Break-
+ing barriers—the intersection of ai and assistive tech-
+nology in autism care: A narrative review. Journal
+of Personalized Medicine, 14(1):41.
+Sanna Iivanainen, Jarkko Lagus, Henri Viertolahti,
+Lauri Sippola, and Jussi Koivunen. 2024. Investi-
+gating large language model (llm) performance using
+in-context learning (icl) for interpretation of esmo
+and nccn guidelines for lung cancer. Journal of Clin-
+ical Oncology, 42(16_suppl):e13637–e13637.
+Mohd Javaid, Abid Haleem, and Ravi Pratap Singh.
+2023. Chatgpt for healthcare services: An emerging
+stage for an innovative perspective. BenchCouncil
+Transactions on Benchmarks, Standards and Evalua-
+tions, 3(1):100105.
+HyoJe Jung, Yunha Kim, Heejung Choi, Hyeram Seo,
+Minkyoung Kim, JiYe Han, Gaeun Kee, Seohyun
+Park, Soyoung Ko, Byeolhee Kim, et al. 2024. En-
+hancing clinical efficiency through llm: Discharge
+note generation for cardiac patients. arXiv preprint
+arXiv:2404.05144.
+Jae-Kwon Kim, Sun-Jung Lee, Sung-Hoo Hong, and In-
+Young Choi. 2022. Machine-learning-based digital
+twin system for predicting the progression of prostate
+cancer. Applied Sciences, 12(16):8156.
+Werner Kritzinger, Matthias Karner, Georg Traar, Jan
+Henjes, and Wilfried Sihn. 2018. Digital twin in man-
+ufacturing: A categorical literature review and classi-
+fication. Ifac-PapersOnline, 51(11):1016–1022.
+Sandra Kumi,
+Madhurima Ray,
+Sanskriti Walia,
+Richard K Lomotey, and Ralph Deters. 2024. Digital
+twins for stress management utilizing synthetic data.
+In 2024 IEEE World AI IoT Congress (AIIoT), pages
+329–335.
+Gyubok Lee, Hyeonji Hwang, Seongsu Bae, Yeonsu
+Kwon, Woncheol Shin, Seongjun Yang, Minjoon Seo,
+Jong-Yeup Kim, and Edward Choi. 2022. Ehrsql: A
+practical text-to-sql benchmark for electronic health
+records. In Advances in Neural Information Process-
+ing Systems, volume 35, pages 15589–15601. Curran
+Associates, Inc.
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, Sebastian Riedel, and Douwe Kiela. 2020.
+Retrieval-augmented generation for knowledge-
+intensive nlp tasks. In Advances in Neural Infor-
+mation Processing Systems, volume 33, pages 9459–
+9474. Curran Associates, Inc.
+Binbin Li, Tianxin Meng, Xiaoming Shi, Jie Zhai, and
+Tong Ruan. 2023. Meddm:llm-executable clinical
+guidance tree for clinical decision-making.
+Diya Li, Asim Kadav, Aijing Gao, Rui Li, and Richard
+Bourgon. 2024. Automated clinical data extraction
+with knowledge conditioned llms.
+Jack B. Longwell, Ian Hirsch, Fernando Binder,
+Galileo Arturo Gonzalez Conchas, Daniel Mau, Ray-
+mond Jang, Rahul G. Krishnan, and Robert C. Grant.
+2024. Performance of Large Language Models on
+Medical Oncology Examination Questions. JAMA
+Network Open, 7(6):e2417641–e2417641.
+Nikita Makarov, Maria Bordukova, Raul Rodriguez-
+Esteban, Fabian Schmich, and Michael P Menden.
+2024. Large language models forecast patient health
+trajectories enabling digital twins. medRxiv, pages
+2024–07.
+J. Miao, C. Thongprayoon, S. Suppadungsuk, O.A. Gar-
+cia Valencia, F. Qureshi, and W. Cheungpasitporn.
+2023. Innovating personalized nephrology care: Ex-
+ploring the potential utilization of chatgpt. Journal
+of Personalized Medicine, 13(12):1681.
+HR Naik, AD Prather, and GT Gurda. 2023.
+Syn-
+chronous bilateral breast cancer: A case report pi-
+loting and evaluating the implementation of the ai-
+powered large language model (llm) chatgpt. Cureus,
+15(4):e37587.
+Abdulqadir J Nashwan and Salam Bani Hani. 2023. En-
+hancing oncology nursing care planning for patients
+with cancer through harnessing large language mod-
+els. Asia-Pacific Journal of Oncology Nursing, 10(9).
+OpenAI. 2024. Gpt-4 technical report.
+Himanshu Gautam Pandey, Akhil Amod, and Shiv-
+ang Kumar. 2024. Advancing healthcare automa-
+tion: Multi-agent system for medical necessity jus-
+tification. In Proceedings of the 23rd Workshop on
+Biomedical Natural Language Processing, pages 39–
+49, Bangkok, Thailand. Association for Computa-
+tional Linguistics.
+Reid Pryzant, Dan Iter, Jerry Li, Yin Tat Lee, Chen-
+guang Zhu, and Michael Zeng. 2023. Automatic
+prompt optimization with "gradient descent" and
+beam search.
+Tianze Sun, Xiwang He, and Zhonghai Li. 2023. Digital
+twin in healthcare: Recent updates and challenges.
+Digital Health, 9:20552076221149651.
+Amara Tariq, Man Luo, Aisha Urooj, Avisha Das, Ji-
+woong Jeong, Shubham Trivedi, Bhavik Patel, and
+Imon Banerjee. 2024. Domain-specific llm devel-
+opment and evaluation – a case-study for prostate
+cancer. medRxiv.
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal
+Azhar, Aurelien Rodriguez, Armand Joulin, Edouard
+Grave, and Guillaume Lample. 2023. Llama: Open
+and efficient foundation language models.
+A Väänänen, K Haataja, K Vehviläinen-Julkunen, and
+P Toivanen. 2021.
+Ai in healthcare: A narrative
+review [version 2; peer review: 1 approved, 1 not
+approved]. F1000Research, 10:6.
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le,
+Ed Chi, Sharan Narang, Aakanksha Chowdhery, and
+Denny Zhou. 2023. Self-consistency improves chain
+of thought reasoning in language models.
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Bosma, brian ichter, Fei Xia, Ed Chi, Quoc V Le,
+and Denny Zhou. 2022. Chain-of-thought prompt-
+ing elicits reasoning in large language models. In
+Advances in Neural Information Processing Systems,
+volume 35, pages 24824–24837. Curran Associates,
+Inc.
+Yuxin Wen, Neel Jain, John Kirchenbauer, Micah Gold-
+blum, Jonas Geiping, and Tom Goldstein. 2024. Hard
+prompts made easy: Gradient-based discrete opti-
+mization for prompt tuning and discovery. Advances
+in Neural Information Processing Systems, 36.
+Christopher YK Williams, Jaskaran Bains, Tianyu Tang,
+Kishan Patel, Alexa N Lucas, Fiona Chen, Brenda Y
+Miao, Atul J Butte, and Aaron E Kornblith. 2024.
+Evaluating large language models for drafting emer-
+gency department discharge summaries. medRxiv,
+pages 2024–04.
+Simona Wójcik, Anna Rulkiewicz, Piotr Pruszczyk, Wo-
+jciech Lisik, Marcin Pobo˙zy, and Justyna Domienik-
+Karłowicz. 2023. Beyond chatgpt: What does gpt-4
+add to healthcare? the dawn of a new era. Cardiology
+journal, 30(6):1018–1025.
+Amulya Yalamanchili, Bishwambhar Sengupta, Joshua
+Song, Sara Lim, Tarita O. Thomas, Bharat B. Mittal,
+Mohamed E. Abazeed, and P. Troy Teo. 2024. Qual-
+ity of Large Language Model Responses to Radiation
+Oncology Patient Care Questions. JAMA Network
+Open, 7(4):e244630–e244630.
+Chao Yan, Henry H Ong, Monika E Grabowska,
+Matthew S Krantz, Wu-Chen Su, Alyson L Dick-
+son, Josh F Peterson, QiPing Feng, Dan M Roden,
+C Michael Stein, et al. 2024. Large language models
+facilitate the generation of electronic health record
+phenotyping algorithms. Journal of the American
+Medical Informatics Association, page ocae072.

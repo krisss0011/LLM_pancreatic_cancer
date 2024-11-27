@@ -1,0 +1,720 @@
+Note: This work has been submitted to the IEEE for possible publication. Copyright may be transferred without notice, after which this version
+may no longer be accessible.
+Memorized action chunking with Transformers: Imitation learning for
+vision-based tissue surface scanning
+Bochen Yang∗†1,2, Kaizhong Deng∗1,2, Christopher J Peters2, George Mylonas1,2, Daniel S. Elson1,2
+Abstract— Optical sensing technologies are emerging tech-
+nologies used in cancer surgeries to ensure the complete
+removal of cancerous tissue. While point-wise assessment has
+many potential applications, incorporating automated large-
+area scanning would enable holistic tissue sampling. However,
+such scanning tasks are challenging due to their long-horizon
+dependency and the requirement for fine-grained motion. To
+address these issues, we introduce Memorized Action Chunking
+with Transformers (MACT), an intuitive yet efficient imitation
+learning method for tissue surface scanning tasks. It utilises a
+sequence of past images as historical information to predict
+near-future action sequences. In addition, hybrid temporal-
+spatial positional embeddings were employed to facilitate
+learning. In various simulation settings, MACT demonstrated
+significant improvements in contour scanning and area scanning
+over the baseline model. In real-world testing, with only
+50 demonstration trajectories, MACT surpassed the baseline
+model by achieving a 60−80% success rate on all scanning
+tasks. Our findings suggest that MACT is a promising model
+for adaptive scanning in surgical settings.
+I. INTRODUCTION
+Completely resecting the tumour while preserving maxi-
+mal healthy tissue is one of the most critical objectives for
+surgery. This could lead to minimal local recurrence and
+prolong disease-free survival. To ensure optimal results, it
+is necessary to establish a negative circumferential resection
+margin to guarantee that no tumour is present at the edges
+of the removed specimen. Thus, there is a pressing demand
+for in vivo tissue assessment tools capable of characterising
+tissue in real time.
+Recently,
+several
+optical
+sensing
+technologies
+have
+emerged to facilitate real-time, non-invasive tissue classifica-
+tion, including Diffuse Reflectance Spectroscopy (DRS) [1],
+[2],
+Raman
+spectroscopy
+[3],
+and
+confocal
+endomi-
+croscopy [4]. These techniques rely on contact-based sensing
+instruments which require positioning of the sensing tip at
+the interested point to assess the tissue. They are usually
+designed as hand-held probes, allowing manual positioning
+at the target tissue by the operating surgeon. Their acquisition
+protocol usually requires steady contact to obtain high quality
+data.
+Despite their success on single-site sampling, their utility
+on large-area sampling in vivo has not been realised. For
+instance, manual scanning of the target area with the DRS
+∗Equal Contribution
+†Work done during master study
+1Hamlyn Centre for Robotic Surgery, Institute of Global Health Innova-
+tion, Imperial College London
+2Department
+of
+Surgery
+and
+Cancer,
+Imperial
+College
+London,
+Exhibition
+Road,
+London,
+SW7
+2AZ,
+UK.
+Corresponding
+email:
+daniel.elson@imperial.ac.uk
+probe may lead to high variance in the analysed results be-
+cause of the non-ergonomic control, unsteady movement, and
+variable contact pressure [5]. An automated robot-assisted
+scanning system could be beneficial in extrapolating to large-
+area tissue scanning scenarios. Specialised control algorithms
+and setups may achieve this, but they require extensive hand-
+crafted engineering and constrained working conditions [6].
+Imitation learning is capable to learn skills with minimal
+prior knowledge in achieving complex surgical scanning
+tasks. It can be used for learning the microscopic probe
+scanning preferences of experienced surgeons [7], learning
+ultrasound scanning for carotid artery examination from
+demonstrations [8], and learning drop-in gamma probe scan-
+ning in laparoscopic surgery [9]. However, these methods
+cannot be applied to this probe scanning task because of the
+format of the instrument readout and contact requirement.
+A more sophisticated neural network with a better state
+perception is a promising approach to solve this problem.
+Recent transformer-based models have demonstrated their
+capability to model long sequences. Action Chunking with
+Transformers (ACT) is an advanced Transformer-based ar-
+chitecture which integrates temporal ensemble mechanisms
+and employs a conditional VAE (CVAE) to model human
+demonstrations [10]. It outperforms previous imitation learn-
+ing algorithms in learning from a limited number of human
+demonstrations in daily life tasks. Despite its potential in
+learning complex tasks, it does not generalise well to this
+tissue scanning task as it lacks awareness of the overall
+trajectory.
+This study introduces a framework for robot-assisted au-
+tonomous optical instrument scanning for in vivo abdominal
+tissue. We chose an exemplar application of phantom liver
+scanning, although the findings could be applied to other
+surgical scenarios. The probe model that was scanned across
+the surface could be substituted by another probe-based tech-
+nique. This work has made the following main contributions:
+• The Memorized Action Chunking with Transformer
+(MACT) based on ACT [10] is proposed, which intro-
+duces a memory mechanism to utilise historical colour
+and depth images from the robot wrist camera to predict
+action sequence.
+• A hybrid temporal-spatial Positional Embedding is in-
+troduced to explicitly model the interrelations among
+transformer input tokens.
+• A robotic-assisted optical instrument scanning platform
+was built for human demonstration collection and au-
+tonomous scanning evaluation.
+• MACT was evaluated on both simulation and real-
+arXiv:2411.04050v1  [cs.RO]  6 Nov 2024
+world setups and shown to outperform the baseline ACT
+among all tested tasks.
+II. PROBLEM STATEMENT
+Task Description. Tissue scanning can be achieved from
+two perspectives: area scanning and contour scanning. Area
+scanning involves sampling all points within an enclosed
+boundary by moving the probe along a grid-like coverage
+path. Alternatively, contour scanning aims to track the bound-
+ary of a specified area of interest to sample the border
+status. Area scanning can identify the area of suspicious
+tissue, while contour scanning can assess whether a proposed
+resection margin is free of suspicious tissue. Both methods
+could contribute to ensuring a negative resection margin fol-
+lowing tumour removal. The area of interest can be manually
+indicated by the surgeon or derived from an external imaging
+system capable of detecting the suspicious area, such as near-
+infrared fluorescence imaging [11].
+Problem Statement. The aim was to build a policy which
+imitated human demonstrations of tissue scanning tasks. The
+policy was denoted as πθ(at|st), where the observed state
+s ∈S and generated action a ∈A was for a single step. The
+policy could include a sequence of historical observations
+st−T :t and predict a sequence of future actions at:t+K, thus
+denoted as πθ(at:t+K|st−T :t), where K represents the length
+of the predicted action sequence, and T denotes the length of
+the input image sequence. The trajectory τ generated from π
+passed a series of waypoints, {πθpi}M
+i=1. Specifically, in the
+scanning task, the target area A was uniformly sampled to
+generate discrete points {qj}N
+j=1 ∈A across either surface or
+its boundary. The objective was defined as finding an optimal
+policy which can cover more points in the target area, thus
+represented as:
+max
+πθ
+X
+A
+M
+X
+i=1
+N
+X
+j=1
+δ(∥pi −qj∥≤d)
+N
+× 100 −L
+(1)
+where δ(condition) returned 1 if conditions were satisfied,
+d was the acceptance distance for a successful reaching,
+and the L represented the distance penalty. In the proposed
+framework, imitation learning was used to train a policy πθ
+with collected human expert trajectories dataset τ ∗∈D∗,
+hence optimising its performance.
+III. METHOD
+This section describes the construction of the MACT
+framework by introducing its main components: the temporal
+ensemble in Sec. III-A, the memory-mechanism in Sec. III-B,
+hybrid temporal-spatial positional embeddings in Sec. III-C
+and other details of network architecture in Sec. III-D.
+A. Temporal Ensemble
+A temporal ensemble approach was proposed to mitigate
+compounding errors [10]. For a sequence of N future action
+{ai|i = 0, ..., N −1}, the temporal ensemble is a weighted
+sum of actions defined as: Aagg = PN−1
+i=0 wi · ai. These
+weights are calculated as wi =
+exp(−α·i)
+PN−1
+j=0 exp(−α·j), indexed
+future actions. α is a constant that determines the rate of
+exponential decay. Despite its effectiveness for many real-
+world manipulation tasks, it still faces challenges with certain
+tasks, as discussed in Sec. VI.
+B. T-step Memory-enhanced ACT
+MACT aims to generate decisions informed by both
+past context and the future objective. This was achieved
+by predicting a sequence of actions over a future win-
+dow K and analyzing the historical context of states
+st−T :t, which extended back T time steps from the cur-
+rent state. MACT policy πθ(at:t+K|st−T :t) is distinct from
+ACT policy πθ(at:t+K|st) [10], open-loop diffusion policy
+πθ(at:t+K|st), or closed-loop policy with T-frame stacking
+πθ(at|st−T :t). It integrates a broader temporal perspective
+which can enhance the decision-making process.
+In practice, a buffer was created to store camera images
+from the last T steps during both the training and inference
+phases. If a historical image is missing, the earliest available
+image within the buffer is used as a form of padding to
+ensure input sequence integrity.
+C. Hybrid Temporal and Spatial Positional Embeddings
+Transformer architectures are permutation-invariant and
+require additional information to represent the relative po-
+sitional information in a token sequence. Temporal encoding
+injects the time sequence dependencies for visual observa-
+tions while spatial encoding enhances the spatial information
+of feature maps. In sequences of consecutively captured
+images within a short timeframe, extracted feature maps
+often exhibit high similarity, which makes it challenging to
+model their dependencies. To address this challenge, a mech-
+anism enabling the model to discern temporal sequences and
+frame order was introduced via the integration of sinusoidal
+positional encoding embedded into image features, which
+was essential for the accurate analysis of tissue and end-
+effector movements. This approach not only assisted the
+transformer encoder in identifying the temporal sequences
+of tokens for each frame but also facilitated the convergence
+of the transformer model.
+Spatial positional embeddings assign a unique vector with
+a dimensionality of d to every image spatial dimension
+across the height and width of the feature map (d×15×15)
+as described in [12]. The Temporal Positional Embedding
+matrix [13] TT ×d was defined in Eq. 2 where T represents
+the input of the furthest past image and d is set to 512, with
+t denoting the time from 0 to T and i being the dimension
+ranging 0 to d.
+T(t,2i) = sin
+ t
+100002i/d
+
+T(t,2i+1) = cos
+ t
+100002i/d
+
+(2)
+To integrate these two types of Positional Embeddings
+(PosEmb), as illustrated in Fig. 1 (top right corner), the pro-
+cess initiated by encoding the width and height of the current
+feature map with d×H×W spatial embeddings, which were
+then added to the feature map. Next, the temporal PosEmb
+for the corresponding time step was generated and reshaped
+to match the shape of spatial PosEmb before addition. This
+Fig. 1.
+Architecture of Memorized Action Chunk with Transformers (MACT). MACT buffered the past T RGB and depth images from a mount-on
+camera for a ResNet-18 encoder to extract high-dimensional visual features. A Spatial PosEmb which was identical along the time horizon axis and
+Temporal PosEmb which was identical on the spatial axis were added to visual features to form image tokens. The transformer encoder took image tokens,
+current position, and CVAE style variables to produce encoded tokens to feed into a transformer decoder to predict the next K action sequences. Temporal
+ensemble and action chunking further smoothed the predicted action sequence
+process was repeated T times, resulting in an output of
+d×15×15×T. Finally, the dimensions for width and height
+were flattened to produce a shape of d× 225× T. A matrix
+additive was adopted similarly to [14], utilising the additive
+nature of sine and cosine functions. This technique helped the
+learned position embeddings at the input of the transformer
+decoder to recover encoded temporal-spatial relationships,
+thereby enhancing the model’s ability to interpret and utilise
+the integrated positional information effectively.
+D. Network Architecture: MACT with CVAE
+Previous research has demonstrated the importance of
+training with CVAE to model the high-dimensional varia-
+tion in human operations [10]. The same implementation
+was adopted here. The input to the transformer encoder
+consisted of multiple tokens with a dimensionality of 512.
+These included the processed visual tokens of the past T
+images, along with the current Cartesian position and the
+style variable. The transformer decoder employed cross-
+attention on the output of the encoder to predict action token
+sequence in K × 512. These tokens were then mapped as
+target Cartesian positions sequence for the next K steps.
+Additionally, a temporal ensemble module further smoothed
+the action sequences.
+MACT used a single ResNet18 backbone sequentially
+tokenising the past T images. It could be further extend to
+incorporate depth images or inputs from additional cameras.
+These images were resized and duplicated on its channel to
+match the input format for adapting to another ResNet18
+visual tokenizer. Despite the diversity of camera inputs, a
+uniform spatial-temporal PosEmb was applied across back-
+bones to ensure consistent temporal and spatial information
+preservation without differentiating camera views.
+IV. EXPERIMENTS
+A. Simulation environment and path generator
+Pybullet served as the physics simulator for executing
+robot movements and gathering state information, including
+RGB images, depth images, positions, and tool-tissue pene-
+tration distances. Five tissue models with unique shapes and
+textures were reconstructed from stereo images to validate
+the generalization capacity.
+To create an example 3D target area surface on the tissue,
+a 2D irregular region (random shape and size) was initially
+defined on an image from the wrist camera, simulating
+a user-created suspicious region of interest, or potentially
+automatically generated from a visual information or near-
+infrared fluorescence image as described in Sec. IV-B.
+3D positions and normal vectors were obtained by ray-
+casting the sampled points from the 2D region onto the
+tissue. Subsequently, the surface was reconstructed through
+Delaunay triangulation and dynamically imported into the
+simulation environment upon each reset. Additionally, six
+image augmentations were applied, including adjustments in
+brightness, shearing, blurring, colour shifting, random noise,
+and regional dropout.
+In the simulation, three tasks were assessed: single tissue
+contour scanning, single tissue raster scanning, and multiple
+tissue raster scanning. 50 demonstration trajectories were
+collected for each task. Contour scanning involved the robot
+tracing the boundary of the targeted area, examined on a
+single tissue model. The waypoints of target trajectory were
+mapped from projected points of the contour. Raster scanning
+entailed the robot performing a raster scan across the area
+of interest. It was evaluated on both single and all five tissue
+models to assess its generalizability. The raster scanning was
+achieved by moving the end-effector from the upper to lower
+edge of the target surface in parallel lines, slightly offset and
+bounded by the extracted 3D contours to account for the
+topography of the surface.
+B. Real-world setting and data collection
+Fig. 2.
+Real-world scanning task environment with randomly-cut green
+paper on an abdominal organ phantom. The wrist camera was mounted onto
+the KUKA with a 3D-printed bracket with a static third-person camera for
+monitoring.
+The real-world setting is shown in Fig. 2. This research
+utilised a KUKA LBR iiwa14 R820 robot arm. Its motion
+control and ROS interface were supported by iiwa stack [15].
+The end-effector incorporated a probe model and a wrist
+camera, with a mounting bracket to attach to the media flange
+of the KUKA robot. The probe model was a 3D-printed black
+cylinder (0.5 cm diameter, 10 cm length) approximating the
+geometry of a clinically approved DRS probe [1] but with
+a relatively soft tip (2 cm) for safety reasons. An Intel
+RealSense D405 camera was configured as a wrist camera
+mounted on the end-effector to capture RGB and depth
+information within a 7−30 cm range, capturing images with
+dimensions of 480 ×480 ×3 (RGB) and 480 ×480 (depth)
+after cropping. The mounting bracket’s S-shaped design was
+ergonomically crafted to facilitate manual guidance of the
+robot arm.
+A silicone abdominal phantom model was placed on blue
+surgical drapes. A translatable platform was placed under
+the drapes to allow motion of the phantom. Target scanning
+surfaces were simulated using 10 uniquely cut pieces of
+green paper, representing either a visual target for scanning.
+These were randomly overlaid on the tissue each time. Plastic
+’cling film’ was used to secure the paper on the surface,
+minimising displacement during interactions.
+The human demonstrations were recorded with manual
+robot guidance. The KUKA robot was configured with a
+fixed end-effector orientation, allowing transitional move-
+ment only. After 30 minutes of training, operators dragged
+the S-shaped bracket, maintaining contact of the end effector
+with the 3D surface. Data collection involved randomizing
+the initial 3D position of the end-effector and the phantom’s
+planar positions to ensure variability.
+The study investigated both contour and raster scanning
+tasks under static and dynamic conditions, resulting in four
+distinct tasks. Initially, 30 trajectories were collected for each
+task with a fixed platform position. To simulate dynamic
+environments, the planar position of tissue was altered by
+suddenly rotating the platform beneath it. For this setup, 20
+new trajectories were collected, combined with 30 trajecto-
+ries from the fixed environment, yielding a total of 50 for
+each dynamic task. This aimed to disrupt the current raster
+scanning process, prompting the MACT model to adjust to
+the dynamic environment. The collection frequency was set
+at 4 Hz, with each contour and raster scanning trajectory
+lasting for 100 and 150 steps correspondingly under both
+static and dynamic scenarios.
+C. Training setup
+The training of MACT utilised similar paradigm as ACT
+with L1 reconstruction loss and ten times of KL divergence
+loss. ACT has been implemented as the baseline model to
+compare. It can be viewed as a special case for MACT
+with T =1. For simulations, demonstration trajectories were
+modulated to a 5 mm step size. The camera resolution was
+set to 240×240 with T =30 to include past steps. The training
+was carried out on RTX 4090 (24G) with a batch size of 6 for
+3000 epochs. For real-world tasks, demonstration trajectories
+were sampled at 4 FPS with 480×480 resolution images. It
+was trained for 5000 epochs with batch size of 2.
+D. Testing metrics
+In simulations, we evaluated scanning performance using a
+metric that combines the surface coverage ratio and distance
+penalty. It is expressed as Eq. 1. The first term is the ratio
+of points scanned within a d = 5 mm working radius to
+all sampled points. The second term is derived as L =
+0.5×e where e is the penetrating or deviating distance error
+measured in millimetres.
+In the real-world testing, the success rate was adopted to
+assess model performance. Success was defined as main-
+taining proper contact conditions and following the expected
+scanning trajectory without significant deviation. Task suc-
+cess hinged on three qualitative criteria: the alignment of
+the sweeping movement amplitude with the area contour,
+the coverage rate of this area, and avoiding excessive com-
+pression of the tissue or loss of contact with the scanned
+surface (< 1 cm). The success rate can effectively represent
+the overall performance of each model, as there is often a
+distinguishable difference in their behaviour.
+Fig. 3.
+Real-world experimental results of MACT for different tasks (left). The phantom model was fixed in tasks A & C, while it included a sudden
+planar translation during tasks B & D. For static tasks, each frame represents a single location for probe surface sampling. For dynamic tasks, each frame
+represents a section trajectory after a planner shift of the platform. Simulated experimental results of MACT for tasks E & F (right). # stands for different
+cases and the horizontal axis represents the timeline
+V. RESULTS
+Scanning performance for simulated tasks is shown in
+Table I. An example of scanning in simulation is shown in
+Fig. 3. A scripted expert leveraging state information and
+geometry of the surface model in the simulator worked as
+a reference for the best available agent. Compared to the
+baseline model ACT, the proposed MACT with the memory
+mechanism outperformed the baseline in all settings among
+all tasks. For the contour scanning task, performance was
+not sensitive to T but it relied on the presence of depth
+information, which could improve it from 71.5 to 85.9 with
+only 10% below scripted expert. For the raster scanning task,
+it is notable that the single tissue scanning required more past
+information, T =30, for optimal performance. With both the
+historical information and depth images, the generalisation
+capability of scanning on 5 tissues could be improved up
+to 66.3. To balance the performance and computation cost,
+MACT⋆with T = 15 and K = 5 was used as the standard
+configuration to test in the real world tasks.
+TABLE I
+SCANNING PERFORMANCE FOR SIMULATED TASKS
+Methods
+T
+K
+Depth
+TE
+Contour
+Raster
+1 tissue
+1 tissue
+5 tissues
+Script
+-
+-
+-
+-
+95.9
+88.1
+85.2
+ACT
+1
+5
+✗
+✗
+53.1
+28.1
+15.6
+MACT
+5
+5
+✗
+✗
+71.2
+33.1
+25.9
+MACT⋆
+15
+5
+✗
+✗
+71.5
+46.8
+58.5
+MACT
+30
+5
+✗
+✗
+69.7
+62.9
+52.3
+MACT
+15
+5
+✓
+✗
+85.9
+55.6
+60.5
+MACT
+15
+5
+✓
+✓
+72.6
+41.7
+66.3
+MACT
+15
+30
+✓
+✓
+80.6
+56.4
+57.6
+Success rates for different real-world tasks are shown in
+Table II. Fig. 3 shows some successful examples of MACT
+performing scanning tasks, with their tool-tip trajectories
+plotted in the image view. With K =5, ACT performs poorly
+across all tasks, especially in raster scanning tasks. Extending
+the prediction to K = 20 leads to improved ACT perfor-
+mance, attributed to the network’s capacity to imitate longer
+action sequences that capture the pattern of raster scanning
+during training. In contrast, our proposed MACT method
+outperforms baselines on all tasks. Besides, the integration
+of a depth camera and predicting short action sequences
+could be beneficial in dynamic scanning tasks. This was
+because the sudden shifts or rotations could prohibit the 3D
+perception from history and the agent need to rely on instant
+geometrical information to recover from the disturbance.
+TABLE II
+SUCCESS RATE FOR REAL-WORLD TASKS
+Methods
+T
+K
+Depth
+Contour
+Raster
+Static
+Dynamic
+Static
+Dynamic
+ACT
+1
+5
+✗
+2/5
+0/5
+0/10
+0/10
+ACT
+1
+20
+✗
+3/5
+1/5
+5/10
+1/10
+MACT⋆
+15
+5
+✗
+3/5
+2/5
+8/10
+4/10
+MACT
+15
+5
+✓
+4/5
+3/5
+8/10
+6/10
+Some previous trials struggled with raster scanning, often
+causing unintended tissue deformation and straying from the
+designated green area early on. For instance, as illustrated in
+Fig. 4(a) and (b), two common failure cases were observed
+when employing the ACT with T = 1 and K = 5. The first
+case tended to move in the right direction toward the end
+but without the necessary sweeping to cover the area. The
+second case failed to approach the contour at the beginning
+resulting in an oscillating motion near the initial point. The
+MACT can successfully avoid these two scenarios.
+The effectiveness of the hybrid temporal-spatial PosEmb
+was validated through the following ablation study using
+MACT⋆. During training, the MACT⋆, which included hy-
+brid temporal-spatial PosEmb, achieved a reduction in train-
+ing loss from 0.27 to 0.16, compared to the MACT without it.
+It improved performance across all three simulation tasks by
+1.4%, 13.6%, and 9.1%. In the real world testing, although
+there was no significant improvement in contour scanning,
+it increased the raster scanning success rate from 70% and
+30% to 80% and 40%.
+VI. DISCUSSION
+Temporal Ensemble. In the experiments, it was discerned
+that temporal ensemble could inadvertently lead to dimin-
+ished performance outcomes in scanning tasks. As illustrated
+in Fig. 4 (B), applying temporal ensemble could smooth
+out the necessary lateral sweeping when K = 50. However,
+predicting long sequence is not always feasible, which com-
+plicates the application of ACT in surface scanning tasks.
+Fig. 4.
+Common ACT failure cases in a raster scanning with T = 1,
+K = 5 in a) and b). Examples ACT performance of w/o and w/ temporal
+ensemble with K = 50 in c) and d).
+Effectiveness of T and K. Balancing the parameters of
+past steps T and future steps K of MACT is crucial. From
+our results, the historical information is crucial in tissue
+surface scanning tasks. A moderate value of T = 15 yields
+a balance between its performance and training cost. The
+impact of K is similar as described in [10] in general.
+However, MACT could utilise history to lead to robust
+and smooth motion. This provides a chance to use smaller
+K to closely align with closed-loop control, which shows
+robustness in a dynamic environment. However, the setup
+could be adjusted to optimise its performance depending on
+the characteristics of diverse tasks when MACT is used in
+real clinical environments.
+Future Work. The system could be tested with a more
+clinically realistic approach to identify the region of interest
+by using intrinsic or extrinsic fluorescence or other imaging
+systems [11] to replace the green marked in the experiment.
+Despite the advantage of this generalised method, the imple-
+mentation of classical specialised methods could be helpful
+to validate its performance. The use of a real optical probe
+in further evaluation will allow for the investigation of its
+clinical value.
+VII. CONCLUSIONS
+In this work, we proposed a transformer-based imitation
+learning method, MACT, for robot-assisted tissue scanning
+for cancer margin identification. MACT could understand
+end-effector movement and environmental changes by lever-
+aging historical RGBD visual information to predict a
+short action sequence. A hybrid temporal-spatial PosEmb
+integrated into MACT could improve its understanding of
+historical information. Through experiments in simulation
+and real-world settings, MACT successfully achieved au-
+tonomous contour and raster scanning tasks on static or
+dynamic tissues. Although the experiment was on a liver
+phantom, it could potentially be applied to different types of
+tissues and extrapolated to other probe-based measurement
+systems.
+ACKNOWLEDGMENTS
+This paper is independent research funded by the National
+Institute for Health Research (NIHR) Imperial Biomedical
+Research Centre (BRC), the Cancer Research UK (CRUK)
+Imperial Centre and the Wellcome Trust ITPA MedTechOne
+awards.
+REFERENCES
+[1] S. Nazarian, I. Gkouzionis, M. Kawka, M. Jamroziak, J. Lloyd,
+A. Darzi, N. Patel, D. S. Elson, and C. J. Peters, “Real-time tracking
+and classification of tumor and nontumor tissue in upper gastrointesti-
+nal cancers using diffuse reflectance spectroscopy for resection margin
+assessment,” JAMA Surgery, vol. 157, no. 11, p. e223899, Nov. 2022.
+[2] S. Nazarian, I. Gkouzionis, J. Murphy, A. Darzi, N. Patel, C. J. Peters,
+and D. S. Elson, “Real-time classification of tumour and non-tumour
+tissue in colorectal cancer using diffuse reflectance spectroscopy and
+neural networks to aid margin assessment,” International Journal of
+Surgery, Jan. 2024.
+[3] I. Pence and A. Mahadevan-Jansen, “Clinical instrumentation and ap-
+plications of raman spectroscopy,” Chemical Society Reviews, vol. 45,
+no. 7, pp. 1958–1979, 2016.
+[4] H. Neumann, R. Kiesslich, M. B. Wallace, and M. F. Neurath,
+“Confocal laser endomicroscopy: Technical advances and clinical
+applications,” Gastroenterology, vol. 139, no. 2, pp. 388–392.e2, Aug.
+2010.
+[5] B. Cugmas, M. Bregar, M. B¨urmen, F. Pernuˇs, and B. Likar, “Impact of
+contact pressure–induced spectral changes on soft-tissue classification
+in diffuse reflectance spectroscopy: problems and solutions,” Journal
+of biomedical optics, vol. 19, no. 3, pp. 037 002–037 002, 2014.
+[6] G. Thomas, T.-Q. Nguyen, I. J. Pence, B. Caldwell, M. E. O’Connor,
+J. Giltnane, M. E. Sanders, A. Grau, I. Meszoely, M. Hooks, M. C. Kel-
+ley, and A. Mahadevan-Jansen, “Evaluating feasibility of an automated
+3-dimensional scanner using raman spectroscopy for intraoperative
+breast margin assessment,” Scientific Reports, vol. 7, no. 1, Oct. 2017.
+[7] P. Giataganas, V. Vitiello, V. Simaiaki, E. Lopez, and G.-Z. Yang,
+“Cooperative in situ microscopic scanning and simultaneous tissue
+surface reconstruction using a compliant robotic manipulator,” in 2013
+IEEE International Conference on Robotics and Automation.
+IEEE,
+May 2013.
+[8] Y. Huang, W. Xiao, C. Wang, H. Liu, R. Huang, and Z. Sun, “Towards
+fully autonomous ultrasound scanning robot with imitation learning
+based on clinical protocols,” IEEE Robotics and Automation Letters,
+vol. 6, no. 2, pp. 3671–3678, 2021.
+[9] K. Deng, B. Huang, and D. S. Elson, “Deep imitation learning for
+automated drop-in gamma probe manipulation,” in HSMR2023: The
+15th Hamlyn Symposium on Medical Robotics, Jun. 2023. [Online].
+Available: https://doi.org/10.48550/arXiv.2304.14294
+[10] T. Z. Zhao, V. Kumar, S. Levine, and C. Finn, “Learning Fine-Grained
+Bimanual Manipulation with Low-Cost Hardware,” in Proceedings of
+Robotics: Science and Systems, Daegu, Republic of Korea, July 2023.
+[11] J. R. van der Vorst, B. E. Schaafsma, M. Hutteman, F. P. R. Verbeek,
+G. Liefers, H. H. Hartgrink, V. T. H. B. M. Smit, C. W. G. M. L¨owik,
+C. J. H. van de Velde, J. V. Frangioni, and A. L. Vahrmeijer, “Near-
+infrared fluorescence-guided resection of colorectal liver metastases,”
+Cancer, vol. 119, no. 18, pp. 3411–3418, Jun. 2013.
+[12] N. Carion, F. Massa, G. Synnaeve, N. Usunier, A. Kirillov, and
+S. Zagoruyko, “End-to-end object detection with transformers,” 2020.
+[13] G. de A. P. Marques, A. J. G. Busson, A. L. V. Guedes, and S. Colcher,
+“A cluster-based method for action segmentation using spatio-temporal
+and positional encoded embeddings,” in Proceedings of the Brazilian
+Symposium on Multimedia and the Web, ser. WebMedia ’21.
+ACM,
+Nov. 2021.
+[14] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N.
+Gomez, L. u. Kaiser, and I. Polosukhin, “Attention is all you need,” in
+Advances in Neural Information Processing Systems, I. Guyon, U. V.
+Luxburg, S. Bengio, H. Wallach, R. Fergus, S. Vishwanathan, and
+R. Garnett, Eds., vol. 30.
+Curran Associates, Inc., 2017.
+[15] C. Hennersperger, B. Fuerst, S. Virga, O. Zettinig, B. Frisch, T. Neff,
+and N. Navab, “Towards mri-based autonomous robotic us acquisi-
+tions: a first feasibility study,” IEEE transactions on medical imaging,
+vol. 36, no. 2, pp. 538–548, 2017.

@@ -1,0 +1,473 @@
+PATHOGEN-X: A CROSS-MODAL GENOMIC FEATURE TRANS-ALIGN NETWORK FOR
+ENHANCED SURVIVAL PREDICTION FROM HISTOPATHOLOGY IMAGES
+Akhila Krishna1
+Nikhil Cherian Kurian2
+Abhijeet Patil1
+Amruta Parulekar 1
+Amit Sethi1
+1Indian Institute of Technology Bombay, Mumbai, India
+2 Australian Institute for Machine Learning, Adelaide, Australia
+ABSTRACT
+Accurate survival prediction is essential for personalized
+cancer treatment.
+However, genomic data – often a more
+powerful predictor than pathology data – is costly and in-
+accessible.
+We present the cross-modal genomic feature
+translation and alignment network for enhanced survival pre-
+diction from histopathology images (PathoGen-X). It is a
+deep learning framework that leverages both genomic and
+imaging data during training, relying solely on imaging data
+at testing. PathoGen-X employs transformer-based networks
+to align and translate image features into the genomic fea-
+ture space, enhancing weaker imaging signals with stronger
+genomic signals. Unlike other methods, PathoGen-X trans-
+lates and aligns features without projecting them to a shared
+latent space and requires fewer paired samples. Evaluated
+on TCGA-BRCA, TCGA-LUAD, and TCGA-GBM datasets,
+PathoGen-X demonstrates strong survival prediction perfor-
+mance, emphasizing the potential of enriched imaging models
+for accessible cancer prognosis.
+Index Terms— Deep learning, cross modal, survival
+analysis, histopathology, genomics
+1. INTRODUCTION
+Advances in cancer survival analysis are essential for assess-
+ing progression risks and guiding treatment strategies [1, 2].
+Clinically, prognostic models rely on a range of biomarkers,
+such as imaging data and genetic profiles, to estimate out-
+comes [3]. With the advent of deep learning (DL), there is
+growing interest in using routinely stained histopathology im-
+ages to predict survival outcomes [4, 5, 6]. High-resolution
+whole-slide images (WSIs) capture cellular structures linked
+to cancer stage and severity, offering weak supervisory sig-
+nals that can predict treatment outcomes. However, imaging-
+based markers lack the depth and specificity of molecular
+profiling, such as RNA sequencing, which provides more ro-
+bust information on tumor progression [3]. Though the gene-
+expression data are highly informative for survival predic-
+tions, their limited availability, due to extraction costs, often
+restricts their use [1]. Efficient utilization of available gene-
+expression data with the histopathology imaging data can thus
+significantly improve the performance of survival prediction
+models [7, 3].
+In this context, a common approach to improve survival
+predictions involves multi-modal information fusion of ge-
+nomic and imaging data [7]. However, this method usually
+requires both data types during training and testing, which
+is often impractical . A more feasible framework is to uti-
+lize genomic and imaging data during training but only re-
+quires imaging data at testing. To this end, we introduce a
+cross-modal genomic feature translation and alignment net-
+work (PathoGen-X), a DL pipeline for inter-modal feature
+alignment and translation based on the principles of “stronger
+signals enhancing weaker signals”. PathoGen-X consists of
+a stack of transformer-based encoder-decoder network that
+are optimized to effectively align and translate histopathol-
+ogy image based weaker modality signals to the feature space
+of RNA-seq data based strong modality feature space in the
+training phase. Our approach differs from popular alterna-
+tive methods, such as unsupervised pre-training based on con-
+trastive learning or similarity learning methods in which a
+similarity loss is optimized to project both modalities to a
+shared latent space [3]. Additionally, PathoGen-X requires
+fewer training pairs of samples from both modalities, making
+it more sample efficient than the methods that employs con-
+trastive loss functions [7, 3]. In the test phase, PathoGen-X
+utilizes the translated projection space to achieve robust sur-
+vival predictions based solely on imaging data.
+To demonstrate the effectiveness of the proposed DL
+pipeline, we evaluated its performance on three publicly
+available datasets [8]—TCGA-BRCA, TCGA-LUAD, and
+TCGA-GBM, that provide both WSI imaging and RNA-
+sequencing data.
+We show the predictive power of our
+methodology by comparing against popular baselines, that
+employs imaging, imaging and genomic data using the con-
+cordance index (c-index) for survival prediction. Our method
+achieves performance comparable to a model trained solely
+on genomic data while using only imaging data at test time.
+The superior performance of PathoGen-X, highlight the need
+to use any available complementary information in training
+DL models, such as RNA data, to work with imaging data.
+arXiv:2411.00749v1  [eess.IV]  1 Nov 2024
+Fig. 1: The cross-modal genomic feature trans-align network (PathoGen-X) features four main components: a pathology
+encoder, a genomic decoder, a genomic projection matrix (PM) and a survival prediction module.
+2. RELATED WORK
+Popular survival analysis methods [4, 5, 6] have primarily
+relied on clinical data and pathology. Yet, these often fall
+short of achieving the accuracy and reliability needed in clin-
+ical practice. As an alternative, multi-modal survival analy-
+sis models were introduced that integrate genomic data with
+pathology and clinical information [1]. Most of the reported
+studies that integrated whole slide images (WSIs) and ge-
+nomic data use simple fusion techniques, such as concate-
+nation, dot product, or attention mechanisms [9, 10].
+Al-
+though these methods combine pathology and genomic data,
+they often overlook deeper, intrinsic correlations and interac-
+tions between these modalities, limiting their predictive ac-
+curacy. More recent set of methods address these limitations
+by introducing cross-modal interaction mechanisms, as seen
+in [7, 11]. However, these approaches typically require both
+pathology and genomic data for survival prediction, which
+can be challenging in clinical settings due to the high costs
+and logistical complexities of genomic testing compared to
+the relative accessibility of pathology imaging.
+Additionally, existing models that rely solely on pathol-
+ogy images [3] translate both modalities into a shared repre-
+sentation space. This approach may inadvertently incorpo-
+rate redundant information that does not directly contribute to
+survival prediction and often demands large, diverse datasets
+with extensive genomic information for effective training.
+3. METHODOLOGY
+Our proposed approach utilizes a transformer-based encoder-
+decoder architecture to translate features from pathology im-
+ages into a prognostically discriminative representation space
+of gene expression data, for enhancing survival prediction.
+This deep learning pipeline is composed of three key mod-
+ules: a cross modality translator to translate pathology em-
+beddings to genomic space, a genomic feature projection net-
+work, and a task-specific survival prediction network (shown
+in 1).
+3.1. Cross-Modality Translator: Pathology to Genomics
+To enable effective cross-modal alignment between pathology
+images and genomic data, our model incorporates a cross-
+modality translator that maps image-derived features into a
+genomic-compatible latent space. This translation is achieved
+through a pathology encoder PE and a genomic decoder GD.
+Pathology Encoder (PE)
+The pathology encoder processes pathology images and ex-
+tracts relevant features that are crucial for survival predic-
+tion. We adopted a transformer-based architecture with multi-
+head self-attention[12] (MSA) layers to capture both local and
+global features from the images. The pathology embeddings,
+represented as P0, are passed through the encoder, which con-
+sists of multiple MSA blocks and a positional patch embed-
+ding generation (PPEG) layer[4].
+A learnable class token
+is introduced to aggregate the information from all patches
+within a pathology image, resulting in a latent embedding that
+is used in subsequent alignment steps and to predict survival
+risk. The final output of the pathology encoder, Pl, has di-
+mensions (N + 1) × D, where N is the number of patches
+and D is the embedding dimension.
+P 1 = LN(MSA(P0)) + P0
+P2 = PPEG(P1)
+Pl = LN(MSA(P2)) + P2
+Fig. 2: The Kaplan-Meier curves of our model on the three datasets. We used median risk to stratify patients into low and high
+risk groups.
+Genomic Decoder (GD)
+Once both pathology and genomic data are embedded into the
+latent space, the outputs from the pathology encoder (Pl) are
+passed through a genomic decoder to ensure that the features
+learned from pathology images can be effectively translated
+back into genomic representations, Gl. Architecturally, the
+genomic decoder is similar to the pathology encoder, utiliz-
+ing MSA layers and position encoding to reconstruct genomic
+features from the latent space.
+3.2. Genomic Feature Projection Network (GE)
+The genomic feature projection network is a learnable pro-
+jection matrix used to translate genomic embeddings (G0) to
+latent representation (Gl) that align with the latent represen-
+tation embeddings from the pathology-to-latent encoder, PE.
+Gl = GE(G0)
+3.3. Survival prediction network
+To predict survival outcomes, we add a multi-layer perceptron
+(MLP) layer on top of the latent space representation, which
+is responsible for predicting the risk of death. We use Cox
+loss function [13] in survival analysis to optimize the neural
+network parameters to estimate survival risk. The Cox loss
+function, LCox, is defined as:
+LCox = −
+X
+i∈events
+
+f(Xi) −log
+X
+j∈R(Ti)
+exp(f(Xj))
+
+,
+where f(Xi) represents the risk score for individual i out-
+put by the neural network, Ti is the observed survival time for
+individual i, and R(Ti) denotes the risk set, which includes
+individuals who are still at risk at time Ti.
+3.4. Cross Modal Alignment and Translation
+To ensure that the features learned from both pathology im-
+ages and genomic data are aligned, we introduce two loss
+functions: the latent loss and the translation loss.
+• Latent Loss (Ll): This loss function ensures that the
+latent embeddings from the pathology and genomic en-
+coders are similar. The latent loss is weighted sum of Eu-
+clidean distance and KL divergence between the outputs
+of the pathology encoder (Pl) and the genomic encoder
+(Gl):
+DKL(Pl ∥Gl) =
+X
+i
+Pl(i) log Pl(i)
+Gl(i)
+Ll = λ1DKL(Pl, Gl) + λ2∥Pl −Gl∥2
+By minimizing this loss, we ensure cross-modal alignment
+in the latent space.
+• Translation Loss (Lt): The translation loss ensures that
+the pathology embeddings can be accurately translated
+into genomic projection (Gl) via the genomic decoder.
+The loss is calculated similar to latent loss (Ll), between
+the Gl and the output of genomic decoder ˆGl.
+Lt = λ1DKL(Gl, ˆGl) + λ2∥Gl −ˆGl∥2
+The final alignment loss function is the sum of the latent and
+translation losses:
+Lalignment = Ll + Lt
+This loss ensures that the representations of pathology and
+genomic data are consistent and robust, allowing the model to
+effectively integrate both modalities for survival prediction.
+4. EXPERIMENT AND RESULTS
+4.1. Dataset
+We apply our method to three cancer survival datasets:
+TCGA-BRCA (n = 987), TCGA-LUAD (n = 509), and
+TCGA-GBM (n = 576).
+Each dataset contains WSIs and
+gene-expression data, along with labeled overall survival
+times (which represents the duration of time (in days) from
+the date of diagnosis (or start of treatment) until the patient’s
+death or last follow-up) and right-censorship statuses. For
+our analysis, we selected 746 genes identified as prognos-
+tically important [14, 15]. From the gene expression data,
+we extracted FPKM-normalized RNA-seq data, which was
+then log-normalized. Model performance was evaluated us-
+ing the concordance index (C-Index) to assess the model’s
+Train
+Test
+Methods
+BRCA
+LUAD
+GBM
+Mean
+G
+G
+Neural-Cox
+0.67 ± 0.088
+0.63 ± 0.019
+0.86 ± 0.036
+0.72
+I
+I
+MaxMIL
+0.57 ± 0.042
+0.52 ± 0.021
+0.66 ± 0.016
+0.58
+I
+I
+MeanMIL
+0.61 ±0.086
+0.58 ± 0.032
+0.73± 0.037
+0.64
+I
+I
+A-MIL
+0.61 ± 0.083
+0.59± 0.054
+0.74 ± 0.042
+0.64
+I
+I
+TransMIL
+0.59 ± 0.058
+0.58 ± 0.006
+0.79 ± 0.034
+0.65
+I+G
+I
+SimL
+0.61 ± 0.085
+0.60 ± 0.015
+0.74 ± 0.014
+0.65
+I+G
+I
+PathoGen-X
+0.67 ± 0.020
+0.62 ± 0.008
+0.81 ± 0.0023
+0.70
+Table 1: Survival prediction results (cross-validated on four-folds) on TCGA-
+BRCA, TCGA-LUAD, and TCGA-GBM datasets evaluated using C-index. The
+”Train” and ”Test” columns indicate the modality used for training and testing,
+where ”I” represents pathology images and ”G” denotes genomic data. The best
+test results achieved using only imaging data are shown in bold.
+Alignment Loss
+BRCA
+Ll
+0.64
+Lt
+0.65
+Ll + Lt
+0.67
+Table 2: Ablation study analyzing
+the impact of different alignment
+loss variations on the TCGA-
+BRCA dataset.
+ability to rank pairs of individuals accurately based on pre-
+dicted survival times. The pathology data is pre-processed
+using CLAM [6] through segmentation, patching, and feature
+extraction, with median blurring applied to smooth edges.
+Patches of size 256x256 were used, and features were ex-
+tracted using a pretrained ResNet50 model, converting each
+patch into a 1024-dimensional feature vector.
+4.2. Implementation details
+We compared our method with the following approaches: (1)
+Mean-MIL and Max-MIL, (2) Attention-MIL [5], (3) Trans-
+MIL [4], and (4) a similarity learning (SimL) approach [3],
+where genomic and pathology embeddings are mapped to a
+shared latent space through unsupervised pre-training. Sub-
+sequently, the pathology embeddings were fine-tuned for the
+survival prediction task.
+Additionally, we implemented a
+genomic-based survival prediction model using a neural Cox
+model [16] to demonstrate that genomic data is a stronger
+predictive modality than pathology images.
+Our model was developed using the PyTorch framework
+and trained on a Nvidia A100 GPU. Adam optimizer was
+used, with a learning rate of 0.001 and L2 regularization of
+0.1. Training was conducted over 12 epochs with a batch size
+of 128, using 4-fold cross-validation to evaluate performance,
+with a train-validation split ratio of 3:1.
+4.3. Results
+As shown in Table 1, our method outperforms all competing
+approaches that rely on pathology images for testing. It sur-
+passes the second-best method by c-index margins of 0.06,
+0.03, and 0.02 for BRCA, LUAD, and GBM datasets, respec-
+tively, with an average improvement of 0.05. Additionally, the
+table indicates that methods based on genomic data achieve
+better performance than those relying on pathology images,
+highlighting genomic data is a stronger predictive modality.
+Our objective was to align the image-based model’s results
+closely with those of the genomic model, and we have suc-
+cessfully accomplished this, as evident from the results. Fig-
+ure 3 illustrates an increased correlation between image and
+genomic features following the translation process, indicating
+that the model is aligning the features as intended. We also
+plotted Kaplan Meier (KM) survival curves in Figure 2 ob-
+tained using our method, that indicated significant disparity
+in the survival outcomes between high and low risk groups
+with high statistical significance (all p < 0.01). Finally in
+Table 2, we conduct an ablation study on our framework to
+analyze the effect of each loss on our results, which indicates
+that both losses together contribute to the high performance.
+Fig. 3: Visualization of the substantial improvement in corre-
+lation between the image features with genomic features after
+feature translation for GBM dataset samples.
+5. DISCUSSION AND CONCLUSION
+Our results indicate that our model outperforms previous
+image-based models by using feature alignment with genomic
+data during training. While the unsupervised pre-training ap-
+proaches demonstrates improved performance with large
+datasets, as noted in [3], it also introduces some redundancy
+that can hinder its effectiveness. Our results on SimL model
+suggest that it is not an optimal method for task-specific ob-
+jectives, especially when data is limited. The pathology fea-
+tures derived from our pre-trained model can also be utilized
+for tasks more closely related to survival, such as treatment
+planning and drug response prediction.
+Furthermore, the
+alignment and translation methods we have implemented can
+be adapted for other downstream tasks, e.g., classification.
+6. COMPLIANCE WITH ETHICAL STANDARDS
+This research study was conducted retrospectively using hu-
+man subject data made available in open access by [8]. Eth-
+ical approval was not required as confirmed by the license
+attached with the open access data.
+7. ACKNOWLEDGMENTS
+The results of this study are based on the data collected from
+the public TCGA Research Network .
+8. REFERENCES
+[1] Nikhil Cherian Kurian, Amit Sethi, Anil Reddy Kon-
+duru, Abhishek Mahajan, and Swapnil Ulhas Rane, “A
+2021 update on cancer image analytics with deep learn-
+ing,” Wiley Interdisciplinary Reviews: Data Mining and
+Knowledge Discovery, vol. 11, no. 4, pp. e1410, 2021.
+[2] Gregory Verghese, Mengyuan Li, and Liu et. al, “Mul-
+tiscale deep learning framework captures systemic im-
+mune features in lymph nodes predictive of triple nega-
+tive breast cancer outcome in large-scale studies,” The
+Journal of pathology, vol. 260, no. 4, pp. 376–389,
+2023.
+[3] Kexin Ding, Mu Zhou, Dimitris N Metaxas, and Shaot-
+ing Zhang, “Pathology-and-genomics multimodal trans-
+former for survival outcome prediction,”
+in Interna-
+tional Conference on Medical Image Computing and
+Computer-Assisted Intervention. Springer, 2023, pp.
+622–631.
+[4] Zhuchen Shao, Hao Bian, Yang Chen, Yifeng Wang,
+Jian Zhang, Xiangyang Ji, et al.,
+“Transmil: Trans-
+former based correlated multiple instance learning for
+whole slide image classification,” Advances in neural
+information processing systems, vol. 34, pp. 2136–2147,
+2021.
+[5] Maximilian Ilse, Jakub Tomczak, and Max Welling,
+“Attention-based deep multiple instance learning,”
+in
+International conference on machine learning. PMLR,
+2018, pp. 2127–2136.
+[6] Ming Y Lu, Drew FK Williamson, Tiffany Y Chen,
+Richard J Chen, Matteo Barbieri, and Faisal Mahmood,
+“Data-efficient and weakly supervised computational
+pathology on whole-slide images,” Nature biomedical
+engineering, vol. 5, no. 6, pp. 555–570, 2021.
+[7] Fengtao Zhou and Hao Chen, “Cross-modal translation
+and alignment for survival analysis,” in Proceedings of
+the IEEE/CVF International Conference on Computer
+Vision, 2023, pp. 21485–21494.
+[8] Kyle et. al. Chang, “The cancer genome atlas pan-cancer
+analysis project,” Nature Genetics, 2013.
+[9] Pooya Mobadersany, Safoora Yousefi, Mohamed Am-
+gad, David A Gutman, Jill S Barnholtz-Sloan, Jos´e E
+Vel´azquez Vega, Daniel J Brat, and Lee AD Cooper,
+“Predicting cancer outcomes from histology and ge-
+nomics using convolutional networks,” Proceedings of
+the National Academy of Sciences, vol. 115, no. 13, pp.
+E2970–E2979, 2018.
+[10] Hanci Zheng, Zongying Lin, Qizheng Zhou, Xingchen
+Peng, Jianghong Xiao, Chen Zu, Zhengyang Jiao, and
+Yan Wang,
+“Multi-transsp: Multimodal transformer
+for survival prediction of nasopharyngeal carcinoma pa-
+tients,”
+in International Conference on Medical Im-
+age Computing and Computer-Assisted Intervention.
+Springer, 2022, pp. 234–243.
+[11] Lifan Long, Jiaqi Cui, Pinxian Zeng, Yilun Li, Yuanjun
+Liu, and Yan Wang,
+“Mugi: Multi-granularity inter-
+actions of heterogeneous biomedical data for survival
+prediction,”
+in International Conference on Medical
+Image Computing and Computer-Assisted Intervention.
+Springer, 2024, pp. 490–500.
+[12] A Vaswani, “Attention is all you need,” Advances in
+Neural Information Processing Systems, 2017.
+[13] H˚avard Kvamme, Ørnulf Borgan, and Ida Scheel,
+“Time-to-event prediction with neural networks and cox
+regression,” Journal of machine learning research, vol.
+20, no. 129, pp. 1–30, 2019.
+[14] Zbyslaw Sondka, Nidhi Bindal Dhir, Denise Carvalho-
+Silva, Steven Jupe, Madhumita, Karen McLaren, Mike
+Starkey, Sari Ward, Jennifer Wilding, Madiha Ahmed,
+et al., “Cosmic: a curated database of somatic variants
+and clinical data for cancer,” Nucleic Acids Research,
+vol. 52, no. D1, pp. D1210–D1217, 2024.
+[15] Akhila Krishna, Ravi Kant Gupta, Pranav Jeevan, and
+Amit Sethi, “Advancing gene selection in oncology: A
+fusion of deep learning and sparsity for precision gene
+selection,” arXiv preprint arXiv:2403.01927, 2024.
+[16] Xinliang Zhu, Jiawen Yao, and Junzhou Huang, “Deep
+convolutional neural network for survival analysis with
+pathological images,”
+in 2016 IEEE international
+conference on bioinformatics and biomedicine (BIBM).
+IEEE, 2016, pp. 544–547.

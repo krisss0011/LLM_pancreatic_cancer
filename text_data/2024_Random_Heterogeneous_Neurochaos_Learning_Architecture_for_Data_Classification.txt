@@ -1,0 +1,2460 @@
+Random Heterogeneous Neurochaos Learning Architecture for
+Data Classification
+Remya Ajai A S1a, Nithin Nagaraj2b
+aDepartment of Electronics and Communication Engineering, Amrita Vishwa Vidyapeetham, Amritapuri, India
+bComplex Systems Programme, National Institute of Advanced Studies, Indian Institute of Science
+Campus, Bengaluru, Karnataka, India
+Abstract
+Inspired by the human brain’s structure and function, Artificial Neural Networks (ANN) were de-
+veloped for data classification. However, existing Neural Networks, including Deep Neural Net-
+works, do not mimic the brain’s rich structure. They lack key features such as randomness and
+neuron heterogeneity, which are inherently chaotic in their firing behavior. Neurochaos Learning
+(NL), a chaos-based neural network, recently employed one-dimensional chaotic maps like Gen-
+eralized L¨uroth Series (GLS) and Logistic map as neurons. For the first time, we propose a ran-
+dom heterogeneous extension of NL, where various chaotic neurons are randomly placed in the
+input layer, mimicking the randomness and heterogeneous nature of human brain networks. We
+evaluated the performance of the newly proposed Random Heterogeneous Neurochaos Learning
+(RHNL) architectures combined with traditional Machine Learning (ML) methods. On public
+datasets, RHNL outperformed both homogeneous NL and fixed heterogeneous NL architectures
+in nearly all classification tasks. RHNL achieved high F1 scores on the Wine dataset (1.0), Bank
+Note Authentication dataset (0.99), Breast Cancer Wisconsin dataset (0.99), and Free Spoken
+Digit Dataset (FSDD) (0.98). These RHNL results are among the best in the literature for these
+datasets. We investigated RHNL performance on image datasets, where it outperformed stand-
+alone ML classifiers. In low training sample regimes, RHNL was the best among stand-alone
+ML. Our architecture bridges the gap between existing ANN architectures and the human brain’s
+chaotic, random, and heterogeneous properties. We foresee the development of several novel
+learning algorithms centered around Random Heterogeneous Neurochaos Learning in the com-
+ing days.
+Keywords: Randomness, Heterogeneity, Neurochaos Learning, Logistic map, Generalized
+L¨uroth Series, Chaos
+1. Introduction
+Brain consists of complex networks of enormous number of neurons which are inherently
+non-linear[1]. Inspired by the human brain in the way biological neurons are signaling to one
+another, Artificial Neural Networks (ANN) were developed for purposes of information pro-
+cessing and classification. With the rapid growth of Artificial Intelligence (AI) algorithms and
+1remya@am.amrita.edu
+2nithin@nias.res.in
+arXiv:2410.23351v1  [cs.LG]  30 Oct 2024
+easy availability of highly efficient and inexpensive computing hardware, almost all application
+domains today utilize Machine Learning (ML) algorithms/techniques and Deep Learning (DL)
+architectures for various tasks. Applications of AI include (and not limited to) speech process-
+ing [2], cybersecurity [3], computer vision [4], and medical diagnosis [5, 6, 7, 8]. There are
+also algorithms that were developed to relate with the human brain in terms of learning and
+memory encoding [9]. The learning algorithms perform internal weight updates and optimize
+their hyperparameter values so that error functions are minimised. Even though ANN is a huge
+success today, it needs to be greatly improved in order to mimic the human brain in terms of
+energy-efficient performance of complex tasks. Thus, in recent times, there has been a focus
+towards developing novel biologically-inspired algorithms and learning architectures by various
+researchers [10, 11].
+Table 1: A brief comparison of ANNs and biological neural networks.
+Artificial Neural Networks (ANN)
+Biological Neural Networks
+Homogeneous neurons
+Heterogeneous neurons
+Every neuron performs a weighted linear
+combination of inputs followed by nonlin-
+ear activation
+Neurons classified based on structure
+(unipolar, bipolar, pseudounipolar or mul-
+tipolar) and function (sensory, motor, in-
+terneurons)
+Scalar valued output at every neuron
+Vector valued output as different neurons
+fire at different rates and duration
+Non-chaotic neurons
+Chaotic neurons (spiking and bursting be-
+haviour)
+Complexity of network of neurons is
+achieved through depth
+Complexity achieved through depth, het-
+erogeneity, randomness and differentiated
+processing
+Causal structures of input dataset is not
+preserved internally in ANNs [12]
+Internal representation of input stimuli pre-
+serves causal structures [12]
+There are fundamental differences between the way the human brain functions at the level of
+a single neuron (the basic unit that receives, processes and transmits information) and how ANN
+processes information (see Table 1). Brain neurons are found to exhibit chaotic behaviour [13]
+whereas neurons in ANNs perform simple weighted addition of input data. Typically, in existing
+ANNs, homogeneous neurons are used whereas in the central nervous system/brain [14], neurons
+are known to be heterogeneous. These neurons in biological neural networks are differentiated
+based on structure and function. Sensory neurons are activated by input of sensory stimuli from
+the external environment. Motor neurons of the spinal cord connect to the muscle glands and or-
+gans throughout the human body. Interneurons connect spinal motor and sensory neurons. Based
+2
+on structure of the neurons, they are classified as either being unipolar, bipolar, pseudounipolar
+or multipolar [15]. Based on these observations, we can correctly say that current ANNs are only
+loosely inspired by the brain.
+Neurochaos Learning (or NL) is a recently developed brain-inspired chaos-based artificial
+neural network for data classification [11, 16]. Majority of Machine Learning (ML) algorithms
+have relied heavily on substantial datasets for acquiring knowledge about the underlying dis-
+tribution. The first of NL architectures, dubbed ChaosNet, has demonstrated state-of-the-art
+performance in classification tasks with only a fraction of training samples needed for learning.
+Subsequently, NL was shown to perform equally well on imbalanced datasets, as well as, boost
+the performance of standard ML classifiers (SVM, kNN and others) [17]. Moderate levels of
+noise within the context of neurochaos learning are found to optimize performance in classifica-
+tion tasks [18]. It is no surprise that NL has found to preserve causal structures of input dataset
+in its internal representation of chaotic neural traces [12] which is completely missing in the
+internal representation of ANNs.
+In our previous study [19], we have proposed an extension of NL architecture to incorporate
+heterogeneous neurons. We first demonstrated that the NL architecture with homogeneous neu-
+rons, but with a different 1D chaotic map (the logistic map) than the one used in ChaosNet (1D
+Generalized L¨uroth Series or GLS map) is also equally good at learning tasks. Classification
+accuracies for Ionosphere, Statlog (Heart), Bank Note Authentication, Breast Cancer Wiscon-
+sin, Haberman’s Survival and Seeds increased with the use of one-dimensional (1D) logistic
+map (with chaotic behaviour regime) as neurons compared with GLS maps as neurons. We then
+proposed HNL: Heterogeneous Neurochaos Learning which combined GLS maps as neurons
+and logistic maps as neurons in a simple odd-even structure of the input layer [19]. HNL gave
+comparable performance to homogeneous NL and in the case of Seeds and Haberman’s Suri-
+val datasets, it outperformed. We also studied the effect of degree of chaos on classification
+accuracies, as characterized by the lyapunov exponent of the chaotic 1D neurons in HNL.
+In this work, for the first time, we propose Random Heterogenous Neurochaos Learning
+(RHNL) architecture. As noted in Table 1), the human brain not only has heterogeneous neu-
+rons organized in layers, but there is an element of randomness involved. No two human brains
+have the same topological connectivity of neurons in their networks. The randomness is due to
+differences in early development that is a function of environment, learning and genetic factors.
+Inspired by this fact, we incorporate randomness and heterogeneity in NL. Specifically, we have
+analyzed three different RHNL architectures. The first one consists of 25% of logistic map neu-
+rons and the remaining 75% of GLS neurons, all randomly placed in the input layer. The second
+one consists of 50% −50% of logistic-GLS neurons (again randomly placed) while the third ar-
+chitecture is composed of 75% −25% of logistic-GLS neurons. We have rigorously tested these
+architectures (on classification tasks) in conjunction with different classifiers (cosine similarity
+and other ML classifiers) on a number of publicly available datasets.
+This paper is structured as follows. The proposed RHNL architecture is introduced for the
+first time (in Section 2). This is followed by a description of datasets in Section 3 and classi-
+fiers used in our study (Section 4). Experiments along with their results follow in Section 5.
+Section 5.1 gives the results obtained for Time Series Dataset. Discussion on the classification
+performance of ChaosFEXRHNL for debris and urban images are included in section 5.2. Re-
+sults and analysis of the classification performance of ChaosFEXRHNL for brain tumor image
+dataset are included in section 5.3. Performance analysis of ChaosFEXRHNL in comparison with
+stand-alone ML classifiers in included in section 5.4. Section 5.5 contains the discussion on the
+performance of RHNL in low training sample regime. The paper then concludes with discussion,
+3
+followed by potential research directions for the future in Section 6. The appendix contains the
+complete details of hyperparameter tuning of all the learning architectures used in this study.
+2. Proposed Architecture
+In order to mimic the randomness and heterogeneity of neuronal structures present in our
+brains, we propose a novel neurochaos learning architecture depicted in Figure 1. The input
+layer of this Random Heterogeneous Neurochaos Learning architecture (RHNL) consists of both
+chaotic 1D Logistic map and Generalized L¨uroth Series (GLS) map neurons, but at randomized
+locations. Contrast this with the Heterogeneous Neurochaos Learning or HNL proposed in [6]
+where we had employed a simple odd-even structure (odd positions for GLS map neurons and
+even positions for logistic map neurons). In RHNL, we control the proportion of the randomly
+placed GLS and logistic neurons in the input layer to yield three distinct RHNL architectures:
+25% −75%, 50% −50% and 75% −25%. In each case, the locations of the neurons are chosen
+uniformly at random. Following the flow in Figure 1, each neuron (either a GLS or a logistic
+map neuron) starts firing chaotically as soon as it encounters an input stimuli (xi). Each input
+stimuli is a data (text/image/video etc.) sample of a particular class which RHNL is tasked to
+learn and classify. Each neuron stops firing as soon as it detects the input stimuli (when it lands in
+an ϵ-neighbourhood). This completes a chaotic neural trace. Since different neurons detect their
+corresponding stimuli at different times, the chaotic neural traces are of unequal length (similar
+to the brain). These chaotic neural traces are then analyzed to extract features (ChaosFEX) such
+as entropy, energy, firing time and firing rate. Subsequently, the ChaosFEX features are fed to
+a classifier - that may consist of a basic Cosine Similarity-based classifier (see [11]) or one of
+the standard ML classifiers (see [17]) such as SVM: Support Vector Machines, DT: Decision
+Trees, kNN: k-Nearest Neighbour, AB: AdaBoost, RF: Random Forests, or GNB: Gaussian
+Naive Bayes.
+Each neuron (logistic or GLS) starts of with a fixed initial neural activity value q which is
+one of the hyperparameters of the learning algorithm. The other hyperparameters are the value
+of ϵ (noise intensity) that determines the stopping criteria of the neural firing/trajectory (which is
+chaotic) and the Discrimination Threshold (b) which is needed to compute Shannon Entropy (one
+of the ChaosFEX features) from the symbolic sequence of the chaotic neural trace [11, 16, 17].
+These three hyperparameters (q, ϵ, b) are determined by a cross-validation strategy (of five folds).
+We now describe the GLS and logistic map neurons.
+2.1. The Generalized L¨uroth Series (GLS) Neuron
+In [11], the one dimensional discrete dynamical system known as the GLS: Generalized
+L¨uroth Series is used as the neuron. Skew-tent/tent maps, skew-binary/binary maps are com-
+monly used among the GLS maps. This class of one-dimensional systems/maps have demon-
+strated high effectiveness in various engineering applications [20]. In our proposed Random
+Heterogenous Neurochaos Learning (RHNL) architecture, skew-tent maps are used as chaotic
+neurons. The Skew-tent map CSkew−Tent : [0.0, 1.0) 7→[0.0, 1.0) is mathematically defined as :
+CS kew−Tent(z) =
+(
+z
+b
+,
+0 ≤z < b,
+(1−z)
+(1−b)
+,
+b ≤z < 1,
+(1)
+where z ϵ [0.0, 1.0) and 0.0 < b < 1.0.
+4
+Figure 1: Random Heterogenous Neurochaos Learning (RHNL) Architecture: (X1, X2...Xn) are the input stimuli (data
+sample), (C1,C2,C3, ....,Cn−1,Cn) are neurons which can be either 1D Logistic map or GLS map. Each neuron fires
+chaotically until it detects the input stimuli. From the neural traces of every neuron (which is chaotic), four features
+namely firing-time, firing-rate, entropy and energy are extracted. These ChaosFEX features would now be fed to either
+a cosine similarity classifier or any of the standard machine learning classifiers. The logistic map and GLS neurons are
+randomly placed in the input layer with one of the three following proportions: 25%−75%, 50%−50% and 75%−25%.
+2.2. The Logistic Map Neuron
+The one-dimensional dynamical system/map known as the Logistic map is arguably the sim-
+plest example of a chaotic map [21]. We explore the use of this one-dimensional map/dynamical
+system (in chaotic state) as neurons for RHNL. The equation for this dynamical system/map is:
+xz+1 = rxz(1 −xz),
+(2)
+where 0.0 ≤xz < 1.0 and the bifurcation parameter is: 0 < r ≤4.0. z is the iteration/time step. It
+is widely recognized that the logistic map displays chaotic behavior for r values that are greater
+than 3.56995. However, there exist certain regions of r referred to as islands of stability where
+chaotic behavior is lost. Figure 2 shows the first return map of the logistic dynamical system/map
+with r set to 4.0. The lyapunov exponent is also plotted alongside.
+Logistic map displays an infinite number of periodic orbits for each integer value of the
+period (only for specific values of r), indicating intricate dynamics [22]. For numerous r val-
+ues, this map exhibits high sensitivity to initial conditions (Butterfly Effect) – a characteristic
+hallmark/feature of chaos. The degree of sensitivity to initial values can be quantified through
+the Lyapunov exponent. A lyapunov exponent value greater than zero is a symptom of chaotic
+behavior. Alternatively, a lyapunov exponent = 0 or < 0 suggests either a periodic/eventually
+periodic/quasi-periodic behaviour. For the difference equation (first-order):
+x j+1 = G(xj),
+(3)
+5
+Figure 2: (I) Left: One dimensional logistic map with r value set to 4.0. (II) Right: The lyapunov exponent computed
+for different r values (varied from 3.5 to 4.0). The initial neural activity q was set to 0.01.
+the lyapunov exponent is defined as:
+λG(x) = lim
+k→∞
+1
+k
+k−1
+X
+j=0
+ln |G
+′(xj)|,
+(4)
+where G(·) is assumed to be differentiable. The initial value x0 is randomly chosen (from an
+uniform distribution) to lie between 0.0 and 1.0. x0 →G(x0) →G2(x0) →. . . is the trajectory.
+G(x) is given by equation 2 for the logistic map/dynamical system.
+2.3. Feature Transformation, Extraction and Classification
+As depicted in Figure 1, in the newly proposed RHNL structure, both 1D chaotic Logistic
+and GLS neurons are employed in randomly selected locations of input layer. Each neurons
+transforms the input stimulus (data sample) into respective chaotic neural traces (or chaotic tra-
+jectories). From these trajectories, required features are derived for further classification process.
+The quantity of neurons, denoted as (C1,C2, ....Cn) as illustrated in Figure 1, will precisely match
+the quantity of features of the input data/samples. All input layer neurons independently start fir-
+ing (when an input value/stimulus triggers it), say xi. These start of with an initial value/neural-
+activity of q units. Each of the input values are scaled to fall within the range of [0, 1]. Upon
+entering the open ϵ-ball (or neighbourhood) of the input stimulus, the neural trace comes to a
+halt. In the context of classification using Neurochaos Learning (NL) architecture, a straightfor-
+ward decision rule is employed, relying on mean-representation vectors (see [11]). Tuning of the
+three essential hyper-parameters is necessary: noise intensity (ϵ), initial neural-activity (q) and
+6
+discrimination-threshold (b). To determine the optimal performance, a cross-validation approach
+(with five-folds) is utilized for hyperparameter tuning. Following the tuning and stabilization of
+these for a specific data-set, we generate the neurochaos features. These features that are ob-
+tained from the neural trajectories/traces (which are chaotic) of the input layer neurons of the NL
+architecture (could be homogeneous NL or HNL or RHNL) are referred to as ChaosFEX [17]
+features. These include firing-rate, firing-time, shannon entropy and energy (briefly described
+below).
+Firing time is defined as the duration of the chaotic neural trajectory/trace to align with input
+value (or stimulus) [17]. This duration is measured in terms of iteration steps. The firing rate is
+determined by that fraction of time during which the chaotic neural trajectory is greater than the
+discrimination threshold [17]. Energy of the chaotic trace/trajectory c(t) is defined as:
+Ec =
+M
+X
+t=1
+|c(t)|2,
+(5)
+where M = firing-time. Let symbolic sequence (binary) of the trace/trajectory, be denoted by
+s(t), which is expressed as:
+s(tj) =
+(0,
+c(tj) < b
+1,
+b ⩽c(tj) < 1,
+(6)
+where j = 1 to M (the firing-time). The shannon first-order entropy for s(t) is determined using
+the following calculations:
+H(s) = −
+2
+X
+t=1
+pi log2(pi) bits,
+(7)
+where p1 corresponds to the probability of symbol 0 while p2 pertains to the probability of
+symbol 1. Dimensions of these features are similar to the size of the inputs. For an input of
+dimensions m×n, the output features will have a size of m×4n. This process involves converting
+the input data into a feature space characterized by high-dimensional chaos.
+In the training phase of the algorithm, for each data sample of each class, a representation
+vector is formed with the set of ChaosFEX features namely energy, entropy, firing time and firing
+rate. These representation vectors of all the data samples within a particular class are collected
+and its mean is computed to yield a single mean representation vector for each class. Thus every
+class has its own distinct mean representation vector that is like a signature of the neurochaos
+features of that class. These mean representation vectors are fed to a classifier to perform the
+classification. In the testing phase, when a test sample appears at the NL architecture’s input
+layer, it undergoes a similar transformation to yield the ChaosFEX features. These features are
+compared with the mean representation vectors of each class to determine the closest one and the
+class label of the closet one is declared to be the class of input test sample. For the ChaosNet
+version of NL, we employ the cosine similarity measure to determine closeness. Alternatively,
+we could pass on the representation vectors corresponding to the data samples (within a class) to
+a traditional ML classifier and learn the decision boundary.
+3. Datasets
+To conduct our analysis, we picked datasets spanning various application domains. Before
+feeding the data samples to the chaotic neurons of RHNL’s input layer, the data samples of the
+7
+input is normalized to lie within [0, 1]. Class labels are assigned numerical names, starting from
+0. Further information about the datasets utilized can be found in Table 2. The data-sets are
+described briefly here.
+Table 2: Datasets (with their details) employed in our study.
+Data-set
+Num. of Classes
+Samples per class (Training)
+Samples per class (Testing)
+Ref.
+Iris
+3
+(40, 41, 39)
+(10, 9, 11)
+[23, 24]
+Ionoshpere
+2
+(98, 182)
+(28, 43)
+[25, 24]
+Wine
+3
+(45, 57, 40)
+(14, 14, 8)
+[26, 24]
+Bank Note Authentication
+2
+(614, 483)
+(148, 127)
+[27, 24]
+Haberman’s Survival
+2
+(181, 63)
+(44, 18)
+[28, 24]
+Breast Cancer Wisconsin
+2
+(367, 193)
+(91, 48)
+[29, 24]
+Statlog(Heart)
+2
+(117, 99)
+(33, 21)
+[24]
+Seeds
+3
+(59, 56, 53)
+(59, 56, 53)
+[24]
+FSDD
+10
+(40, 35, 44, 42, 38, 34, 37, 44, 33, 37)
+(10, 15, 6, 8, 8, 7, 13, 6, 10, 13)
+[30]
+The Iris dataset [23, 24] comprises 150 instances distributed across 3 classes: Setosa, Versi-
+colour, and Virginica. The classification features include sepal length, sepal width, petal length,
+and petal width. The distribution of data instances into train and test sets for our analysis is
+presented in Table 2. The Ionosphere dataset [25, 24] is divided into 2 classes, labeled as Good
+or Bad. Radar signal reflects back if any structure is present in the ionosphere. This state is
+represented as ‘Good’. ‘Bad’ denotes the condition in which the ionosphere is penetrated by
+this (radar) signal. The data-set comprises 126 instances labeled as Good, 225 instances labeled
+as Bad, and includes 34 attributes. The distribution of instances into train and test sets for our
+analysis is outlined in Table 2. The Wine dataset [26, 24] comprises 178 instances categorized
+into 3 classes labeled as 1, 2, and 3. The chemical constituents of each data are considered for
+classification. The distribution of instances into train and test sets for our analysis is presented in
+Table 2.
+The Bank Note Authentication dataset [27, 24] has two classes:Genuine or Forgery based
+on the images of the banknotes. Wavelet transformation is applied on images and the features
+such as variance, skewness, curtosis, and entropy are derived. In total, the dataset comprises
+1372 instances, with 762 instances classified as Genuine and 610 instances as Forgery. The
+distribution of instances into train and test sets for our analysis is outlined in Table 2. The
+Haberman’s Survival dataset [28, 24] encompasses three attributes (collected from those patients
+who underwent breast cancer surgery). The label1 class represent the patients survived for ≥5
+years. Class 2 represent the patients who died in a span of 5 years. The train and test sets
+distribution for our analysis is presented in Table 2. Nine parameters are considered for Breast
+Cancer Wisconsin dataset [29, 24]. Data instances are categorized to be either Malignant or
+Benign. In total, there are 699 instances, with 241 being classified as Malignant and 458 as
+Benign. The distribution of instances into train and test sets for our analysis is outlined in Table
+2.
+The Statlog (Heart) dataset [24] contains two classes of data: patients having heart problems
+are classified in Class-1 and patients without any heart disease are represented in Class-2. The
+distribution of instances into train and test sets for our analysis is presented in Table 2. The Seeds
+dataset [24] is employed to distinguish between three types of wheat, namely Kama, Rosa, and
+Canadian. Wheat kernels are used for identification among the types with seven parameters that
+represent various features of the kernels. In all, 210 data instances are in consideration, with 70
+instances allocated for each class. The distribution of instances into train and test sets for our
+analysis is outlined in Table 2.
+8
+In our analysis, we also included a time series dataset namely Free Spoken Digit Dataset
+(FSDD). Recordings of six speakers reciting numbers from 0 to 9 [30] is contained in this data-
+set. There are 50 recordings for each number per speaker. The samples in the FSSD data set are
+preprocessed using fast fourier transform (or FFT). We considered Jackson (one of the speakers)
+that has instances of data numbering 500. We filtered 480 data instances for feeding into our
+proposed algorithms and analysed. For our analysis, the train/test sets of FSDD are shown in
+Table 2.
+Around 85 images of debris scars and urban settlements from five Asian countries (In-
+dia, Nepal, Japan, Taiwan and China) were obtained from Planet labs [31] imagery with 3 −
+5m resolution for our analysis to identify the classification performance of RHNL, specifically
+ChaosFEXRH25L75G architecture. For our analysis, we also have considered 100 MRI brain im-
+ages from Kaggle online repository [32].
+4. Classifiers
+As mentioned previously, RHNL supports the use of traditional popular ML classifiers. The
+neurochaos features (ChaosFEX) can be fed to one of the many widely available machine learn-
+ing classifiers to perform classification. Previously, it has been demonstrated that neurochaos
+features boost the performance of the ML classifiers (see [17]). In our study we use the follow-
+ing ML classifiers: Support Vector Machine (SVM) [33], AdaBoost [34], Decision Tree [35],
+Guassian Naive Bayes [36], k-NN [37] and Random Forests(RF) [38]. Whenever a traditional
+ML classifier was used on the neurochaos featuers, the hyperparameters (q, b, ϵ) that were al-
+ready tuned for the various RHNL architectures (ChaosFEX) were maintained and only the ML
+hyperparameters are further tuned. This reduces the computational burden.
+The Adaptive Boosting (AdaBoost) classifier has the following hyperparameters:
+• n estimator: The maximum limit on the number of estimators at which boosting is termi-
+nated.
+All other hyperparameters are maintained at their default values provided by scikit-learn. Tuned
+hyperparameters for all the datasets for RHNL that uses the AdaBoost classifier are given in
+Tables 21, 22 and 23.
+The Decision Tree (DT) classifier has the following hyperparameters: min samples leaf
+(varied from 1 to 10 in increments of 1), max depth (1 to 10 in increments of 1), and ccp alpha.
+All other hyperparameters are maintained at their default values provided by scikit-learn.
+The tuned hyperparameters for all the datasets for RHNL that uses the Decision Trees classifier
+are given in Tables 24, 25and 26.
+The k-Nearest Neighbours (k-NN) classifier has the value of k as a hyperparameter. This
+is varied from 1.0 to 6.0 (in incremets of 2). All other hyper-parameters are maintained at their
+default values provided by scikit-learn. The tuned hyperparameters for all the datasets for RHNL
+that uses the kNN classifier are given in Tables 27, 28 and29.
+The Random Forests (RF) classifier has the following hyperparameters: n estimators (can
+take values in the set {1, 10, 100, 1000, 10000}), max depth (1 to 10 in steps of 1). All other
+hyperparameters are maintained at their default values provided by scikit-learn. The tuned hy-
+perparameters for all the datasets for RHNL that uses the Random Forests classifier are given in
+Tables 30, 31 and 32.
+For Support Vector Machines classifier (SVM), all hyperparameters (offered for linear sup-
+port vector classification) are maintained at their default values provided by scikit-learn.
+9
+Gaussian Naive Bayes (GNB) classifier calculates the likelihood and prior probabilities for
+making predictions. GNB assumes that the features follow a Gaussian distribution. Default
+parameters offered for GNB by scikit-learn are retained for our analysis.
+For ease of understanding, Table 3 gives a summarized view of all the different neurochaos
+learning (NL) architectures with the corresponding notations that are used in this paper.
+Table 3: Various learning architectures of Neurochaos Learning (NL). These include homogenous NL, heterogeneous
+NL (HNL) and random heterogeneous NL (RHNL), including combinations with ML classifiers.
+No.
+NL
+Archi-
+tecture
+Type of Neurons
+Notation
+Classifiers
+Ref.
+1
+ChaosNet
+Homogeneous, GLS
+ChaosFEX
+Cosine similarity
+[11]
+2
+ChaosNet
+Homogeneous,
+Lo-
+gistic
+ChaosFEXlogistic
+Cosine similarity
+[6]
+3
+NL
+Homogeneous, GLS
+ChaosFEX+ML
+SVM, AB, DT,
+kNN, GNB, RF
+[17]
+4
+NL
+Homogeneous,
+Lo-
+gistic
+ChaosFEXlogistic+ML
+SVM, AB, DT,
+kNN, GNB, RF
+[6]
+5
+HNL:
+ChaosNet
+Heterogeneous,
+GLS,
+Logistic
+in
+odd-even structure
+ChaosFEXHetero
+Cosine similarity
+[6]
+6
+HNL
+Heterogeneous,
+GLS,
+Logistic
+in
+odd-even structure
+ChaosFEXHetero+ML
+SVM, AB, DT,
+kNN, GNB, RF
+[6]
+7
+RHNL:
+ChaosNet
+Heterogeneous
+&
+Random, GLS, Lo-
+gistic in randomized
+locations
+ChaosFEXRH25L75G,
+ChaosFEXRH50L50G,
+ChaosFEXRH75L50G
+Cosine similarity
+This
+work.
+8
+RHNL
+Heterogeneous
+&
+Random, GLS, Lo-
+gistic in randomized
+locations
+ChaosFEXRH25L75G+ML,
+ChaosFEXRH50L50G+ML,
+ChaosFEXRH75L50G+ML
+SVM, AB, DT,
+kNN, GNB, RF
+This
+work.
+For RHNL, as noted in Table 3, ChaosFEXRH25L50G, ChaosFEXRH50L50G, and ChaosFEXRH75L25G
+refers to the three distinct random heterogeneous neurochaos learning architectures with 25% −
+75%, 50% −50% and 75% −25% proportion of 1D chaotic Logistic neurons and GLS neurons
+respectively. These chaotic neurons are placed at random locations in the input layer of RHNL.
+5. Experiments and Results
+The performance of ChaosFEXRH architectures are analysed for various datasets using Macro
+F1-score (a function of both macro Recall as well as macro Precision). True-Positive rate (TP)
+signifies a positive target-value correctly identified as Positive. True-Negative rate (TN) de-
+notes a ‘negative target-value’ correctly classified as Negative. False Positive rate (FP) accounts
+those instances when a ‘negative target value’ is inaccurately deemed/classified as Positive.
+False-Negative rate (FN) accounts those instances when a ‘positive target value’ is erroneously
+deemed/classified as Negative. Mathematically, they are described as:
+10
+Accuracy =
+(TP + TN)
+(TP + TN + FP + FN),
+(8)
+Precision =
+TP
+(TP + FP),
+(9)
+Recall =
+TP
+(TP + FN),
+(10)
+F1 = 2.0 × Precision × Recall
+Precision + Recall.
+(11)
+The Macro F1-score is computed as the average of all F1-scores (for the m classes), given
+by:
+Macro F1 −score = F1Class1 + F1Class2 + . . . + F1Classm
+m
+.
+(12)
+Tuning of the 3 hyper-parameters (q, b, ϵ) are performed across various datasets for the three
+RHNL architectures proposed namely ChaosFEXRH25L75G, ChaosFEXRH50L50G and ChaosFEXRH75L25G.
+Tuned values of hyperparameters for all architectures are given in tables 4, 5 and 6. Cross vali-
+dation using five folds is utilized to fine tune hyper-parameters and determine the best achieved
+performance.
+We also analysed the performance of our proposed RHNL architectures in combinations with
+other traditional ML classifiers such as AdaBoost, Decision Trees, Gaussian Naive Bayes, kNN
+and Random Forests. The ML classifier parameters are tuned for various datasets to obtain the
+best accuracy possible.
+Table 4: Tuned hyperparameters for ChaosFEXRH25L75G for the eight datasets.
+Data-set
+q
+b
+ϵ
+Iris
+0.062
+0.185
+0.298
+Ionosphere
+0.010
+0.409
+0.051
+Wine
+0.460
+0.469
+0.141
+Bank-Note-Authentication
+0.360
+0.419
+0.121
+Haberman’s-Survival
+0.050
+0.269
+0.031
+Breast-Cancer-Wisconsin
+0.170
+0.460
+0.050
+Statlog (Heart)
+0.470
+0.489
+0.030
+Seeds
+0.050
+0.189
+0.161
+Macro F1 scores obtained for various datasets with ChaosFEXRH25L75G and ChaosFEXRH25L75G+SVM
+are reported in Table 7. For Haberman’s Survival dataset, we achieved an improved macro F1
+score of 0.73 compared to the best F1 score reported in earlier works [17, 19]. Macro F1 score
+of Statlog (Heart) dataset is also increased to 0.84 with ChaosFEXRH25L75G+SVM classifier.
+Table 8 gives the macro F1 score obtained with ChaosFEXRH50L50G and ChaosFEXRH50L50G+SVM.
+Table 9 gives the macro F1 score obtained with ChaosFEXRH75L25G and ChaosFEXRH75L25G+SVM.
+11
+Table 5: Tuned hyperparameters for ChaosFEXRH50L50G for the eight datasets.
+Data-set
+q
+b
+ϵ
+Iris
+0.050
+0.359
+0.221
+Ionosphere
+0.099
+0.479
+0.061
+Wine
+0.460
+0.469
+0.131
+Bank-Note-Authentication
+0.090
+0.289
+0.041
+Haberman’s-Survival
+0.140
+0.489
+0.021
+Breast-Cancer-Wisconsin
+0.069
+0.139
+0.041
+Statlog (Heart)
+0.180
+0.169
+0.011
+Seeds
+0.050
+0.139
+0.151
+Table 6: Tuned hyperparameters for ChaosFEXRH75L25G for the eight datasets.
+Data-set
+q
+b
+ϵ
+Iris
+0.15
+0.299
+0.231
+Ionosphere
+0.02
+0.219
+0.809
+Wine
+0.47
+0.479
+0.131
+Bank-Note-Authentication
+0.01
+0.259
+0.071
+Haberman’s-Survival
+0.23
+0.1
+0.011
+Breast-Cancer-Wisconsin
+0.14
+0.489
+0.021
+Statlog (Heart)
+0.13
+0.1
+0.051
+Seeds
+0.05
+0.189
+0.151
+Random Heterogenous Neurochaos Learning architectures which incorporate ChaosFEX fea-
+tures with other ML classifiers such as AdaBoost (AB), Decision Trees (DT), k-NN, Gaussian
+Naive Bayes (GNB), and Random Forests (RF) are implemented and the results indicate that
+randomness and heterogeneity introduced in the NL architectures yields superior performance
+when compared with homogeneous or fixed heterogeneous structures.
+The macro F1 scores obtained for ChaosFEXRH25L75G+AdaBoost, ChaosFEXRH50L50G+AdaBoost
+and ChaosFEXRH75L25G+AdaBoost structures are given in Table 10. Accuracy of 100% is ob-
+tained for Wine dataset with ChaosFEXRH50L50G+AdaBoost architecture. Macro F1-score = 0.99
+is successfully achieved for Bank Note authentication data-set for both ChaosFEXRH50L50G+AdaBoost
+and ChaosFEXRH75G25L+AdaBoost. High F1-score = 0.99 is also achieved for Breast Cancer
+Wisconsin data-set when ChaosFEXRH75L75G+AdaBoost is implemented.
+The macro F1 scores obtained for ChaosFEXRH25L75G+Decision Trees, ChaosFEXRH50L50G+Decision
+Trees and ChaosFEXRH75L25G+Decision Trees can be found in Table 11. High F1 score = 0.98
+for Breast Cancer Wisconsin data-set with ChaosFEXRH25L75G+Decision Trees and ChaosFEXRH75L25G+Decision
+Trees has been achieved.
+12
+Table 7: Macro F1 scores reported for ChaosFEXRH25L75G and ChaosFEXRH25L75G+SVM.
+Data-set
+ChaosFEXRH25L75G
+ChaosFEXRH25L75G+SVM
+Iris
+1
+1
+Ionosphere
+0.6
+0.88
+Wine
+0.6
+0.94
+Bank-Note-Authentication
+0.75
+0.9
+Haberman’s-Survival
+0.73
+0.56
+Breast-Cancer-Wisconsin
+0.85
+0.98
+Statlog(Heart)
+0.77
+0.84
+Seeds
+0.81
+0.84
+Table 8: Macro F1 scores reported for ChaosFEXRH50L50G and ChaosFEXRH50L50G+SVM.
+Data-set Name
+ChaosFEXRH50L50G
+ChaosFEXRH50L50G+SVM
+Iris
+1
+1
+Ionosphere
+0.58
+0.9
+Wine
+0.59
+0.94
+Bank-Note-Authentication
+0.59
+0.72
+Haberman’s-Survival
+0.68
+0.47
+Breast-Cancer-Wisconsin
+0.77
+0.92
+Statlog(Heart)
+0.78
+0.79
+Seeds
+0.72
+0.81
+Table 9: Macro F1 scores reported for ChaosFEXRH75L25G and ChaosFEXRH75L25G+SVM.
+Data-set Name
+ChaosFEXRH75L25G
+ChaosFEXRH75L25G+SVM
+Iris
+1
+0.97
+Ionosphere
+0.71
+0.94
+Wine
+0.63
+0.97
+Bank-Note-Authentication
+0.65
+0.84
+Haberman’s-Survival
+0.6
+0.51
+Breast-Cancer-Wisconsin
+0.79
+0.94
+Statlog(Heart)
+0.65
+0.85
+Seeds
+0.78
+0.86
+13
+Table 10: Macro F1 scores obtained for different ChaosFEXRH+AdaBoost architectures.
+Bold fonts indicate the highest F1 score achieved for the respective dataset.
+Data-set Name
+ChaosFEXRH25L75G+AB
+ChaosFEXRH50L50G+AB
+ChaosFEXRH75L25G+AB
+Iris
+1
+1
+0.967
+Ionosphere
+0.97
+0.97
+0.97
+Wine
+0.97
+1
+0.944
+Bank-Note-Authentication
+0.93
+0.99
+0.989
+Haberman’s-Survival
+0.5
+0.56
+0.66
+Breast-Cancer-Wisconsin
+0.98
+0.98
+0.99
+Statlog(Heart)
+0.81
+0.85
+0.88
+Seeds
+0.86
+0.77
+0.73
+Table 11: Macro F1 score obtained for different ChaosFEXRH+Decision Trees architectures.
+Bold fonts indicate the highest F1 score achieved for the respective dataset.
+Data-set Name
+ChaosFEXRH25L75G+DT
+ChaosFEXRH50L50G+DT
+ChaosFEXRH75L25G+DT
+Iris
+1
+0.97
+0.97
+Ionosphere
+0.92
+0.91
+0.97
+Wine
+0.95
+0.94
+0.95
+Bank-Note-Authentication
+0.95
+0.90
+0.89
+Haberman’s-Survival
+0.60
+0.65
+0.63
+Breast-Cancer-Wisconsin
+0.98
+0.97
+0.98
+Statlog(Heart)
+0.92
+0.84
+0.86
+Seeds
+0.81
+0.81
+0.76
+The macro F1 scores obtained for ChaosFEXRH25L75G+kNN, ChaosFEXRH50L50G+kNN and
+ChaosFEXRH75L25G+kNN is seen in Table 12.
+Table 12: Macro F1-scores obtained for different ChaosFEXRH+kNN architectures.
+Bold fonts indicate the highest F1 score achieved for the respective dataset.
+Data-set Name
+ChaosFEXRH25L75G+kNN
+ChaosFEXRH50L50G+kNN
+ChaosFEXRH75L25G+kNN
+Iris
+1
+1
+1
+Ionosphere
+0.74
+0.85
+0.80
+Wine
+0.66
+0.72
+0.77
+Bank-Note-Authentication
+0.93
+0.83
+0.89
+Haberman’s-Survival
+0.64
+0.61
+0.61
+Breast-Cancer-Wisconsin
+0.98
+0.93
+0.94
+Statlog(Heart)
+0.60
+0.81
+0.78
+Seeds
+0.76
+0.70
+0.79
+14
+Table 13: Macro F1-scores obtained for different ChaosFEXRH+GNB architectures.
+Bold fonts indicate the highest F1-score achieved for the respective data-set.
+Data-set Name
+ChaosFEXRH25L75G+GNB
+ChaosFEXRH50L50G+GNB
+ChaosFEXRH75L25G+GNB
+Iris
+1
+1 1
+0.97
+Ionosphere
+0.83
+0.83
+0.91
+Wine
+0.94
+0.94
+0.94
+Bank-Note-Authentication
+0.73
+0.67
+0.70
+Haberman’s-Survival
+0.62
+0.61
+0.52
+Breast-Cancer-Wisconsin
+0.94
+0.89
+0.91
+Statlog(Heart)
+0.77
+0.81
+0.74
+Seeds
+0.72
+0.63
+0.70
+The macro F1 scores obtained for ChaosFEXRH25L75G+GNB, ChaosFEXRH50L50G+GNB
+and ChaosFEXRH75L25G+GNB can be found in Table 13.
+The macro F1 scores obtained for ChaosFEXRH25L75G+Random Forests, ChaosFEXRH50L50G+Random
+Forests and ChaosFEXRH75L25G+Random Forests can be found in Table 14. High performance
+is obtained for Breast Cancer Wisconsin dataset using ChaosFEXRH25L75G+Random Forests with
+F1 score of 0.98.
+Table 14: Macro F1 scores obtained for all datasets using ChaosFEXRH+RF architectures.
+Bold fonts indicate the highest F1 score achieved for the respective dataset.
+Data-set Name
+ChaosFEXRH25L75G+RF
+ChaosFEXRH50L50G+RF
+ChaosFEXRH75L25G+RF
+Iris
+1
+1
+0.97
+Ionosphere
+0.96
+0.93
+0.97
+Wine
+0.97
+0.97
+0.97
+Bank-Note-Authentication
+0.93
+0.92
+0.94
+Haberman’s-Survival
+0.66
+0.57
+0.59
+Breast-Cancer-Wisconsin
+0.98
+0.99
+0.97
+Statlog(Heart)
+0.86
+0.87
+0.71
+Seeds
+0.83
+0.76
+0.78
+When compared with earlier architectures which were either homogeneous NL [17] or het-
+erogeneous NL but with fixed structure (odd-even) [6], we report that RHNL yields either com-
+parable or superior classification performance. For ease of comparison, we summarize these
+results in Table 15. Macro F1 scores obtained with RHNL are among the best for the various
+datasets considered in our study.
+5.1. Results Obtained for Time Series Dataset
+We analysed the performance of our proposed RHNL architectures with a time series dataset
+– namely Free Spoken Digit Dataset (FSDD). The hyperparameters tuned are given in Tables 33, 34, 35
+and 36. Macro F1 scores obtained for various ChaosFEXRHNL architectures are seen in Fig-
+ures 3, 4 and 5 (respectively).
+15
+Table 15: Comparison of best macro F1-scores obtained for RHNL structures (proposed in this study) with the other
+architectures reported in [19]. Best macro F1 scores are highlighted in bold font.
+Data-set
+Best
+macro
+F1
+score
+RHNL architectures with best
+macro F1-scores
+NL with best macro F1 scores reported in [19]
+Iris
+1
+ChaosFEXRH25L75G,
+ChaosFEXRH50L50G,
+ChaosFEXRH75L25G,
+ChaosFEXRH25L75G+SVM,
+ChaosFEXRH50L50G+SVM,
+ChaosFEXRH25L75G+AB,
+1
+ChaosFEXLogistic
+ChaosFEXRH50L50G+AB,
+ChaosFEXRH525L75G+DT,
+ChaosFEXRH525L75G+kNN,
+ChaosFEXLogistic+SVM
+ChaosFEXRH25L75G+GNB,
+ChaosFEXRH25L75G+RF,
+ChaosFEXRH50L50G+RF,
+ChaosFEXHetero
+ChaosFEXRH25L75G+SVM,
+ChaosFEXRH50L50G+SVM,
+ChaosFEXHetero+SVM
+ChaosFEXRH75L25G+SVM
+Ionosphere
+0.97
+ChaosFEXRH25L75G+AB,
+ChaosFEXRH50L50G+AB,
+0.97
+ChaosFEXLogistic+SVM
+ChaosFEXRH75L25G+AB,
+ChaosFEXRH75L25G+DT,
+ChaosFEXRH75L25G+RF
+Wine
+1
+ChaosFEXRH50L50G+AB
+0.98
+ChaosFEXGLS
+Bank-Note-
+Authentication
+0.99
+ChaosFEXRH50L50G+AB,
+ChaosFEXRH75L25G+AB,
+0.96
+ChaosFEXLogistic+SVM
+Haberman’s-
+Survival
+0.73
+ChaosFEXRH25L75G
+0.72
+ChaosFEXHetero
+Breast-
+Cancer-
+Wisconsin
+0.99
+ChaosFEXRH75L25G,
+ChaosFEXRH50L50G+RF
+0.97
+ChaosFEXLogistic+SVM
+Statlog(Heart)
+0.92
+ChaosFEXRH25L75G+DT,
+0.89
+ChaosFEXLogistic+SVM
+Seeds
+0.86
+ChaosFEXRH25L75G+AdaBoost,
+ChaosFEXRH75L25G+SVM
+0.86
+ChaosFEXHetero
+5.2. Classification performance of ChaosFEXRHNL for Debris Scars and Urban Images
+Satellites images are processed to detect and estimate vulnerability of human settlements.
+Machine Learning algorithms are used now a days to identify areas with high risk of landslide
+[39]. Around 85 images of debris scars and urban settlements from five Asian countries (In-
+16
+Cosine SVM
+AB
+DT
+GNB
+kNN
+RF
+0.2
+0.4
+0.6
+0.8
+1
+0.88
+0.97
+0.41
+0.2
+0.73
+0.9
+0.7
+Figure 3: Macro F1 scores obtained for FSDD data set for ChaosFEXRH25L75G with various classifiers. Classifiers are
+labeled along the x-axis.
+Cosine SVM
+AB
+DT
+GNB
+kNN
+RF
+0.2
+0.4
+0.6
+0.8
+0.77
+0.8
+9 · 10−2
+0.15
+0.56
+0.63
+0.45
+Figure 4: Macro F1 scores obtained for FSDD data set for ChaosFEXRH50L50G with various classifiers. Classifiers are
+labeled along the x-axis.
+dia, Nepal, Japan, Taiwan and China) were obtained from Planet labs [31] imagery with 3 −5m
+resolution for our analysis to identify the classification performance of Neurochaos Learning
+Architecture (NL), specifically ChaosFEXRH25L75G algorithm. Images are labelled either as “de-
+bris” or as “urban” based on visual recognition. We have used 35 debris scar images and 50
+urban settlement images for our analysis. Figure 6(a) and Figure 6(b) shows the sample images
+from class “debris” and class “urban”. Out of total 85 satellite images captured, 80% of the data
+are used for training and the remaining 20% are used for testing. We have used 5−fold cross
+validation for our analysis.
+The images are initially pre-processed using Otsu global thresholding algorithm and then
+filtered using Discrete Wavelet Transform(DWT). Daubechies-4 wavelets are used for the DWT
+implementation. Grey-level co-occurrence matrix (GLCM) is then created which analyses the
+17
+Cosine SVM
+AB
+DT
+GNB
+kNN
+RF
+0.4
+0.6
+0.8
+1
+0.94
+0.98
+0.33
+0.61
+0.61
+0.84
+0.51
+Figure 5: Macro F1 scores obtained for FSDD data set for ChaosFEXRH75L25G with various classifiers. Classifiers are
+labeled along the x-axis.
+(a)
+(b)
+Figure 6: (a) Debris scar image (class “debris”). (b) Urban settlement image (class “urban”).
+pairs of horizontally adjacent pixels in a scaled version of the image. From the GLCM matrix,
+12 features namely Contrast, Correlation, Energy, Homogeneity, Mean, Standard Deviation, En-
+tropy, RMS, Variance, Smoothness, Kurtosis and Skewness are extracted. These features are fed
+to various ChaosFEXRHNL.
+Parameters tuned for various structures considered for analysis with debris-urban dataset are
+shown in Appendix Tables 37, 38 and 39.
+Performance analysis is done and the macro F1 score obtained for the various architectures
+considered are given in Table 16. We analysed the structures and found that high F1 score of 0.94
+is obtained with ChaosFEXRH25L75G, ChaosFEXRH25L75G +SVM, ChaosFEXRH25L75G +kNN,
+ChaosFEXRH25L75G +DT and ChaosFEXRH25L75G+RF for the debris-urban dataset considered.
+Table 16: Macro F1 scores obtained for debris-urban dataset with various ChaosFEXRHNL combined with various
+classifiers (cosine similarity and other ML classifiers).
+RHNL with various classifiers
+Cosine Similarity
+SVM
+k-NN
+AB
+DT
+GNB
+RF
+ChaosFEXRH25L75G
+0.94
+0.94
+0.94
+0.70
+0.94
+0.88
+0.94
+ChaosFEXRH50L50G
+0.70
+0.70
+0.74
+0.81
+0.82
+0.80
+0.88
+ChaosFEXRH75L25G
+0.66
+0.94
+0.70
+0.88
+0.88
+0.87
+0.88
+18
+5.3. Classification performance of ChaosFEXRHNL for Brain Tumor Dataset
+Brain tumors are the leading cause of cancer death in children. They are caused by the
+abnormal and uncontrolled growth of cells inside the brain or spinal canal. Classification of
+brain tumors using machine learning technology is very relevant for radiologists to confirm their
+analysis more effectively and quickly.
+For our analysis, we have considered 100 MRI brain images from Kaggle online reposi-
+tory [32]. Images are labelled as “malignant” or “benign”. We considered 40 malignant and
+benign images for our analysis. We split 80% of data for training and the remaining 20% for
+testing. Five-fold cross validation is adopted in this analysis. Figure 7(a) and Figure 7(b) shows
+sample images from each of the two classes (malignant and benign).
+(a)
+(b)
+Figure 7: (a) MRI image showing malignant brain tumour (class “malignant”). (b) MRI image showing benign brain
+tumour (class “benign”).
+Preprocessing is done by applying anisotropic filtering of all images. Grey-level co-occurrence
+matrix (GLCM) is then created which analyses the pairs of horizontally adjacent pixels in a scaled
+version of the image. From the GLCM matrix, we can calculate the features needed for classifica-
+tion. The twelve features generated are Contrast, Correlation, Energy, Homogeneity, Mean, Stan-
+dard Deviation, Entropy, RMS, Variance, Smoothness, Kurtosis and Skewness. These extracted
+features are subsequently fed to stand-alone SVM, stand-alone k-NN, and ChaosFEXRH25L75G
++SVM and ChaosFEXRH25L75G +k-NN. The hyperparameters tuned for various architectures un-
+der analysis for brain tumor dataset is given in Appendix Tables 40, 41 and 42.
+The results (table 17) show classification performance is better with ChaosFEXRH25L75G (F1
+score = 0.881) for brain tumor dataset. We may further improve the classification performance
+with other ChaosFEXRHNL architectures with properly tuned hyperparameters.
+5.4. Performance of ChaosFEXRHNL compared with Stand-alone ML Classifiers
+When compared with either homogeneous NL or heterogeneous NL but with fixed structure
+(odd-even placement of GLS and Logistic neurons), we have reported that RHNL yields either
+19
+Table 17: Macro F1 scores obtained for MRI brain tumour dataset with various ChaosFEXRHNL combined with various
+classifiers (cosine similarity and other ML classifiers).
+RHNL with various classifiers
+Cosine Similarity
+SVM
+k-NN
+AB
+DT
+GNB
+RF
+ChaosFEXRH25L75G
+0.881
+0.812
+0.72
+0.76
+0.81
+0.48
+0.83
+ChaosFEXRH50L50G
+0.44
+0.50
+0.69
+0.78
+0.73
+0.78
+0.73
+ChaosFEXRH75L25G
+0.83
+0.78
+0.76
+0.82
+0.60
+0.50
+0.73
+comparable or superior classification performance. Table 18 compares the highest F1 score ob-
+tained with various stand-alone ML classifiers (SA-ML) and RHNL architectures for all the 11
+datasets in this study. For Iris, Wine and Bank Note Authentication datasets, RHNL architectures
+perform equally well with some of the stand-alone ML classifiers. It is interesting to note that
+a 16% increase in performance is achieved for Haberman’s Survival dataset with our proposed
+RHNL structure when compared with GNB which gives the best F1 score among all the stand-
+alone ML classifiers (F1-score = 0.57). Also for Ionosphere, Breast Cancer Wisconsin and Stat-
+log (Heart) datasets, our newly proposed RHNL structures outperform stand-alone classifiers
+significantly well. However for Seeds dataset alone, RHNL gives a lower performance. Ta-
+ble 19 shows that ChaosFEXRH25L75G, ChaosFEXRH25L75G+SVM, ChaosFEXRH25L75G+kNN,
+ChaosFEXRH25L75G+DT and ChaosFEXRH25L75G+RF give higher performance (F1 Score = 0.94)
+than any of the stand-alone ML classifiers for the debris-urban dataset. For brain tumor dataset
+also ChaosFEXRH25L75G outperforms all the stand-alone ML classifiers.
+Table 18: Comparison of RHNL architecture with the best stand-alone ML classifiers. Only the standalone ML
+classifier which yielded the highest F1-score is mentioned. (SA: Standalone).
+Dataset
+Highest F1-score for SA-ML
+SA-ML
+Highest F1-score with RHNL
+Iris
+1.00
+RF, k-NN
+1.00
+Ionosphere
+0.96
+SVM
+0.97
+Wine
+1.00
+GNB
+1.00
+Bank Note Authentication
+0.99
+SVM, k-NN
+0.99
+Haberman’s Survival
+0.57
+GNB
+0.73
+Breast Cancer Wisconsin
+0.95
+k-NN
+0.99
+Statlog(Heart)
+0.84
+k-NN, SVM
+0.92
+Seeds
+0.92
+k-NN
+0.86
+FSDD
+0.97
+RF
+0.98
+Table 19: Comparison of the performance (F1-scores) of ChaosFEXRH25L75G architecture with stand-alone ML
+classifiers for the debris-urban and brain tumor image datasets. SA: Stand alone ML classifiers. RHNL gives the best
+F1-scores (emphasized in bold).
+Dataset
+SA-SVM
+SA-kNN
+SA-AB
+SA-DT
+SA-GNB
+SA-RF
+ChaosFEXRH25L75G
+Debris-Urban
+0.71
+0.71
+0.71
+0.71
+0.71
+0.82
+0.94
+Brain Tumor
+0.7
+0.6
+0.70
+0.7
+0.55
+0.75
+0.88
+Table 20 shows that highest macro F1 score is obtained for ChaosFEXRHNL structures for all
+dataset except Seed.
+20
+Table 20: Performance comparison of ChaosFEXRHNL+ML structures proposed in this study with stand-alone ML
+classifiers. Checkmark (✓) indicates that the algorithm gives highest F1 score (value reported in the second column).
+As it can be seen RHNL yields the best performance in 10 out of 11 datasets.
+Dataset
+Highest Macro F1 Score
+Stand-alone ML classifiers
+ChaosFEXRHNL+ML Structures
+Iris
+1.00
+✓
+✓
+Ionosphere
+0.96
+✓
+Wine
+1.00
+✓
+✓
+Bank Note Authentication
+0.99
+✓
+✓
+Haberman’s Survival
+0.73
+✓
+Breast Cancer Wisconsin
+0.99
+✓
+Statlog Heart
+0.92
+✓
+Seed
+0.86
+✓
+FSDD
+0.98
+✓
+Debris-Urban Image
+0.94
+✓
+Brain Tumor Image
+0.83
+✓
+5.5. Performance of RHNL in low training sample regime
+One of the major significance of Neurochaos Learning architectures is that they perform well
+in the low training sample regime [11]. We analysed the performance of ChaosFEXRH25L75G for
+the MRI brain tumor dataset in the low training sample regime and compared its peformance with
+the standalone ML classifiers. The 12 features generated from the selected 100 brain tumor MRI
+images from Kaggle dataset online repository [32] are used for our analysis. Analysis is done
+starting with one sample per class in the training set and the remaining samples were used for
+testing. The process is repeated with 2 to 15 samples per class in train data set and the remaining
+samples in test dataset. In every case, we did 10 indepedent random trials. The average F1
+score of these 10 trials are reported in each case and compared with the results obtained for
+stand-alone classifiers namely Decision Tree (DT), Random Forest (RF), AdaBoost (AB), SVM,
+k-NN, Guassian Naive Bayes (GNB) and ChaosFEXRH25L75G. In ChaosFEXRH25L75G, 25% of the
+locations are randomly allotted to logistic map neurons and the remaining locations with GLS
+neurons. Cosine Similarity classifier is used in ChaosFEXRH25L75G architecture. Figure 8 shows
+that for low training samples, ChaosFEXRH25L75G consistently high performance with respect to
+other standalone ML algorithms.
+For training dataset with one sample per class, ChaosFEXRHNL25L75G gives high performance
+and Decision Tree and K-NN gives low performance. For training dataset with 4 and 5 samples
+per class, SVM outperforms ChaosFEXRH25L75G. k-NN gives high performance with 6 sam-
+ples per class in training dataset. However from 8 samples per class in train dataset onwards,
+ChaosFEXRHNL25L75G performed well again and continues to outperform other classifiers. This
+shows that RHNL architecture is able to learn with very few training samples per class making
+it very desirable in practical applications where there is a paucity of training data.
+21
+Figure 8: Comparative performance of ChaosFEXRHNL25L75G with stand-alone ML classifiers in the regime of low
+number of training instances.
+6. Conclusion and Future Research Directions
+Incorporation of both heterogeneity and randomness into Neurochaos Learning is one step
+in the right direction of mimicking the complex neural organization of the human brain. In
+this study, we find that such Random Heterogeneous Neurochaos Learning (RHNL) architec-
+tures perform very well. When compared with earlier architectures which were either homo-
+geneous NL [17] or heterogeneous NL but with fixed structure (odd-even) [6], we report that
+22
+RHNL yields either comparable or superior classification performance.Table 15 shows that the
+macro F1 scores obtained with RHNL are among the best for all the datasets considered in
+our study. RHNL architectures beat both homogeneous NL and fixed heterogeneous NL archi-
+tectures on nearly all classification tasks. RHNL achieved a high level of F1 score for Wine
+dataset (1.0), Bank Note Authentication dataset (0.99), Breast Cancer Wisconsin dataset (0.99)
+and FSDD dataset (0.98). RHNL is also superior on time series dataset. For the FSDD dataset,
+ChaosFEXRH75L25G+SVM achieves the highest macro F1 score of 0.98. This is infact higher
+than the best F1 score obtained with homogeneous NL architecture reported in [17]. These
+results of RHNL are clearly among the best in the literature on the same datasets. For the debris-
+urban image data, ChaosFEXRH25L75G gave a high F1 score of 0.94 with cosine similarity, SVM,
+k-NN, Decisrion Tree and Randim Forest classifiers. Brain tumor image dataset gives high F1
+score of 0.881 with ChaosFEXRH25L75G. RHNL also yields best F1 score when compared with
+standalone-ML classifiers except for the Seeds dataset. In the case of low training sample regime,
+RHNL outperforms almost all traditional ML classifiers.
+This line of work can be applied to classification of other datasets in various application do-
+mains. For future research, we will explore incorporating other chaotic maps such as Standard
+map, Circle map, Ikeda map, H´enon map, Gumowski-Mira map, Arnold’s cat map, Lorenz sys-
+tem, Baker’s map, Lozi map, Hindmarsh-Rose neuronal model, R¨ossler system and other such
+dynamical systems as neurons in RHNL.
+7. Acknowledgements
+Authors are thankful for the help received by Harikrishnan NB and Deeksha S with Python
+programs of homogeneous Neurochaos Learning architecture. RA is grateful to the computing
+facilities provided by Amrita Vishwa Vidyapeetham (Amritapuri Campus).
+References
+[1] V. Ramachandran, S. Blakeslee, R. J. Dolan, Phantoms in the brain probing the mysteries of the human mind,
+Nature 396 (6712) (1998) 639–640.
+[2] A. Graves, A.-r. Mohamed, G. Hinton, Speech recognition with deep recurrent neural networks, in: 2013 IEEE
+international conference on acoustics, speech and signal processing, Ieee, 2013, pp. 6645–6649.
+[3] N. Harikrishnan, R. Vinayakumar, K. Soman, A machine learning approach towards phishing email detection, in:
+Proceedings of the Anti-Phishing Pilot at ACM International Workshop on Security and Privacy Analytics (IWSPA
+AP), Vol. 2013, 2018, pp. 455–468.
+[4] N. Sebe, Machine learning in computer vision, Vol. 29, Springer Science & Business Media, 2005.
+[5] J. Harikrishnan, A. Sudarsan, A. Sadashiv, R. A. Ajai, Vision-face recognition attendance monitoring system for
+surveillance using deep learning technology and computer vision, in: 2019 international conference on vision
+towards emerging trends in communication and networking (ViTECoN), IEEE, 2019, pp. 1–5.
+[6] A. Remya Ajai, S. Gopalan, Analysis of active contours without edge-based segmentation technique for brain
+tumor classification using svm and knn classifiers, in: Advances in Communication Systems and Networks: Select
+Proceedings of ComNet 2019, Springer, 2020, pp. 1–10.
+[7] S. Krishna, A. R. Ajai, Analysis of three point checklist and abcd methods for the feature extraction of dermoscopic
+images to detect melanoma, in: 2019 9th International Symposium on Embedded Computing and System Design
+(ISED), IEEE, 2019, pp. 1–5.
+[8] S. Asif, M. Zhao, F. Tang, Y. Zhu, An enhanced deep learning method for multi-class brain tumor classification
+using deep transfer learning, Multimedia Tools and Applications (2023) 1–28.
+[9] K. Aihara, T. Takabe, M. Toyoda, Chaotic neural networks, Physics letters A 144 (6-7) (1990) 333–340.
+[10] C. B. Delahunt, J. N. Kutz, Putting a bug in ml: The moth olfactory network learns to read mnist, Neural Networks
+118 (2019) 54–64.
+23
+[11] H. N. Balakrishnan, A. Kathpalia, S. Saha, N. Nagaraj, Chaosnet: A chaos based artificial neural network architec-
+ture for classification, Chaos: An Interdisciplinary Journal of Nonlinear Science 29 (11) (2019) 113125.
+[12] H. NB, A. Kathpalia, N. Nagaraj, Causality preserving chaotic transformation and classification using neurochaos
+learning, Advances in Neural Information Processing Systems 35 (2022) 2046–2058.
+[13] H. Korn, P. Faure, Is there chaos in the brain? ii. experimental evidence and related models, Comptes rendus
+biologies 326 (9) (2003) 787–840.
+[14] N. Perez-Nieves, V. C. Leung, P. L. Dragotti, D. F. Goodman, Neural heterogeneity promotes robust learning,
+Nature communications 12 (1) (2021) 5791.
+[15] S. Weis, M. Sonnberger, A. Dunzinger, E. Voglmayr, M. Aichholzer, R. Kleiser, P. Strasser, Histologi-
+cal Constituents of the Nervous System, Springer Vienna, Vienna, 2019, pp. 225–265.
+doi:10.1007/
+978-3-7091-1544-2_10.
+URL https://doi.org/10.1007/978-3-7091-1544-2_10
+[16] N. Harikrishnan, N. Nagaraj, Neurochaos inspired hybrid machine learning architecture for classification, in: 2020
+International Conference on Signal Processing and Communications (SPCOM), IEEE, 2020, pp. 1–5.
+[17] D. Sethi, N. Nagaraj, N. Harikrishnan, Neurochaos feature transformation for machine learning, Integration (2023).
+[18] N. Harikrishnan, N. Nagaraj, When noise meets chaos: Stochastic resonance in neurochaos learning, Neural Net-
+works 143 (2021) 425–435.
+[19] R. A. AS, N. Harikrishnan, N. Nagaraj, Analysis of logistic map based neurons in neurochaos learning architectures
+for data classification, Chaos, Solitons & Fractals 170 (2023) 113347.
+[20] N. Nagaraj, The unreasonable effectiveness of the chaotic tent map in engineering applications, Chaos Theory and
+Applications 4 (4) 197–204.
+[21] S. Phatak, S. S. Rao, Logistic map: A possible random-number generator, Physical review E 51 (4) (1995) 3670.
+[22] K. T. Alligood, T. D. Sauer, J. A. Yorke, D. Chillingworth, Chaos: an introduction to dynamical systems, SIAM
+Review 40 (3) (1998) 732–732.
+[23] R. A. Fisher, The use of multiple measurements in taxonomic problems, Annals of eugenics 7 (2) (1936) 179–188.
+[24] D. Dua, C. Graff, et al., Uci machine learning repository (2017).
+[25] V. G. Sigillito, S. P. Wing, L. V. Hutton, K. B. Baker, Classification of radar returns from the ionosphere using
+neural networks, Johns Hopkins APL Technical Digest 10 (3) (1989) 262–266.
+[26] B. Vandeginste, Parvus: An extendable package of programs for data exploration, classification and correlation,
+m. forina, r. leardi, c. armanino and s. lanteri, elsevier, amsterdam, 1988, price: Us $$$645 isbn 0-444-43012-1,
+Journal of Chemometrics 4 (2) (1990) 191–193.
+[27] E. Gillich, V. Lohweg, Banknote authentication, 1. Jahreskolloquium Bild. Der Autom (2010) 1–8.
+[28] S. J. Haberman, The analysis of residuals in cross-classified tables, Biometrics (1973) 205–220.
+[29] W. N. Street, W. H. Wolberg, O. L. Mangasarian, Nuclear feature extraction for breast tumor diagnosis, in: Biomed-
+ical image processing and biomedical visualization, Vol. 1905, SPIE, 1993, pp. 861–870.
+[30] Z. Jackson, C. Souza, J. Flaks, Y. Pan, H. Nicolas, A. Thite, Jakobovski/free-spoken-digit-dataset: v1. 0.8, Zenodo,
+August (2018).
+[31] Planet, Planet labs.
+URL www.planet.com
+[32] N. Chakrabarty, Brain mri images for brain tumor detection.
+URL https://www.kaggle.com/datasets/navoneel/brain-mri-images-for-brain-tumor-detection/
+code
+[33] B. E. Boser, I. M. Guyon, V. N. Vapnik, A training algorithm for optimal margin classifiers, in: Proceedings of the
+fifth annual workshop on Computational learning theory, 1992, pp. 144–152.
+[34] R. E. Schapire, Explaining adaboost, in: Empirical Inference: Festschrift in Honor of Vladimir N. Vapnik, Springer,
+2013, pp. 37–52.
+[35] J. R. Quinlan, Induction of decision trees, Machine learning 1 (1986) 81–106.
+[36] D. Berrar, Bayes’ theorem and naive bayes classifier, Encyclopedia of bioinformatics and computational biology:
+ABC of bioinformatics 403 (2018) 412.
+[37] T. Cover, P. Hart, Nearest neighbor pattern classification, IEEE transactions on information theory 13 (1) (1967)
+21–27.
+[38] L. Breiman, Random forests, Machine learning 45 (2001) 5–32.
+[39] A. Sridharan, R. A. AS, S. Gopalan, A novel methodology for the classification of debris scars using discrete
+wavelet transform and support vector machine, Procedia computer science 171 (2020) 609–616.
+24
+Appendix
+This section contains the additional supplementary details related to the main manuscript. It
+contains the hyperparameter tuned values for each dataset used in this study, for different classi-
+fiers namely AdaBoost, Decision Trees, kNN and Random Forests that were used in ChaosFEXRH
+architectures. The hyperparameters tuned for FSSD dataset for various ChaosFEXRH architec-
+tures are also included in this section.
+Table 21: Tuned hyperparameters for ChaosFEXRH25L75G+AdaBoost.
+Data-set
+q
+b
+ϵ
+n estimators
+Iris
+.062
+.185
+.298
+10
+Ionosphere
+.01
+.409
+.051
+50
+Wine
+.46
+.469
+.141
+10
+Bank-Note-Authentication
+.36
+.419
+.121
+10
+Haberman’s-Survival
+.05
+.269
+.031
+5000
+Breast-Cancer-Wisconsin
+.17
+.46
+.05
+100
+Statlog(Heart)
+.47
+.489
+.0309
+5000
+Seeds
+.05
+.189
+0.161
+50
+Table 22: Tuned hyperparameters for ChaosFEXRH50L50G+AdaBoost.
+Data-set
+q
+b
+ϵ
+n estimators
+Iris
+.05
+.359
+.221
+10
+Ionosphere
+.099
+.479
+.061
+1000
+Wine
+.46
+.469
+.131
+10
+Bank-Note-Authentication
+.09
+.289
+.041
+1000
+Haberman’s-Survival
+.14
+.489
+.021
+1000
+Breast-Cancer-Wisconsin
+.069
+.139
+.041
+10
+Statlog(Heart)
+.18
+.169
+.011
+100
+Seeds
+.05
+.139
+.151
+10
+Table 23: Tuned hyperparameters for ChaosFEXRH75L25G+AdaBoost.
+Data-set
+q
+b
+ϵ
+n estimators
+Iris
+.15
+.299
+.231
+10
+Ionosphere
+.02
+.219
+.809
+50
+Wine
+.47
+.479
+.131
+10
+Bank-Note-Authentication
+.01
+.259
+.071
+5000
+Haberman’s-Survival
+.23
+.1
+.011
+5000
+Breast-Cancer-Wisconsin
+.14
+.489
+.021
+1000
+Statlog(Heart)
+.13
+.1
+.051
+10
+Seeds
+.05
+.189
+.151
+50
+25
+‘
+Table 24: Tuned hyperparameters for ChaosFEXRH25L75G+ Decision Trees.
+Dataset
+q
+b
+ϵ
+min samples lea f
+max depth
+ccp alpha
+Iris
+.062
+.185
+.298
+1
+2
+0.0
+Ionosphere
+.01
+.409
+.051
+3
+7
+0.0
+Wine
+.46
+.469
+.141
+1
+4
+0.0
+Bank-Note-Authentication
+.36
+.419
+.121
+1
+6
+0.0
+Haberman’s-Survival
+.05
+.269
+.031
+7
+4
+0.0
+Breast-Cancer-Wisconsin
+.17
+.46
+.05
+10
+4
+.0022
+Statlog(Heart)
+.47
+.489
+.0309
+1
+3
+0.0
+Seeds
+.05
+.189
+.161
+2
+3
+0.0
+Table 25: Tuned hyperparameters for ChaosFEXRH50L50G+ Decision Trees.
+Data-set
+q
+b
+ϵ
+min samples leaf
+max depth
+ccp alpha
+Iris
+.05
+.359
+.221
+1
+2
+0.0
+Ionosphere
+.099
+.479
+.061
+3
+4
+0.0
+Wine
+.46
+.469
+.131
+1
+4
+0.0
+Bank-Note-Authentication
+.09
+.289
+.041
+1
+8
+0.0
+Haberman’s-Survival
+.14
+.489
+.021
+4
+5
+0.0
+Breast-Cancer-Wisconsin
+.069
+.139
+.041
+3
+3
+0.0
+Statlog(Heart)
+.18
+.169
+.011
+1
+4
+0.0
+Seeds
+.05
+.139
+.151
+1
+3
+0.0
+Table 26: Tuned hyperparameters for ChaosFEXRH75L25G+ Decision Trees.
+Data-set
+q
+b
+ϵ
+min samples leaf
+max depth
+ccp alpha
+Iris
+.15
+.299
+.231
+1
+2
+0.0
+Ionosphere
+.02
+.219
+.809
+1
+6
+0.0
+Wine
+.47
+.479
+.131
+2
+4
+0.0
+Bank-Note-Authentication
+.01
+.259
+.071
+8
+7
+0.0
+Haberman’s-Survival
+.23
+.1
+.011
+5
+6
+0.0
+Breast-Cancer-Wisconsin
+.14
+.489
+.021
+6
+9
+.00218
+Statlog(Heart)
+.13
+.1
+.051
+1
+3
+0.004
+Seeds
+.05
+.189
+.151
+1
+4
+0.0
+Table 27: Tuned hyperparameters for ChaosFEXRH25L75G+kNN.
+Data-set
+q
+b
+ϵ
+k
+Iris
+.062
+.185
+.298
+3
+Ionosphere
+.01
+.409
+.051
+3
+Wine
+.46
+.469
+.141
+5
+Bank-Note-Authentication
+.36
+.419
+.121
+1
+Haberman’s-Survival
+.05
+.269
+.031
+5
+Breast-Cancer-Wisconsin
+.17
+.46
+.05
+5
+Statlog(Heart)
+.47
+.489
+.0309
+3
+Seeds
+.05
+.189
+.161
+3
+26
+Table 28: Tuned hyperparameters for ChaosFEXRH50L50G+kNN.
+Data-set
+q
+b
+ϵ
+k
+Iris
+.05
+.359
+.221
+3
+Ionosphere
+.099
+.479
+.061
+3
+Wine
+.46
+.469
+.131
+1
+Bank-Note-Authentication
+.09
+.289
+.041
+1
+Haberman’s-Survival
+.14
+.489
+.021
+5
+Breast-Cancer-Wisconsin
+.069
+.139
+.041
+3
+Statlog(Heart)
+.18
+.169
+.011
+3
+Seeds
+.05
+.139
+.151
+3
+Table 29: Tuned hyperparameters for ChaosFEXRH75L25G+kNN.
+Data-set
+q
+b
+ϵ
+k
+Iris
+.15
+.299
+.231
+5
+Ionosphere
+.02
+.219
+.809
+5
+Wine
+.47
+.479
+.131
+5
+Bank-Note-Authentication
+.01
+.259
+.071
+1
+Haberman’s-Survival
+.23
+.1
+.011
+1
+Breast Cancer Wisconsin
+.14
+.489
+.021
+1
+Statlog(Heart)
+.13
+.1
+.051
+5
+Seeds
+.05
+.189
+.151
+3
+Table 30: Tuned hyperparameters for ChaosFEXRH25L75G+Random Forests.
+Data-set
+q
+b
+ϵ
+n estimators
+max depth
+Iris
+.062
+.185
+.298
+10
+3
+Ionosphere
+.01
+.409
+.051
+100
+5
+Wine
+.46
+.469
+.141
+100
+3
+Bank-Note-Authentication
+.36
+.419
+.121
+10
+4
+Haberman’s-Survival
+.05
+.269
+.031
+10
+6
+Breast-Cancer-Wisconsin
+.17
+.46
+.05
+10
+5
+Statlog(Heart)
+.47
+.489
+.0309
+10
+4
+Seeds
+.05
+.189
+.161
+100
+4
+Table 31: Tuned hyperparameters for ChaosFEXRH50L50G+Random Forests.
+Data-set
+q
+b
+ϵ
+n estimators
+max depth
+Iris
+.05
+.359
+.221
+100
+3
+Ionosphere
+.099
+.479
+.061
+1000
+8
+Wine
+.46
+.469
+.131
+1000
+5
+Bank-Note-Authentication
+.09
+.289
+.041
+100
+7
+Haberman’s-Survival
+.14
+.489
+.021
+1000
+4
+Breast-Cancer-Wisconsin
+.069
+.139
+.041
+10
+8
+Statlog(Heart)
+.18
+.169
+.011
+100
+5
+Seeds
+.05
+.139
+.151
+100
+4
+27
+Table 32: Tuned hyperparameters for ChaosFEXRH75L25G+Random Forests.
+Data-set
+q
+b
+ϵ
+n estimators
+max depth
+Iris
+.15
+.299
+.231
+10
+2
+Ionosphere
+.02
+.219
+.809
+10
+5
+Wine
+.47
+.479
+.131
+100
+6
+Bank-Note-Authentication
+.01
+.259
+.071
+100
+7
+Haberman’s-Survival
+.23
+.1
+.011
+10
+5
+Breast-Cancer-Wisconsin
+.14
+.489
+.021
+10
+10
+Statlog(Heart)
+.13
+.1
+.051
+10
+2
+Seeds
+.05
+.189
+.151
+100
+4
+Table 33: Tuned hyperparameters for ChaosFEXRH25L75G for FSDD.
+Hyper-parameter
+Tuned Value
+q
+.086
+b
+.303
+ϵ
+.055
+Table 34: Tuned hyperparameters for ChaosFEXRH50L50G for FSDD.
+Hyper-parameter
+Tuned Value
+q
+.106
+b
+.032
+ϵ
+.104
+Table 35: Tuned hyperparameters for ChaosFEXRH75L25G for FSDD.
+Hyper-parameter
+Tuned Value
+q
+.40
+b
+.20
+ϵ
+.15
+Table 36: Tuned hyperparameters for various classifiers for FSDD.
+Classifiers
+ChaosFEXRH25L75G
+ChaosFEXRH50L50G
+ChaosFEXRH75L25G
+AdaBoost
+n estimators = 50
+n estimators = 1
+n estimators = 10
+Decision Trees
+min samples leaf = 1
+min samples leaf = 1
+min samples leaf = 4
+max depth = 2
+max depth = 2
+max depth = 7
+ccp alpha = 0.0074
+ccp alpha = 0.0
+ccp alpha = 0.00723
+k-NN
+k = 3
+k = 5
+k = 1
+Random Forests
+n estimators = 2
+n estimators = 2
+n estimators = 2
+max depth = 1000
+max depth = 1000
+max depth = 10
+28
+Table 37: Parameters tuned for various ChaosFEXRH25L75G structures considered for analysis with debris-urban dataset
+Algorithm
+Hyper Parameters
+ChaosFEXRH25L75G
+q=.3649
+b=.430
+ϵ=.259
+ChaosFEXRH25L75G+SVM
+q=.3649
+b=.430
+ϵ=.259
+ChaosFEXRH25L75G+k-NN
+q=.3649
+b=.430
+ϵ=.259
+k=3
+ChaosFEXRH25L75G+AdaBoost
+q=.3649
+b=.430
+ϵ=.259
+n estimator=1
+ChaosFEXRH25L75G+Decision Tree
+q=.3649
+b=.430
+ϵ=.259
+min samples leaf = 1
+random state = 42
+max depth = 6
+ccp alpha = 0
+ChaosFEXRH25L75G+GNB
+q=.3649
+b=.430
+ϵ=.259
+ChaosFEXRH25L75G+RF
+q=.3649
+b=.430
+ϵ=.259
+n estimators = 1000,
+max depth= 8
+29
+Table 38: Parameters tuned for various ChaosFEXRH50L50G structures considered for analysis with debris-urban dataset
+Algorithm
+Hyper Parameters
+ChaosFEXRHNL50L50G
+q = .121
+b = .0041
+ϵ = .015
+ChaosFEXRHNL50L50G+SVM
+q = .121
+b = .0041
+ϵ = .015
+ChaosFEXRHNL50L50G+k-NN
+q = .121
+b = .0041
+ϵ = .015
+k = 1
+ChaosFEXRHNL50L50G+Decision Tree
+q = .121
+b = .0041
+ϵ = .015
+min samples leaf = 1
+max depth= 4
+ccp alpha = 0
+ChaosFEXRHNL50L50G+GNB
+q = .121
+b = .0041
+ϵ = .015
+ChaosFEXRHNL50L50G+AdaBoost
+q = .121
+b = .0041
+ϵ = .015
+n estimators=3
+ChaosFEXRHNL50L50G+Random Forest
+q = .121
+b = .0041
+ϵ = .015
+n estimators = 1000
+max depth = 5
+30
+Table 39: Parameters tuned for various ChaosFEXRH75L25G structures considered for analysis with debris-urban dataset
+Algorithm
+Hyper Parameters
+ChaosFEXRHNL75L25G
+q= .491
+b= .010
+ϵ= .0856
+ChaosFEXRHNL75L25G+SVM
+q= .491
+b= .010
+ϵ= .0856
+ChaosFEXRHNL75L25G+k-NN
+q= .491
+b= .010
+ϵ= .0856
+k = 5
+ChaosFEXRHNL75L25G+Decision Tree
+q= .491
+b= .010
+ϵ= .0856
+random state=42
+min samples leaf = 1
+max depth= 4
+ccp alpha = 0
+ChaosFEXRHNL75L25G+GNB
+q= .491
+b= .010
+ϵ= .0856
+ChaosFEXRHNL75L25G+AdaBoost
+q= .491
+b= .010
+ϵ= .0856
+n estimators=100
+ChaosFEXRHNL75L25G+Random Forest
+q= .491
+b= .010
+ϵ= .0856
+n estimators = 100
+max depth = 4
+31
+Table 40: Parameters tuned for various ChaosFEXRH25L50G structures considered for analysis with Brain Tumor dataset
+Algorithm
+Parameters
+ChaosFEXRH25L75G
+q=.01
+b=.36
+ϵ=.090
+ChaosFEXRH25L75G+SVM
+q=.01
+b=.36
+ϵ=.090
+ChaosFEXRH25L75G+k-NN
+q=.01
+b=.430
+ϵ=.230
+k=3
+ChaosFEXRH25L75G+Decision Tree
+q=.01
+b=.430
+ϵ=.230
+min samples leaf = 1
+max depth = 6
+ccp alpha = 0
+ChaosFEXRH25L75G+GNB
+q=.01
+b=.430
+ϵ=.230
+ChaosFEXRH25L75G+AdaBoost
+q=.01
+b=.430
+ϵ=.230
+n estimator= 1000
+ChaosFEXRH25L75G+Random Forest
+q=.01
+b=.430
+ϵ=0.230
+n estimator= 1000
+max depth = 8
+32
+Table 41: Parameters tuned for various ChaosFEXRH50L50G structures considered for analysis with Brain Tumor dataset
+Algorithm
+Hyper Parameters
+ChaosFEXRH50L50G
+q = .094
+b = .0065
+ϵ = .0092
+ChaosFEXRH50L50G+SVM
+q = .094
+b = .0065
+ϵ = .0092
+ChaosFEXRH50L50G+k-NN
+q = .094
+b = .0065
+ϵ = .0092
+k=1
+ChaosFEXRH50L50G+Decision Tree
+q = .094
+b = .0065
+ϵ = .0092
+min samples leaf = 1
+max depth = 4
+ccp alpha = 0
+ChaosFEXRH50L50G+GNB
+q = .094
+b = .0065
+ϵ = .0092
+ChaosFEXRH50L50G+AdaBoost
+q = .094
+b = .0065
+ϵ = .0092
+n estimator= 3
+ChaosFEXRH50L50G+Random Forest
+q = .094
+b = .0065
+ϵ = .0092
+n estimator= 1000
+max depth = 5
+33
+Table 42: Parameters tuned for various ChaosFEXRH75L25G structures considered for analysis with Brain Tumor dataset
+Algorithm
+Parameters
+ChaosFEXRH75L25G
+q = .156
+b = .107
+ϵ= .059
+ChaosFEXRH75L25G+SVM
+q = .156
+b = .107
+ϵ= .059
+ChaosFEXRH75L25G+k-NN
+q = .156
+b = .107
+ϵ= .059
+k=5
+ChaosFEXRH75L25G+Decision Tree
+q = .156
+b = .107
+ϵ= .059
+min samples leaf = 10
+max depth = 4
+ccp alpha = 0.0
+ChaosFEXRH75L25G+GNB
+q = .156
+b = .107
+ϵ= .059
+ChaosFEXRH75L25G+AdaBoost
+q = .156
+b = .107
+ϵ= .059
+n estimator= 10
+ChaosFEXRH75L25G+Random Forest
+q = .156
+b = .107
+ϵ= .059
+n estimator= 100
+max depth = 4
+34

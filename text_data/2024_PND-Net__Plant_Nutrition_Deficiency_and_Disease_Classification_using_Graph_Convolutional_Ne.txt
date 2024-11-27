@@ -1,0 +1,1386 @@
+PND-Net: Plant Nutrition Deficiency and Disease
+Classification using Graph Convolutional Network
+Asish Bera1,*, Debotosh Bhattacharjee2,3, and Ondrej Krejcar3,4,5
+1Department of Computer Science and Information Systems, BITS Pilani, Pilani Campus, Rajasthan, 333031,
+India
+2Department of Computer Science and Engineering, Jadavpur University, Kolkata, 700032, WB
+3Faculty of Informatics and Management University of Hradec Kralove, Hradec Kralove, Czech Republic
+4Skoda Auto University, Na Karmeli 1457, 293 01 Mlada Boleslav, Czech Republic
+5Malaysia Japan International Institute of Technology (MJIIT), Universiti Teknologi Malaysia, Kuala Lumpur,
+Malaysia
+1, *asish.bera@pilani.bits-pilani.ac.in
+2debotosh.bhattacharjee@jadavpuruniversity.in
+3ondrej.krejcar@uhk.cz
+ABSTRACT
+Crop yield production could be enhanced for agricultural growth if various plant nutrition deficiencies, and diseases
+are identified and detected at early stages. Hence, continuous health monitoring of plant is very crucial for handling
+plant stress. The deep learning methods have proven its superior performances in the automated detection of plant
+diseases and nutrition deficiencies from visual symptoms in leaves. This article proposes a new deep learning method
+for plant nutrition deficiencies and disease classification using a graph convolutional network (GNN), added upon a
+base convolutional neural network (CNN). Sometimes, a global feature descriptor might fail to capture the vital region of
+a diseased leaf, which causes inaccurate classification of disease. To address this issue, regional feature learning is
+crucial for a holistic feature aggregation. In this work, region-based feature summarization at multi-scales is explored
+using spatial pyramidal pooling for discriminative feature representation.
+Furthermore, a GCN is developed to capacitate learning of finer details for classifying plant diseases and insufficiency of
+nutrients. The proposed method, called Plant Nutrition Deficiency and Disease Network (PND-Net), has been evaluated
+on two public datasets for nutrition deficiency, and two for disease classification using four backbone CNNs. The best
+classification performances of the proposed PND-Net are as follows: (a) 90.00% Banana and 90.54% Coffee nutrition
+deficiency; and (b) 96.18% Potato diseases and 84.30% on PlantDoc datasets using Xception backbone. Furthermore,
+additional experiments have been carried out for generalization, and the proposed method has achieved state-of-the-art
+performances on two public datasets, namely the Breast Cancer Histopathology Image Classification (BreakHis 40X:
+95.50%, and BreakHis 100X: 96.79% accuracy) and Single cells in Pap smear images for cervical cancer classification
+(SIPaKMeD: 99.18% accuracy). Also, the proposed method has been evaluated using five-fold cross validation and
+achieved improved performances on these datasets. Clearly, the proposed PND-Net effectively boosts the performances
+of automated health analysis of various plants in real and intricate field environments, implying PND-Net’s aptness for
+agricultural growth as well as human cancer classification.
+Keywords: Agriculture, Convolutional Neural Network, Graph Convolutional Network, Plant Disease, Nutrition
+Deficiency, Cancer Classification, Spatial Pyramid Pooling.
+1 Introduction
+Agricultural production plays a crucial role in the sustainable economic and societal growth of a country. High-quality
+crop yield production is essential for satisfying global food demands and better health. However, several key factors,
+such as environmental barriers, pollution, and climate change, adversely affect crop yield and quality. Nevertheless,
+poor soil-nutrition management causes severe plant stress, leading to different diseases and resulting in a substantial
+financial loss. Thus, plant nutrition diagnosis and disease detection at an early stage is of utmost importance for overall
+health monitoring of plants1. Nutrition management in agriculture is a decisive task for maintaining the growth of
+plants. In recent times, it has been witnessed the success of machine learning (ML) techniques for developing decision
+support systems over traditional manual supervision of agricultural yield. Moreover, nutrient management is critical for
+arXiv:2410.12742v1  [cs.CV]  16 Oct 2024
+improving production growth, focusing on a robust and low-cost solution. Intelligent automated systems based on ML
+effectively build more accurate predictive models, which are relevant for improving agricultural production.
+Nutrient deficiency in plants exhibits certain visual symptoms and may cause of poor crop yields2. Diagnosis of
+plant nutrient inadequacy using deep learning and related intelligent methods is an emerging area in precision agriculture
+and plant pathology3. Automated detection and classification of nutrient deficiencies using computer vision and artificial
+intelligence have been studied in the recent literature4,5,6,7,8. Diagnosis of nutrient deficiencies in various plants (e.g.,
+rice, banana, guava, palm oil, apple, lettuce, etc.) is vital, because soil ingredients often can not provide the nutrients
+as required for the growth of plants9,10,11,12. Also, early stage detection of leaf diseases (e.g., potato, rice, cucumber,
+etc.) and pests are essential to monitor crop yield production13. A few approaches on disease detection and nutrient
+deficiencies in rice leaves have been developed and studied in recent times14,15,16,16,17,18. Hence, monitoring plant
+health, disease, and nutrition inadequacy could be a challenging image classification problem in artificial intelligence
+(AI) and machine learning (ML)19.
+This paper proposes a deep learning method for plant health diagnosis by integrating a graph convolutional network
+(GCN) upon a backbone deep convolutional neural network (CNN). The complementary discriminatory features of
+different local regions of input leaf images are aggregated into a holistic representation for plant nutrition and disease
+classification. The GCNs were originally developed for semi-supervised node classification20. Over time, several
+variations of GCNs have been developed for graph structured data21. Furthermore, GCN is effective for message
+propagation for image and video data in various applications. In this direction, several works have been developed for
+image recognition using GCN22,23. However, little research attention has been given to adopting GCN especially for
+plant disease prediction and nutrition monitoring24. Thus, in this work, we have studied the effectiveness of GCN in
+solving the current problem of plant health analysis regarding nutrition deficiency and disease classification of several
+categories of plants.
+The proposed method, called Plant Nutrition Deficiency and Disease Network (PND-Net), attempts to establish a
+correlation between different regions of the leaves for identifying infected and defective regions at multiple granularities.
+For this intent, region pooling in local contexts and spatial pooling in a pyramidal structure, have been explored for a
+holistic feature representation of subtle discrimination of plant health conditions. Other existing approaches have built
+the graph-based correlation directly upon the CNN features, but they have often failed to capture finer descriptions of
+the input data. In this work, we have integrated two different feature pooling techniques for generating node features
+of the graph. As a result, this mixing enables an enhanced feature representation which is further improved by graph
+layer activations in the hidden layers in the GCN. The effectiveness of the proposed strategy has been analysed with
+rigorous experiments on two plant nutrition deficiency and two plant disease classification datasets. In addition, the
+method has been tested on two different human cancer classification tasks for the generalization of the method. The key
+contributions of this work are:
+• A deep learning method, called PND-Net, is devised by integrating a graph convolutional module upon a base
+CNN to enhance the feature representation for improving the classification performances of unhealthy leaves.
+• A combination of fixed-size region-based pooling with multi-scale spatial pyramid pooling progressively enhances
+the feature aggregation for building a spatial relation between the regions via the neighborhood nodes of a spatial
+graph structure.
+• Experimental studies have been carried out for validating the proposed method on four public datasets, which
+have been tested for plant disease classification, and nutrition deficiency classification. For generalization of
+the proposed method, a few experiments have been conducted on the cervical cancer cell (SIPaKMeD) and
+breast cancer histopathology image (BreakHis 40X and 100X) datasets. The proposed PND-Net has achieved
+state-of-the-art performances on these six public datasets of different categories.
+The rest of this paper is organized as follows: Section 2 summarizes related works. Section 3 describes the proposed
+methodology. The experimental results are showcased in Section 4, followed by the conclusion in Section 5.
+2 Related Works
+Several works have been contributed to plant disease detection, most of which were tested on controlled datasets,
+acquired in a laboratory set-up. Only a few works have developed unconstrained datasets considering realistic field
+conditions, which have been studied in this work. Here, a precise study of recent works has been briefed.
+2.1 Methods on Plant Nutrition Deficiencies
+Bananas are one of the widely consumed staple foods across the world. An image dataset depicting the visual deficiency
+symptoms of eight essential nutrients, namely, boron, calcium, iron, potassium, manganese, magnesium, sulphur and
+zinc has been developed25. This dataset has been tested in this proposed work. The CoLeaf dataset contains images
+2/19
+of coffee plant leaves and is tested for nutritional deficiencies recognition and classification26. The nutritional status
+of oil palm leaves, particularly the status of chlorophyll and macro-nutrients (e.g., N, K, Ca, and Mg) in the leaves
+from proximal multi spectral images, have been evaluated using machine learning techniques27. The identification and
+categorization of common macro-nutrient (e.g., nitrogen, phosphorus, potassium, etc.) deficiencies in rice plants has
+been addressed17,28. The percentage of micro nutrients deficiencies in rice plants using CNNs and Random Forest (RF)
+has been estimated28. Detection of biotic stressed rice leaves and abiotic stressed leaves caused by NPK (Nitrogen,
+Phosphorus, and Potassium) deficiencies have been experimented with using CNN29.
+A supervised monitoring system of tomato leaves for predicting nutrient deficiencies using a CNN for recognizing
+and to classify the type of nutrient deficiency in tomato plants and achieved 86.57% accuracy30. The nutrient deficiency
+symptoms have been recognized in RGB images by using CNN-based (e.g., EfficientNet) transfer learning on orange
+with 98.52% accuracy and sugar beet with 98.65% accuracy31. Nutrient deficiencies in rice plants have reported 97.0%
+accuracy by combining CNN and reinforcement learning32. The R-CNN object detector has achieved accuracy of
+82.61% for identifying nutrient deficiencies in chili leaves33. Feature aggregation schemes by combining the features
+with HSV and RGB for color, GLCM and LBP for texture, and Hu moments and centroid distance for shapes have
+been examined for nutrient deficiency identification in chili plants34. However, this method performed the best using a
+CNN with 97.76% accuracy. An ensemble of CNNs has reported 98.46% accuracy for detecting groundnut plant leaf
+images35. An intelligent robotic system with a wireless control to monitor the nutrition essentials of spinach plants in the
+greenhouse has been evaluated with 86% precision36. The nutrient status and health conditions of the Romaine Lettuce
+plants in a hydroponic setup using a CNN have been tested with 90% accuracy37. The identification and categorization
+of common macro-nutrient (e.g., nitrogen, phosphorus, potassium, etc.) deficiencies in rice plants using pixel ratio
+analysis in HSV color space has been evaluated with more than 90% accuracy17. A method for estimating leaf nutrient
+concentrations of citrus trees using unmanned aerial vehicle (UAV) multi-spectral images has been developed and tested
+by a gradient-boosting regression tree model with moderate precision38.
+2.2 Approaches on Plant Diseases
+The classification of healthy and diseased citrus leaf images using a (CNN) on the Platform as a Service (PaaS) cloud
+has been developed. The method has been tested using pre-trained backbones and proposed CNN, and attained 98.0%
+accuracy and 99.0% F1-score39. A modified transfer learning (TL) method using three pre-trained CNN has been tested
+for potato leaf disease detection and the DensNet169 has achieved 99.0% accuracy40. Likewise, a CNN-based transfer
+learning method has been adapted for detecting powdery mildew disease with 98.0% accuracy in bell pepper leaves41,
+and woody fruit leaves with 85.90% accuracy42. A two-stage transfer learning method has combined Faster-RCNN for
+leaf detection and CNN for maize plant disease recognition in a natural environment and obtained 99.70% F1-score43.
+A hybrid model integrating a CNN and random forest (RF) for multi-classifying rice hispa disease into distinct intensity
+levels44. A method of multi-classification of rice hispa illness has attained accuracy of 97.46% using CNN and RF44.
+An improved YOLOv5 network has been developed for cucumber leaf diseases and pest detection and reported 73.8%
+precision13. A fusion of VGG16 and AlexNet architecture has attained 95.82% testing accuracy for pepper leaf disease
+classification45. Likewise, the disease classification of black pepper has gained 99.67% accuracy using ResNet-1846. A
+ConvNeXt with an attention module, namely CBAM-ConvNeXt has improved the performance with 85.42% accuracy
+for classifying soybean leaf disease47. A channel extension residual structure with an adaptive channel attention
+mechanism and a bidirectional information fusion block for leaf disease classification48. This technique has brought off
+99.82% accuracy on the plantvillage dataset. A smartphone application has been developed for detecting habanero plant
+disease and obtained 98.79% accuracy49. In addition, an ensemble method for crop monitoring system to identify plant
+diseases at the early stages using IoT enabled system has been presented with the best precision of 84.6%50. A dataset
+comprising five types of disorders of apple orchards has been developed, and the best accuracy is 97.3%, which has been
+tested using CNN51. A lightweight model using ViT structure has been developed for rice leaf disease classification and
+attained 91.70% F1-score52.
+2.3 Methods on Graph Convolutional Networks (GCN)
+Though several deep learning approaches have been developed for plant health analysis yet, little progress has been
+achieved using GCN for visual recognition of plant diseases53. The SR-GNN integrates relation-aware feature rep-
+resentation leveraging context-aware attention with the GCN module22. Cervical cell classification methods have
+been developed by exploring the potential correlations of clusters through GCN54 and feature rank analysis55. On the
+other side, fusion of multiple CNNs, transfer learning and other deep learning methods have been developed for early
+detection of breast cancer56. This fusion method has achieved F1 score of 99.0% on ultrasound breast cancer dataset
+using VGG-16. In this work, a GCN-based method has been developed by capturing the regional importance of local
+contextual features in solving plant disease recognition and human cancer image classification challenges.
+3/19
+Figure 1. Proposed GCN-based method, PND-Net for visual classification of plant disease and nutrition inadequacy.
+3 Proposed Method
+The proposed method, called PND-Net, combines deep features using CNN and GCN in an end-to-end pipeline as shown
+in Fig. 1. Firstly, a backbone CNN computes high-level deep features from input images. Then, a GCN is included upon
+the CNN for refining deep features using region-based pooling and pyramid pooling strategies for capturing finer details
+of contextual regions at multiple scales. Finally, a precise feature map is built for improving the performance.
+3.1 Background of Graph Convolutional Network (GCN)
+GCNs have widely been used for several domains and applications such as node classification, edge attribute modeling,
+citation networks, knowledge graphs, and several other tasks through graph-based representation. A GCN could be
+formulated by stacking multiple graph convolutional layers with non-linearity upon traditional convolutional layers, i.e.,
+CNN. In practice, this kind of stacking of GCN layers at a deeper level of a network enhances the model’s learning
+capacity. Moreover, graph convolutional layers are effective for alleviating overfitting issue and can address the vanishing
+gradient problem by adopting the normalization trick, which is a foundation of modeling GCN. A widely used multi-layer
+GCN algorithm was proposed by Kiff and Welling20, which has been adopted here. It explores an efficient and fast
+layer-wise propagation method relying on the first-order approximation of spectral convolutions on graph structures. It
+is scalable and apposite for semi-supervised node classification from graph-based data. A linear formulation of a GCN
+could be simplified which, in turn, is capable of parameter optimization at each layer by convolution with filter gθ and
+θ parameters, which can further be optimized with a single parameter. Here, a simplified graph convolution has been
+concisely defined20.
+gθ ∗X ≈θ
+ IP +D−0.5AD−0.5
+X
+(1)
+The graph Laplacian (Ψ) could further be normalized to mitigate the vanishing gradients within a network.
+Ψ = IP +D−0.5AD−0.5 →˜D−0.5 ˜A ˜D−0.5
+(2)
+where the binary adjacency matrix ˜A = A+IP denotes A with self-connections and IP is the identity matrix, and degree
+matrix is ˜Dii = ∑j ˜Ai j, and X is an input data/signal to the graph. The simplified convoluted signal matrix Ωis given as
+Ω= ˜D−0.5 ˜A ˜D−0.5XΘ
+(3)
+where input features X ∈RP×C, filter parameters Θ ∈RC×F, and Ω∈RP×F is the convoluted signal matrix. Here, P is
+the number of nodes, C is the input channels, F is the filters/feature maps. Now, this form of graph convolution (eqn 3)
+is applied to address the current problem and is described in Section 3.3.
+3.2 Convolutional Feature Representation
+A standard backbone CNN is used for deep feature extraction from an input leaf image, denoted with the class label
+Il ∈Rh×w×3 is passed through a base CNN for extracting the feature map, denoted as F ∈Rh×w×C where h, w, and C
+imply the height, width, and channels, respectively. However, the squeezed high-level feature map is not suitable for
+describing local non-overlapping regions. Hence, the output base feature map is spatially up-sampled to F ∈RH×W×C
+and ω number of distinct small regions are computed, given as F ∈Rω×h×w×C. These regions represents complementary
+4/19
+information at different spatial contexts. However, due to fixed dimensions of regions, the importance of each region is
+uniformly distributed, which could be tuned further for extracting more distinguishable information. A simple pooling
+technique could further be applied at multiple scales for enhancing the spatial feature representation. For this intent,
+the region-pooled feature vectors are reshaped to convert them into an aggregated spatial feature space upon which
+multi-scale pyramidal pooling is possible. In addition, this kind of feature representation captures overall spatiality to
+understand the informative features holistically and solve the current problem.
+3.2.1 Spatial Pyramid Pooling (SPP)
+The SPP layer was originally introduced to alleviate the fixed-length input constraints of conventional deep networks,
+which effectively boosted the model’s performance57. Generally, a SPP layer is added upon the last convolutional layer
+of a backbone CNN. This pooling layer generates a fixed-length feature vector and afterward passes the feature map to a
+fully connected or classification layer. The SPP enhances feature aggregation capability at a deeper layer of a network.
+Most importantly, SPP applies multi-level spatial bins for pooling while preserving the spatial relevance of the feature
+map. It provides a robust solution through performance enhancement of diverse computer vision problems, including
+plant/leaf image recognition.
+A typical region polling technique loses its spatial information while passing though a global average pooling (GAP)
+layer for making compatible with and plugging in the GCN. As a result, a region pooling with a GAP layer aggressively
+eliminates informativeness of regions and their correlation, and thus often it fails to build an effective feature vector.
+Also, the inter-region interactions are ignored with a GAP layer upon only region-based pooling. Therefore, it is essential
+to correlate the inter-region interactions for selecting essential features, which could further be enriched and propagated
+through the GCN layer activations.
+Our objective is to utilize the advantage of multi-level pooling at different pyramid levels of n×n bins on the top of
+fixed-size regions of the input image. As a result, the spatial relationships between different image regions are preserved,
+thereby escalating the learning capacity of the proposed PND-Net. The input feature space prior to pyramid pooling
+is given as Fω×(HW)×C, which has been derived from Fω×H×W×C. It enables the selection of contextual features of
+neighboring regions (i.e., inter-regions) through pyramid pooling simultaneously. This little adjustment in the spatial
+dimension of input features prior to pooling captures the interactions between the local regions of input leaf disease.
+Experimental results reflect that pyramidal pooling indeed elevates image classification accuracy gain over region
+pooling only.
+FSPP = PyramidPooling
+
+Fδi×δi;Fδ j×δ j
+
+(4)
+where δi and δ j define the window sizes, which enable to pool a total of P = (i×i)+( j × j) feature maps after SPP,
+given as FP×C. These feature maps are further fed into a GCN module, described next. The key components of proposed
+method are pictorially ideated in Fig. 1.
+3.3 Graph Convolutional Network (GCN)
+A graph G = (P,E), with P nodes and E edges, is constructed for feature propagation. A GCN is applied for building a
+spatial relation between the features through graph G. The nodes are characterized by deep feature maps, and the output
+C with the convoluted features per node. The edges E are described by an un-directed adjacency matrix A ∈RP×P for
+representing node-level interactions. This graph convolution has been applied to FSPP (i.e., FP×C), described above. The
+layer-wise feature propagation rule is defined as:
+G(l+1) = σ
+ ˆ˜AG(l)W(l)
+; with G(0) = FP×C, and G(L) = FP×C
+(5)
+l = 0,1,...,L−1 is the number of layers, W(l) is a weight matrix for the l-th layer. A non-linear activation function
+(e.g., ReLU) is denoted by σ(.). The symmetrically normalized adjacency matrix is ˆ˜A = Q ˜AQ; and Q = ˜D−1/2 is
+the diagonal node degree matrix of ˜A (defined in eqn. 3). Next, the reshaped convolutional feature map F is fed into
+two layers of graph convolutions, subsequently which is capable of capturing local neighborhoods via the non-linear
+activations of rectified linear unit (ReLU) in the graph convolutional layers. The dimension of the output feature maps
+remains the same input of GCN layers, i.e., G(L) →FG ∈RP×C. However, the node features could be squeezed to a
+lower dimension, which may lose essential information pertinent to spatial modeling. Hence, the channel dimension is
+kept uniform within the network pipeline in our study. Afterward, the graph-based transformed feature maps (FG) are
+pooled using a GAP for selecting the most discriminative channel-wise feature maps of the nodes.
+5/19
+Figure 2. Sample images of banana dataset showing the nutrition deficiency of iron, calcium, and magnesium.
+Figure 3. Sample images of Coffee nutrition deficiency of boron, manganese, and nitrogen.
+3.4 Classification Module
+Generally, regularization is a standard way to tackle the training-related challenges of any network, such as overfitting.
+Here, the layer normalization and dropout layers are interposed for handling overfitting issues as a regularization
+technique. Lastly, Ffinal is passes through a softmax layer for computing the output probability of the predicted
+class-label ¯b, corresponding to the actual-label b ∈Y of object classes Y.
+F final = Regularization
+
+GAP
+ FG
+
+,
+and
+Ypred = Softmax
+
+Ffinal
+
+.
+(6)
+The categorical cross-entropy loss function (LCE) and the Stochastic Gradient Descent (SGD) optimizer with 10−3
+learning rate has been chosen for experiments.
+LCE = −
+N
+∑
+i=1
+Yi.logˆYi
+(7)
+where Yi is the actual class label and logˆYi is the predicted class label by using softmax activation function σ(.) in the
+classification layer, and N is the total number of classes.
+4 Results and Performance Analysis
+At first, the implementation description is provided, followed by a summary of datasets. The experiments have been
+conducted using conventional classification and cross validation methods. The performances are evaluated using the
+standard well-known metrics: accuracy, precision, recall, and F1-score (eq. 8).
+Accuracy =
+TP+TN
+TP+TN +FP+FN
+Precision =
+TP
+TP+FP
+Recall =
+TP
+TP+FN
+F1-Score = 2× Precision×Recall
+Precision+Recall
+(8)
+where TP is the number of true positive, TN is the number of true negative, FP is the number of false positive, and FN
+is the number of false negative. However, accuracy is not a good assessment metric when the data distributions among
+6/19
+Table 1. Design Specifications of Backbone CNNs and Characteristics of PND-Net
+Backbone CNN Characteristics
+PND-Net properties
+Model Name
+Design Characteristics
+Par (M)
+Depth
+Size (MB)
+Depth
+Size (MB)
+Xception60
+depth-wise separable convolution
+22.9
+131
+85
+193
+112
+ResNet-5061
+residual connections
+25.6
+174
+95
+236
+122
+Inception-V359
+Inception module with increased depth
+23.9
+310
+92
+372
+116
+MobileNet-V262
+inverted residual and linear bottleneck
+3.5
+153
+10
+215
+22
+Table 2. Details of Implementation Specifications
+Hardware/Deep Learning Framework
+Training Hyper-parameters
+Data augmentation
+Time(ms)/img
+□Tensorflow: 2.13.0, Keras: 2.13.1,
+Cuda: 12.4, NVIDIA A100 40GB GPU
+□Intel Core Silver 4316 CPU x86_64,
+2.30 GHz 128 GM RAM
+□Img size: 224×224, Batch: 8
+□Optimizer: SGD, Loss: cate-
+gorical cross-entropy, Learning
+rate: 0.007
+□Gaussian noise
+□Random flip, rota-
+tion: 20, scale: 0.20,
+translation: 0.20
+using ResNet50
+□Train: 15.4
+□Inference: 5.8
+the classes are imbalanced. To overcome such misleading evaluation, the precision and recall are useful metrics, based
+on which F1-score is measured. These three metrics are widely used for evaluating the predictive performance when
+classes are imbalanced. In addition, we have evaluated the performance using confusion matrix which provides a reliable
+performance assessment of our model. The performances have been compared with existing methods, discussed below.
+4.1 Implementation Details
+A concise description about the model development regarding the hardware resources, software implementation data
+distribution, evaluation protocols, and related details are furnished below for easier understanding.
+4.1.1 Summary of Convolutional Network Architectures
+The Inception-V3, Xception, ResNet-50, and MobileNet-V2 backbone CNNs with pre-trained ImageNet weights are
+used for convolutional feature computation from the input images. The Inception module focuses on increasing network
+depth using 5×5, 3×3, and 1×1 convolutions58. Again, 5×5 convolution has been replaced by factorizing into 3×3 filter
+sizes59. Afterward, the Inception module is further decoupled the channel-wise and spatial correlations by point-wise and
+depth-wise separable convolutions, which are the building block of Xception architecture60. The separable convolution
+follows the depth-wise convolution for spatial (3×3 filters) and point-wise convolution (1×1 filters) for cross-channel
+aggregation into a single feature map. The Xception is a three-fold architecture developed with depth-wise separable
+convolution layers with residual connections. Whereas, the residual connection a.k.a. shortcut connection is the central
+idea of deep residual learning framework, widely known as ResNet architecture61. The residual learning represents an
+identity mapping through a shortcut connection following simple addition of feature maps of previous layers rendered
+using 3×3 and 1×1 convolutions. This identity mapping does not incur additional computational overhead and still able
+to ease degradation problem. In a similar fashion, the MobileNet-V2 uses bottleneck separable convolutions with kernel
+size 3×3, and inverted residual connection62. It is a memory-efficient framework suitable for mobile devices.
+These backbones are widely used in existing works on diverse image classification problems (e.g., human activity
+recognition, object classification, disease prediction, etc.) due to their superior architectural designs63,64 at reasonable
+computational cost. Here, these backbones are used for a fair performance comparison with the state-of-the-art methods
+developed for plant nutrition and disease classification65. We have customized the top-layers of base CNNs for adding
+the GCN module without alerting their inherent layer-wise building blocks, convolutional design such as the kernel-sizes,
+skip-connections, output feature dimension, and other design parameters. The basic characteristics of these backbone
+CNNs are briefed in Table 1. The network depth, model size and parameters have been increased due to the addition of
+GCN layers upon the base CNN accordingly, evident in Table 1.
+Two GCN layers have been used with ReLU activation, and the feature size is the same as the base CNN’s output
+channel dimension. For example, the size of channel features of ResNet-50, Xception and Inception-V3 is 2048, which
+is kept the same dimension as GCN’s channel feature map. The adjacency matrix is developed considering overall
+spatial relation among different neighborhood regions as a complete graph. Therefore, each region is related with all
+other regions even if they are far apart which is helpful in capturing long-distant feature interactions and building a
+holistic feature representation via a complete graph structure. Batch normalization and a drop-out rate of 0.3 is applied
+in the overall network design to reduce overfitting.
+7/19
+Figure 4. Sample images of potato diseases infected by bacteria, pest, and Nematodes.
+Figure 5. Sample images of infected leaves of soybean, tomato, and bell pepper from the PlantDoc dataset.
+4.1.2 Data Pre-processing and Data Splitting Techniques
+The basic pre-processing technique provided by the Keras applications for each backbone has been applied. It is
+required to convert the input images from RGB to BGR, and then each color channel is zero-centered with respect to the
+ImageNet dataset, without any scaling. Data augmentation methods such as random rotation (±25 degrees), scaling
+(±0.25), Gaussian blur, and random cropping with 224×224 image-size from the input size of 256×256 are applied
+on-the-fly for data diversity in image samples.
+We have maintained the same train-test split provided with the datasets e.g., PlantDoc. However, other plant datasets
+does not provide any specific image distribution. Thus, we have randomly divided the datasets into train and test samples
+following a 70:30 split ratio which is complied in several works. The details of image distribution is provided in Table 3.
+For cross-validation, we have randomly divided the training samples into training and validation set with a 4:1 ratio i.e.,
+five-fold cross validation in a disjoint manner, which is a standard techniques adopted in other methods66. The test set
+remains unaltered for both evaluation schemes for clear performance comparison. Finally, the average test accuracy of
+five executions on each dataset has been reported here as the overall performance of the PND-Net.
+A summary of the implementation specification indicating the hardware and software environments, training hyper-
+parameters, data augmentations, and estimated time (milliseconds) of training and inference are specified in Table 2.
+Our model is trained with a mini-batch size of 12 for 150 epochs and divided by 5 after 100 epochs. However, no other
+criterion such as early stopping has been followed. The proposed method is developed in Tensorflow 2.x using Python.
+4.2 Dataset Description
+The summary of four plant datasets used in this work are summarized in Table 3. These datasets are collected from
+public repositories such as the Mendeley Data and Kaggle.
+• The Banana nutrition deficiency dataset represents healthy samples and the visual symptoms of deficiency of the:
+Boron, Calcium, Iron, Magnesium, Potassium, Sulphur, and Zinc. The samples of this dataset are shown in Fig. 2.
+More details are provided in Ref25.
+• The Coffee nutrition deficiency dataset (CoLeaf-DB)26 represents healthy samples and the deficiency classes are:
+Boron, Calcium, Iron, Manganese, Magnesium, Nitrogen, Potassium, Phosphorus, and more deficiencies. The
+samples of dataset are illustrated in Fig. 3.
+• The Potato disease classes are: Virus, Phytopthora, Pest, Nematode, Fungi, Bacteria, and healthy. The samples of
+this dataset are shown in Fig. 4. The dataset is collected from the Mendeley67 repository.
+• The PlantDoc is a realistic plant disease dataset65, comprising with different disease classes of Apple, Tomato,
+Potato, Strawberry, Soybean, Raspberry, Grapes, Corn, Bell-pepper, and others. Examples are shown in Fig. 5.
+• The Breast Cancer Histopathology Image Classification (BreakHis)68 dataset with 40X and 100X magnifications
+contain 8-classes: adenosis, fibroadenoma, phyllodes tumor, and tubular adenoma; ductal carcinoma, lobular
+8/19
+Figure 6. Sample images of the BreakHis-40X dataset.
+Figure 7. Sample images of the SIPaKMeD dataset.
+carcinoma, mucinous carcinoma, and papillary carcinoma. The samples of this dataset are exemplified in Fig. 6.
+• The SIPaKMeD69, containing 4050 single-cell images, which is useful for classifying cervical cells in Pap smear
+images, shown in Fig. 7. This dataset is categorized into five classes based on cytomorphological features.
+4.3 Result Analysis and Performance Comparison
+A summary of the datasets with data distribution, and the baseline accuracy (%) achieved by aforesaid base CNNs are
+briefed in Table 3. The baseline model is developed using the pre-trained CNN backbones with ImageNet weights. A
+backbone CNN extracts the base output feature map which is pooled by a global average pooling layer and classified
+with a softmax layer. Four backbone CNNs with different design characteristics have used for generalizing our proposed
+method. The baseline accuracies are reasonable and consistent across various datasets, evident in Table 3.
+Two different evaluation strategies i.e., general classification and k-fold cross validation (k = 5) have been experi-
+mented. An average performance has been estimated from multiple executions on each dataset and reported here. The
+top-1 accuracies (%) of the proposed PND-Net comprising two-GCN layers with the feature dimension 2048, included
+on the top of different backbone CNNs, are given in Table 4. The overall performance of the PND-Net on all datasets
+significantly improved over the baselines. Clearly, it shows the efficiency of the proposed method. In addition, the
+PND-Net model has been tested with five-fold cross validation for a robust performance analysis (Sec 4.3.1). These
+cross-validation results (Table 5-7) on each dataset could be considered as the benchmark performances using several
+metrics. Our method has driven the state-of-the-art performances on these datasets for plant disease and nutrition
+deficiency recognition.
+An experimental study has been carried out on two more public datasets for human medical image analysis. The
+BreakHis with 40X and 100X magnifications68 and SIPaKMeD69 datasets have been evaluated for generalization. The
+SIPaKMeD dataset69 is useful for classifying cervical cells in pap smear images, illustrated in Fig. 7. This dataset
+is categorized into five classes based on cytomorphological features using the proposed PND-Net. The conventional
+classification results are given in Table 4, and the performances of cross validations are provided in Table 6 and 7.
+Table 3. Dataset summary with the baseline accuracy (%) using different base CNNs only
+Dataset Name
+Class
+Train
+Test
+Xception
+ResNet-50
+MobileNet-V2
+Inception-V3
+Banana Nutrition Deficiency
+8
+2156
+920
+62.50
+61.53
+61.74
+62.17
+Coffee Nutrition Deficiency
+9
+700
+300
+69.25
+68.24
+66.55
+69.93
+Potato Disease
+7
+2010
+869
+83.56
+83.16
+80.78
+83.44
+PlantDoc Disease
+27
+2047
+516
+64.64
+64.45
+61.32
+60.15
+BreakHis-40X
+8
+1400
+600
+86.00
+87.66
+84.16
+85.33
+BreakHis-100X
+8
+1460
+625
+81.80
+83.33
+80.20
+82.51
+SIPaKMeD
+5
+3550
+500
+91.33
+92.66
+90.92
+92.34
+9/19
+Table 4. Overall performances (%) of the proposed PND-Net built upon different standard base CNNs
+Dataset
+Base CNN + GCN
+Top-1 Accuracy
+Top-3 Accuracy
+Precision
+Recall
+F1-score
+ResNet-50
+90.00
+98.34
+90.00
+90.00
+90.00
+Banana
+Xception
+89.25
+98.27
+90.00
+89.00
+89.00
+Inception-V3
+83.77
+98.13
+84.00
+84.00
+84.00
+MobileNet-V2
+83.99
+97.80
+84.00
+84.00
+83.00
+ResNet-50
+89.52
+97.00
+89.00
+89.00
+89.00
+Coffee
+Xception
+90.54
+98.67
+90.00
+90.00
+90.00
+Inception-V3
+89.18
+98.67
+89.00
+89.00
+89.00
+MobileNet-V2
+89.86
+98.33
+90.00
+89.00
+89.00
+ResNet-50
+94.32
+99.03
+94.00
+94.00
+94.00
+Potato
+Xception
+96.18
+99.42
+96.00
+96.00
+96.00
+Inception-V3
+96.05
+99.64
+96.00
+96.00
+96.00
+MobileNet-V2
+92.59
+98.68
+93.00
+93.00
+93.00
+ResNet-50
+84.11
+98.02
+85.00
+84.00
+84.00
+PlantDoc
+Xception
+84.30
+98.10
+85.00
+84.00
+84.00
+Inception-V3
+81.00
+98.05
+81.00
+81.00
+81.00
+MobileNet-V2
+80.81
+97.86
+81.00
+81.00
+81.00
+BreakHis 40X
+ResNet-50
+95.50
+99.00
+95.00
+95.00
+95.00
+Xception
+94.83
+99.00
+95.00
+95.00
+95.00
+Inception-V3
+95.00
+99.00
+95.00
+95.00
+95.00
+MobileNet-V2
+94.00
+99.00
+94.00
+94.00
+94.00
+BreakHis 100X
+ResNet-50
+96.79
+99.00
+97.00
+97.00
+97.00
+Xception
+95.19
+99.00
+95.00
+94.00
+94.00
+Inception-V3
+95.67
+99.00
+96.00
+96.00
+96.00
+MobileNet-V2
+95.83
+99.00
+96.00
+96.00
+96.00
+SIPaKMeD
+ResNet-50
+99.18
+100.00
+99.00
+99.00
+99.00
+Xception
+98.98
+100.00
+99.00
+99.00
+99.00
+Inception-V3
+98.37
+100.00
+98.00
+98.00
+98.00
+MobileNet-V2
+98.17
+100.00
+98.00
+98.00
+98.00
+Table 5. The performance of PND-Net on the potato disease dataset using five-fold cross validation
+k-Fold
+PND-Net using ResNet-50 base
+PND-Net using Xception base
+Val Acc
+Test Acc
+Prec.
+Recall
+F1-score
+Val Acc
+Test Acc
+Prec.
+Recall
+F1-score
+Fold-1
+96.46
+95.48
+96.00
+95.00
+96.00
+92.67
+91.32
+91.00
+91.00
+91.00
+Fold-2
+95.70
+95.27
+95.00
+95.00
+95.00
+91.66
+91.31
+91.00
+91.00
+91.00
+Fold-3
+95.20
+94.66
+95.00
+95.00
+95.00
+94.39
+92.13
+92.00
+92.00
+92.00
+Fold-4
+94.95
+93.27
+93.00
+93.00
+93.00
+93.90
+91.55
+91.00
+91.00
+91.00
+Fold-5
+95.70
+95.20
+95.00
+95.00
+95.00
+94.91
+92.82
+93.00
+93.00
+93.00
+Avg
+95.60
+94.78
+94.80
+94.60
+94.80
+93.51
+91.83
+91.60
+91.60
+91.60
+Table 6. The performance of PND-Net on the BreakHis-40X dataset using five-fold cross validation
+k-Fold
+PND-Net using ResNet-50 backbone
+PND-Net using Xception backbone
+Val Acc
+Test Acc
+Prec.
+Recall
+F1-score
+Val Acc
+Test Acc
+Prec.
+Recall
+F1-score
+Fold-1
+98.45
+97.25
+97.00
+97.00
+97.00
+96.79
+96.10
+96.00
+96.00
+96.00
+Fold-2
+97.81
+96.70
+96.00
+96.00
+96.00
+97.81
+97.20
+97.00
+97.00
+97.00
+Fold-3
+98.68
+97.30
+97.00
+97.00
+97.00
+98.12
+97.75
+97.00
+97.00
+97.00
+Fold-4
+98.75
+97.50
+97.00
+98.00
+98.00
+97.18
+96.30
+97.00
+96.00
+96.00
+Fold-5
+98.07
+96.75
+97.00
+96.00
+97.00
+97.50
+96.15
+96.00
+96.00
+96.00
+Avg
+98.35
+97.10
+96.80
+96.80
+97.00
+97.48
+96.70
+96.60
+96.40
+96.40
+10/19
+Table 7. Five-fold cross validation and test accuracy (%) of PND-Net on different datasets
+CNN
+Banana
+Coffee
+PlantDoc
+BreakHis-100X
+Cell PAP
+Val Ac
+Test Ac
+Val Ac
+Test Ac
+Val Ac
+Test Ac
+Val Ac
+Test Ac
+Val Ac
+Test Ac
+Xception
+91.36
+88.25
+91.90
+87.84
+86.71
+84.57
+95.97
+94.63
+99.10
+97.66
+ResNet-50
+93.72
+89.40
+94.30
+90.88
+85.93
+83.78
+97.21
+96.11
+99.70
+98.92
+Table 8. Model Parameters (Millions) of PND-Net including base CNNs and GCNs with the feature size = 1024 and
+2048, specified within parenthesis
+Backbone CNN/PND-Net Method
+Xception
+ResNet-50
+MobileNet-V2
+Inception-V3
+CNN Baseline
+22.88
+25.61
+3.50
+23.87
+PND-Net (GCN feature=1024)
+26.13
+28.86
+6.75
+27.08
+PND-Net (GCN feature=2048)
+37.66
+40.41
+17.51
+38.40
+4.3.1 Five-fold Cross Validation Experiments
+The 5-fold cross-validation experiments on various datasets have been conducted for evaluating the performance of
+PND-Net using the ResNet-50 and Xception backbones, and the results are given in Table 5, 6, and 7. The actual train set
+is divided into five disjoint subsets of images for each dataset. In each experiment, four out of five subsets are used for
+training and the remaining one is validated independently. Finally, the average validation result of five folds is reported.
+The results of five-fold cross validation on potato leaf disease dataset are provided in Table 5. The numbers of potato
+leaf images in each fold for training, validation, and testing are 1608, 402, and 869, respectively. The results using
+different metrics are computed and the last row implies an average performance of cross validation on this dataset.
+Likewise, the performance five-fold validation on the BreakHis-40X dataset has been presented in Table 6. In this
+experiment, the number of training samples in each fold is 1280 images, and validation set containing remaining 320
+images. The test set contains 400 images which remains the same as used in aforesaid other experiments. Each of the
+five-fold experiment has been validated and tested on the test set. Lastly, an average result of five-fold cross validation
+has been computed, and given in the last row of Table 6.
+A similar experimental set-up of five-fold cross validation has been followed for other datasets. The average
+performances of PND-Net on these datasets are provided in Table 7. The average cross-validation results are better than
+the conventional classification approach on the potato disease (ResNet-50: 94.48%) and BreakHis-40X (ResNet-50:
+97.10%) datasets. The reason could be the variations in the validation set in each fold enhances the learning capacity of
+model due to training data diversity. As a result, improved performances have been achieved on diverse datasets. The
+results are consistent with the results of conventional classification method on other datasets as described above. The
+overall performances on different datasets validates the generalization capability of the proposed PND-Net.
+4.3.2 Model Complexity and Visualization
+The model parameters are computed in millions, as provided in Table 8. The model parameters have been estimated
+for three cases: (a) baseline i.e., the backbone CNN only; and the output feature dimension of GCN layers is (b) 1024
+and (c) 2028. An average computational time of PND-Net using ResNet-50 has been estimated. The training time is
+15.4 ms per image, and inference time is 5.8 ms per image, and model size is 122MB (given in Table 2). The confusion
+matrices on these four plant datasets are shown in Fig. 8, indicating an overall performance using ResNet-50. Also, the
+feature map distributions are clearly shown in different clusters in the t-SNE diagrams70 represented with two backbone
+models on the potato leaf dataset, shown in Fig. 10. The gradient-weighted class activation mapping (Grad-CAM)71 has
+been illustrated in Fig. 11 for visual explanations which clearly show the discriminative regions of different images.
+4.3.3 Performance Comparison
+The highest accuracy on Banana nutrition classification was 78.76% and 87.89% using the raw dataset and an augmented
+version of the original dataset72. In contrast, our method has attained 84.0% using lightweight MobileNet-V2 and the
+best 90.0% using ResNet-50 on the raw dataset, implying a significant improvement in accuracy on this dataset.
+The performances of PND-Net on the Coleaf-DB (Coffee dataset) are very similar, and the best accuracy (90.54%) is
+attained by the Xception. The differences of performances with other base CNNs are very small, implying a consistent
+performance. The elementary result using ResNet-50 reported on this recent public dataset is 87.75%26. Thus, our
+method has set new benchmark results on Coleaf-DB for further enhancement in the future. Likewise, the Potato Leaf
+Disease dataset is a new one67, collected from Mendeley data source. We are the first to provide in-depth results on this
+realistic dataset acquired in an uncontrolled environment.
+11/19
+Figure 8. Confusion matrices have been computed using the proposed PND-Net with ResNet-50 backbone on: (a)
+top-row: PlantDoc; (b) bottom-row: Potato, Coffee, and Banana datasets.
+Figure 9. Confusion Matrix on the BreakHis-40X dataset (left) and Smear PAP Cell dataset (right) using the proposed
+PND-Net built upon the Xception backbone.
+Figure 10. The t-SNE plots on the Potato leaf dataset using PND-Net with ResNet-50 (left) and Inception-V3 (right).
+12/19
+Figure 11. The Grad-CAM output of various datasets are shown, from left to right: nutrition deficiency, potato and
+corn diseases, and breast cancer. The top-row shows an original image and its corresponding Grad-CAM image is
+shown in the bottom row.
+Table 9. Ablation Study: Top-1 accuracy (%) of baseline CNNs in addition to region pooling
+Dataset
+Xception
+ResNet-50
+MobileNet-V2
+Inception-V3
+Banana
+72.73
+73.81
+66.70
+72.30
+Coffee
+81.73
+70.95
+78.37
+79.39
+Potato
+85.87
+84.72
+84.60
+84.38
+PlantDoc
+75.85
+74.21
+75.97
+77.34
+A deep learning method has attained 81.53% accuracy using Xception and 78.34% accuracy using Inception-V3
+backbone on the PlantDoc dataset73. In contrast, our PND-Net has attained 84.30% accuracy using Xception and 81.0%
+using Inception-V3, respectively. It evinces that PND-Net is more effective in discriminating plant diseases compared to
+the best reported existing methods. Clearly, the proposed graph-based network (PND-Net) is capable of distinguishing
+different types of nutrition deficiencies and plant diseases with a higher success rate in real-world public datasets.
+The BreakHis dataset has been studied for categorizing into 4-classes and binary classification in several existing
+works. However, we have compared it with the works of classifying into 8 categories at the image-level for a fair
+comparison. The top-1 accuracy attained using Xception is 94.83%, whereas the state-of-the-art accuracy on this dataset
+is 93.40±1.8% achieved using a hybrid harmonization technique74. The accuracy reported is 92.8 ±2.1% using a class
+structure-based deep CNN75. The cross-validation results (ResNet-50: 97.10%) are improved over existing methods.
+Several deep learning methods have been experimented with the SIPaKMeD dataset. A CNN-based method
+achieved 95.35 ± 0.42% accuracy69, a PCA-based technique obtained 97.87% accuracy for 5-class classification76,
+98.30% using Xception77, and 98.26% using DarkNet-based exemplar pyramid deep model78. A GCN-based method
+has reported 98.37± 0.57% accuracy54. A few more comparative results have been studied in Ref79. In contrast,
+our method has achieved 98.98 ± 0.20% accuracy and 99.10% test accuracy with cross validation using Xception
+backbone on this dataset. The confusion matrices on both human disease datasets are shown in Fig. 9. Overall rigorous
+experimental results imply that the proposed method has achieved state-of-the-art performances on different types of
+datasets representing plant nutrition deficiency, plant disease, and human disease classification.
+4.4 Ablation Study
+An in-depth ablation study has been carried out to observe the efficacy of key components of the PND-Net. Firstly,
+the significance of computing different local regions is studied. These fixed-size regional descriptors are combined to
+create for a holistic representation of feature maps over the baseline features. Notably, the region pooling technique has
+improved overall performances on all the datasets, e.g., the gain is more than 12% on the Banana nutrition deficiency
+dataset using ResNet-50 backbone. The results of this study are provided in Table 9.
+Afterward, a component-level study has been evaluated by removing a module from the proposed PND-Net to
+observe the influence of the key component in performance. An ablation study depicting the significance of spatial
+13/19
+Table 10. Ablation Study: Top-1 Accuracy (%) except SPP layer in the PND-Net architecture
+Dataset
+Xception
+ResNet-50
+MobileNet-V2
+Inception-V3
+Banana
+79.31
+80.92
+75.32
+77.90
+Coffee
+86.48
+86.14
+83.10
+87.16
+Potato
+95.94
+88.65
+92.12
+93.40
+PlantDoc
+81.83
+76.56
+79.68
+80.66
+Table 11. Ablation Study: Top-1 accuracy except the GCN layers
+Dataset
+Xception
+ResNet-50
+MobileNet-V2
+Inception-V3
+Banana
+81.46
+78.23
+82.11
+78.66
+Coffee
+88.85
+87.83
+86.48
+87.50
+Potato
+93.17
+92.59
+92.82
+92.12
+PlantDoc
+81.05
+78.90
+80.46
+80.66
+pyramid pooling (SPP) layer has been conducted, and the results are shown in Table 10. As the selection of discriminatory
+information at multiple pyramidal structures has been avoided, the model might overlook finer details which could
+have been captured at multiple scales by the SPP layer. It causes an obvious degradation of the capacity of network
+architecture, which is evident from the performances. Thus, capturing multi-scale features is useful to select relevant
+features for effective learning of plant health conditions.
+Next, the efficacious GCN modules are excluded from the network architecture, and then, experiments have been
+conducted with regional features selected by our composite pooling modules (i.e., regions + SPP) from upsampled
+high-level deep features of a base CNN. The results are provided in Table 11.
+It is evident that the GCN module indeed improves performance remarkably. In the case of the Banana dataset using
+Xception backbone, the accuracy of PND-Net is 89.25%. Whereas, averting GCN layers, the degraded accuracy is
+81.46%, implying 7.79% drop in accuracy. Even though, one GCN layer (Banana: 86.0%) does not suffice to render
+the state-of-the-art performance on these plant datasets. The results of considering one layer GCN on all datasets are
+demonstrated in Table 12. Indeed, two layers in GCN are beneficial in enhancing the performance over one GCN layer,
+which is evident in the literature22. Hence, two GCN layers are included in the proposed PND-Net model architecture.
+A comparative study on different number of regions and the number of pyramid pooled feature vectors using
+ResNet-50 is shown in Fig. 12.(a), which clearly implies a gradual improvement in accuracy on the PlantDoc and
+Banana datasets. Lastly, the influences of different feature vector sizes in GCN layer activations have been studied. In
+this study, the channel dimensions of feature vectors 1024 and 2048 have been chosen for building the graph structures
+using ResNet-50 backbone, implying the same channel dimensions have been considered in the PND-Net architecture.
+The results (Fig. 12.(b) of such variations provide insightful implications about the performance of GCN layers.
+The performances of PND-Net with GCN output feature vector size of 1024 have been summarized in Table 13. The
+results are very competitive with GCN’s size of 2048. Thus, the model with 1024 GCN feature size could be preferred
+considering a trade off between the model parametric capacity with the performance. The detailed experimental studies
+imply overall performance boost on all datasets, and the proposed PND-Net achieves state-of-the-art results. In addition,
+new public datasets have been benchmarked for further enhancement.
+However, other categories of images such as high resolution, hyperspectral, etc. have not been evaluated. One reason
+is unavailability of such plant datasets for public research. Also, data modalities such as soil-sensor information could
+be utilized for developing fusion based approaches. Several existing ensemble methods have used multiple backbones,
+which suffer from a higher computational complexity. Though, our method performs better than several existing works,
+yet, the computational complexity regarding model parameters and size of PND-Net could be improved. The reason
+is plugging the GCN module upon the backbone CNN, which incurs more parameters. To address this challenge, the
+Table 12. Ablation Study: Top-1 Accuracy using One GCN layer (%)
+Dataset
+Xception
+ResNet-50
+MobileNet-V2
+Inception-V3
+Banana
+86.00
+78.33
+70.79
+81.03
+Coffee
+89.19
+89.86
+89.78
+87.83
+Potato
+94.79
+94.10
+93.98
+92.84
+PlantDoc
+80.27
+79.68
+77.34
+80.07
+14/19
+Table 13. Ablation Study: Top-1 Accuracy (%) with feature dimension 1024 in GCN layers of PND-Net
+Dataset
+Xception
+ResNet-50
+MobileNet-V2
+Inception-V3
+Banana
+87.04
+85.74
+76.42
+82.45
+Coffee
+85.66
+84.00
+83.33
+86.66
+Potato
+95.02
+93.40
+95.13
+91.20
+PlantDoc
+83.91
+79.65
+75.97
+77.90
+(a)
+(b)
+Figure 12. a) The performances of various formulations of the numbers of regions and spatial pyramid pooling feature
+vectors; b) The performances of different channel-wise node features within GCN layers activation and propagation in
+the proposed method using the ResNet-50 backbone.
+graph convolutional layer could be simplified for reducing the model complexity. In addition, more realistic agricultural
+datasets representing field conditions such as occlusion, cluttered backgrounds, lighting variations, and others could be
+developed. These limitations of the proposed PND-Net will be explored in the near future.
+5 Conclusion
+In this paper, a deep network called PND-Net has been proposed for plant nutrition deficiency recognition using a GCN
+module, which is added on the top a CNN backbone. The performances have been evaluated on four image datasets
+representing the plant nutrition deficiencies and leaf diseases. These datasets have recently been introduced publicly for
+assessment. The network has been generalized by building the deep network using four standard backbone CNNs, and
+the network architecture has been improved by incorporating pyramid pooling over region-pooled feature maps and
+feature propagation via a GCN. We are the first to evaluate these nutrition inadequacy datasets for monitoring plant
+health and growth. Our method has attained the state-of-the-art performance on the PlantDoc dataset for plant disease
+recognition. We encourage the researcher for further enhancement on these public datasets for early stage detection of
+plant abnormalities, essential for sustainable agricultural growth. Furthermore, experiments have been conducted on
+the BreakHis (40X and 100X magnifications) and SIPaKMeD datasets, which are suitable for human health diagnosis.
+The proposed PND-Net have attained enhanced performances on these datasets too. In the future, new deep learning
+methods would be developed for early stage disease detection of plants and health monitoring with balanced nutrition
+using other data modalities and imaging techniques.
+References
+1. Jung, M. et al. Construction of deep learning-based disease detection model in plants. Sci. Reports 13, 7331 (2023).
+2. Aiswarya, J., Mariammal, K. & Veerappan, K. Plant nutrient deficiency detection and classification-a review. In
+2023 5th Intl. Conf. Inventive Research in Computing Applications (ICIRCA), 796–802 (IEEE, 2023).
+3. Yan, Q., Lin, X., Gong, W., Wu, C. & Chen, Y. Nutrient deficiency diagnosis of plants based on transfer learning and
+lightweight convolutional neural networks Mobilenetv3-large. In Proc. 2022 11th International Conf. Computing
+and Pattern Recognition, 26–33 (2022).
+15/19
+4. Sudhakar, M. & Priya, R. Computer vision based machine learning and deep learning approaches for identification
+of nutrient deficiency in crops: A survey. Nat. Environ. & Pollut. Technol. 22 (2023).
+5. Noon, S. K., Amjad, M., Qureshi, M. A. & Mannan, A. Use of deep learning techniques for identification of plant
+leaf stresses: A review. Sustain. Comput. Informatics Syst. 28, 100443 (2020).
+6. Waheed, H. et al. Deep learning based disease, pest pattern and nutritional deficiency detection system for
+“zingiberaceae” crop. Agriculture 12, 742 (2022).
+7. Barbedo, J. G. A. Detection of nutrition deficiencies in plants using proximal images and machine learning: A
+review. Comput. Electron. Agric. 162, 482–492 (2019).
+8. Shadrach, F. D., Kandasamy, G., Neelakandan, S. & Lingaiah, T. B. Optimal transfer learning based nutrient
+deficiency classification model in ridge gourd (luffa acutangula). Sci. Reports 13, 14108 (2023).
+9. Sathyavani, R., JaganMohan, K. & Kalaavathi, B. Classification of nutrient deficiencies in rice crop using
+DenseNet-BC. Mater. Today: Proc. 56, 1783–1789 (2022).
+10. Haris, S., Sai, K. S., Rani, N. S. et al. Nutrient deficiency detection in mobile captured guava plants using light
+weight deep convolutional neural networks. In 2023 2nd International Conf. Applied Artificial Intelligence and
+Computing (ICAAIC), 1190–1193 (IEEE, 2023).
+11. Munir, S., Seminar, K. B., Sukoco, H. et al. The application of smart and precision agriculture (SPA) for measuring
+leaf nitrogen content of oil palm in peat soil areas. In 2023 International Conf. Computer Science, Information
+Technology and Engineering (ICCoSITE), 650–655 (IEEE, 2023).
+12. Lu, J., Peng, K., Wang, Q. & Sun, C. Lettuce plant trace-element-deficiency symptom identification via machine
+vision methods. Agriculture 13, 1614 (2023).
+13. Omer, S. M., Ghafoor, K. Z. & Askar, S. K. Lightweight improved YOLOv5 model for cucumber leaf disease and
+pest detection based on deep learning. Signal, Image Video Process. 1–14 (2023).
+14. Kumar, A. & Bhowmik, B. Automated rice leaf disease diagnosis using CNNs. In 2023 IEEE Region 10 Symposium
+(TENSYMP), 1–6 (IEEE, 2023).
+15. Senjaliya, H. et al. A comparative study on the modern deep learning architectures for predicting nutritional
+deficiency in rice plants. In 2023 IEEE IAS Global Conf. Emerging Technologies (GlobConET), 1–6 (IEEE, 2023).
+16. Ennaji, O., Vergutz, L. & El Allali, A. Machine learning in nutrient management: A review. Artif. Intell. Agric.
+(2023).
+17. Rathnayake, D., Kumarasinghe, K., Rajapaksha, R. & Katuwawala, N. Green insight: A novel approach to detecting
+and classifying macro nutrient deficiencies in paddy leaves. In 2023 8th International Conf. Information Technology
+Research (ICITR), 1–6 (IEEE, 2023).
+18. Asaari, M. S. M., Shamsudin, S. & Wen, L. J. Detection of plant stress condition with deep learning based detection
+models. In 2023 Intl Conf. Energy, Power, Environment, Control, and Computing (ICEPECC), 1–5 (IEEE, 2023).
+19. Tavanapong, W. et al. Artificial Intelligence for Colonoscopy: Past, Present, and Future. IEEE J. Biomed. Heal.
+Informatics 26, 3950–3965 (2022).
+20. Kipf, T. N. & Welling, M. Semi-supervised classification with graph convolutional networks. In International Conf.
+Learning Representations (2017).
+21. Zhang, S., Tong, H., Xu, J. & Maciejewski, R. Graph convolutional networks: a comprehensive review. Comput.
+Soc. Networks 6, 1–23 (2019).
+22. Bera, A., Wharton, Z., Liu, Y., Bessis, N. & Behera, A. SR-GNN: Spatial relation-aware graph neural network for
+fine-grained image categorization. IEEE Transactions on Image Process. 31, 6017–6031 (2022).
+23. Qu, Z., Yao, T., Liu, X. & Wang, G. A graph convolutional network based on univariate neurodegeneration
+biomarker for alzheimer’s disease diagnosis. IEEE J. Transl. Eng. Heal. Medicine (2023).
+24. Khlifi, M. K., Boulila, W. & Farah, I. R. Graph-based deep learning techniques for remote sensing applications:
+Techniques, taxonomy, and applications—a comprehensive review. Comput. Sci. Rev. 50, 100596 (2023).
+25. Sunitha, P., Uma, B., Channakeshava, S. & Babu, S. A fully labelled image dataset of banana leaves deficient in
+nutrients. Data Brief 48, 109155 (2023).
+26. Tuesta-Monteza, V. A., Mejia-Cabrera, H. I. & Arcila-Diaz, J. CoLeaf-DB: Peruvian coffee leaf images dataset for
+coffee leaf nutritional deficiencies detection and classification. Data Brief 48, 109226 (2023).
+16/19
+27. Chungcharoen, T. et al. Machine learning-based prediction of nutritional status in oil palm leaves using proximal
+multispectral images. Comput. Electron. Agric. 198, 107019 (2022).
+28. Bhavya, T., Seggam, R. & Jatoth, R. K. Fertilizer recommendation for rice crop based on NPK nutrient deficiency
+using deep neural networks and random forest algorithm. In 2023 3rd International Conf. Artificial Intelligence and
+Signal Processing (AISP), 1–5 (IEEE, 2023).
+29. Dey, B., Haque, M. M. U., Khatun, R. & Ahmed, R. Comparative performance of four cnn-based deep learning
+variants in detecting hispa pest, two fungal diseases, and npk deficiency symptoms of rice (oryza sativa). Comput.
+Electron. Agric. 202, 107340 (2022).
+30. Cevallos, C., Ponce, H., Moya-Albor, E. & Brieva, J. Vision-based analysis on leaves of tomato crops for classifying
+nutrient deficiency using convolutional neural networks. In 2020 International Joint Conference on Neural Networks
+(IJCNN), 1–7 (IEEE, 2020).
+31. Espejo-Garcia, B., Malounas, I., Mylonas, N., Kasimati, A. & Fountas, S. Using Efficientnet and transfer learning
+for image-based diagnosis of nutrient deficiencies. Comput. Electron. Agric. 196, 106868 (2022).
+32. Wang, C., Ye, Y., Tian, Y. & Yu, Z. Classification of nutrient deficiency in rice based on cnn model with
+reinforcement learning augmentation. In 2021 International Symposium on Artificial Intelligence and its Application
+on Media (ISAIAM), 107–111 (IEEE, 2021).
+33. Bahtiar, A. R., Santoso, A. J., Juhariah, J. et al. Deep learning detected nutrient deficiency in chili plant. In 2020
+8th International Conference on Information and Communication Technology (ICoICT), 1–4 (IEEE, 2020).
+34. Rahadiyan, D., Hartati, S., Nugroho, A. P. et al. Feature aggregation for nutrient deficiency identification in chili
+based on machine learning. Artif. Intell. Agric. (2023).
+35. Aishwarya, M. & Reddy, P. Ensemble of CNN models for classification of groundnut plant leaf disease detection.
+Smart Agric. Technol. 100362 (2023).
+36. Nadafzadeh, M. et al. Design, fabrication and evaluation of a robot for plant nutrient monitoring in greenhouse
+(case study: Iron nutrient in spinach). Comput. Electron. Agric. 217, 108579 (2024).
+37. Desiderio, J. M. H., Tenorio, A. J. F. & Manlises, C. O. Health classification system of romaine lettuce plants
+in hydroponic setup using convolutional neural networks (CNN). In 2022 IEEE International Conf. Artificial
+Intelligence in Engineering and Technology (IICAIET), 1–6 (IEEE, 2022).
+38. Costa, L., Kunwar, S., Ampatzidis, Y. & Albrecht, U. Determining leaf nutrient concentrations in citrus trees using
+uav imagery and machine learning. Precis. Agric. 1–22 (2022).
+39. Lanjewar, M. G. & Parab, J. S. CNN and transfer learning methods with augmentation for citrus leaf diseases
+detection using PaaS cloud on mobile. Multimed. Tools Appl. 1–26 (2023).
+40. Lanjewar, M. G., Morajkar, P. & P, P. Modified transfer learning frameworks to identify potato leaf diseases.
+Multimed. Tools Appl. 1–23 (2023).
+41. Dissanayake, A. et al.
+Detection of diseases and nutrition in bell pepper.
+In 2023 5th International Conf.
+Advancements in Computing (ICAC), 286–291 (IEEE, 2023).
+42. Wu, Z., Jiang, F. & Cao, R. Research on recognition method of leaf diseases of woody fruit plants based on transfer
+learning. Sci. Reports 12, 15385 (2022).
+43. Liu, H., Lv, H., Li, J., Liu, Y. & Deng, L. Research on maize disease identification methods in complex environments
+based on cascade networks and two-stage transfer learning. Sci. Reports 12, 18914 (2022).
+44. Kukreja, V., Sharma, R., Vats, S. & Manwal, M. DeepLeaf: Revolutionizing rice disease detection and classification
+using convolutional neural networks and random forest hybrid model.
+In 2023 14th Intl. Conf. Computing
+Communication and Networking Technologies (ICCCNT), 1–6 (IEEE, 2023).
+45. Bezabih, Y. A., Salau, A. O., Abuhayi, B. M., Mussa, A. A. & Ayalew, A. M. CPD-CCNN: classification of pepper
+disease using a concatenation of convolutional neural network models. Sci. Reports 13, 15581 (2023).
+46. Kini, A. S., Prema, K. & Pai, S. N. Early stage black pepper leaf disease prediction based on transfer learning using
+convnets. Sci. Reports 14, 1404 (2024).
+47. Wu, Q. et al. A classification method for soybean leaf diseases based on an improved convnext model. Sci. Reports
+13, 19141 (2023).
+17/19
+48. Ma, X., Chen, W. & Xu, Y. ERCP-Net: a channel extension residual structure and adaptive channel attention
+mechanism for plant leaf disease classification network. Sci. Reports 14, 4221 (2024).
+49. Babatunde, R. S. et al. A novel smartphone application for early detection of habanero disease. Sci. Reports 14,
+1423 (2024).
+50. Nagasubramanian, G. et al. Ensemble classification and iot-based pattern recognition for crop disease monitoring
+system. IEEE Internet Things J. 8, 12847–12854 (2021).
+51. Nachtigall, L. G., Araujo, R. M. & Nachtigall, G. R. Classification of apple tree disorders using convolutional
+neural networks. In 2016 IEEE 28th Intl. Conf. Tools with Artificial Intelligence (ICTAI), 472–476 (IEEE, 2016).
+52. Borhani, Y., Khoramdel, J. & Najafi, E. A deep learning based approach for automated plant disease classification
+using vision transformer. Sci. Reports 12, 11554 (2022).
+53. Aishwarya, M. & Reddy, A. P. Dataset of groundnut plant leaf images for classification and detection. Data Brief
+48, 109185 (2023).
+54. Shi, J. et al. Cervical cell classification with graph convolutional network. Comput. Methods Programs Biomed.
+198, 105807 (2021).
+55. Fahad, N. M., Azam, S., Montaha, S. & Mukta, M. S. H. Enhancing cervical cancer diagnosis with graph convolution
+network: AI-powered segmentation, feature analysis, and classification for early detection. Multimed. Tools Appl.
+1–25 (2024).
+56. Lanjewar, M. G., Panchbhai, K. G. & Patle, L. B. Fusion of transfer learning models with lstm for detection of
+breast cancer using ultrasound images. Comput. Biol. Medicine 169, 107914 (2024).
+57. He, K., Zhang, X., Ren, S. & Sun, J. Spatial pyramid pooling in deep convolutional networks for visual recognition.
+IEEE Transactions on Pattern Analysis Mach. Intell. 37, 1904–1916 (2015).
+58. Szegedy, C. et al. Going deeper with convolutions. In Proc. IEEE Conf. Computer Vision and Pattern Recognition,
+1–9 (2015).
+59. Szegedy, C., Vanhoucke, V., Ioffe, S., Shlens, J. & Wojna, Z. Rethinking the inception architecture for computer
+vision. In Proc. IEEE Conf. Computer Vision and Pattern Recognition, 2818–2826 (2016).
+60. Chollet, F. Xception: Deep learning with depthwise separable convolutions. In IEEE Conf. Comput. Vis. Patt.
+Recognit., 1251–1258 (2017).
+61. He, K., Zhang, X., Ren, S. & Sun, J. Deep residual learning for image recognition. In Proc. IEEE Conf. Computer
+Vision and Pattern Recognition, 770–778 (2016).
+62. Sandler, M., Howard, A., Zhu, M., Zhmoginov, A. & Chen, L.-C. MobileNetv2: Inverted residuals and linear
+bottlenecks. In Proc.IEEE Conf. Computer Vision and Pattern Recognition, 4510–4520 (2018).
+63. Bera, A., Nasipuri, M., Krejcar, O. & Bhattacharjee, D. Fine-grained sports, yoga, and dance postures recognition:
+A benchmark analysis. IEEE Transactions on Instrumentation Meas. 72, 1–13 (2023).
+64. Bera, A., Wharton, Z., Liu, Y., Bessis, N. & Behera, A. Attend and guide (AG-Net): A keypoints-driven attention-
+based deep network for image recognition. IEEE Transactions on Image Process. 30, 3691–3704 (2021).
+65. Singh, D. et al. PlantDoc: A dataset for visual plant disease detection. In Proc. 7th ACM IKDD CoDS and 25th
+COMAD, 249–253 (ACM, 2020).
+66. Hameed, Z., Garcia-Zapirain, B., Aguirre, J. J. & Isaza-Ruget, M. A. Multiclass classification of breast cancer
+histopathology images using multilevel features of deep convolutional neural network. Sci. Reports 12, 15600
+(2022).
+67. Shabrina, N. H. et al. A novel dataset of potato leaf disease in uncontrolled environment. Data Brief 52, 109955
+(2024).
+68. Spanhol, F. A., Oliveira, L. S., Petitjean, C. & Heutte, L. A dataset for breast cancer histopathological image
+classification. IEEE Transactions on Biomed. Eng. 63, 1455–1462 (2015).
+69. Plissiti, M. E. et al. SIPAKMED: A new dataset for feature and image based classification of normal and pathological
+cervical cells in Pap smear images. In 2018 25th IEEE International Conf. Image Processing (ICIP), 3144–3148
+(IEEE, 2018).
+70. Van Der Maaten, L. Accelerating t-SNE using tree-based algorithms. The Jrnl. Mach. Learn. Res. 15, 3221–3245
+(2014).
+18/19
+71. Selvaraju, R. R. et al. Grad-CAM: Visual explanations from deep networks via gradient-based localization. In 2017
+IEEE International Conf. Computer Vision (ICCV), 618–626 (2017).
+72. Han, K. A. M., Maneerat, N., Sepsirisuk, K. & Hamamoto, K. Banana plant nutrient deficiencies identification
+using deep learning. In 2023 9th International Conf. Engineering, Applied Sciences, and Technology (ICEAST),
+5–9 (IEEE, 2023).
+73. Ahmad, A., El Gamal, A. & Saraswat, D. Toward generalization of deep learning-based plant disease identification
+under controlled and field conditions. IEEE Access 11, 9042–9057 (2023).
+74. Abdallah, N. et al. Enhancing histopathological image classification of invasive ductal carcinoma using hybrid
+harmonization techniques. Sci. Reports 13, 20014 (2023).
+75. Han, Z. et al. Breast cancer multi-classification from histopathological images with structured deep learning model.
+Sci. Reports 7, 4172 (2017).
+76. Basak, H., Kundu, R., Chakraborty, S. & Das, N. Cervical cytology classification using pca and gwo enhanced deep
+features selection. SN Comput. Sci. 2, 369 (2021).
+77. Mohammed, M. A., Abdurahman, F. & Ayalew, Y. A. Single-cell conventional pap smear image classification using
+pre-trained deep neural network architectures. BMC Biomed. Eng. 3, 11 (2021).
+78. Yaman, O. & Tuncer, T. Exemplar pyramid deep feature extraction based cervical cancer image classification model
+using pap-smear images. Biomed. Signal Process. Control. 73, 103428 (2022).
+79. Jiang, H. et al. Deep learning for computational cytology: A survey. Med. Image Analysis 84, 102691 (2023).
+Acknowledgements
+This work is supported by the New Faculty Seed Grant (NFSG) and Cross-Disciplinary Research Framework (CDRF:
+C1/23/168) projects, and Open Access facilities with necessary computational infrastructure at the Birla Institute of
+Technology and Science (BITS) Pilani, Pilani Campus, Rajasthan, 333031 India. This work has been also supported in
+part by the project (2024/2204), Grant Agency of Excellence, University of Hradec Kralove, Faculty of Informatics and
+Management, Czech Republic.
+Data Availability
+The six datasets that support the findings which were used in this work are available using the given links.
+The Nutrient Deficient of Banana Plant dataset25 is collected from https://data.mendeley.com/datasets/7vpdrbdkd4/1.
+The CoLeaf-DB dataset26 for coffee leaf nutrition deficiency classification is available at
+https://data.mendeley.com/datasets/brfgw46wzb/1.
+The Potato Leaf Disease Dataset67 is available at https://data.mendeley.com/datasets/ptz377bwb8/1.
+The PlantDoc dataset65 is available at https://github.com/pratikkayal/PlantDoc-Dataset.
+The BreakHis dataset68 is available at
+https://web.inf.ufpr.br/vri/databases/breast-cancer-histopathological-database-breakhis/, and
+can also be downloaded from https://data.mendeley.com/datasets/jxwvdwhpc2/1.
+The original SIPaKMeD dataset69 can be found at https://www.cs.uoi.gr/ marina/sipakmed.html, and
+Kaggle https://www.kaggle.com/datasets/mohaliy2016/papsinglecell.
+Competing interests
+The authors declare no competing interests.
+19/19

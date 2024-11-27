@@ -1,0 +1,881 @@
+FedDP: Privacy-preserving method based on
+federated learning for histopathology image
+segmentation
+Liangrui Pan†
+College of Computer Science
+and Electronic Engineering
+Hunan University
+Chang Sha, China
+panlr@hnu.edu.cn
+Mao Huang†
+Cancer Research Institute,
+School of Basic Medical Sciences
+Central South University
+Chang Sha, China
+huangmaoo@csu.edu.cn
+Lian Wang
+College of Computer Science
+and Electronic Engineering
+Hunan University
+Chang Sha, China
+lianwang@hnu.edu.cn
+Pinle Qin
+School of Computer Science
+North University of China
+Tai yuan, China
+qpl@nuc.edu.cn
+Shaoliang Peng*
+College of Computer Science
+and Electronic Engineering
+Hunan University
+Chang Sha, China
+slpeng@hnu.edu.cn
+Abstract—Hematoxylin and Eosin (H&E) staining of whole
+slide images (WSIs) is considered the gold standard for pathol-
+ogists and medical practitioners for tumor diagnosis, surgi-
+cal planning, and post-operative assessment. With the rapid
+advancement of deep learning technologies, the development
+of numerous models based on convolutional neural networks
+and transformer-based models has been applied to the precise
+segmentation of WSIs. However, due to privacy regulations and
+the need to protect patient confidentiality, centralized storage
+and processing of image data are impractical. Training a cen-
+tralized model directly is challenging to implement in medical
+settings due to these privacy concerns.This paper addresses
+the dispersed nature and privacy sensitivity of medical image
+data by employing a federated learning framework, allowing
+medical institutions to collaboratively learn while protecting
+patient privacy. Additionally, to address the issue of original data
+reconstruction through gradient inversion during the federated
+learning training process, differential privacy introduces noise
+into the model updates, preventing attackers from inferring
+the contributions of individual samples, thereby protecting the
+privacy of the training data.Experimental results show that the
+proposed method, FedDP, minimally impacts model accuracy
+while effectively safeguarding the privacy of cancer pathology
+image data, with only a slight decrease in Dice, Jaccard, and Acc
+indices by 0.55%, 0.63%, and 0.42%, respectively. This approach
+facilitates cross-institutional collaboration and knowledge sharing
+while protecting sensitive data privacy, providing a viable solution
+for further research and application in the medical field.
+Index Terms—federated learning, differential privacy, whole
+slide image, convolutional neural network, Transformer
+†Equal contribution.
+*Corresponding Author.
+I. INTRODUCTION
+Histopathological imaging has long been the gold standard
+for diagnosing cancer [1]. H&E-stained whole slide images
+(WSIs), which are widely utilized for surgical evaluation,
+have become an essential point of reference. Accurate seg-
+mentation of WSIs enables in-depth analysis of the tumor
+microenvironment, offering detailed insights [2]. However, the
+massive datasets required for pathological image processing
+involve not only significant computational costs but also raise
+concerns about patient privacy. In this context, traditional
+centralized learning faces substantial challenges. Conventional
+machine learning models typically require training on cen-
+tralized servers, meaning all pathological image data must be
+consolidated in one location for processing. However, due to
+privacy regulations and the need to protect patient confiden-
+tiality, the centralized storage and processing of pathological
+image data have become increasingly impractical [3].
+The core concept of federated learning is to shift the model
+training process from centralized servers to local devices,
+allowing each medical device to collaboratively learn while
+protecting patient privacy. Federated learning enables data
+from different institutions to remain local, eliminating the need
+to share original data and only sharing model updates instead.
+This distributed learning approach offers a novel solution to
+the privacy and data security challenges faced in the field of
+pathological image processing [4].
+Under the federated learning framework, each medical de-
+vice can train models locally, learning from the unique features
+of its local data [5]. The local model updates are then sent to
+a central server, where they are aggregated to form a global
+arXiv:2411.04509v1  [cs.CV]  7 Nov 2024
+model. This updated global model is subsequently distributed
+back to the local devices, continuing iteratively. Throughout
+this process, the original data remains local, with only the
+model parameters being shared. This not only helps protect
+patient privacy but also effectively addresses the diversity and
+heterogeneity of pathological image data. The collaborative
+nature of federated learning is also evident during the model
+update process, as each local device shares model parameters
+with others, allowing them to complement each other and
+enhance the overall performance of the model. Moreover, the
+security of federated learning is ensured. Model updates are
+transmitted using encryption technologies, safeguarding the
+security of model parameters during transmission. This is
+crucial for preventing malicious attacks or theft, especially
+in the field of pathological image processing, where patient-
+sensitive information is involved.
+Federated learning holds tremendous potential in the field
+of pathological imaging. It can be applied not only in medical
+image diagnostics but also extended to medical research. In
+the diagnostic process of pathological image segmentation,
+federated learning can enhance model performance, adapt to
+the data characteristics of different institutions and devices,
+and better serve patients’ diagnostic and treatment needs. In
+medical research, federated learning facilitates collaboration
+among multiple institutions, enabling data sharing and mutual
+benefits [6]–[13].
+However, in federated learning, protecting data privacy
+remains a critical issue [14], [15]. Although federated learning
+is typically designed to safeguard user data privacy, in some
+instances, methods such as gradient inversion attacks [10] can
+pose risks. These attacks involve analyzing a model’s outputs
+and corresponding gradient information to infer the model’s
+input data, potentially leading to the reconstruction of original
+data and resulting in privacy breaches [16], [17].
+Overall, the introduction of federated learning into the field
+of pathological image processing offers a new perspective
+on addressing the privacy and data security challenges as-
+sociated with centralized learning. Its collaborative nature
+helps enhance the generalizability of models, accommodating
+the diversity and heterogeneity of pathological image data.
+Moreover, by decentralizing the handling of data, it preserves
+the privacy of pathological image data, bringing new hope
+to the development of the medical field. However, federated
+learning still faces significant challenges in pathological image
+processing. This paper addresses the high computational costs
+and privacy leakage issues by incorporating methods such as
+differential privacy. Thus, in response to the issues of data
+silos and privacy breaches in cancer pathological imaging,
+this paper proposes a privacy-preserving method based on
+federated learning (FedDP) for segmenting cancer pathology
+images.
+II. METHODS
+A. FedDP overall framework
+As illustrated in Fig. 1, the overall framework of the
+model consists of local training processes on the client side
+and global aggregation processes on the server side, with
+the client and server exchanging weight calculations through
+uploads and downloads [18], [19]. For the clients, they must
+compute differential privacy on the model parameters after
+local training, and then upload the noise-added parameters to
+the server. The server, upon receiving the model parameters
+from all clients, performs a global model aggregation and then
+distributes the aggregated model back to the clients, ensuring
+a consistent set of global model parameters.
+B. DHUnet
+The architecture of the dual-branch hierarchical global-
+Local fusion network (DHUnet) is consists of a Swin Trans-
+former [20] global encoder, a ConvNeXt [21] local encoder, a
+decoder, and skip connections. The whole slide image (WSI)
+is initially divided into smaller patches using a sliding window
+technique. These patches are processed in parallel by the
+global and local encoder branches. In the global encoder,
+a patch embedding layer segments the patches into non-
+overlapping sections and maps the feature dimensions to a
+specified quantity, denoted as C. This reduces the resolution to
+one-quarter of the original size, resulting in feature dimensions
+of (w/4, h/4, C). These features undergo consecutive Swin
+Transformer blocks and patch merging layers to generate hier-
+archical global feature representations at different scales, such
+as (w/8, h/8, 2C), (w/16, h/16, 4C), and (w/32, h/32, 8C). In the
+local encoder, a stem layer also produces features of size (w/4,
+h/4, C). These features are further refined through ConvNeXt
+blocks and downsample layers to generate corresponding hi-
+erarchical local feature representations. Both the global and
+local encoders in the different stages generate hierarchical
+feature representations with resolutions similar to conventional
+convolutional networks like VGG [22] and ResNet [23]. In
+the decoder, the Global-Local Fusion (GLFusion) module and
+skip connections are utilized to capture coarse-grained global
+information and fine-grained local information from corre-
+sponding levels of the dual branches during the upsampling
+process. Additionally, a Cross-scale Expand Layer module is
+introduced to enable upsampling with the same center but
+different scales, enhancing segmentation results. Finally, a
+Linear Projection layer is applied to the upsampled features
+to output pixel-level segmentation for the small patches, and
+the segmentation results of all sliced blocks are merged to
+complete the segmentation of the entire WSI.
+In the Swin Transformer global encoder, the patch em-
+bedding layer (PE) initially converts the input RGB image
+x ∈Rh×w×3 into non-overlapping patches of size 4x4, similar
+to the ViT [24]. Each patch is treated as a token, and its
+features are concatenated. Subsequently, the features with
+dimensions 4x4x3 are projected onto an arbitrary dimension C.
+To facilitate the exchange of information between neighboring
+windows, a series of Swin Transformer blocks (STBs) is
+employed. These STBs enable effective communication and
+interaction among the tokens in neighboring windows while
+preserving the total number of tokens. In this section, the
+number of Swin Transformer blocks per stage is adjusted
+Models
+Client i(Tumor, Stroma)
+Local Training
+Weights
+Differential Privacy
+Models
+Client i(Tumor, Stroma)
+Local Training
+Weights
+Differential Privacy
+Server
+Weight Aggregation
+Models
+Client
+Local Training
+Differential Privacy
+Download
+Upload
+Fig. 1. Overall framework of the FedDP model.
+from (2, 2, 6, 2) to (2, 2, 2, 2). To differentiate features in
+the local encoder, the subscript ’g’ is used. Thus, the process
+of computing global features in Stage 1 can be described as
+follows:
+xg
+1 = STB2(PE(x)),
+xg
+1 ∈R
+h
+4 × w
+4 ×C
+(1)
+To generate hierarchical feature representations, the Patch
+Merging (PM) layer plays a crucial role in the network’s
+deepening process. It concatenates the features from every
+group of 2x2 adjacent patches and utilizes a mapping layer
+to downsample the resolution by a factor of two while dou-
+bling the channel dimensions. This process contributes to the
+creation of hierarchical feature representations. Consequently,
+the process of computing global features for Stages 2, 3, and
+4 can be described as follows:
+xg
+i = STB2(PM(xg
+i−1))
+xg
+i ∈R
+h
+2i+1 ×
+w
+2i+1 ×2i−1C,
+i = 2, 3, 4
+(2)
+In the ConvNeXt local encoder, similar to the global encoder
+process, the input image x ∈Rh×w×3 first goes through
+the Stem layer. Following that, xl
+stem undergoes processing in
+multiple ConvNeXt (CNBs) blocks to facilitate local feature
+fusion. In this particular section, the number of ConvNeXt
+blocks per stage has been adjusted from (3, 3, 9, 3) to (3, 3, 3,
+3). To differentiate features in the local encoder, the subscript
+’l’ is used. The computation process for local features in Stage
+1 can be described as follows:
+xl
+1 = CNB3(Stem(x)),
+xl
+1 ∈R
+h
+4 × w
+4 ×C
+(3)
+Similar to the patch embedding layer, the downsampling
+layer (DS) utilized between each stage employs a convolution
+operation with a kernel size and stride of 2. This operation
+achieves a twofold reduction in resolution and doubles the
+channel dimensions. Additionally, a Layer Normalization (LN)
+layer is applied. Hence, the computation of local features for
+Stages 2, 3, and 4 can be summarized as follows:
+xl
+i = CNB3(DS(xl
+i−1)),
+xl
+i ∈R
+h
+2i+1 ×
+w
+2i+1 ×2i−1C,
+i = 2, 3, 4
+(4)
+In the GLFusion decoder, to ensure the efficient integration
+of hierarchical features from the dual encoder branches, we
+propose a novel Global-Local Fusion (GLFusion) decoder.
+The GLFusion decoder aims to restore spatial resolution and
+generate segmentation results. For faster operational speed and
+enhanced performance, the GLFusion module initially uses
+additive operations to merge global and local features from
+the same stage. The result is then connected to the previous
+module via skip connections (SC), using convolution, batch
+normalization, and ReLU activation functions to align the
+output size with the input channel dimensions. Subsequently,
+an upsampling process, utilizing a Cross-scale Expand Layer
+which operates inversely to the downsampling and patch
+merging layers, is implemented. This upsamples the resolution
+by a factor of two while halving the channel dimensions or by
+a factor of four while maintaining the channel dimensions. It is
+accomplished by employing multiple transposed convolutions
+with identical strides but varying kernel sizes. The features
+generated by these convolutions are then concatenated along
+the channel dimension. This approach enables patches with
+the same center but different scales to achieve diverse recep-
+tive fields. The computation process for GLFusion4 can be
+described as follows:
+f4 = concat[transposet(SC(xl
+i + xg
+i ))M
+t=1],
+f4 ∈R
+h
+8 × w
+8 ×4C
+(5)
+Where f4 represents the output of the GLFusion4 module.
+The computation processes for GLFusion2 and GLFusion3
+can be described as follows:
+fi = concat[transposet(SC(xl
+i + xg
+i , fi+1))M
+t=1],
+fi ∈R
+h
+2i × w
+2i ×2i−2C,
+i = 2, 3
+(6)
+The computation process for GLFusion1 can be described
+as follows:
+f1 = concat[transposet(SC(xl
+1 + xg
+1, f2))M
+t=1],
+f1 ∈Rh×w×C
+(7)
+Finally, a linear projection layer (LP) is applied to the
+output f1 of the GLFusion1 module to obtain pixel-level
+segmentation results for the sliced blocks:
+Segmentation(x) = LP(f1)
+(8)
+The segmentation results of all sliced blocks are merged to
+reconstruct the final distribution of the tumor in the whole
+slide image (WSI).
+C. Client-side training
+This chapter, based on the FedAvg strategy, addresses
+gradient privacy leakage by incorporating differential privacy
+techniques. It assumes that there are K clients participating
+in the training, with each client k possessing their own
+local dataset Dk and sharing the same initial global model
+parameters θ0.
+1. Global
+model
+Initialization
+θ0
+∼
+Initialization,
+Initialization is the initialization method of the global
+model parameters.
+2. Client Selection: A portion K is randomly selected from
+C clients as participants in this round.
+3. Model Distribution: The central server distributes the
+global model parameters θ to the selected participants.
+4. Local training: Each client c ∈C uses the local dataset
+Dc to perform local model training and update the
+gradient. After the t-th round of distributed training, client
+c performs E local updates locally to obtain the local
+model parameters θc
+t+1:
+θc
+t+1 = ClientUpdate(θc
+t, Dc, E),
+t ≥0
+(9)
+Among them, Client Update is the function of updating
+model parameters locally on client c, and the gradient
+descent method is used to implement the training of deep
+learning model:
+θt+1 = θt + 1
+k
+k
+X
+i=0
+∆θi
+(10)
+D. Differential privacy
+Differential Privacy (DP) is a privacy-preserving technique
+designed to provide meaningful data analysis results while
+ensuring the protection of individual privacy during statistical
+analysis or data mining. Differential privacy achieves this by
+introducing noise into the computation process, making it
+impossible to infer specific individual information from the
+output.
+Noise Addition: To protect privacy, clients need to introduce
+noise when computing gradients. This noise can be random
+and must satisfy the conditions of differential privacy. Typi-
+cally, Laplace noise or Gaussian noise is used for differential
+privacy computation.
+Laplace Noise: Participants generate Laplace noise based
+on the differential privacy parameter ε and sensitivity ∆f.
+The probability density function of the Laplace distribution is
+given by ρ(x) =
+1
+2εe−|x|
+ε , where x represents the noise value.
+The scale of the noise is determined by the sensitivity of the
+gradient, i.e., the noise scale is ∆f
+ε .
+Gaussian Noise: Participants can generate noise using a
+Gaussian distribution, where the probability density function
+of the Gaussian noise is ρ(x) =
+1
+√
+2πσe−x2
+2σ2 , with x being the
+noise value and σ being the standard deviation.
+In the privacy computing process, the model training update
+phase uses the update function after adding Gaussian noise:
+θt+1 = θt + 1
+k (
+k
+X
+i=0
+∆θi/ max(1,
+∆θi
+2
+C
+) + N(0, σ2C2I))
+(11)
+Where σ and C are hyperparameters in the privacy computing
+strategy. The conditions for the Gaussian mechanism to satisfy
+(ε, δ)-differential privacy are:
+ε = △f
+σ
+(12)
+where △f represents the sensitivity, indicating the maximum
+change in the function’s output on neighboring datasets. For
+gradient computation, sensitivity can be controlled by clipping
+the gradients. Assuming the clipping threshold is C, we have:
+△f ≤C
+(13)
+Thus, the relationship between the privacy budget ε and the
+noise standard deviation σ is:
+ε = C
+σ
+(14)
+It is important to note that when adding Gaussian noise,
+attention should be paid to the scale of the noise, specifically
+the choice of the standard deviation. A larger standard devia-
+tion increases the magnitude of the noise, providing stronger
+privacy protection, but it may also impact the accuracy and
+usability of the data. Therefore, in practical applications, a
+suitable trade-off and adjustment are necessary to balance the
+requirements of privacy protection and data utility.
+E. Server-side aggregation
+After completing local training, the client sends its updated
+or encrypted model parameters θ(c)
+t+1 to the server. Once the
+server receives updates from all clients, it performs global
+parameter aggregation using a weighted average method:
+θt+1 = 1
+C
+C
+X
+c=1
+θ(c)
+t+1
+(15)
+Once the server completes the aggregation, it distributes the
+global parameters to each client. The process of client training
+and applying differential privacy is iteratively repeated until a
+stopping condition is satisfied. This stopping condition can
+be defined as reaching the maximum number of iterations or
+attaining model convergence.
+III. EXPERIMENTAL
+A. Experiment details
+The experiments in this study are conducted using Python
+3.7 and PyTorch 1.7.0. Data augmentation techniques such
+as horizontal flipping, vertical flipping, and random rotations
+between -90° and 90° are employed to enhance the diversity
+of data positions for all training models. Additionally, to
+enhance the network’s resilience to variations in color, random
+hue-saturation-value (HSV) transformations are applied. The
+dataset is then divided randomly into training and testing
+sets, with a ratio of 0.7:0.3. The models are trained using 5-
+fold cross-validation on an NVIDIA Tesla V100 GPU (16GB
+VRAM). The optimal parameters for the models are deter-
+mined by averaging the performance on the validation sets.
+The input size for the model is set to 224×224, and the
+maximum number of training epochs for the WSSS4LUAD
+dataset is set to 150 to ensure loss convergence.During the
+training phase, a standard SGD optimizer is used for back-
+propagation network optimization, with a default batch size
+of 24. The experiment included 5 local clients, with each
+client performing 5 local iterations, and the server performing
+150 rounds of global integration. The CPU used is a 16-core
+Intel(R) Xeon(R) Bronze 3106 CPU @ 1.70GHz. Additionally,
+differential privacy parameters and are set to 0.5 and 0.05,
+respectively.
+B. Datasets
+Experiments on the Lung Cancer WSSS4LUAD Dataset
+includes labels for tumors, stroma, and normal tissues, and is
+publicly provided by the WSSS4LUAD 2021 Challenge1. The
+dataset comprises 23 large patches selected from Guangdong
+Provincial People’s Hospital and The Cancer Genome Atlas
+(TCGA). The patches have resolutions ranging approximately
+from 1500×5000 to 1500×5000. Additionally, 20 whole slide
+images (WSIs) are collected from TCGA (one WSI per
+patient), combining to form the lung cancer WSSS4LUAD
+dataset. The dataset undergoes processing using a sliding
+window approach with a resolution of 1000×1000 and a stride
+of 500. Subsequently, the images are resized to 224×224 to
+match the model’s scale.
+IV. RESULTS
+A. FedDP achieve state-of-the-art performance
+As shown in Table I, under the baseline framework based
+on federated learning, DHUnet demonstrates significant advan-
+tages compared to other CNN-based and Transformer-based
+models. On the WSSS4LUAD lung cancer dataset, its Dice,
+Jaccard, and Acc scores reach 85.23%, 76.26%, and 90.71%,
+respectively, showcasing outstanding performance. These met-
+rics are widely recognized in image segmentation tasks and
+are crucial for evaluating model performance. Although the
+performance of all models decreased compared to methods
+without federated learning, the security of data and models
+cannot be ensured without it.
+1https://wsss4luad.grand-challenge.org/WSSS4LUAD/
+TABLE I
+SEGMENTATION PERFORMANCE OF FEDDP METHOD ON LUNG CANCER
+WSSS4LUAD DATASET.
+Models
+None
+Federate Learning
+FedDP
+Dice
+Jaccard
+Acc
+Dice
+Jaccard
+Acc
+Dice
+Jaccard
+Acc
+FCN
+92.31
+85.72
+97.24
+78.40
+68.40
+87.08
+72.15
+62.56
+80.03
+Unet
+92.71
+86.43
+97.40
+79.09
+69.05
+86.82
+78.45
+68.28
+86.86
+DeeplabV3
+92.71
+86.44
+97.47
+83.84
+74.50
+91.24
+51.52
+47.02
+49.39
+ConvNeXt
+92.89
+86.75
+97.47
+83.08
+73.48
+89.37
+82.54
+72.99
+89.14
+SwinUnet
+91.76
+84.84
+97.25
+84.04
+74.59
+90.04
+83.98
+74.47
+89.96
+TransFuse
+90.47
+82.72
+96.76
+85.29
+76.21
+90.97
+84.64
+75.30
+90.71
+DHUnet
+93.07
+87.04
+97.52
+85.78
+76.89
+91.29
+85.23
+76.26
+91.09
+Notably, DHUnet manages to maintain high accuracy even
+with the incorporation of differential privacy through FedDP,
+resulting in minimal Dice, Jaccard, and Acc losses of only
+0.55%, 0.63%, and 0.42%, respectively, while still maintain-
+ing a leading edge in segmentation performance. Compared
+to the best-performing Transformer-based model, TransFuse,
+DHUnet improves Dice, Jaccard, and Acc scores by 0.59%,
+0.96%, and 0.38%, respectively. When compared to the best-
+performing CNN-based model, ConvNeXt, it shows improve-
+ments of 2.69%, 3.27%, and 1.95% in Dice, Jaccard, and Acc
+metrics, respectively. These enhancements are likely attributed
+to the design of the global-local fusion decoder and skip
+connections in the DHUnet model.
+In the visualization results shown in Fig. 2, DHUnet
+also demonstrates excellent performance. Under the federated
+learning framework, DHUnet continues to exhibit high seg-
+mentation quality in image segmentation tasks, maintaining
+a high degree of similarity, overlap, and accuracy with the
+ground truth. This highlights its robustness and generalization
+capabilities. Among all models, the FedDP method showcases
+the best segmentation performance. Therefore, FedDP not only
+accurately segments pathological images but also ensures data
+privacy and model security.
+As illustrated in Fig. 3, inversion attacks are unable to
+reconstruct the original pathological images. Compared to
+traditional federated learning methods, the introduction of
+differential privacy technology significantly enhances the pri-
+vacy of data distribution and effectively prevents data leakage
+and privacy breaches. This provides users with more reliable
+data protection measures. Additionally, the application of this
+technology increases users’ trust in data-sharing schemes, as
+they can share data with greater confidence, without fear
+of privacy being compromised or misused. Therefore, the
+FedDP method has broad application prospects in the fields
+of data sharing and privacy protection, offering vital support
+for building secure and reliable data-sharing solutions.
+In summary, FedDP demonstrates outstanding performance
+within the federated learning framework, maintaining high lev-
+els of accuracy even with the inclusion of differential privacy.
+FedDP achieves notable results in performance metrics such
+as Dice, Jaccard, and Acc, while also enhancing the privacy
+of data distribution through differential privacy technology.
+This strengthens the security and privacy protection of user
+data. The analysis of visualization results further confirms
+FedDP’s superiority in image segmentation tasks, showcasing
+its robustness and generalization capabilities. Consequently,
+FedDP provides strong support and assurance for data sharing
+and privacy protection.
+Tumor
+Stroma
+Normal
+FL-FCN
+FL-U-Net
+FL-DeeplabV3
+WSI
+GT
+FL-ConvNeXt
+FL-SwinUnet
+FL-TransFuse
+FL-DHUnet
+FedDP-FCN
+FedDP-U-Net
+FedDP-DeeplabV3
+FedDP-ConvNeXt
+FedDP-SwinUnet
+FedDP-TransFuse
+FedDP-DHUnet
+Fig. 2. Visualization results of Federated Learning (FL) and FedDP methods.
+B. Ablation Experiment
+As shown in Table II, ablation experiments reveal that a
+larger standard deviation increases the magnitude of noise,
+providing stronger privacy protection but potentially impacting
+data accuracy. Conversely, increasing the C value enhances the
+overall accuracy of the model. Therefore, this study selects the
+Fig. 3. The left side shows the lung cancer pathology image, and the right
+side shows the image reconstructed after inversion attack.
+TABLE II
+EFFECT OF NOISE SCALE ON THE MODEL.
+σ
+C
+0.1
+0.3
+0.5
+Dice
+Jaccard
+Acc
+Dice
+Jaccard
+Acc
+Dice
+Jaccard
+Acc
+0.05
+83.36
+74.07
+89.46
+84.79
+75.86
+90.21
+85.23
+76.26
+91.09
+0.15
+83.55
+74.37
+89.46
+84.64
+75.64
+90.14
+85.02
+76.03
+90.48
+0.25
+80.51
+70.53
+88.39
+84.59
+75.71
+90.00
+83.21
+64.28
+88.73
+0.35
+79.87
+69.64
+88.29
+84.49
+75.61
+89.87
+83.20
+64.12
+88.70
+optimal values as input parameters for the model to ensure the
+best possible performance.
+V. CONCLUSION
+The challenge of training deep neural network models with
+good generalization performance is significantly heightened
+due to the difficulty of sharing image data across different
+medical institutions. To address this issue, this chapter pro-
+poses a privacy-preserving method based on federated learn-
+ing. Additionally, the chapter addresses the risk of sensitive
+data leakage through the transmission of model updates during
+the training process. Federated learning allows each medical
+institution to train models locally without the need to share
+sensitive image data. Furthermore, we employ differential
+privacy techniques to enhance data privacy protection. Differ-
+ential privacy introduces noise into model updates, making it
+impossible for attackers to infer the contributions of individual
+samples, thereby safeguarding the privacy of the training data.
+Experimental results demonstrate that our proposed method
+has minimal impact on model accuracy while effectively
+protecting data privacy. This means that it is possible to ensure
+the privacy and security of medical image data without signif-
+icantly sacrificing accuracy. Therefore, the FedDP method has
+broad application prospects in the fields of data sharing and
+privacy protection, providing vital support for building secure
+and reliable data-sharing solutions.
+ACKNOWLEDGMENT
+This work was supported by Hunan Province Graduate
+Research Innovation Project CX20240450; National Key R&D
+Program of China 2023YFC3503400, 2022YFC3400400;
+NSFC-FDCT Grants 62361166662; The Innovative Research
+Group Project of Hunan Province 2024JJ1002; Key R&D
+Program of Hunan Province 2023GK2004, 2023SK2059,
+2023SK2060; Top 10 Technical Key Project in Hunan
+Province 2023GK1010; Key Technologies R&D Program of
+Guangdong Province (2023B1111030004 to FFH). The Funds
+of State Key Laboratory of Chemo/Biosensing and Chemo-
+metrics, the National Supercomputing Center in Changsha
+(http://nscc.hnu.edu.cn/), and Peng Cheng Lab.
+REFERENCES
+[1] E. Abels, L. Pantanowitz, F. Aeffner, M. D. Zarella, J. Van der Laak,
+M. M. Bui, V. N. Vemuri, A. V. Parwani, J. Gibbs, E. Agosto-
+Arroyo et al., “Computational pathology definitions, best practices, and
+recommendations for regulatory guidance: a white paper from the digital
+pathology association,” The Journal of pathology, vol. 249, no. 3, pp.
+286–294, 2019.
+[2] X. Wang, Y. Fang, S. Yang, D. Zhu, M. Wang, J. Zhang, K.-y.
+Tong, and X. Han, “A hybrid network for automatic hepatocellular
+carcinoma segmentation in h&e-stained whole slide images,” Medical
+Image Analysis, vol. 68, p. 101914, 2021.
+[3] J. Ogier du Terrail, A. Leopold, C. Joly, C. B´eguier, M. Andreux,
+C. Maussion, B. Schmauch, E. W. Tramel, E. Bendjebbar, M. Zaslavskiy
+et al., “Federated learning for predicting histological response to neoad-
+juvant chemotherapy in triple-negative breast cancer,” Nature medicine,
+vol. 29, no. 1, pp. 135–146, 2023.
+[4] B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas,
+“Communication-efficient learning of deep networks from decentralized
+data,” in Artificial intelligence and statistics.
+PMLR, 2017, pp. 1273–
+1282.
+[5] L. Pan, Z. Zhao, Y. Lu, K. Tang, L. Fu, Q. Liang, and S. Peng,
+“Opportunities and challenges in the application of large artificial
+intelligence models in radiology,” Meta-Radiology, p. 100080, 2024.
+[6] T. Li, A. K. Sahu, M. Zaheer, M. Sanjabi, A. Talwalkar, and V. Smith,
+“Federated optimization in heterogeneous networks,” Proceedings of
+Machine learning and systems, vol. 2, pp. 429–450, 2020.
+[7] J. Wang, Q. Liu, H. Liang, G. Joshi, and H. V. Poor, “Tackling the
+objective inconsistency problem in heterogeneous federated optimiza-
+tion,” Advances in neural information processing systems, vol. 33, pp.
+7611–7623, 2020.
+[8] J. Nguyen, K. Malik, H. Zhan, A. Yousefpour, M. Rabbat, M. Malek, and
+D. Huba, “Federated learning with buffered asynchronous aggregation,”
+in International Conference on Artificial Intelligence and Statistics.
+PMLR, 2022, pp. 3581–3607.
+[9] Z. Wang, X. Fan, J. Qi, C. Wen, C. Wang, and R. Yu, “Federated learning
+with fair averaging,” arXiv preprint arXiv:2104.14937, 2021.
+[10] J. Geiping, H. Bauermeister, H. Dr¨oge, and M. Moeller, “Inverting
+gradients-how easy is it to break privacy in federated learning?” Ad-
+vances in neural information processing systems, vol. 33, pp. 16 937–
+16 947, 2020.
+[11] Z. Hu, K. Shaloudegi, G. Zhang, and Y. Yu, “Federated learning meets
+multi-objective optimization,” IEEE Transactions on Network Science
+and Engineering, vol. 9, no. 4, pp. 2039–2051, 2022.
+[12] J. Lu, X. S. Zhang, T. Zhao, X. He, and J. Cheng, “April: Finding the
+achilles’ heel on privacy for vision transformers,” in Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+2022, pp. 10 051–10 060.
+[13] Y. Wen, J. Geiping, L. Fowl, M. Goldblum, and T. Goldstein, “Fishing
+for user data in large-batch federated learning via gradient magnifica-
+tion,” arXiv preprint arXiv:2202.00580, 2022.
+[14] T. Qi, F. Wu, C. Wu, L. He, Y. Huang, and X. Xie, “Differentially private
+knowledge transfer for federated learning,” Nature Communications,
+vol. 14, no. 1, p. 3785, 2023.
+[15] C. Wu, F. Wu, L. Lyu, T. Qi, Y. Huang, and X. Xie, “A federated
+graph neural network framework for privacy-preserving personalization,”
+Nature Communications, vol. 13, no. 1, p. 3091, 2022.
+[16] Y. Wei and Y. Han, “Multi-source collaborative gradient discrep-
+ancy minimization for federated domain generalization,” arXiv preprint
+arXiv:2401.10272, 2024.
+[17] J. Wu, M. Hayat, M. Zhou, and M. Harandi, “Concealing sensitive
+samples against gradient leakage in federated learning,” in Proceedings
+of the AAAI Conference on Artificial Intelligence, vol. 38, no. 19, 2024,
+pp. 21 717–21 725.
+[18] L. Wang, L. Pan, H. Wang, M. Liu, Z. Feng, P. Rong, Z. Chen, and
+S. Peng, “Dhunet: Dual-branch hierarchical global–local fusion network
+for whole slide image segmentation,” Biomedical Signal Processing and
+Control, vol. 85, p. 104976, 2023.
+[19] L. Pan, G. Chen, W. Liu, L. Xu, X. Liu, and S. Peng, “Ldcsf: Local
+depth convolution-based swim framework for classifying multi-label
+histopathology images,” in 2023 IEEE International Conference on
+Bioinformatics and Biomedicine (BIBM).
+IEEE, 2023, pp. 1368–1373.
+[20] Z. Liu, Y. Lin, Y. Cao, H. Hu, Y. Wei, Z. Zhang, S. Lin, and
+B. Guo, “Swin transformer: Hierarchical vision transformer using shifted
+windows,” in Proceedings of the IEEE/CVF international conference on
+computer vision, 2021, pp. 10 012–10 022.
+[21] Z. Liu, H. Mao, C.-Y. Wu, C. Feichtenhofer, T. Darrell, and S. Xie, “A
+convnet for the 2020s,” in Proceedings of the IEEE/CVF conference on
+computer vision and pattern recognition, 2022, pp. 11 976–11 986.
+[22] K. Simonyan and A. Zisserman, “Very deep convolutional networks for
+large-scale image recognition,” arXiv preprint arXiv:1409.1556, 2014.
+[23] K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for image
+recognition,” in Proceedings of the IEEE conference on computer vision
+and pattern recognition, 2016, pp. 770–778.
+[24] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai,
+T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly et al.,
+“An image is worth 16x16 words: Transformers for image recognition
+at scale,” arXiv preprint arXiv:2010.11929, 2020.

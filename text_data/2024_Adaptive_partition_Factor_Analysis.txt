@@ -1,0 +1,1444 @@
+arXiv:2410.18939v1  [stat.ME]  24 Oct 2024
+Adaptive Partition Factor Analysis
+Elena Bortolato∗
+Department of Business and Economics, Universitat Pompeu Fabra,
+Data Science Center, Barcelona School of Economics
+and
+Antonio Canale
+Department of Statistical Sciences, University of Padova
+October 25, 2024
+Abstract
+Factor Analysis has traditionally been utilized across diverse disciplines to ex-
+trapolate latent traits that inﬂuence the behavior of multivariate observed variables.
+Historically, the focus has been on analyzing data from a single study, neglecting
+the potential study-speciﬁc variations present in data from multiple studies. Multi-
+study factor analysis has emerged as a recent methodological advancement that ad-
+dresses this gap by distinguishing between latent traits shared across studies and
+study-speciﬁc components arising from artifactual or population-speciﬁc sources of
+variation. In this paper, we extend the current methodologies by introducing novel
+shrinkage priors for the latent factors, thereby accommodating a broader spectrum
+of scenarios—from the absence of study-speciﬁc latent factors to models in which
+factors pertain only to small subgroups nested within or shared between the stud-
+ies. For the proposed construction we provide conditions for identiﬁability of factor
+loadings and guidelines to perform straightforward posterior computation via Gibbs
+sampling. Through comprehensive simulation studies, we demonstrate that our pro-
+posed method exhibits competing performance across a variety of scenarios compared
+to existing methods, yet providing richer insights. The practical beneﬁts of our ap-
+proach are further illustrated through applications to bird species co-occurrence data
+and ovarian cancer gene expression data.
+Keywords: Factor models, Neural networks, Shrinkage priors, Sparsity.
+∗
+1
+1
+Introduction
+In numerous scientiﬁc and socio-economic domains, the collection of high-dimensional data
+has become ubiquitous.
+Instances of such data collection include customer preferences
+in recommender system applications, single-cell experiments in genomics, high-frequency
+trading in ﬁnance, and extensive sampling campaigns in ecology. In these contexts, the
+joint analysis of data originating from diverse sources, studies, or technologies is increasingly
+critical for enhancing the accuracy of conclusions and ensuring the reproducibility of results
+[26].
+However, it is common that diﬀerent studies mix the common latent signal with study-
+speciﬁc ones. This issue is particularly pronounced in our motivating contexts of animal
+co-occurrence studies and genomics. In the former, zoothologists record the presence of var-
+ious animal species across diﬀerent spatial locations, conducting sampling campaigns over
+multiple time periods. While most sites with similar habitats exhibit consistent patterns
+of animal occurrences, some sites may display unique characteristics due to possible unob-
+served variables [29]. Similarly, in gene expression studies, high-throughput experiments
+are known to present variations of both biological and technical nature. Consequently,
+eﬀects driven by speciﬁc experimental conditions or particular technology can overshadow
+the biological signals of interest [27, 28]. Although preprocessing procedures aimed at cor-
+recting for batch eﬀects help in removing some speciﬁcities, these methods are often not
+enough to obtain homogeneous covariance structures across groups [21].
+Motivated by these problems, [1] introduced a novel methodological tool, namely multi-
+study factor analysis (MSFA), which extends the classical factor analysis to jointly analyze
+data from multiple studies.
+MSFA aims to separate the signal shared across multiple
+studies from the study-speciﬁc components arising from artifactual or population-speciﬁc
+2
+sources of variation.
+To ﬁx the notation, let yis denote the p-dimensional observation
+vector corresponding to subject i ∈{1, . . . , n} belonging to study s ∈{1, . . . , S}, where
+each study comprises ns subjects and n = PS
+s=1 ns. In the MSFA framework, one assumes
+the following representation:
+yis = Ληis + Γsϕis + ǫis
+(1)
+where ǫis represents a zero-mean idiosyncratic error term and ηis is a d dimensional set of
+shared latent factors, with d ≪p and with Λ the corresponding factor loading matrix of
+dimension p × d. Similarly, Γs is a study-speciﬁc factor loading matrix of dimension p × ks,
+with ks ≪p possibly diﬀerent in each study, and ϕis its corresponding latent factors.
+To address the high-p small-n problem typical of high-throughput biological data, [8]
+propose a Bayesian generalization of [1] that naturally provides the necessary regularization
+through the multiplicative gamma prior of [23]. Posterior sampling is performed via Markov
+Chain Monte Carlo (MCMC) methods, enabling ﬂexible estimation without constraints on
+loading matrices. Extensions handling covariates and alternative estimation procedures has
+been discussed by [20] and [21]. Similarly, [32] proposed a perturbed factor analysis that
+focuses on inferring the shared structure while making use of subject-speciﬁc perturbations.
+Motivated by identiﬁcation issues arising from these approaches, [3] recently proposed a
+class of subspace factor models which characterize variation across groups at the level of
+a lower-dimensional subspace where the study-speciﬁc factor loadings Γs are obtained as
+Γs = ΛAs where As is a d × ds matrix, with ds < d, i.e.
+modeling the study-speciﬁc
+contributions as lower dimensional perturbations of the shared factor loadings.
+In all of these approaches there is however a modeling limitation, i.e. they allow pre-
+cisely S study-speciﬁc loading matrices Γs. In practice, this assumption is often violated.
+We provide some examples, but a continuous spectrum of possibilities may be found: (i)
+3
+two or more studies exhibit high homogeneity and may share identical or nearly identical
+latent representations, and (ii) one study involves highly heterogeneous groups of subjects,
+potentially resulting in two or more sub-populations with distinct latent structures as de-
+scribed in Equation (1). The latter situation might be practically due to slightly diﬀerent
+experimental setups or unmeasured confunders. Additional possibilities include (iii) the
+existence of a subset of units from diﬀerent groups that share common characteristics, or
+(iv) instances where, for various reasons, some units may be associated with characteristics
+of multiple groups simultaneously.
+To address case (i), [19] proposed a model allowing for partially-shared latent factors
+using a study-speciﬁc diagonal selection matrix. The pattern of zeros and ones in this
+matrix determines which latent factors pertain to each speciﬁc study. The diagonal elements
+are then incorporated into a selection matrix governed by an Indian Buﬀet Process (IBP)
+prior [30]. The same work discusses a variant, where study-speciﬁc labels are unknown
+and inferred via mixture models. While this approach moves towards addressing case (ii),
+it relies on the a priori knowledge of the total number of groups into which the units
+are divided and to our knowledge it has not been applied yet. Case (iii) corresponds to a
+situation where instead a single partition is insuﬃcient to describe speciﬁc factors patterns.
+Hence, despite these recent advancements, a unifying framework that seamlessly spans from
+classical factor models to MSFA, encompassing all the above mentioned cases or nuanced
+variants, remains absent.
+In this paper, we propose an alternative formulation for Bayesian MSFA leveraging the
+concept of informed or structured sparsity [14, 15, 31]. This approach allows for ﬂexible
+modeling of varying degrees of group heterogeneity in terms of latent factors contribu-
+tion. Consistently with this, we name the proposed approach Adaptive Partition Factor
+4
+Analysis (APAFA). APAFA employs shrinkage priors for latent factors, using the infor-
+mation contained in study labels, but without enforcing a deterministic structure. This
+structured shrinkage is combined with increasing shrinkage priors on the number of latent
+factors, following a cumulative shrinkage process approach [16, 22]. This construction en-
+sures identiﬁable separation of the shared and speciﬁc contributions while circumventing,
+under suitable regularity conditions, the well-known issue of rotational ambiguity in factor
+loadings for the speciﬁc factors, thereby allowing straightforward posterior interpretation
+of these quantities. Notably, we show that the proposed method can be seen as a par-
+ticular neural network model allowing us to exploit further generalizations, including the
+integration of subject- or study-speciﬁc continuous covariates in a ﬂexible manner.
+The next section details APAFA in terms of model speciﬁcation, prior distributions,
+and provides practical guidelines for prior elicitation. We also explore the connections to
+neural networks and present generalizations. In addition, we address model identiﬁability
+and describe the procedures for posterior computation. Section 3 reports a comprehensive
+empirical assessment through simulation studies covering various data-generating scenarios.
+Section 4 reports two illustrative data analyses further highlighting the advantages of our
+approach in the motivating examples of bird species occurrence and genomics. The ﬁnal
+discussion section explores generalizations and potential extensions. The code to reproduce
+our analyses available at https://github.com/elenabortolato/APAFA.
+5
+Y
+H
+Λ⊤
+Φ
+Γ⊤
+ǫ
+=
++
++
+Figure 1: Multi study Factor model: The n × p data matrix Y is written as the product of
+the latent factor matrix H of dimension n × d by the factor loading matrix Λ (the shared
+parts) plus the product of the latent factor matrix Φ of dimension n×k by the factor loading
+matrix Γ (the study-speciﬁc parts) and a random noise ǫ. Diﬀerent shades of purple, red,
+and blue identify the S = 3 studies in Y . The matrix Φ presents a pronounced presence of
+structural zeros and study-speciﬁc factors.
+2
+Adaptive partition factor analysis
+2.1
+Model and prior speciﬁcation
+Under the standard assumption that ηi ∼N(0, Id) and omitting the subscript s, we rewrite
+model (1) as
+yi = Ληi + Γϕi + ǫi,
+ǫi ∼N(0, Σ),
+(2)
+where Γ = (Γ1, . . . , ΓS) stacks all the study-speciﬁc factor loading matrices into a p × k
+matrix with k = PS
+s=1 ks and ϕi is a k-dimensional augmented vector containing the ϕis
+in Equation (1) framed with suitable pattern of zeros. Speciﬁcally, all the latent factors
+pertaining to group s will have Ps−1
+l=1 kl zeros, followed by subject-speciﬁc ϕis, followed by
+PS
+l=s+1 kl zeros. An illustration is depicted in Figure 1.
+6
+As customary in factor analysis, one can marginalize out the shared factors, obtaining
+yi ∼N(Γϕi, ΛΛ⊤+ Σ).
+(3)
+Under this characterization, one can think to have, for each i, a vector of dummy variables
+xi with S entries characterizing the study to which unit i belongs to and then assume
+that the h-th element of the vector ϕi is ϕih = ˜ϕihψih where ˜ϕih is a continuous random
+variable and ψih = fh(xi) with fh a deterministic activation function. In [1, 8], for example,
+fh(xi) = x⊤
+i 1S where 1S is a S dimensional vector of ones. In this paper, we propose to
+incorporate the information contained in the xi’s in a more ﬂexible manner letting
+ψih = fh(x⊤
+i βh),
+(4)
+keeping, for the moment, fh as a general, non-linear function and considering the parameters
+βh as unknown.
+It is now evident that equations (3) and (4) transform model (2) into a speciﬁc single
+layer neural network where the dummy variables in the xis are the input variables, yi
+are the p−dimensional output variables, ϕis are the nodes of the hidden layer, fh are the
+activation functions, βh are the weights between the input and the hidden layer, and the
+elements in Γ are the weights between the hidden layer and the continuous outcome yi.
+The neural network representation of model (2) is reported in Figure 2. In recent years,
+there has been a growing interest in Bayesian analysis of neural networks. Typically, the
+weight parameters are assigned a prior distribution and are learned updating the prior via
+Bayes rule. For comprehensive reviews, see [38], [11], and [39]. Bayesian approaches to
+neural network models, however, not only apply the Bayesian inferential paradigm to learn
+the network parameters but also allow the neurons themselves to be stochastic [34, 35].
+Consistently with these approaches, but focusing on our motivating factor analysis
+7
+x1
+x2
+x3
+...
+xS
+ϕ1
+ϕ2
+...
+ϕk
+y1
+y2
+y3
+y4
+...
+yp
+β11
+β12
+β1k
+β2k
+β3k
+βS1
+βS2
+βSk
+γ11
+γ1p
+γ21
+γ2p
+γ1p
+γ2p
+γk1
+γk2
+γkp
+Figure 2: Neural Network representation: The input nodes are the categorical variables
+associated to the study structure. The ﬁrst layer of latent variables are the latent study-
+speciﬁc factors.
+context, we now deﬁne the prior structure for model (2). Speciﬁcally, we let
+ϕih ∼N(0, ψih(xi)τ ϕ
+h ),
+(5)
+where the variance of ϕih is a product of a global scale dependent on the index h and a
+local scale dependent on the indexes i and h, and most importantly, on the variable xi
+through Equation (4).
+We let the global scale parameter τ ϕ
+h ∼Ber(1 −ρh), where {ρh} ∼CUSP(αϕ) follows a
+cumulative shrinkage process [16], i.e. for h = 1, 2, . . . , ρh = P
+l≤h wϕ
+l ,
+wϕ
+l = vϕ
+l
+Q
+m<l(1 −
+vϕ
+l ), and vϕ
+l ∼Beta(1, αϕ). This approach facilitates learning the number of study-speciﬁc
+factors or, following the neural network interpretation of our model, the number of neurons
+in the hidden layer. Notably, this construction, inspired by successful applications in factor
+models [16, 14], oﬀers valuable insights into performing Bayesian inference for the number
+of nodes in the hidden layer of a Bayesian neural network, potentially connecting with
+existing literature on this topic [e.g 9, 41, 11, 10, 13, 12].
+We now move the discussion on the local scales ψih(xi) that are assumed to be Bernoulli
+8
+variables with probability depending on xi. Speciﬁcally, we let
+ψih(xi) ∼Ber{logit−1(x⊤
+i βh)}.
+(6)
+Note that under this speciﬁcation, we can also write ϕih(xi) = ˜ϕihψih(xi) and
+˜ϕih(xi) ∼N(0, τ ϕ
+h ).
+(7)
+Marginalizing out ψih(xi) with τ ϕ
+h and βh ﬁxed, we have
+ϕih(xi) ∼{1 −logit−1(x⊤
+i βh)}δ0 + logit−1(x⊤
+i βh)N(0, τ ϕ
+h ),
+where δa is a Dirac mass at value a. Marginalizing out ˜ϕih, having unitary variance leads
+to
+yi ∼N(0, ΛΛ⊤+ Γdiag{ψi}Γ⊤+ Σ).
+(8)
+Notably (6) corresponds to a simple form of conditional variational autoencoder that,
+diﬀerently from the standard, allows for the latent covariance structure to be informed
+by the independent variables. Variational autoencoders are speciﬁc extension of neural
+networks, widely recognized as a descendant of classical factor models [36, 37].
+The beneﬁts of the proposed solution should now be evident. The shrinkage prior on the
+elements ϕih(xi) enables and promotes, yet does not mandate, the sparse representation in
+(2). Furthermore, it accommodates a wide range of scenarios discussed in the Introduction,
+including: (i) two or more studies exhibit high homogeneity and share nearly identical
+latent representations, (ii) some studies involve highly heterogeneous groups of subjects,
+potentially resulting in two or more sub-populations with distinct latent structures, or any
+combinations of the above. The random partition of the observation induced by the sparse
+structure of the ψi justify the Adaptive Partition Factor Analysis (APAFA) name adopted
+for the proposed solution.
+9
+Another beneﬁt of APAFA is the generalizability oﬀered by its neural network interpre-
+tation. In fact, it is clear that if other subject-speciﬁc covariates are available, say, zi ∈Rq
+we can include them as input variables, for example
+ψih(xi, zi) ∼Ber{logit−1(x⊤
+i β(x)
+h
++ z⊤
+i β(z)
+h )},
+thus allowing the latent factors ϕi to have subject-speciﬁc, and not just study-speciﬁc,
+conditional distributions. For this reasons we will use henceforth the broader term speciﬁc
+factors (loadings) to denote ϕ (Γ) rather than the narrower term study-speciﬁc.
+We complete the prior speciﬁcation for the study-speciﬁc part assuming standard prior
+for the factor loadings. Speciﬁcally for the general element γjh of the factor loading matrix
+Γ, we let γjh ∼N(0, ζγ
+h), with ζγ
+h ∼IGa(aγ, bγ).
+One remark on the activation function pertains the potential lack of properness of the
+conditional posterior distribution for the parameters βh, h = 1, . . . , k. This concern is tied
+to the issue of perfect separation in logistic regression. Assuming the group structure en-
+coded by the xi dummy variables is both accurate and relevant to the problem at hand—in
+other words, that the original MSFA model by [8] is correctly speciﬁed– a perfect separation
+in the ψih occurs with respect to the xi within the logistic regression. For this reason, the
+prior distribution on each parameter βh should be suﬃciently concentrated around zero
+to prevent the associated conditional posterior from exhibiting a tendency toward mono-
+tonicity. To this end, we specify βh ∼N(0, B), where B is a S × S diagonal matrix with
+elements proportional to n−1. Thus, when perfect separation in the ψih’s with respect to
+the xis’s occurs, the full conditional posterior is
+pr(βhs|−) ∝exp
+
+−ns
+ n
+2ns
+β2
+hs −log
+eβhs
+1 + eβhs
+
+.
+10
+Writing n = ¯ns × S where, ¯ns is the average number of units per group, we have
+pr(βhs|−) ∝exp
+
+−ns
+ ¯ns × S
+2ns
+β2
+hs −log
+eβhs
+1 + eβhs
+
+from which we can also recognize that if the number of groups S increases the posterior
+concentrates close to 0, for any group size. Thus, despite the apparent inconsistency of a
+prior that induces skepticism regarding the given group conﬁguration, it facilitates posterior
+inference.
+We now move to describe the prior speciﬁcation for the shared part. As before, we
+include an increasing shrinkage prior for the dimensions of the shared factors, i.e.
+ηih ∼N(0, 1),
+λjh ∼N(0, τhζλ
+h),
+ζλ
+h ∼IGa(aλ, bλ),
+with a cumulative shrinkage prior on {τh} ∼CUSP(αη). For the diagonal elements of Σ
+we adopt an inverse gamma distribution and speciﬁcally σ2
+j ∼IGa(aσ, bσ), which completes
+the prior speciﬁcation.
+2.2
+Model properties
+Identiﬁability of factor models is an overarching issue. On the one hand, in fact, factor
+models are appealing in providing possible interpretations and insights on how a small set
+of latent factors is connected to a multivariate observation with a possible intricate form
+of dependency.
+The other side of the medal, however, is that mathematically a factor
+analytic model is not identiﬁable in many respect.
+See [7] [5] [6] for a comprehensive
+review. For instance, loadings are not identiﬁable due to rotation, sign and permutation
+invariance.
+Rotational invariance refers to transformation of loadings and factors by a
+orthogonal matrix, sign switching arises because we can simultaneously change the signs of
+and certain elements without aﬀecting the overall structure while permutation invariance
+occurs because there is no intrinsic ordering in the factor loading matrix columns.
+11
+Identiﬁcation issues are exacerbated in the MSFA framework of [8] where it may be dif-
+ﬁcult to disentangle the signal between shared and study-speciﬁc factors, a problem known
+as information switching. For instance, [3] show how a linear combination of study-speciﬁc
+factors, can instead be represented and reincorporated as part of the shared component.
+Building on these concepts, we provide conditions to identify the shared from the spe-
+ciﬁc factors in our setup. More formally, we give the following deﬁnition of information
+switching.
+Deﬁnition 2.1. Let n be the number of units, and Sn the number of distinct groups in
+model (9), i.e. Sn = |∪n
+i=1Ωi|. Denote with Ψ the n × k matrix that stacks in distinct rows
+all local scale parameters ψi = (ψi1, . . . , ψik) and with Ψh its generic column with Ψh ̸= 1n
+for all h ∈{1, . . . , k}. Deﬁne Ws = Ωs −ΛΛ⊤−Σ = Γdiag{ψs}Γ⊤, for s ∈{1, . . . , Sn}.
+The model suﬀers from information switching if there exist ˜Γ ̸= Γ and ˜Ψ ̸= Ψ such that
+Ws = ˜Γdiag{ ˜ψs}˜Γ for all s, with ˜Ψh = 1n for at least one h.
+It is clear that if there is ˜Ψh = 1n, the h-th factor could no longer be interpreted as
+speciﬁc and should be moved to the shared part and, consistently, ΛΛ⊤would represent
+only a fraction of the shared variance. Note that in Deﬁnition 2.1, Sn does not refer to
+the number of distinct labels or studies S ﬁxed a priori and embedded in the categorical
+variables xi, but rather it is equal to the number of distinct conﬁgurations of the rows of
+the matrix Ψ. The following Theorem ensures the identiﬁcation in terms of information
+switching.
+Theorem 2.2. For the model deﬁned in (8), if Γ is of full column rank k < p(p+1)/2 and
+ΓΓ⊤is not sparse, then the model is resistant to information switching.
+Proof. Since each ψs is a vector of zeroes and ones, we can see that Ws = Γdiag{ψs}Γ⊤=
+Γdiag{ψs}diag{ψs}Γ⊤. Deﬁne Γs = Γdiag{ψs}. As in any factor analytic decompositions,
+12
+the elements of Ws are identiﬁable up to multiplication by group-speciﬁc rotation matri-
+ces Ps, such that PsP ⊤
+s
+= Ik and |Ps| = 1.
+Hence we can write Ws = ΓsPsP ⊤
+s Γ⊤
+s =
+Γdiag{ψs}PsP ⊤
+s diag{ψs}Γ⊤. Hence each element wjl
+s of Ws, can be written as
+wjl
+s =
+k
+X
+h=1
+γjhγlh ¯ψhs ¯ψ⊤
+hs,
+where ¯ψhs is the h-th row of the product diag{ψs}Ps. Note that the product ¯ψhs ¯ψ⊤
+hs is
+either 0 or 1 by construction. Thus we know that there exists ˜ψhs = ¯ψhs ¯ψ⊤
+hs for h = 1, . . . k
+that lead to the same Ws for each s = 1, . . . , Sn. Hence, it is suﬃcient to check whether
+these ˜ψs are diﬀerent from the original ψs for each s. Since we have Snp(p + 1)/2 equations
+of the form
+k
+X
+h=1
+γjhγhl ˜ψhs −wjl
+s = 0,
+with Snk unknowns and k < p(p+1)/2 by hypothesis, there will be at most one solution.
+Based on the identiﬁability ﬁnding of Theorem 2.2, the practical condition that ensures
+resistance to information switching in APAFA are discussed in Lemma 2.3 and 2.4.
+Lemma 2.3. Under any continuous prior for the elements of Γ and truncating its number
+of columns to K = p(p + 1)/2 −1, the information switching for model (8) has zero
+probability.
+Lemma 2.4. Under any continuous prior for the elements of Γ, for any αϕ < εp2/2
+and suﬃciently small ε > 0, the information switching for model (8) has prior probability
+bounded from above by ǫ.
+Proof. From Markov’s inequality pr(k > 2(p + 1)/2) ≤
+αϕ
+p(p+1)/2 ≤ε
+A key advantage of our model is that the requirement of k < p(p + 1)/2 is minimal as
+it is customary in factor analysis to have latent factors of much lower dimension than the
+13
+observed data (k < p). Notably, [3], in diﬀerent settings, necessitate the dimension of the
+speciﬁc part to be smaller than that of the shared part implicitly considering the study-
+speciﬁc part as a noise or disturbance parameter. Although we are in diﬀerent settings,
+where the number and composition of the groups is not pre-speciﬁed, we do not restrict k
+to be also smaller than d. This is crucial in many contexts. For instance, in cancer studies,
+it is possible to study very diﬀerent types of cancer simultaneously, identifying a range of
+speciﬁc factors that describe the speciﬁc characteristics of each type of cancer, while also
+uncovering a few common factors that are shared across cancers, regardless of the organ or
+tissue aﬀected possibly pertaining to fundamental mechanisms of oncogenesis.
+Notably, the speciﬁc structure induced by sparsity in the ψs not only ensures identi-
+ﬁability in terms of information switching but also solves the usual rotational ambiguity,
+under certain conditions. This is formalized in the following Theorem.
+Theorem 2.5. Assume that for at least one i, ψi ̸= 0k but at least one element of ψi is
+null, i.e. ψih = 0. Let P ̸= I be any rotation matrix such that Phl ̸= {0, ±1} (i.e. P is not a
+permutation matrix), let Ψ be as in Deﬁnition 2.1, Φ be the n×k matrix with the vectors ϕi
+organized as its rows, ˜Φ the n×k matrix that similarly stacks the ˜ϕi, such that Φ = Ψ⊙˜Φ,
+where ⊙denotes the Hadamard matrix multiplication. Then, ΦΓ⊤̸= [Ψ ⊙(˜ΦP)]P ⊤Γ⊤.
+Proof. The theorem is proved by contradiction. Assume [Ψ ⊙˜Φ] = [Ψ ⊙(˜ΦP)]P ⊤. If we
+multiply both sides of this equality by the matrix P, we get [Ψ ⊙˜Φ]P = [Ψ ⊙(˜ΦP)]. We
+can write the generic element in row i, column h in the left hand side of equation above as
+{[Ψ ⊙˜Φ]P}ih = [ψi ⊙˜ϕi]⊤Ph =
+k
+X
+l=1
+ψil ˜ϕilPlh,
+and each element of the right hand side as meet [Ψ ⊙(˜ΦP)]ih = ψih
+Pk
+l=1 ˜ϕilPhl. In partic-
+ular, since for at least one i, there exist a ψih = 0 and ψi ̸= 0k the equality holds true only
+14
+if Ph is a suitable combination of 0 or 1 but this is impossible as P is not a permutation
+matrix.
+Note that the strongest condition in Theorem 2.5 is that there exist at least one ob-
+servation i with ψi ̸= 0k and at least one element of ψi is null. This means, for example
+that if there is one group with no speciﬁc factors and other groups with speciﬁc factor,
+the identiﬁcation of Λ is not ensured. In practice, one can check a posteriori whether this
+condition is satisﬁed or not before trying to interpret the results.
+Clearly, the shared variability induced by Λ remains susceptible to well-known identiﬁ-
+ability issues. However, these challenges can be eﬀectively addressed using state-of-the-art
+methods, such as those proposed by [4] and [7].
+2.3
+Posterior computation
+In this section, we present a Markov Chain Monte Carlo scheme to sample from the posterior
+distribution of the parameters of APAFA. We ﬁrst rewrite the model as
+yij =
+d
+X
+h=1
+λjhηihτh +
+k
+X
+h=1
+˜ϕihψihτ ϕ
+h + ǫij,
+(9)
+with ϕih = ψih ˜ϕih with ˜ϕih > 0. The parameters are then updated sequentially iterating
+the following steps.
+1. Update the block of latent factors [ηi, ˜ϕi] for each 1 ≤i ≤n.
+• Sample from [ηi, ˜ϕi] ∼Nd+k
+
+ˆµη,ϕ, ˆΣη,ϕ
+
+, with
+ˆΣη,ϕ =
+ Id+k + ([Λ , ΓIk(ψi ⊙τ ϕ)])⊤Σ−1[Λ, ΓIk(ψi ⊙τ ϕ)]
+−1 ,
+ˆµη,ϕ = ˆΣη,ϕ([Λ, ΓIk(ψi ⊙τ ϕ)])⊤Σ−1yi,
+where a⊙b indicates the term-by-term product of vectors a, b, Ik(·) the identity
+matrix, and ϕi = ˜ϕi ⊙ψi.
+15
+• Standardize the factors computing ¯ηh = n−1 Pn
+i=1 ηih V η
+h = n−1 Pn
+i=1(ηih −¯ηh)2
+for each h = 1, . . . , d , and ¯˜ϕh = n−1 Pn
+i=1 ˜ϕih, V ϕ
+h
+= n−1 Pn
+i=1( ˜
+ϕih −¯˜ϕh)2,
+for h = 1, . . . , k.
+Then set ηh = ηh/
+p
+V η
+h , Λh = Λh
+p
+V η
+h , ˜ϕh = ˜ϕh/
+p
+V ϕ
+h ,
+ϕh = ϕh/
+p
+V ϕ
+h , Γh = Γh
+p
+V ϕ
+h .
+2. Update Σ by sampling the diagonal elements for j = 1, . . . , p,
+σ2
+j ∼IGa
+(
+aσ + n
+2, bσ + 1
+2
+n
+X
+i=1
+ yij −λ⊤
+j ηi −γ⊤
+j ϕi
+2
+)
+.
+3. Update βh = (βh1, . . . , βhs)⊤for h = 1, . . . , k. as follows
+• for h = 1, . . . , k, sample n independent P´olya-Gamma distributed random vari-
+ables [18] ωih ∼PG
+ 1, x⊤
+i βh
+
+• Let Dh denote the n × n diagonal matrix with entries dih(i = 1, . . . , n) and
+let B = σ2
+βIS be a S × S diagonal matrix. For each h = 1, . . . , H, update βh
+sampling
+βh ∼NS
+n xTDhx + B−1−1  xTκh
+
+,
+ xTDhx + B−1−1o
+,
+where κh is a p-dimensional vector with the j-th entry equal to ψih −0.5.
+4. Update the variance of the loadings
+Σλ
+hh ∼IGa(aλ + n/2, bλ + 1/2
+p
+X
+j=1
+λ2
+jh),
+Σγ
+hh = IGa(aγ + n/2, bγ + 1/2
+p
+X
+j=1
+γ2
+jh).
+5. Update the loadings λj and γj (the rows of loading matrix) by sampling from the
+independent full conditional : deﬁne Σ∗as the (d + k) × (d + k) covariance matrix
+that collects the diagonal elements of Σλ and Σγ and yj the j-th columns of y
+16
+[λj, γj] ∼Nd+k{(Σ−1∗+[ηj ⊙τ, ϕj ⊙τ ϕ]⊤σ−2
+j [ηj ⊙τ, ϕj ⊙τ ϕ])−1[ηj ⊙τ, ϕj ⊙τ ϕ]⊤σ−2
+j yj,
+ Σ−1∗+ [ηj ⊙τ, ϕj ⊙τ ϕ]⊤σ−2
+j [ηj ⊙τ, ϕj ⊙τ ϕ]
+−1}.
+6. Update the cumulative shrinkage parameters for the number of shared factors τ.
+Deﬁne indicators zη
+h with prior pr(zη
+h = l) = wη
+l for l = 1, . . . , d. Sample from
+pr (zη
+h = l) ∝
+
+
+
+
+
+
+
+
+
+wη
+l
+Qn
+i=1
+Qp
+j=1 N
+
+yij; µ(0)
+ijh, σ2
+j
+
+for
+l = 1, . . . , h
+wη
+l
+Qn
+i=1
+Qp
+j=1 N
+
+yij; µ(1)
+ijh, σ2
+j
+
+for
+l = h + 1, . . . , d,
+where µ(z)
+ijh = Pd
+l̸=h
+√τlλjlηil + zλjhηih + Pk
+l=1
+p
+τ ϕ
+l
+√ψilγjlϕil. Set τh = 1 if zη
+h > h,
+else τh = 0.
+7. Update the cumulative shrinkage parameters for the number of speciﬁc factors τ ϕ.
+Deﬁne indicators zϕ
+h with prior pr(zϕ
+h = l) = wϕ
+l for l = 1, . . . , k. Sample from
+pr (zϕ
+h = l) ∝
+
+
+
+
+
+
+
+
+
+wϕ
+l
+Qn
+i=1
+Qp
+j=1 N
+
+yij; µ(0)
+ijh, σ2
+j
+
+for
+l = 1, . . . , h
+wϕ
+l
+Qn
+i=1
+Qp
+j=1 N
+
+yij; µ(1)
+ijh, σ2
+j
+
+for
+l = h + 1, . . . , k,
+where µ(z)
+ijh = Pd
+l=1
+√τlλjlηil + Pk
+l̸=h
+p
+τ ϕ
+l
+√ψilγjlϕil + z√ψihγjhϕih. Set τ ϕ
+h = 1 if
+zϕ
+h > h, else τ ϕ
+h = 0.
+8. For l = 1, . . . , d −1, sample vη
+l from
+(vη
+l | −) ∼Be
+(
+1 +
+d
+X
+h=1
+1 (zη
+h = l) , αη + 1 (zη
+h > l)
+)
+,
+set vη
+d = 1 and update wη
+l = vη
+l
+Ql−1
+m=1 (1 −vη
+m), for l = 1, . . . , d. Proceed analogously
+for vϕ
+l and wϕ
+l .
+9. Update ψih, for i = 1, . . . , n and h = 1, . . . , k by sampling from the full conditional
+17
+(A, A∗)
+(B)
+(C)
+(D)
+(A)
+(A∗)
+(C)
+(D)
+Figure 3: Scenarios’ true sparsity pattern (ﬁrst four plots) and posterior estimate for a
+generic replicate (last four plots)
+distributions
+pr (ψih = u) ∝
+
+
+
+
+
+
+
+
+
+
+1 −logit−1  x⊤
+i βh
+	 Qp
+j=1 N
+
+yij; µ(u)
+ijh, σ2
+j
+
+for u = 0
+logit−1  x⊤
+i βh
+ Qp
+j=1 N
+
+yij; µ(u)
+ijh, σ2
+j
+
+for u = 1
+with µ(u)
+ijh =
+d
+X
+l=1
+√τlλjlηil +
+k
+X
+l̸=h
+q
+τ ϕ
+l
+p
+ψilγjlϕil +
+q
+τ ϕ
+h
+√uγjhϕih.
+10. Reorder the columns of Γ and Λ and factors η, φ, and ψ according to active and non
+active components of τ and τ ϕ. Move to shared components factors s.t. ψh = 1n.
+3
+Simulation study
+We assess the performance of APAFA in a simulation experiment and its relative merits
+with respect to the approach of [19] (TETRIS).
+18
+We consider two main conﬁguration for what concern the data dimensionality: tall data
+where n = 60 and p = 10 and large data where n = 45 and p = 60 and for each of them,
+simulate data from diﬀerent scenarios. Scenario A represents the case in which the original
+MSFA model is correctly speciﬁed.
+Namely, we have S = 3 groups with sample sizes
+n1 = n2 = n3 = n/3 and each of them has a single diﬀerent study-speciﬁc factor. The total
+number of shared factor is k = 3. The groups labels match exactly the three groups. To
+test our model’s ability to detect the underlying structure, we also ﬁt the model without
+providing the labels—meaning the model is unaware of the existence of three distinct
+groups. We refer to this situation as Scenario A∗. In Scenario B there are S = 3 studies
+that are perfectly homogeneous, i.e. ks = 0 for each s = {1, 2, 3} or equivalently Φ has
+all entries equal to zero. Notably, we ﬁt each competing model providing the information
+that S = 3 groups are present. Scenario C presents a complex situation in which there
+exist S = 3 studies with partially shared latent factors. Speciﬁcally, study 1 and 2 present
+their own factors (ϕ1, ϕ2) as in Scenario A, while a third factor is present for units of
+the second and the third study.
+Scenario D addresses a situation in which for each of
+the three studies a subset of units has no speciﬁc factors. Notably, Scenario D does not
+satisfy the identiﬁability conditions of Theorem 2.5. The left panels of Figure 3 provide
+a representation of the true speciﬁc latent factors sparsity pattern. Further details on the
+data-generating process are reported in the Supplementary Materials.
+Each combination of scenarios and dimensions is replicated independently R = 10 times.
+For each of them all the competing methods have been ﬁt. Posterior estimates for all meth-
+ods are obtained by running MCMC algorithms for each of the R replicates for 10,000 itera-
+tions, discarding the ﬁrst 8,000, and then keeping the last 2,000 values. An implementation
+of the Gibbs sampler of Section 2.3 is available at https://github.com/elenabortolato/APAFA.
+19
+For TETRIS we used the implementation available at https://github.com/igrabski/tetris.
+To quantify the performance, we ﬁrst focus on quantities of interest that are invariant
+from factor rotations. Speciﬁcally, we consider the posterior mean of the number of ac-
+tive factors d and k, along with measures assessing the accuracy of estimating the total
+variance matrix Ωs = ΛΛ⊤+ ΓsΓ⊤
+s + Σ and partial variance ΛΛ⊤. We ﬁrst compute the
+posterior means of these quantities and subsequently compare them to the corresponding
+true matrices using RV coeﬃcients [17], deﬁned as
+RVE,T =
+Tr(E⊤T)
+p
+Tr(E⊤E)Tr(T ⊤T)
+,
+where E and T are both symmetric positive deﬁnite matrices representing the estimated
+and true matrix, respectively. The RV coeﬃcient takes values in (0,1) with values close to
+0 for very dissimilar matrices, and values close to 1 for highly similar matrices.
+Tables
+1 and 2 report the results. Notably, Table 1 shows that both methods are comparable in
+terms of posterior concentration around the true number of factors with a slightly better
+performance by APAFA. Notable, TETRIS has not been ﬁtted in scenario A∗, since no
+labels are assigned to units, and in scenario D since the method is not suited to ﬁnd sub-
+groups of units with diﬀerent factor within a given group. In terms of estimation of the
+shared variance part, TETRIS has a slightly better or comparable performance in Scenario
+A when it is correctly speciﬁed but has an overall worse performance in all the other cases.
+Qualitatively similar results are observed in the n < p case, reported in Table 2. The per-
+formance of estimation of the shared variance, often the interest of the analysis, is reported
+in Figure 4. In Scenario B, characterized by the absence of speciﬁc factors, TETRIS suc-
+cessfully recognizes the shared structure. However, it faces challenges in distinguishing the
+contributions to the variance components when group-speciﬁc characteristics are present.
+To assess the sparsity of the speciﬁc factors and the induced adaptive partitioning of
+20
+Table 1: Monte Carlo average (and interquartile range) of the posterior mean number of
+factors and RV coeﬃcients for Ω1, Ω2, and Ω3 on several simulation scenarios. Conﬁguration
+n > p.
+Scen
+Method
+d
+k
+Ω1
+Ω2
+Ω3
+A
+APAFA
+3.00 (1.00)
+3.01 (0.23)
+0.90 (0.07)
+0.88 (0.07)
+0.89 (0.05)
+TETRIS
+3.67 (1.26)
+4.91 (0.89)
+0.92 (0.07)
+0.93 (0.09)
+0.88 (0.08)
+A∗
+APAFA
+4.00 (1.00)
+3.00 (1.00)
+0.69 (0.13)
+0.78 (0.08)
+0.75 (0.08)
+B
+APAFA
+3.00 (0.00)
+0.00 (0.00)
+0.94 (0.04)
+0.94 (0.04)
+0.94 (0.04)
+TETRIS
+3.00 (0.00)
+0.00 (0.00)
+0.90 (0.12)
+0.92 (0.05)
+0.92 (0.09)
+C
+APAFA
+3.00 (0.00)
+3.00 (0.05)
+0.89 (0.05)
+0.78 (0.04)
+0.92 (0.02)
+TETRIS
+3.00 (1.00)
+2.00 (1.01)
+0.72 (0.09)
+0.75 (0.08)
+0.79 (0.05)
+D
+APAFA
+3.00 (0.00)
+3.00 (0.12)
+0.91 (0.03)
+0.88 (0.03)
+0.90 (0.04)
+units into subgroups that do not deterministically align with the grouping variable x, we
+compared the true zero-one pattern used to simulate the synthetic data reported in Fig-
+ure 3 with the estimated ψih(xi). To address the column-switch identiﬁability issue, for
+sake of this simulation evaluation when the true value of Φ is known, we post-processed the
+order of the estimates of Φ. Details are reported in the Appendix. Figure 5 displays the
+ROC curves along with the corresponding area under the curve (AUC) for each replicated
+dataset. The results indicate a strong ability of APAFA to detect the true partition induced
+by the sparsity pattern of the speciﬁc factors in Φ in each scenario.
+21
+Table 2: Monte Carlo average (and interquartile range) of the posterior mean number of
+factors and RV coeﬃcients for Ω1, Ω2, and Ω3 on several simulation scenarios. Conﬁguration
+n < p.
+Scen.
+Method
+d
+k
+Ω1
+Ω2
+Ω3
+A
+APAFA
+5.00 (0.00)
+4.00 (0.00)
+0.91 (0.10)
+0.82 (0.1)
+0.58 (0.19)
+TETRIS
+2.41 (0.99)
+0.64 (0.86)
+0.80 (0.09)
+0.83 (0.15)
+0.86 (0.18)
+A∗
+APAFA
+5.99 (0.01)
+5.97 (0.04)
+0.87 (0.06)
+0.88 (0.06)
+0.86 (0.07)
+B
+APAFA
+5.00 (0.00)
+0.00 (1.00)
+0.93 (0.06)
+0.93 (0.06)
+0.93 (0.06)
+TETRIS
+3.00 (0.00)
+0.00 (0.00)
+0.86 (0.08)
+0.90 (0.05)
+0.86 (0.12)
+C
+APAFA
+3.00 (0.75)
+3.00 (0.17)
+0.87 (0.07)
+0.78 (0.05)
+0.92 (0.03)
+TETRIS
+5.00 (2.00)
+1.00 (1.95)
+0.71 (0.08)
+0.72 (0.13)
+0.76 (0.09)
+D
+APAFA
+5.00 (0.00)
+3.31 (1.00)
+0.89 (0.02)
+0.91 (0.03)
+0.88 (0.04)
+4
+Real data illustrations
+In this section, we analyze two datasets within the motivating contexts of animal co-
+occurrence studies and genomics. Rather than replicating previous analyses, we emphasize
+speciﬁc aspects allowed by the methodological advancements of the proposed model. In
+particular, we focus on qualitative insights that APAFA is able to reveal, oﬀering valuable
+perspectives that are beyond the reach of existing state-of-the-art methods.
+4.1
+Bird species occurence dataset
+We ﬁrst examine the co-occurrence patterns of p = 50 bird species in Finland analyzing
+a data set collected over nine years (2006-2014) across S = 200 locations [43]. Notably,
+22
+model
+APAFA
+TETRIS
+0.00
+0.25
+0.50
+0.75
+1.00
+A
+A*
+B
+C
+D
+setting
+RV(ΛΛ^)
+n>p
+0.00
+0.25
+0.50
+0.75
+1.00
+A
+A*
+B
+C
+D
+setting
+RV(ΛΛ^)
+n<p
+Figure 4: Monte Carlo distribution of the RV coeﬃcient for the shared variance component
+under conﬁguration n < p (left panel) and n > p (right panel).
+part of this datased has been already analyzed in [14]. The average number of sightings
+per location in the entire period is of about 5, for a total of n = 914 sites examined during
+the years. Shared factors may depend on ambient characteristics as temperature, latitude,
+habitat type, and proximity to the ocean. To illustrate the performance of the proposed
+model in this context we avoid a ﬁne model speciﬁcation including these covariates and
+rather see if a the estimated latent factors are able to reconstruct some of these information.
+We model species presence or absence using the multivariate probit regression model,
+yij = 1(zij > 0),
+zi = Ληi + Γϕi + ǫi,
+ǫi ∼N(0, Σ).
+We set the hyperparameters governing a priori the number of active common and speciﬁc
+23
+Specificity
+Sensitivity
+1.0
+0.8
+0.6
+0.4
+0.2
+0.0
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+A
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+AUC
+Specificity
+Sensitivity
+1.0
+0.8
+0.6
+0.4
+0.2
+0.0
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+A*
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Specificity
+Sensitivity
+1.0
+0.8
+0.6
+0.4
+0.2
+0.0
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+C
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+AUC
+Specificity
+Sensitivity
+1.0
+0.8
+0.6
+0.4
+0.2
+0.0
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+D
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+AUC
+Figure 5: ROC curves (left) and distribution of the AUC (right) computed over 10 exper-
+iments for the posterior probability of assignment of the speciﬁc latent factors to units in
+for each scenario (from top to bottom: A, A∗, C, D), with n > p.
+24
+factors to αη = 15 αϕ = 15 respectively. We run the Gibbs sampler for 10,000 iterations
+and use the last 5,000 to obtain posterior estimates.
+A posteriori, the estimated number of active factors are ˆd = 5 and ˆk = 5. Among all
+the possible aspects, it is interesting to focus on the interpretation of the main speciﬁc
+factors ϕi1. Notably, this factor takes non-zero values at a subset of locations, eﬀectively
+grouping observations across multiple sites. This behavior aligns with the possibility of a
+partially-shared latent factor similarly to [19]. Interestingly, a post-hoc analysis of these
+locations, using a categorical covariate that describes habitat type (not used in the model
+ﬁtting), revealed that these locations are predominantly urban. Consistently with this, it
+is clear that the proposed method is able to ﬁnd subject-speciﬁc factors associated with
+unobserved grouping variables. See the ﬁrst panel of Figure 6 where the speciﬁc factor
+matrix Φ is reported with the columns ordered by habitat type.
+Notably, this ﬁnding
+aligns with recent ornithological literature examining the impact of urbanization on bird
+interaction [44]. Similar qualitative insights can be appreciated in the second panel of the
+same ﬁgure where the columns are ordered with the associated latitude value. Notably,
+both the ﬁrst and fourth factors are strongly associated with latitude.
+4.2
+Immune dataset
+As a second example, we analyze a publicly accessible dataset which contains transcriptomic
+data for p = 63 genes linked to immune system function in female oncology patients with
+ovarian cancer. This dataset can be accessed through the curatedOvarianData package in
+Bioconductor [2]. Notably, this same dataset was utilized in the seminal MSFA paper by
+[1]. This dataset comprises four studies: GSE9891 and GSE20565, which utilize the same
+microarray platform for data acquisition, as well as TCGA and GSE26712, with respective
+25
+Φ
+environment
+Broadleaved
+Conifer
+Open
+Urban
+Wetlands
+1
+2
+3
+4
+5
+Φ
+latitude
+1
+2
+3
+4
+5
+Figure 6: Posterior estimate of speciﬁc factors in the bird data example ordered by habitat
+type (left) and by latitude (right). Colors range from blue for negative values to red for
+positive values.
+sample sizes of 285, 140, 578, and 195 units (n = 1198 observations in total).
+We ﬁt
+model (2) with hyperparameters governing a priori the number of active common and
+speciﬁc factors to αη = 1 αϕ = 4, respectively. The chain was initialized from d = k = 12
+active factors. The shape and rate parameters chosen for the Inverse Gamma prior for the
+elements of Λ, Γ and diagonal elements of Σ were all equal to 2. We run the Gibbs sampler
+for 10,000 iterations and use the last 5,000 to obtain posterior estimates.
+Posterior analysis identiﬁed 5 shared factors and 8 speciﬁc factors. Notably, the num-
+ber of shared factors is consistent with the ﬁndings of [1] using the BIC criterion.
+As
+in the previous section, we compared the resulting matrix of activated speciﬁc factors
+26
+to covariate data not included in the initial analysis, which are also available in the
+curatedOvarianData package. This comparison provides additional validation and insight
+into the biological relevance of the factors identiﬁed. Figure 7 shows that the grouping as-
+sociated with the studies is captured within the structure of Φ. Speciﬁcally, factors ϕ6 and
+ϕ7 are clearly related to the group structure provided by x, in particular with the TCGA
+and Gaus experiments, while individuals from the GSE9891 and GSE20565 studies, both
+using the same microarray platform for data processing, do not present speciﬁc variance
+adjustments. The remaining factors are linked to a small number of units each, resulting
+in numerous conﬁgurations, far exceeding the initially presumed four. Upon examining
+external covariates not included in the analysis, we found that ϕ1 is associated with 6 units
+that are distinct from the rest, as they exhibit the clear cell histological subtype. Factor 3
+distinguishes the gene expression of 7 patients with mucinous carcinoma from other types
+of carcinoma and 8 patients with tumors in the fallopian tubes rather than in the ovary.
+Factors 4 and 8 discriminate patients with a tumor classiﬁed as other (sarcomatoid, adeno-
+carcinoma, dysgerminoma) together with some units presenting clearcell and endometrial
+tumor (endo, 26 units). See the boxplots in Figure 7 for details. Finally, Figure 8 illustrates
+the contributions to the correlation matrix given by ΓhΓ⊤
+h for h = 1, . . . , 8.
+5
+Discussion
+Motivated by the strict grouping imposed by MSFA approaches we introduced a factor
+analytic model where the partition induced by speciﬁc latent factors is inﬂuenced by ex-
+ternal information but is not strictly determined. While the primary interest has been in
+using a grouping categorical variable, consistently with the study structure of MSFA, the
+proposed APAFA is much general and oﬀers the possibility to include also other categorical
+27
+Ψ
+1
+2
+3
+4
+5
+6
+7
+8
+0
+2
+4
+6
+ϕ1
+clearcell
+−2
+0
+2
+4
+ϕ3
+mucinous
+−2
+0
+2
+4
+ϕ3
+ft
+0
+1
+2
+3
+4
+5
+ϕ4
+other
+−4
+−2
+0
+1
+ϕ8
+endo
+Figure 7: Posterior means of each local scale ψih associated to speciﬁc factors (ﬁrst panel)
+and distribution of speciﬁc factors (boxplots) compared to external covariates (indicated
+with a cross).
+or continuous covariates. These act in promoting sparsity in the latent factors as done by
+[15] thereby providing a natural way to aid in the modelization of the covariance structure,
+and connecting with modelling the heterogeneity in factor regression [21]. Importantly,
+the heteroscedasticity driven by covariates is modeled in a rather ﬂexible manner, indeed
+the link is neither linear nor log-linear, thanks to the local sparsity activation. The pro-
+posed solutions proved to be beneﬁcial across many simulation settings, even in cases with
+group misspeciﬁcation and complex heterogeneity both between among and within the ﬁxed
+groups. Overlapping group structures are nonetheless detectable and may diﬀer in terms
+of ﬂexibility and granularity. For example, in Section 4.1, study units are grouped together
+28
+Γ1Γ1
+T
+Γ2Γ2
+T
+Γ3Γ3
+T
+Γ4Γ4
+T
+Γ5Γ5
+T
+Γ6Γ6
+T
+Γ7Γ7
+T
+Γ8Γ8
+T
+Figure 8: Estimated contribution to covariance matrix of speciﬁc factors in the gene ex-
+pression case study.
+in scenarios where the number of studies closely matches the number of units. Conversely,
+in the example of Section 4.2 the model enables to detect higher granularity with respect
+to that speciﬁed a priori, identifying clusters of a dozen units out of a thousand.
+SUPPLEMENTARY MATERIAL
+Details on simulation study Details on the data generating mechanism, prior hyperpa-
+rameters and initialization strategy used in the simulation experiments of Section 3
+(pdf ﬁle).
+Details on the post-processing step to obtain Figure 5 A short description of the
+reordering criterion applied to the estimated factors to evaluate the quality of the
+partitioning into subgroups in the experiments of Section 3 (pdf ﬁle).
+29
+References
+[1] De Vito, Roberta, Bellio, Ruggero, Trippa, Lorenzo, and Parmigiani, Giovanni. (2019).
+Multi-study factor analysis. Biometrics, 75(1), 337–346. Wiley Online Library.
+[2] Ganzfried, Benjamin Frederick, Riester, Markus, Haibe-Kains, Benjamin, Risch,
+Thomas, Tyekucheva, Svitlana, Jazic, Ina, Wang, Xin Victoria, Ahmadifar, Mahnaz,
+Birrer, Michael J, Parmigiani, Giovanni, et al. (2013). curatedOvarianData: clinically
+annotated data for the ovarian cancer transcriptome. Database, 2013. Oxford Academic.
+[3] Chandra,
+Noirrit Kiran,
+Dunson,
+David B.,
+and Xu,
+Jason. (2024). Inferring
+Covariance Structure from Multiple Data Sources via Subspace Factor Analysis.
+Journal of the American Statistical Association, 0(ja), 1–25. ASA Website. DOI:
+10.1080/01621459.2024.2408777.
+[4] Poworoznek, Evan, Ferrari, Federico, and Dunson, David. (2021). Eﬃciently resolv-
+ing rotational ambiguity in Bayesian matrix sampling with matching. arXiv preprint
+arXiv:2107.13783.
+[5] Xu, Maoran, Herring, Amy H., and Dunson, David B. (2023). Identiﬁable and inter-
+pretable nonparametric factor analysis. arXiv preprint arXiv:2311.08254.
+[6] Fr¨uhwirth-Schnatter, Sylvia, Hosszejni, Darjus, and Lopes, Hedibert Freitas. (2024).
+Sparse Bayesian factor analysis when the number of factors is unknown. Bayesian Anal-
+ysis, 1(1), 1–31. International Society for Bayesian Analysis.
+[7] Papastamoulis, Panagiotis, and Ntzoufras, Ioannis. (2022). On the identiﬁability of
+Bayesian factor analytic models. Statistics and Computing, 32(2), 23. Springer.
+30
+[8] De Vito, Roberta, Bellio, Ruggero, Trippa, Lorenzo, and Parmigiani, Giovanni. (2021).
+Bayesian multistudy factor analysis for high-throughput biological data. The Annals of
+Applied Statistics, 15(4), 1723–1741. Institute of Mathematical Statistics.
+[9] Wen, Wei, Wu, Chunpeng, Wang, Yandan, Chen, Yiran, and Li, Hai. (2016). Learning
+structured sparsity in deep neural networks. Advances in Neural Information Processing
+Systems, 29.
+[10] Jantre, Sanket, Bhattacharya, Shrijita, and Maiti, Tapabrata. (2023). A comprehensive
+study of spike and slab shrinkage priors for structurally sparse Bayesian neural networks.
+arXiv preprint arXiv:2308.09104.
+[11] Fortuin, Vincent. (2022). Priors in Bayesian deep learning: a review. International
+Statistical Review, 90(3), 563–591. Wiley Online Library.
+[12] Cui, Tianyu, Havulinna, Aki, Marttinen, Pekka, and Kaski, Samuel. (2022). Informa-
+tive Bayesian neural network priors for weak signals. Bayesian Analysis, 17(4), 1121–
+1151. International Society for Bayesian Analysis.
+[13] Sell, Torben, and Singh, Sumeetpal Sidhu. (2023). Trace-class Gaussian priors for
+Bayesian learning of neural networks with MCMC. Journal of the Royal Statistical Society
+Series B: Statistical Methodology, 85(1), 46–66. Oxford University Press US.
+[14] Schiavon, Lorenzo, Canale, Antonio, and Dunson, David B. (2022). Generalized inﬁnite
+factorization models. Biometrika, 109(3), 817–835. Oxford University Press.
+[15] Schiavon, Lorenzo, Nipoti, Bernardo, and Canale, Antonio. (2024). Accelerated struc-
+tured matrix factorization. Journal of Computational and Graphical Statistics.
+31
+[16] Legramanti, Sirio, Durante, Daniele, and Dunson, David B. (2020). Bayesian cumula-
+tive shrinkage for inﬁnite factorizations. Biometrika, 107(3), 745–752. Oxford University
+Press.
+[17] Abdi, Herv´e. (2007). RV coeﬃcient and congruence coeﬃcient. Encyclopedia of Mea-
+surement and Statistics, 849, 853. Sage Thousand Oaks, CA.
+[18] Polson, Nicholas G., Scott, James G., and Windle, Jesse. (2013). Bayesian inference for
+logistic models using P´olya–Gamma latent variables. Journal of the American Statistical
+Association, 108(504), 1339–1349. Taylor & Francis.
+[19] Grabski, Isabella N., De Vito, Roberta, Trippa, Lorenzo, and Parmigiani, Giovanni.
+(2023). Bayesian combinatorial MultiStudy factor analysis. The Annals of Applied Statis-
+tics, 17(3), 2212. NIH Public Access.
+[20] De Vito, Roberta, and Avalos-Pacheco, Alejandra. (2023). Multi-study factor regres-
+sion model: an application in nutritional epidemiology. arXiv preprint arXiv:2304.13077.
+[21] Avalos-Pacheco, Alejandra, Rossell, David, and Savage, Richard S. (2022). Hetero-
+geneous large datasets integration using Bayesian factor regression. Bayesian Analysis,
+17(1), 33–66. International Society for Bayesian Analysis.
+[22] Fr¨uhwirth-Schnatter, Sylvia. (2023). Generalized cumulative shrinkage process priors
+with applications to sparse Bayesian factor analysis. Philosophical Transactions of the
+Royal Society A, 381(2247), 20220148. The Royal Society.
+[23] Bhattacharya, Anirban, and Dunson, David B. (2011). Sparse Bayesian inﬁnite factor
+models. Biometrika, 98(2), 291–306. Oxford University Press.
+32
+[24] Johnson, Valen E., and Rossell, David. (2010). On the use of non-local prior densities
+in Bayesian hypothesis tests. Journal of the Royal Statistical Society Series B: Statistical
+Methodology, 72(2), 143–170. Oxford University Press.
+[25] Rossell, David, and Telesca, Donatello. (2017). Nonlocal priors for high-dimensional
+estimation. Journal of the American Statistical Association, 112(517), 254–265. Taylor
+& Francis.
+[26] National Academies of Sciences, Policy and Global Aﬀairs, Board on Research Data
+and Information, Division on Engineering and Physical Sciences, Committee on Applied
+and Theoretical Statistics, and Board on Mathematical Sciences, et al. (2019). Repro-
+ducibility and replicability in science. National Academies Press.
+[27] Irizarry, Rafael A., Hobbs, Bridget, Collin, Francois, Beazer-Barclay, Yasmin D., An-
+tonellis, Kristen J., Scherf, Uwe, and Speed, Terence P. (2003). Exploration, normaliza-
+tion, and summaries of high density oligonucleotide array probe level data. Biostatistics,
+4(2), 249–264. Oxford University Press.
+[28] Shi, Leming, Reid, Laura H., Jones, Wendell D., Shippy, Richard, Warrington, Janet
+A., Baker, Shawn C., Collins, Patrick J., De Longueville, Francoise, Kawasaki, Ernest
+S., Lee, Kathleen Y., et al. (2006). The MicroArray Quality Control (MAQC) project
+shows inter-and intraplatform reproducibility of gene expression measurements. Nature
+Biotechnology, 24(9), 1151–1161. Nature Publishing Group.
+[29] Ovaskainen, Otso, Tikhonov, Gleb, Norberg, Anna, Blanchet, F. Guillaume, Duan,
+Leo, Dunson, David, Roslin, Tomas, and Abrego, Nerea. ”How to make more out of
+community data? A conceptual framework and its implementation as models and soft-
+ware.” Ecology letters, vol. 20, no. 5, pp. 561–576, 2017.
+33
+[30] Griﬃths, Thomas L., and Ghahramani, Zoubin. ”The Indian Buﬀet Process: an In-
+troduction and Review.” Journal of Machine Learning Research, vol. 12, no. 4, 2011.
+[31] Griﬃn, Maryclare, and Hoﬀ, Peter D. ”Structured Shrinkage Priors.” Journal
+of Computational and Graphical Statistics, vol. 33, no. 1, pp. 1–14, 2024. DOI:
+10.1080/10618600.2023.2233577.
+[32] Roy, Arkaprava, Lavine, Isaac, Herring, Amy H., and Dunson, David B. ”Perturbed
+factor analysis: Accounting for group diﬀerences in exposure proﬁles.” The Annals of
+Applied Statistics, vol. 15, no. 3, pp. 1386, 2021.
+[33] Chandra, Noirrit Kiran, Dunson, David B., and Xu, Jason. ”Inferring Covariance
+Structure from Multiple Data Sources via Subspace Factor Analysis.” arXiv preprint
+arXiv:2305.04113, 2023.
+[34] Neal, Radford M. ”Learning stochastic feedforward networks.” Department of Com-
+puter Science, University of Toronto, vol. 64, no. 1283, pp. 1577, 1990.
+[35] Tang, Charlie, and Salakhutdinov, Russ R. ”Learning stochastic feedforward neural
+networks.” Advances in Neural Information Processing Systems, vol. 26, 2013.
+[36] Kingma, Diederik P., and Welling, Max. ”Stochastic gradient VB and the variational
+auto-encoder.” In Second International Conference on Learning Representations, ICLR,
+vol. 19, pp. 121, 2014.
+[37] Sen, Deborshee, Papamarkou, Theodore, and Dunson, David. ”Bayesian neural net-
+works and dimensionality reduction.” In Handbook of Bayesian, Fiducial, and Frequentist
+Inference, pp. 188–209, 2024, Chapman and Hall/CRC.
+34
+[38] Goan, Ethan, and Fookes, Clinton. ”Bayesian neural networks: An introduction and
+survey.” In Case Studies in Applied Bayesian Data Science: CIRM Jean-Morlet Chair,
+Fall 2018, pp. 45–87, Springer, 2020.
+[39] Arbel, Julyan, Pitas, Konstantinos, Vladimirova, Mariia, and Fortuin, Vincent.
+”A primer on Bayesian neural networks:
+review and debates.” arXiv preprint
+arXiv:2309.16314, 2023.
+[40] Kingma, Diederik P., and Welling, Max. ”An introduction to variational autoen-
+coders.” Foundations and Trends in Machine Learning, vol. 12, no. 4, pp. 307–392, 2019,
+Now Publishers, Inc.
+[41] Nalisnick, Eric, Hern´andez-Lobato, Jos´e Miguel, and Smyth, Padhraic. ”Dropout as
+a structured shrinkage prior.” In International Conference on Machine Learning, pp.
+4712–4722, 2019, PMLR.
+[42] Harman, Harry H. Modern Factor Analysis, University of Chicago Press, 1976.
+[43] Lindstr¨om, ˚Ake, Green, Martin, Husby, Magne, K˚al˚as, John Atle, and Lehikoinen,
+Aleksi. ”Large-scale monitoring of waders on their boreal and arctic breeding grounds in
+northern Europe.” Ardea, vol. 103, no. 1, pp. 3–15, 2015, BioOne.
+[44] Pena, Jo˜ao Carlos, Ovaskainen, Otso, MacGregor-Fors, Ian, Teixeira, Camila Palhares,
+and Ribeiro, Milton Cezar. ”The relationships between urbanization and bird functional
+traits across the streetscape.” Landscape and Urban Planning, vol. 232, pp. 104685, 2023,
+Elsevier.
+35

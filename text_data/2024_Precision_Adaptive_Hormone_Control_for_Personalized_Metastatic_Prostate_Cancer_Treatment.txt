@@ -1,0 +1,2001 @@
+Precision Adaptive Hormone Control
+for Personalized Metastatic Prostate Cancer Treatment
+Trung V. Phan,1 Shengkai Li,2 Benjamin Howe,2 Sarah R. Amend,3
+Kenneth J. Pienta,3 Joel S. Brown,4 Robert A. Gatenby,4 Constantine
+Frangakis,5, 6 Robert H. Austin,2 and Ioannis G. Keverkidis1
+1Department of Chemical and Biomolecular Engineering,
+John Hopkins University, Baltimore, MD 21218, USA
+2Department of Physics,
+Princeton University, Princeton, NJ 08544, USA
+3Cancer Ecology Center, The Brady Urological Institute,
+Johns Hopkins School of Medicine, Baltimore, MD 21287, USA
+4Departments of Radiology and Integrated Mathematical Oncology,
+Moffitt Cancer Center, Tampa, FL 33612, USA
+5Department of Medicine, Johns Hopkins University,
+Baltimore, MD 21218, USA
+6Department of Biostatistics, Bloomberg School of Public Health,
+Johns Hopkins University, Baltimore, MD 21218, USA
+(Dated: October 22, 2024)
+With the oncologist acting as the “game leader”, we employ a Stackelberg game-
+theoretic model involving multiple populations to study prostate cancer. We refine
+the drug dosing schedule using an empirical Bayes feed-forward analysis, based on
+clinical data that reflects each patient’s prostate-specific drug response. Our method-
+ology aims for a quantitative grasp of the parameter landscape of this adaptive multi-
+population model, focusing on arresting the growth of drug-resistant prostate cancer
+by promoting competition across drug-sensitive cancer cell populations. Our findings
+indicate that not only is it is feasible to considerably extend cancer suppression du-
+ration through careful optimization, but even transform metastatic prostate cancer
+into a chronic condition instead of an acute one for most patients, with supporting
+clinical and analytical evidence.
+arXiv:2410.16005v1  [q-bio.QM]  21 Oct 2024
+2
+I.
+INTRODUCTION
+Although this study focuses on prostate cancer, the underlying principles can also be
+applied to various other cancers, especially those that are hormone-sensitive, such as breast
+or ovarian cancer. The focus is on the competition among populations within limited eco-
+logical niches and how these populations can be controlled. These ecologies are defined by
+their carrying capacities, which refer to the maximum number of organisms that the local
+environment’s resources can sustain.
+In the prostate gland, cells are responsive to male androgens, which function as resources
+regulating tissue cell death and proliferation. Under normal conditions, prostate tissue cells
+grow and die at rates dictated by androgen levels, maintaining glandular homeostasis. How-
+ever, prostate cancer cells ignore these androgen limits, persist in their growth toward the
+gland’s carrying capacity, and result in a larger tumor. When this local growth boundary is
+achieved, cancer cells may metastasize to different areas, where they form new environments
+with distinct carrying capacities. The coarse-grained characterization of these processes we
+employ in modeling metastatic cancer suggests that the body has a certain carrying capacity,
+which affects the general dynamics of tumor development and dissemination.
+Hormone deprivation therapy aims to restrict proliferation and eliminate androgen-
+dependent prostate cells by removing androgen growth hormones. However, prostate cancer
+cells can develop resistance to this therapy, allowing them to continue dividing even without
+growth hormones. Resistant cells might (1) already exist within the prostate tumor before
+the initial treatment due to genetic or epigenetic diversity [1–3], or (2) arise as de novo
+resistant cells through a process of natural selection [4–7].
+The two distinct cell types, which are either sensitive or resistant to androgens, can
+compete within a shared environment, creating a scenario akin to a resource game. Although
+the overall carrying capacity is dictated by the maximum number of cells that can occupy a
+particular environment, the proportion of androgen-sensitive and -resistant cells may vary
+based on their competitive interactions.
+Testosterone serves as the primary male androgen. Androgens like testosterone attach
+to androgen receptors found on the surfaces of prostate cells. Through a complex signaling
+pathway, the occupation of these receptors stimulates the proliferation and apoptosis of
+androgen-sensitive cells. These cells, whose growth and demise are regulated by testosterone,
+3
+are referred to as T+ cells due to their reliance on bound androgen receptors for growth and
+survival.
+Over time, prostate tissue may develop, or may already contain, cells (T+/−) with an
+increased number of androgen receptors, which enhances their sensitivity to testosterone
+and allows them to proliferate with lower testosterone levels. Because these cells can thrive
+even when testosterone is reduced, they are labeled as “resistant” to leuprorelin, though
+their resistance is indirectly related to the drug. This resistance can progress, leading to
+the emergence or preexistence of prostate cancer cells that can grow entirely without testos-
+terone, known as T−cells. These cells are not effectively managed by standard androgen
+deprivation therapy, meaning that even when leuprorelin levels are elevated, T−prostate
+cancer cells continue to proliferate.
+As previously discussed, prostate cancer exhibits significant heterogeneity; our analysis
+focuses solely on differentiated cells and the PSA levels they produce. There is, however, a
+category of undifferentiated prostate cancer cells (PSA−\lo) that do not secrete PSA, express
+stem cell markers, are resistant to androgen deprivation therapy, and demonstrate both high
+clonogenic capability and long-term tumor-propagating potential [8]. This is because they
+can progress to a differentiated state and divide asymmetrically to generate T + cells. This
+process of de-differentiation and genuine evolution is beyond the scope of this paper.
+The regulation of metastatic prostate cancer through adaptive hormone therapy employs
+the concentration of prostate-specific antigen (PSA) in the patient’s body as an indicator
+of the number of cancer cells present.
+PSA, however, constitutes a flawed measure for
+quantifying prostate cells—encompassing both normal and malignant varieties [9, 10]. PSA
+is generated by both normal prostate cells and cancerous ones. An uptick in PSA levels in
+the bloodstream, which hints at unusual proliferation of prostate cells, prompts the initial
+therapeutic approach of administering leuprorelin. Leuprorelin functions as an agonist at
+the pituitary gland’s gonadotropin-releasing hormone (GnRH) receptors, ultimately leading
+to a reduction in testosterone production by testicular cells, thereby inhibiting growth and
+leading to the apoptosis of T+ prostate cells.
+Patients with high levels of leuprorelin continued therapy are said to be “chemically
+castrated”, but this is an entirely reversible condition if leuprorelin administration is ceased,
+unlike surgical castration.
+One explanation for why patients undergoing chemical castration with leuprorelin ex-
+4
+hibit persistent PSA elevations in cases of metastatic castration-resistant prostate cancer
+(mCRPC) is that testosterone is also synthesized in the adrenal glands. To address this,
+abiraterone acetate is administered, which inhibits androgen synthesis in the adrenal glands,
+further diminishing testosterone levels beyond what is achieved with leuprorelin therapy
+alone. Abiraterone acts by inhibiting the CYP17A1 enzyme, essential for the production of
+androgens (male hormones) in the testes, adrenal glands, and prostate cancer tissue [11]. By
+blocking this enzyme, the drug significantly reduces the production of androgen steroid hor-
+mones, particularly testosterone, which plays a critical role in determining the proliferation
+capacity of these sensitive cells.
+The patients we are concerned with here are all mCRPC patients who still have popula-
+tions of T+, T+/−and T−cells. The task in this paper is to optimize the suppression of T−
+cell growth through competition with T+ and T+/−cells for mCRPC patients.
+The concept of cancer adaptive chemotherapy [12] can be understood through the lens
+of Stackelberg sequential game theory [13]. Here, the oncologist leverages the ecological
+competition for shared resources among cancer cells, aiming to increase populations of drug-
+sensitive subclones that, in turn, help inhibit the proliferation of drug-resistant ones [14, 15].
+Instead of being seen as conclusive, the mathematical models employed to describe cancer
+population dynamics during treatment should be considered as heuristic tools. These provide
+oncologists with a framework to analytically grasp and influence cancer progression.
+The effectiveness of adaptive chemotherapy arises from the competition among differ-
+ent cell populations for (1) a limited cell carrying capacity and (2) the extent to which
+cells compete with one another even when not close to the carrying capacity. In both sce-
+narios (approaching the carrying capacity or inter-population competition), a more game-
+oriented dominant sub-population can hinder the growth of the game-oriented minority
+sub-population. Such game-oriented suppression can even prevent a quicker-reproducing,
+drug-resistant phenotype from expanding. In situations involving purely competitive sup-
+pression of growth rates near the carrying capacity, adaptive chemotherapy can delay the
+breakthrough of resistant cell populations, but it eventually falls short [16]. Nevertheless, as
+we will demonstrate, if the competition coefficients sufficiently favor the sensitive cells, it is
+feasible to indefinitely suppress resistant cell populations even when far from their carrying
+capacity.
+In adaptive chemotherapy, the clinician dictates the treatment strategy through dose
+5
+scheduling. Ideally, both dose intensity and duration could be adjusted. However, if dose
+intensity remains fixed, then the PSA on-level and off-level serve as two modifiable trig-
+ger parameters to modify drug dosage. Currently, in clinical adaptive treatments, these
+adjustable parameters have not been optimized for maximum drug efficiency or response
+duration [12] and are instead set at an arbitrary 50% of the baseline PSA level [17].
+As Hansen and Read have noted [16], it is feasible to select the PSA on-level for admin-
+istering drugs to be above the initial baseline measurement at the start of treatment. This
+choice should ensure that the count of drug-sensitive cancer cells, T+, approaches the total
+carrying capacity, while T−remains significantly below it. In a straightforward model with
+two populations—where the first group, comprising T+ and T+/−, is sensitive to drugs, and
+the second group, consisting only of T−, is resistant—the PSA off-level should be nearly
+equal to the on-level. Both levels need to be near the carrying capacity to keep drug-sensitive
+cells close to their maximum and to limit the proliferation of drug-resistant cells.
+These two concepts, (1) positioning the PSA trigger on level to maintain the total cell
+number near the total body carrying capacity and (2) setting the differential between on
+and off as small as possible are not new [16]. What we have further explored and propose
+here are:
+• A systematic statistical approach to determine, from clinical data, important param-
+eters describing cancer progression, including personalized growth rates and compe-
+tition coefficients, as well as personalized parameters such as the initial number of
+cancer cells relative to carrying capacity and drug effectiveness, in the fundamental
+game theory model described in Section II. The details are provided in Section IV.
+• The possibility, in favorable patient cases, of extending the period of cancer suppres-
+sion below a threshold or even making prostate cancer chronic rather than progressive,
+albeit with continued therapy throughout the patient’s lifetime. We show how these
+outcomes can be achieved via a high level tight control adaptive chemotherapy in Sec-
+tion V using Bayesian optimization. We provide analytical justifications and estimates
+for these findings, see Appendix B.
+II.
+A SIMPLIFIED STACKELBERG GAME THEORY MODEL OF
+6
+ADAPTIVE THERAPY FOR PROSTATE CANCER
+Consider an ensemble of Nk(t) cancer cell subpopulations (indexed by k); the total number
+of cancer cells is given by N(t) = P
+k Nk(t), and the PSA level is assumed to obey the
+following ordinary differential equation (ODE):
+d
+dtPSA(t) = λN(t) −Ξ PSA(t) ,
+(1)
+where the PSA decay rate is Ξ ∼3.5 × 10−1/day (corresponding to a characteristic decay
+timescale of about a few days [18]) and λ is the PSA production rate per cell, assumed
+uniform across sub-populations. It is crucial to note that not all cancer cells produce PSA
+in the same way or at consistent levels over time; here we are relying on a rather simplistic
+assumption for such a complex disease to guide our estimation for parameters that describe
+cancer dynamics. Since the rate Ξ is significantly larger than the cancer cell growth rates
+(which ranges from 2 × 10−3 to 2 × 10−2/day, as estimated in [17]), we can further adopt
+the additional quasi-steady state approximation (QSA):
+PSA(t) ≈(λ/Ξ) N(t) ,
+(2)
+meaning that the system is considered highly overdamped.
+The oncologist (the “game leader”), begins somewhere in the game at an unknown point,
+presented with a patient showing elevated PSA levels, that is we do NOT know the carrying
+capacity of the patient’s tumor. Let us consider a simplified version for the basic case of
+only two prostate cancer cell sub-populations under the influence of a single drug: (1) a
+drug-sensitive population NS(t), and (2) a drug-resistant population NR(t). In this model,
+we assume no treatment- or time-dependence to their phenotypes. That is, there is no de
+novo resistance evolution: no phenotype switching or mutagentic response in the cancer
+cells to hormone deprivation. Both cell phenotypes share a common cell carrying capacity
+K in the absence of treatment. The cancer dynamics is then described by the following two
+simple coupled ODEs [17]:
+d
+dtNS(t) = rS
+
+1 −
+NS(t) + NR(t)
+K [1 −γΛ(t)]
+
+NS(t) ,
+d
+dtNR(t) = rR
+
+1 −
+NR(t) + αRSNS(t)
+K
+
+NR(t) ,
+(3)
+in which rS, rR > 0 are maximum growth rates of sensitive and resistant cells; the cells com-
+pete for a resource (testosterone) with the competition coefficient αRS ≥0. This coefficient
+7
+represent how the two cell types interact and affect each other indirectly through their dis-
+tinct metabolisms and influence on the tumor microenvironment [19]. In Eq. (3), the effect
+of the drug is to reduce the carrying capacity for sensitive cells by a factor of γΛ(t), where
+Λ(t) denotes the time-dependent level of the drug administered to the patient. The value γ
+represents the drug effectiveness, 0 ≤γ ≤1. We take Λ(t) to be binary: Λ(t) = 0 during
+periods of no drug administration, and Λ(t) = 1 during periods of (maximum) dosage. The
+use of γΛ(t) may appear ad-hoc, but it is predicated the presence of Abiraterone, which
+reduces the carrying capacity by a factor of (1 −γ) for only drug-sensitive T+ populations,
+but stays unchanged for resistant T−populations.
+Eq. (2) and Eq. (3) contain six parameters, i.e. {rS, rR, αRS, γ, K, λ}. Presumably all
+these parameters are patient-specific. In addition, there are at least two more unknowns,
+related to the initial cancer population sizes {xS(0), xR(0)} for each patient. It is important
+to note that at t = 0 for each patient, they have already received other treatments (e.g.,
+chemical castration) in preparation for the study. The modeler must determine parameter
+values of each patient. In previous work by Zhang et al. [20], finding unique patient-specific
+parameters was not done systematically. Simulations were carried out assuming all patients
+entered the trial at roughly half of that value, guaranteeing that adaptive therapy would have
+a profound effect. This assumption of being close to carrying capacity in the simulations was
+carried forward into the clinical trials, where PSA levels were set to a normalized value of 1 for
+all patients to be near the carrying capacity. There was no attempt to actually determine
+carrying capacity from a dose-response experiment. In subsequent work by Zhang et al.
+[17], the parameters have been determined systematically but under an arbitrary choice
+for drug effectiveness and an assumption that the cancer growth rates are identical across
+patients, which is not supported by the data. Furthermore, the trigger points for on/off for
+abiraterone therapy were arbitrarily set (the PSA off-level is half that of the PSA on-level),
+with no attempt to optimize these values.
+Hansen and Read et al. [16] realized that the Zhang et al. [17] lacked optimization. They
+pointed out that actually setting the off trigger close to the carrying capacity, and setting
+the on trig as close as possible to the one one actually could significantly improve patient
+time to progression, which of course makes sense since maintaining the T + population at
+as high a value as possible within the confines of this simple model can only help suppress
+the T−population. This was an imporyant advance, but unfortunately Hansen and Read
+8
+presented no systematic procedure for actually determining carrying capacity numbers from
+patient data.
+As they point out, if one starts far from the carrying capacity and with
+closely matched populations of T+ and T−an adaptive protocol can actually suppress the
+T+ population and help the T−, a disaster.
+The only way to achieve a true patient specific model of that patient’s disease state
+is through experimentation, i.e. administering brief doses of Abiraterone and measuring
+PSA levels over time to fit all the parameters to the measured PSA trajectories for each
+patient. Once parameters are established, the oncologist can use them to project the future of
+cancer progression for each patient in a Stackelberg game, and can even perform treatment
+optimization and open-loop planning.
+To begin, we need to make some assumptions to
+reduce the number of free parameters, ensuring that the fit remains predictive while avoiding
+excessive aggregating/simplification that could lead to an inaccurate prediction of cancer
+progression under treatment.
+III.
+A MORE DETAILED STACKELBERG GAME THEORY MODEL OF
+ADAPTIVE THERAPY FOR PROSTATE CANCER
+A central problem in achieving a truly personal, patient-specific model for treating
+mCRPC is the large number of free parameters. For a patient with fewer than ∼10 PSA
+blood level measurements (typically, a patient in [17] has around ∼20 measurements), the
+parameters in the ODEs in Eq. (2) and Eq. (3) cannot be reliably identified when fitting
+observational data. We therefore now consider constraining these parameters while being
+careful not to arbitrarily fix too many of them.
+For any individual patient, we can re-write the system of ODEs describing the evolution
+of the observable PSA level and the cancer progression, i.e. Eq. (2) and Eq. (3), as follows:
+PSA(t) ≈˜λx(t) ,
+d
+dtxS(t) = rS
+
+1 −
+xS(t) + xR(t)
+1 −γΛ(t)
+
+xS(t) ,
+d
+dtxR(t) = rR
+h
+1 −
+
+xR(t) + αRSxS(t)
+i
+xR(t) ,
+(4)
+in which xS(t), xR(t), and x(t) ≡xS(t) + xR(t) are the sensitive, resistant, and total cancer
+cell populations respectively, scaled by a common carrying capacity K:
+xS(t) ≡NS(t)/K , xR(t) ≡NR(t)/K .
+(5)
+9
+The quantity ˜λ ≡(λ/Ξ)K is the ratio of the PSA production rate to its decay rate when
+the cancer reaches its carrying capacity; this is also equal to the carrying capacity PSA
+measurement under QSA:
+PSAK ≡PSA
+
+x=1 = ˜λ .
+(6)
+It is important to note that cancer can cause symptoms, complications, and even become
+lethal before x(t) reaches 1.
+Assuming that the above description is adequate across patients, then if the seven pa-
+rameters {˜λ, rS, rR, αRS, γ, xS(0), xR(0)} are known for each and every patient, the PSA
+trajectories can be fully determined using Eq. (4) for any drug treatment schedule Λ(t).
+Note that all of these parameters may differ between patients; however, by assuming some
+are common, we can still achieve a good fit for all patients and, most important, infer some
+general behavior of prostate cancer biophysics to guide and optimize treatments. Also, not
+all of these parameters are of equal importance. As we will discuss in Section V, the pa-
+rameters that have the most influence on patient outcomes, when treatment is optimal, are
+the common ecological competition coefficient αRS and the patient-specific biomarker level
+at carrying capacity PSAK = ˜λ.
+Consider the relative kinetics between sensitive and resistant cells to be universal across
+patients. This means that the growth and competition of sensitive and resistant cells are
+locally identical across patients, differing only by a timescale. We can thus further divide
+the seven parameters into two sets:
+• The two common parameters {rS/rR, αRS}, representing the ratio between growth
+rates and the ecological competition coefficient.
+• The five patient-specific parameters
+{˜λ, rR, γ, xS(0), xR(0)} ,
+(7)
+which are the PSA measurement when the cancer population reaches carrying capacity,
+the resistant cell growth rate, the drug effectiveness, and the initial populations sizes
+of the two different cancer cell phenotypes at the beginning of PSA tracking for each
+individual patient. This is the smallest set of parameters that should not be identical
+across patients.
+10
+In contrast to the previous study [17], here we acknowledge that cancer growth and patient
+responses to drug may vary drastically between individuals. These considerations are con-
+sistent with crude estimations of growth rates for a subset of patients [17] and with findings
+related to Abiraterone responses [21, 22]. We also did not fix any parameter values before
+fitting the model, as [17] did for γ = 90% and rS/rR = 1.66 [17]; instead, we obtain these
+values from the fitting procedure. Note that we did explore other options for both common
+parameters and patient-specific parameters, but the selection above appears to provide the
+best fit.
+If the common parameters are known, early measurements of PSA(t) during on- and
+off-drug periods allow us to estimate the patient-specific parameters. These estimates can
+be updated and refined as additional data becomes available. We can then use Eq. (4) to
+predict future PSA(t) observations and the growth trajectories of the two cell types, sensitive
+xS(t) and resistant xR(t), in response to different drug administration schedules.
+The only explicitly time dependent term in Eq. 4 is Λ(t), and it lies at the heart of the
+clinician strategy. In principle Λ(t) can be any function of time, yet, given the realities of
+delivering chemotherapy to patients, we assume that drug delivery is determined not directly
+by time but rather by trigger levels of measured PSA. That is, we allow only two knobs to
+tune: the on-level PSA↑and off-level PSA↓. In adaptive therapy, the drug is administered
+when the patient PSA level surpasses the on-level PSA↑and continues until it decreases to
+the off-level PSA↓. Drug administration is then resumed only when the PSA level returns
+to PSA↑.
+The clinician goal is to prevent the patient from staying in a state of developing symptoms
+(e.g. as urinary issues, erectile dysfunction, pelvic pain, bone pain), which emerge when their
+prostate cancer have advanced far enough. We denote the PSA level at which symptoms
+begin to appear as PSAthr, a value that is not known in advance.
+At that stage, drug
+administration cannot be delayed without risking further complications. For all patients in
+[17], Abiraterone was first administered to all patients well before any signs of symptoms
+appeared. We define the two policy parameters, η↑and η↓, so that PSA↑is a fraction η↑of
+the clinician acceptable upper limit PSAthr, and PSA↓is a fraction η↓of PSA↑:
+PSA↑≡η↑PSAthr , PSA↓≡η↓PSA↑= η↑η↓PSAthr .
+(8)
+The values of η↑and η↓are therefore bounded between 0 and 1.
+11
+Given this formulation, patient-informed parameters and the PSA threshold value PSAthr,
+we can now attempt to determine what the optimal treatment policy should be for the
+patient.
+IV.
+PATIENT-INFORMED PARAMETER ESTIMATION
+A.
+Clinical Data and Nonlinear Mixed Effect
+We reanalyze the clinical data from [17], which includes N = 32 patients undergoing
+Abiraterone treatment. Note that these patients have already received treatment to block
+male hormone production from the pituitary gland, which accounts for approximately ∼90%
+of total production.
+Abiraterone is used as an additional therapy, to inhibit androgen
+production from other sources, including the adrenal glands and the tumor itself, which
+contribute the remaining ∼10% of total production. Considerations in our analysis differ
+from those of [17] in certain direction:
+FIG. 1: Time series of PSA levels for all N = 32 patients, for alternative normalizations. (A)
+The PSA level in ng/L. (B) The PSA level as normalized in Zhang et al. [17], in which the maximum
+value of any given PSA time series after the normalization is always at 1. (C) The normalized PSA level is
+adjusted so that the value at the start of the first treatment in any given PSA time series is always set to 1
+after normalization.
+• In Fig. 1A we show the raw time series data for the PSA level (in ng/L) of all patients.
+12
+It is very important to note that these data are widely different in scale (the maximum
+value in each of these PSA time series ranges from ∼2ng/L to ∼200ng/L), so before
+fitting the model to all patients, we need to normalize them to ensure comparability
+between patients. If not, the fit will then be overly controlled by the highly volatile
+patients. Here, we normalize each patient’s PSA measurement data using the PSA
+value at the time Abiraterone was first administered (see Fig. 1C), instead of the
+maximum PSA value as in [17] (see Fig. 1B). This choice for normalization not only
+still ensures comparability between PSA time series across all patients, but also allows
+for data updates without necessitating changes to previous entries.
+• We decide to relax the assumption in [17] that the cancer growth rates rS and rR
+are identical for all patients. This is consistent with the values estimated for patients
+receiving continuous drug treatment, ranging from 2 × 10−3 to 2 × 10−2/day [17].
+Instead, we permit rR to vary among patients while treating the ratio of these rates,
+rS/rR, as universal. We do not pre-set rS/rR.
+• We let the drug effectiveness γ to be a free parameter instead of fixing it.
+This
+allows for variability in how different patients respond to the drug, and provides a
+more accurate assessment of how close the initial total cancer cell population is to the
+carrying capacity, i.e. how close x(0) is to 1.
+• The model is nonlinear in both common as well as person specific (mixed) factors. For
+this reason, we utilize an established statistical approach, the empirical Bayes approach
+of Lindstrom and Bates [23], to fit the model to the normalized PSA data within the
+framework of nonlinear mixed effects (NLME). The estimated parameters for fitting
+the model to the data are selected so as to maximize the observation likelihood, meaning
+they provide the best possible explanation for the patterns seen in the data. Not only
+do we have estimates for the two common parameters {αRS, rS/rR}, we also obtain
+probability distributions for four patient-specific parameters
+{rR, γ, xS(0), xR(0)} .
+(9)
+Estimation of the patient-specific parameters benefits from regarding them as samples
+from a distribution, since it statistically addresses the regression to the mean for
+extreme values.
+13
+• We do not assign weights differently (and rather arbitrarily) to different events (e.g.
+the first data points after a treatment change, from off-drug to on-drug and vice versa,
+are weighted five times more than the others in [17]). Here, all data points are treated
+the same.
+Note that there are five patient-specific parameters as previously mentioned in Eq. (7), but
+Eq. (9) addresses only four: the fifth, ˜λ, is determined by the other four.
+To be more precise, let us denote the two common parameters as Θ ≡{αRS, rS/rR}
+and the four patient-specific parameters (besides ˜λ) as θ ≡{γ, rR, xS(0), xR(0)}, and use
+the subscript µ to specify the individual patient, i.e. θµ. For each patient µ in [17], we
+know their given Abiraterone treatment schedule Λµ(t), and the measurement times tmµ
+(where mµ labels the time point) at which they have their PSA level recorded, as well as
+the measured values PSAµ(tmµ). If m(treat)
+µ
+is the time point when Abiraterone was first
+administered, then the normalized PSA level can be calculated with:
+PSAµ(tmµ) = PSAµ(tmµ)/PSAµ(tm(treat)
+µ
+) .
+(10)
+For a given {Θ, θµ; Λµ(t)}, we can use Eq. (4) to obtain theoretically what trajectory the
+total cancer cell population should be,1 which we denote as x{Θ,θµ;Λµ(t)}(t). The theoretical
+trajectory for the normalized PSA level, therefore, follows from Eq. (4) if ˜λµ is known:
+PSA
+{Θ,θµ;Λµ(t)}(t) = ˜λµx{Θ,θµ;Λµ(t)}(t)/PSAµ(tm(treat)
+µ
+) .
+(11)
+We then estimate ˜λµ by minimizing the sum squared-errors (SSE) between the observational
+PSAµ(tmµ) and the theoretical PSA
+{Θ,θµ;Λµ(t)}(tmµ):
+˜λµ = arg min
+
+
+
+given µ
+X
+mµ
+h
+PSAµ(tmµ) −PSA
+{Θ,θµ;Λµ(t)}(tmµ)
+i2
+
+
+
+=
+given µ
+X
+mµ
+PSAµ(tmµ)x{Θ,θµ;Λµ(t)}(tmµ)
+given µ
+X
+mµ
+
+x{Θ,θµ;Λµ(t)}(tmµ)
+2
+=
+given µ
+X
+mµ
+PSAµ(tmµ)x{Θ,θµ;Λµ(t)}(tmµ)
+given µ
+X
+mµ
+
+x{Θ,θµ;Λµ(t)}(tmµ)
+2
+.
+(12)
+In other words, ˜λµ is determined by {Θ, θµ; Λµ(t)} and the time series PSAµ(tmµ) for each
+individual patient µ.
+1 We employ the fourth-order Runge-Kutta method for numerical integration to derive the trajectory in
+MatLab R2023a [24].
+14
+B.
+Statistical Assumptions
+To use the Lindstrom-Bates empirical Bayes (LBEB) approach for NLME [23], we need
+to make some statistical assumptions:
+• The discrepancies in the data fit are sampled from a combined-variance Gaussian noise,
+which includes both a constant component and a component that is proportional to
+the “true” value. This means that measurements for a larger “true” value are allowed
+to exhibit greater variability, i.e.:
+PSAµ(tmµ) = PSA
+{Θ,θµ;Λµ(t)}(tmµ) + ηµ(tmµ) ,
+(13)
+where the errors ηµ(tmµ) are sampled from a Gaussian distribution:
+h
+A + B PSA
+{Θ,θµ;Λµ(t)}(tmµ)
+i
+N(0, 1) .
+(14)
+Here A, B are two unknown positive constants, and N(0, 1) represents the Gaussian
+distribution centered at 0 with a variance of 1.
+• The four patient-specific parameters {rR, (1−γ), xS(0), xR(0)} are assumed to be sam-
+pled from four log-normal distributions [25]. Note that we consider (1 −γ) to be sam-
+pled from a log-normal distribution, not γ, because observations (PSA levels before
+and after Abiraterone administration) suggest that γ is typically much closer to 1 than
+0.
+We then apply the LBEB approach2 to estimate the common parameters {rS/rR, αRS}, the
+log-normal distributions of {rR, (1 −γ), xS(0), xR(0)}, and the values {rR, γ, xS(0), xR(0)}
+of each patient, and also the two constants A, B that characterized our noise function, so
+that the observations across patients can be the most likely ones (maximum likelihood).
+C.
+Best-Fit Results
+We start by acknowledging that the clinical data is extremely noisy, which should be
+expected. The fit found in Zhang et al. [17], while not quantitative, does capture nearly all
+2 We use the standard package nlmefit in MatLab R2023a [24] to algorithmically execute LBEB approach
+for NLME.
+15
+the qualitative behavior of every patients regarding PSA response on- and off-drug. However,
+the total SSE for all patients of this fit is very large, which motivates us to reanalyze their
+data.
+While we still consider two common parameters, we now use four patient-specific
+parameters instead of only two, resulting in a significantly better fit, as shown in Fig. 2 and
+Fig. 3. The total SSE has been reduced by more than a factor of three, from 170.68 for
+Zhang et al. [17] fit to 57.52 for our LBEB approach. The SSE for individual patients is
+also typically smaller using our approach (26 out of 32).
+FIG. 2: Time series of PSA levels for the first 16 patients.. Each plot title shows the patient’s
+name, SSE for Zhang et al. [17] fit, and the LBEB fit. The cyan line marks drug use periods, orange dots
+represent normalized PSA Eq. (10), the light-blue dashed line shows Zhang et al. [17] best fit, and the blue
+line shows the LBEB best fit.
+We find the best common parameter values to be rS/rR = 2.97±0.02 and αRS = 5.2±0.9.
+This provides strong evidence that rS > rR. The large value for the competition coefficient
+αRS between resistant and sensitive cells agrees with the findings of [17], indicating the
+robustness of this estimation even with different approaches. The patient-specific parameters
+are sampled from
+rR ∼(7.0 × 10−3) exp [0.7 N(0, 1)] , γ ∼1 −(4.0 × 10−2) exp [1.5 N(0, 1)] ,
+xS(0) ∼(4.1 × 10−2) exp [2.4 N(0, 1)] , xR(0) ∼(2.3 × 10−2) exp [1.8 N(0, 1)] .
+16
+FIG. 3: Time series of PSA levels for the next 16 patients. Each plot title shows the patient’s
+name, SSE for Zhang et al. [17] fit, and the LBEB fit. The cyan line marks drug use periods, orange dots
+represent normalized PSA Eq. (10), the light-blue dashed line shows Zhang et al. [17] best fit, and the blue
+line shows the LBEB best fit.
+We report the individual values for the patient-specific parameters in Appendix A. Fig. 4A
+shows a slight positive trend (presented in log-log plot) between the resistant cell growth
+rate rR and the drug ineffectiveness 1 −γ. This indicates that in patients where cancer
+cells can multiply quickly and thrive, Abiraterone is usually less effective in suppressing the
+disease. Fig. 4B reveals that, initially before treatment, sensitive cells contribute the most
+to prohibiting the growth of resistant cells (compared to resistant cells themselves). We
+show the monotonic relationship between the PSA level at the time of first drug treatment,
+PSA(tmtreat), and the PSA level at carrying capacity, PSAK, in Fig.
+4C. For 27 out of
+the total N = 32 patients, PSA(tmtreat)/PSAK > 1/αRS, which carries significant clinical
+implications that we will discuss in Section V B.
+D.
+Comparison between Models
+It should, of course, be expected that with more free parameters we should achieve
+better a fit. Therefore, we need to assess whether the improved fit justifies the additional
+parameters and helps avoid overfitting, ensuring that the model will perform well on new
+17
+FIG. 4: The relations between patient-specific parameters and the PSA level at the first
+drug treatment. Here we show the identified resistant cell growth rate rR, drug effectiveness γ, and initial
+population values {xS(0), xR(0)}, and the PSA level when the total cancel population reaches its carrying
+capacity PSAK = ˜λ for all patients. (A) The resistant cell growth rate rR and the drug ineffectiveness 1−γ.
+The green continuous line shows a slight positive trend between these parameters in log-log plot (R2 = 0.10
+[26]), indicating a power-law relation 1−γ ∝r0.5±0.5
+R
+. (B) The initial values {xS(0), xR(0)}. The yellow dash
+line divides this two-dimensional parameter space into two: sensitive cell dominated (above) and resistant
+cell dominated (below), based on their influences on the growth of resistant cells at t = 0. (C) The PSA
+levels at first drug treatment PSA(tmtreat) and at carrying capacity PSAK. The green continuous line shows
+a linear regression (that passes through the origin) between these parameters (R2 = 0.59 [26]), indicating a
+linear relation PSA(tmtreat) = (0.25 ± 0.05) PSAK. The yellow dash line divides this two-dimensional space
+into two: PSA(tmtreat)/PSAK > 1/αRS (above) and PSA(tmtreat)/PSAK < 1/αRS (below).
+data.
+For linear regression, the standard metric for “goodness-of-fit” is given by the R2-value
+[26]. A direct generalization of this dimensionless metric for nonlinear models [27, 28] is
+commonly referred to as the Efron’s pseudo-R2-value [29], is given by ˜R2 = 1 −˜A. The
+coefficient of alienation ˜A, defined as [28]:
+˜A = SSE
+SSdata
+≥0 ,
+(15)
+where SSdata is the data variance (i.e. SSE with respect to the mean value). This measures
+the proportion of residual variation in the nonlinear model compared to a null model with
+no explanatory power, indicating how much the model deviates from an ideal fit. An ideal fit
+corresponds to ˜R2 = 1. While there are many other different proposals for goodness-of-fit de-
+18
+pending on the specific characteristics of the nonlinear model being used [30–32], the Efron’s
+pseudo- ˜
+R2-value remains a useful metric due to its simplicity and ease of interpretation [28].
+Since the number of parameters in the fit models that we use are not the same, i.e.
+nparams = (2 × N) + 2 = 66 in Zhang et al. [17] and nparams = (4 × N) + 2 = 130 in our
+approach, we need to calculate the adjusted Efron’s psuedo-R2-value [33] instead:
+˜R2
+adj = 1 −SSE/(ndata −nparams)
+SSdata/(ndata −1)
+.
+(16)
+We have ndata = 678 and SSdata = 176.16. The closer ˜R2
+adj is to 1, the more we can trust
+a fitted model. We obtain ˜R2
+adj ≈−0.08 for Zhang et al. [17] fit and ˜R2
+adj ≈0.60 for our
+LBEB fit, which corroborates our approach.
+V.
+OPTIMIZATION OF TREATMENT WITH ABIRATERONE
+Within our adaptive therapy policy framework, our goal is to determine the optimal
+policy parameters (η↑, η↓) that maximize the total achievable time τtot we can keep the
+cancer progression (with treatment) below the biomarker level PSAthr, the level at which
+the patient begins to show symptoms, in order to avoid further complications. Consider
+the patients with two common parameters Θ = {rS/rR, αRS} and the five patient-specific
+parameters {PSAK, θ} = {˜λ, rR, γ, xS(0), xR(0)}, as found according to Section IV C. Note
+that PSAK = ˜λ follows, as explained in Eq. (6). For simplification, we further assume that
+the PSA level is measured continuously, and that there is no noise in these measurements,
+so that the decision to turn on and off drug treatment based on the policy parameters as
+described in Eq. (8) is exact. Hence, we can calculate the total achievable time τtot below
+PSAthr using policy parameters (η↑, η↓) for a patient µ with parameters {Θ, PSAKµ, θµ},3
+and we denote its full functional form as τ
+{Θ,PSAK µ,θµ},PSAthr
+tot
+(η↑, η↓). We can simplify this
+expression to τ {µ},PSAthr
+tot
+(η↑, η↓), and further drop all superscripts when it is clear which
+patient and what threshold are referred to.
+As we will show in this Section through computer-assisted modeling, if the PSA threshold
+is too low PSAthr ≤PSAKµ/αRS (remember that 1/αRS ≈0.19), then for any policy
+parameters (η↑, η↓), the treatment appears to eventually fail, i.e. hence we can only hope to
+3 We utilize the standard integrator ode23 in MatLab R2023a [24] to simulate Eq. (4) and implement the
+terminal condition, obtaining the total achievable time τtot at when the simulated PSA level crosses the
+threshold value PSAthr.
+19
+somewhat prolong the drug response total achievable time τtot. However, if this threshold
+is just high enough PSAthr > PSAKµ/αRS, then sometimes, but not always, it is possible
+to find a treatment policy that arrests the cancer progression indefinitely τtot →∞. We
+provide some analytical explanation for these possibilities in Section B.
+A.
+PSAthr/PSAKµ ≤1/αRS
+Here, we search for the (global) maximum of the total achievable time (with treatment)
+below the PSA threshold, τ {µ},PSAthr
+tot
+(η↑, η↓) over this multi-dimensional space (η↑, η↓). We
+employ a Bayesian optimization approach [34] to efficiently navigate through the policy pa-
+rameter space by data-driven extrapolation (kriging [35]) for the two-dimensional landscape
+τ {µ},PSAthr
+tot
+(η↑, η↓) for patient µ with a given PSAthr. This method, when applied to an ob-
+jective function to be extremize, begins by evaluating that function at a number of random
+positions so as to (approximately) gauge its global features (using a surrogate model e.g. a
+Gaussian process [36]). It then uses Bayesian inference to predict the optimal next func-
+tion evaluation location, balancing exploitation and exploration, and evaluate the function
+there. This iterative step continuously updates its estimation of the function, keeps find-
+ing and checking new locations and corresponding values, until the difference between two
+consecutive locations becomes sufficiently small (for a practical resolution of the parameter
+space).
+1.
+Bayesian Optimization
+We briefly explain how we perform the computation for our optimal policy parameters
+(η∗
+↑, η∗
+↓) = arg max
+h
+τ {µ},PSAthr
+tot
+(η↑, η↓)
+i
+,
+(17)
+using Bayesian optimization [34] with Gaussian process regression (GPR) [36]. Consider a
+search within the region (η↑, η↓) ∈[0, 0.90] × [0, 0.90], where the resolution in each direction
+is δη = 0.01. Note that the upper bounds for η↑and η↓are both set at 0.90 instead of 1.00,
+as smaller differences (less that 10%) are clinically difficult to monitor [16]. We start by
+choosing neval = 10 random points
+n
+(η(1)
+↑, η(1)
+↓), (η(2)
+↑, η(2)
+↓), ..., (η(neval)
+↑
+, η(neval)
+↓
+)
+o
+20
+within the search range of (η↑, η↓), and each point is assessed to determine the value of the
+total achievable time τ {µ},PSAthr
+tot
+(η↑, η↓). Using these initial evaluations, we then employ GPR
+to create a probabilistic extrapolation of τ {µ},PSAthr
+tot
+(η↑, η↓) from the set of known values
+n
+τ {µ},PSAthr
+tot
+(η(1)
+↑, η(1)
+↓), τ {µ},PSAthr
+tot
+(η(2)
+↑, η(2)
+↓), ..., τ {µ},PSAthr
+tot
+(η(neval)
+↑
+, η(neval)
+↓
+)
+o
+.
+This set provides not only an estimation
+ˆτ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η
+(neval)
+↑
+,η
+(neval)
+↓
+)
+o
+tot
+(η↑, η↓)
+for the total achievable time at any untested point, but also quantifies the uncertainty of
+this estimation, i.e. the standard deviation
+ˆσ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η
+(neval)
+↑
+,η
+(neval)
+↓
+)
+o
+ˆτtot
+(η↑, η↓) .
+Bayesian optimization utilize this GPR extrapolation4 to identify the next candidate points
+in the search space, (η(neval+1)
+↑
+, η(neval+1)
+↓
+), where the total achievable time is likely to be
+maximized with some confidence. This is done by balancing exploration (searching in regions
+with high uncertainty) and exploitation (focusing on regions predicted to have high values):
+(η(neval+1)
+↑
+, η(neval+1)
+↓
+) = arg max
+"
+ˆτ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η
+(neval)
+↑
+,η
+(neval)
+↓
+)
+o
+tot
+(η↑, η↓)
++χˆσ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η
+(neval)
+↑
+,η
+(neval)
+↓
+)
+o
+ˆτtot
+(η↑, η↓)
+#
+.
+(18)
+We consider χ = 2, corresponding to ≈95% confidence. We then update the extrapolation
+and repeat the above procedure for subsequent iterations, i.e. n ≥neval:
+ˆτ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η(n)
+↑
+,η(n)
+↓
+)
+o
+tot
+(η↑, η↓)
+−→
+ˆτ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η(n+1)
+↑
+,η(n+1)
+↓
+)
+o
+tot
+(η↑, η↓) ,
+(19)
+ˆσ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η(n)
+↑
+,η(n)
+↓
+)
+o
+ˆτtot
+(η↑, η↓)
+−→
+ˆσ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η(n+1)
+↑
+,η(n+1)
+↓
+)
+o
+ˆτtot
+(η↑, η↓) ;
+(20)
+4 We utilize the function fitrgp in MatLab R2023a [24] for this task, using the ardmatern32 kernel function
+and the “exact fitting” option.
+21
+we then calculate:
+(η(n+2)
+↑
+, η(n+2)
+↓
+) = arg max
+"
+ˆτ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η(n+1)
+↑
+,η(n+1)
+↓
+)
+o
+tot
+(η↑, η↓)
++χˆσ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η(n+1)
+↑
+,η(n+1)
+↓
+)
+o
+ˆτtot
+(η↑, η↓)
+#
+.
+(21)
+This iterative refinement continues until satisfactory convergence is achieved (which is chosen
+based on the resolution δη = 0.01), and the final iteration gives an estimated value for (η∗
+↑, η∗
+↓)
+as the discovered global maximum of τ {µ},PSAthr
+tot
+(η↑, η↓) along with the associated uncertainty.
+2.
+Optimal Treatment for Maximum τtot
+The optimization described in Section V A 1 can be applied to any patient; however, for
+illustrative purposes, we will consider patient P1007 as labelled in Fig. 2. This patient has
+small values for xS(0) and xR(0), with xS(0) ≫xR(0), allowing them to undergo several
+drug treatment cycles. We investigate τtot(η↑, η↓) for PSAthr/PSAK = 0.14 and 0.19. Fig. 5
+shows the GPR extrapolated surface functions
+ˆτ
+{µ},PSAthr;
+n
+(η(1)
+↑
+,η(1)
+↓
+),(η(2)
+↑
+,η(2)
+↓
+),...,(η∗
+↑,η∗
+↓)
+o
+tot
+(η↑, η↓)
+(22)
+for these different PSA thresholds, i.e. PSAthr/PSAK = 0.14 in Fig. 5A and PSAthr/PSAK =
+0.19 in Fig.
+5B. The optimal policy parameter values (η∗
+↑, η∗
+↓) is located at the corner
+(0.90, 0.90), corresponding to the highest possible on-drug PSA level with the tightest control
+(η↓is maximum). We will see that this is consistent with our analytical considerations in
+Section B.
+Fig.
+6 shows our numerical findings for simulated treatments on this patient, using
+different policy parameters:
+• Panel (A,D): Cancer progression under continuous Abiraterone treatment often results
+in resistant cells rapidly overtaking the population, causing the cancer to exceed the
+thresholds faster. Note that continuous therapy is a special case of adaptive therapy
+in which the off -drug policy parameter η↓is set to 0.
+• Panel (B,E): Cancer progression under a (non-optimal) adaptive Abiraterone treat-
+ment, in which PSA↑is as high as possible and PSA↓is set to 50% of PSA↑. This
+22
+FIG. 5: Bayesian optimization using a GPR model to search for the maximum total drug
+response time τtot for patient P1007 under adaptive chemotherapy. We consider different PSA
+threshold values, i.e. PSAthr/PSAK = 0.14 in (A) and PSAthr/PSAK = 0.19. Here we show the Gaussian
+extrapolated surfaces of the total achievable time, as given in Eq. (22). The circles represent the points where
+the total achievable time is evaluated by numerical simulation. The star indicates the point of convergence
+for the search, which corresponds to the global maxmimum.
+treatment has been used in studies and clinical trials [17].
+Since the drug is not
+used to suppress sensitive cells constantly, these cells are allowed to recover and keep
+competing with the resistant ones longer, hence the total achievable time is extended.
+• Panel (C,F): Cancer progression under the optimal adaptive treatment, found from
+Bayesian optimization.
+This suggests that, the closer the PSA level at which the
+patient starts showing symptoms PSAthr is to PSAK/αRS (which is rather far from
+when the cancer population may reach carrying capacity, since αRS ≫1), the more
+effective optimal adaptive therapy can be in prolonging the time gained compared to
+continuous treatment.
+We observe in Fig. 5 that the most effective adaptive therapies maintain tight control of
+PSA levels with the highest on-drug PSA level, i.e. η↓, η↑→1, a strategy we refer to as
+high level tight control (HLTC). This treatment cycle involves administering Abiraterone
+in short bursts, followed by extended resting periods, at a high frequency. We report our
+found optimal policy parameters (η∗
+↑, η∗
+↓) for all patients with x(0) < PSAthr/PSAK in the
+23
+FIG. 6: Slowing down cancer progression. We explore the dynamics of cancer progression under
+different treatments, for small PSA thresholds i.e. PSAthr/PSAK = 0.14 in (A,B,C) and 0.19 in (D,E,F).
+We show the response of patient P1007 under a continuous therapy with η↑= 0.90 in (A,D), under a
+continuous therapy with (η↑, η↓) = (0.90, 0.50) in (B,E), and under a continuous therapy with (η↑, η↓) =
+(0.90, 0.90) in (C,F). The black arrow indicates the PSA threshold level for each plot.
+Appendix C, most of those are also (0.90, 0.90). We will provide an analytical justification
+for this finding in Section B.
+B.
+PSAthr/PSAKµ > 1/αRS
+Out of N
+= 32 patients, 27 of them have PSA(tmtreat
+µ
+)/PSAKµ > 1/αRS, where
+PSA(tmtreat
+µ
+) is the PSA levels of patient µ when Abiraterone is first administrated (see
+Fig. 4C). Since PSA(tmtreat
+µ
+) < PSAthr (all patients show no symptom at t = tmtreat
+µ
+), this
+that the condition PSAthr/PSAKµ > 1/αRS is commonly satisfied.
+While the total achievable time τtot(η↑, η↓) is always finite for PSAthr < PSAKµ/αRS, as
+24
+FIG. 7: Chronic cancer progression. We explore the long-time dynamics of cancer progression under
+different treatments, for a large PSA threshold i.e.
+PSAthr/PSAK = 0.24.
+We show the response of
+patient P1007 under a continuous therapy with η↑= 0.90 in (A), under an adaptive therapy with (η↑, η↓) =
+(0.90, 0.50) in (B), and under adaptive therapy with (η↑, η↓) = (0.90, 0.90) in (C). The black arrow indicates
+the PSA threshold for each plot.
+resistant cells will eventually dominate the cancer population after many drug administration
+cycles, for PSAthr > PSAKµ/αRS it might become possible to keep the number of resistant
+cells under control forever. This can be realized only when the number of sensitive cells can
+reduce faster than the resistant cells can increast during the on-drug period (i.e. dxS/dt +
+dxR/dt < 0), as we will derive in Appendix B. In other words, cancer can then shift from
+being a lethal disease to a chronic condition. In Fig. 7, we explore the consequences of
+PSAthr/PSAK = 0.24 for the same patient as in Section V A 2, on cancer progression under
+adaptive chemotherapy over a long time period. We find that a HLTC treatment can extend
+the total achievable time indefinitely (we have checked up to 50 years ≈1.8 × 104 days), as
+illustrated in Fig. 7C. However, if the PSA off-level PSA↓is too low, a threshold breach can
+still occur, as seen in Fig. 7B. Continuous treatment appears to always result in negative
+outcomes, as shown in Fig. 7A.
+What we have observed in this Section and in Section V A 2 is that HLTC treatment
+typically leads to improved outcomes, either by maximizing the total drug response time
+for low PSAthr or by transforming the disease into a chronic condition for sufficiently high
+PSAthr. This simple insight could serve as a valuable guide for enhancing current adap-
+tive chemotherapy treatments. We suggest that clinicians might explore the possibility of
+implementing HLTC, i.e. waiting for the disease to advance further rather than initiating
+treatment too early. It is worth mentioning that this kind of “watchful waiting” approach
+25
+before treatment is not uncommon in practice [37], at least historically. Furthermore, even
+without employing the “watchful waiting” approach (i.e., disregarding the high level compo-
+nent of HLTC), maintaining the current method for determining the appropriate PSA level
+for the initial drug treatment (that is, PSA↑) but implementing a tighter control, may also
+change prostate cancer into a chronic disease for many patients (our simulation indicates
+that, with this approach, 19 out of 32 patients could potentially become chronic).
+VI.
+DISCUSSION
+Cancer has posed an immense challenge to modern medicine due to its complex nature
+and the absence of a definitive cure [38], casting a shadow of devastation upon those affected.
+This disease can wreak havoc on the human body, resulting in a multitude of severe impacts
+before leading to the eventual demise. While prostate cancer treatments can prolong life-
+expectancy, they can also be extremely aggressive and cause debilitating side effects [39].
+Chemotherapy, a common treatment, frequently induces hair loss, nausea, and extreme
+fatigue, significantly impacting not only the physical but also the emotional well-being of
+patients [40].
+It is crucial to understand that augmented drug administration does not
+always result in an increased lifespan, even at the cost of more suffering. Paradoxically,
+it appears plausible to significantly extend the patient life while concurrently reducing the
+treatment ratio (the proportion of time a drug is given compared to the total treatment
+duration) throughout the treatment course via adaptive chemotherapy [15]. In other words,
+a longer and better life may be achievable.
+In this work, we use a systematic statistical method, LBEB approach for NLME, to esti-
+mate patient-informed parameters for a Stackelberg game-theoretic multi-population model
+that quantitatively describes prostate cancer progression [17]. We obtain estimates for com-
+mon parameters across all patients as well as the probability distribution for patient-specific
+parameters in Section IV. We then employ a Bayesian Optimization approach to identify the
+optimal adaptive chemotherapeutic treatment policy for a single drug (Abiraterone) aimed
+at maximizing the time before the patient begins to show symptoms, under the assumption
+that we know how advanced the cancer needs to be for symptoms to become manifest, in
+Section V. We show that a high level tight control (HLTC) treatment, in which the trigger
+signals (i.e., the biomarker levels) for drug administration and cessation are both high and
+26
+close together, typically yields the best outcomes, as demonstrated through both computer-
+assisted and theoretical means (see Appendix B). Furthermore, we demonstrate that it may
+be possible to transform prostate cancer from a terminal disease into a chronic condition for
+most patients in Section V B.
+Following this work, there are many directions for further exploration. First and foremost
+is realizing the potential benefits of HLTC adaptive therapeutic treatments in laboratory
+studies and clinical practice. Work along this direction is already in progress. On the nu-
+merical investigation front, we have only optimize (via Bayesian Optimization) a very simple
+treatment policy, in which there are only two states to be adjusted in drug administration:
+either no drug or the maximum dosage rate. Allowing for more structured, possibly con-
+tinuous in time – not just on/off – as proposed in [41], will provide a much richer protocol
+space to optimize in, and hopefully, better solution to discover. Additional factors can also
+be considered, such as the extreme toxicity of Docetaxel [15]. Too frequent dosages can be
+intolerable to the patient’s body. Thus, for the treatment policy, limits should be imposed on
+the administration of Docetaxel within a specific timeframe to ensure patient safety, which
+is indeed often the case in clinical practices.
+Better analysis on more realistic models of cancer could also lead to new insights and
+novel discoveries regarding collective behavior emergence from population dynamics under
+ever-changing conditions [42]. Stochastic therapies (in the spirit of the Kapitza stochastic
+stabilization of the inverted pendulum [43, 44]) might prove more effective in targeting
+cancerous cells compared to periodic ones (a phenomenon observed in a robotic model system
+[45]). Importantly, we know that spatial dynamics are crucial in evolutionary systems [46].
+Considering the metastatic nature of cancer cells, capturing how cells migrate (and also the
+topology of the environment the cells live in [47, 48]) in the mathematical models should be
+of critical importance as we strive for modeling fidelity.
+Appendix A: Best Fit Parameters
+Here, we present the best-fit parameters estimated using our LBEB approach (see Fig.
+8). The patient ID numbers, labeled from 1 to 32, correspond to the following codenames
+(in the same order):
+• Patients treated with adaptive chemotherapy: P1001, P1002, P1003, P1004, P1005,
+27
+FIG. 8:
+Patient-specific parameters.
+Here we show the identified initial population values
+{xS(0), xR(0)}, the resistant cell growth rate rR, and the drug effectiveness γ.
+(A) The initial values
+{xS(0), xR(0)}. The green pointing-left triangles are xS(0), the red pointing-right triangles are xR(0), and
+the blue pointing-up triangles are the sum x(0) ≡xS(0) + xR(0). (B) The resistant cell growth rate rR.
+(C) The drug effectiveness γ.
+P1006, P1007, P1009, P1010, P1011, P1012, P1014, P1015, P1016, P1017, P1018,
+P1020.
+• Patients treated with continuous chemotherapy: C001, C002, C003, C004, C005, C006,
+C007, C008, C009, C010, C011, C012, C013, C014, C015.
+Appendix B: An Analytical Justification for
+the High Level Tight Control Paradigm
+The clinician aims to manage cancer progression such that the observable PSA(t) remains
+below a threshold PSAthr for as long as possible. This threshold corresponds to keeping the
+total cancer cell population below xthr ≡PSAthr/PSAK. The total achievable time τtot until
+this threshold is breached is the sum of three contributions (see Fig. 9):
+τtot = τstart + ∆τ + τcont ,
+(B1)
+in which we have:
+• τstart: The time from when the patient begins care with the clinician (at t = 0) until
+28
+FIG. 9:
+Cancer progression and the changes in PSA levels observed during adaptive
+chemotherapy treatment. The upper plot displays drug administration. The middle plot illustrates
+cancer progression within a tumor, with green circles representing sensitive cells and red circles indicating
+resistant cells. The bottom plot tracks PSA level changes over time throughout the treatment, highlighting
+three distinct phases until the threshold is surpassed.
+the adaptive chemotherapy starts. During this period, the growth of sensitive cells is
+predominantly observed.
+• ∆τ: The drug response time, from when the treatment starts to when it cannot
+suppress the growth of cancer cells. During this time, the composition of the can-
+cer population shifts from being predominantly sensitive cells to being dominated by
+resistant cells.
+• τcont: The time from when the treatment fails to when the PSA threshold is breached.
+During this period, the patient is usually maintained on continuous Abiraterone treat-
+ment to prevent any potential regrowth of sensitive cells. Consequently, the growth of
+resistant cells is predominantly observed.
+For a drug treatment cycle, we define the treatment ratio ρ as the fraction of the time
+period during that cycle in which the drug Abiraterone is administered to the patient. In
+other words, if the total time period of the treatment cycle is T and the on-drug time period
+is ∆T, then ρ ≡∆T/T (see Fig. 9).
+29
+1.
+Assumptions and Approximations
+To quantitatively understand why HLTC can typically maximize the total achievable
+time (and also reduce the average Abiraterone intake rate), let us investigate adaptive
+chemotherapy for prostate cancer in a simple regime to obtain some concrete analytical
+estimation. We assume that αRSxS(t) is much larger compared to xR(t) before Abiraterone
+first administrated i.e. t ∈[0, τstart]. This condition holds true for most patients at t = 0 (as
+shown in Fig. 4B) and therefore at later time, since the ratio xS(t)/xR(t) is always increase
+with time. We can derive that from Eq. (4), as the growth of sensitive cells is always faster:
+rS {1 −[xS(t) + xR(t)]} > rR {1 −[xR(t) + αRSxS(t)]} ,
+(B2)
+in which the ecological competition coefficient αRS ≈5.2 ≫1 and the growth rate ratio
+β ≡rS/rR ≈3.0 (as estimated in Section IV C). We also assume that PSAthr is much smaller
+than PSAK, which remains reasonable even when even when PSAthr <∼PSAK/αRS. Denote
+the cancer cell population when the biomarker reaches the on-level to be x↑≡PSA↑/PSAK,
+then x↑≤xthr. We therefore have xS(t), xR(t), x↑≪1 during t ∈[0, τtot]; however, it is
+important to note that αRSxS(t) does not necessarily have to be negligible. These above
+assumptions allow us to approximate Eq. (4) for t ∈[0, τstart] as:
+d
+dtxS(t) ≈rSxS(t) ,
+d
+dtxR(t) ≈rR [1 −αRSxS(t)] xR(t) .
+(B3)
+These ODEs can be solved analytically for xS(t) and xR(t), given the initial values xS(0)
+and xR(0):
+xS(t) = xS(0) exp (rSt) , xR(t) = xR(0) exp (rRt) exp
+
+−αRS
+β
+[xS(t) −xS(0)]
+
+.
+(B4)
+To obtain τstart, we have to solve:
+xS(τstart) + xR(τstart) = x↑,
+(B5)
+which is not analytically solvable in a general case. Let us further assume that the number of
+sensitive cancer cells dominates when the drug treatment begins i.e. xS(τstart) ≫xR(τstart),
+so that xS(τstart) ≈x↑. We can then obtain a simple approximation for τstart:
+τstart ≈ln
+ x↑
+xS(0)
+
+r−1
+S
+.
+(B6)
+30
+Plug this back to Eq. (B4), we get the resistant cell population at that time to be:
+xR(τstart) = xR(0)
+ x↑
+xS(0)
+1/β
+exp
+
+−αRS
+β
+[x↑−xS(0)]
+
+.
+(B7)
+If the initial total cancer cell population is small x(0) ≪x↑, then even with xS(0) ∼xR(0),
+the condition xS(τstart) ∼x↑≫xR(τstart) will still hold. Another way for this condition to
+arise is if the sensitive cell population initially dominates, meaning xS(0) ≫xR(0).
+We study an adaptive therapy operates between the biomarker levels PSA↑and PSA↓=
+(1 −ϵ)PSA↑. This means the total cancer cell population x(t) is is maintained between x↑
+and x↑(1 −ϵ). Note that from Eq. (8), we can relate this control window parameter with
+the off-drug policy parameter via ϵ = 1 −η↓. For a tight control ϵ ≪1, we can assume that
+during the adaptive treatment time period t ∈[τstart, τexit] (where τexit ≡τstart + ∆t), the
+cancer population is, on average, stabilized at:
+x(t) ≈x↑
+
+1 −ϵ
+2
+
+=⇒
+xS(t) ≈x↑
+
+1 −ϵ
+2
+
+−xR(t) .
+(B8)
+This assumption only holds when ⟨dx/dt⟩= 0 is possible, where ⟨◦⟩denotes the average
+of a quantity ◦over time during a drug treatment cycle. Since the number of cells always
+increase during the off-drug time period, we need to have during the on-drug the following
+inequality:
+d
+dtxS(t)
+
+Λ(t)=1 + d
+dtxR(t) ≤0 .
+(B9)
+We use Eq. (4) to rewrite this as:
+rS
+
+1 −
+xS(t) + xR(t)
+1 −γ
+
+xS(t) + rR {1 −[xR(t) + αRSxS(t)]} xR(t) ≤0
+=⇒
+("
+1 −x↑
+ 1 −ϵ
+2
+
+xS(t)
+#
+−(αRS −1)
+)
+xR(t) ≤β
+("
+x↑
+ 1 −ϵ
+2
+
+1 −γ
+#
+−1
+)
+.
+(B10)
+For most patients, γ →1 (see Fig. 4A and Fig. 8C). Together with Eq. (B8) and the
+assumption xS(t), xR(t), x↑≪1 previously mentioned, this inequality becomes:
+xS(t) ≥x↑
+β
+("
+x↑
+ 1 −ϵ
+2
+
+1 −γ
+#
+−1
+)−1
+≈
+1 −γ
+β
+ 1 −ϵ
+2
+ .
+(B11)
+The right hand side is a finite positive value very close to 0, which is also increasing with
+ϵ. This means that the tighter the control (i.e. the smaller the control window), the more
+difficult it becomes to maintain stabilization Eq. (B8), as it reduces the allowable range
+31
+for xS. Therefore, when the adaptive treatment starts failing to suppress the cancer growth
+(i.e. the inequality does not hold anymore), we can make the following approximation:
+xS(τexit) ≈0
+=⇒
+xR(τexit) ≈x↑
+
+1 −ϵ
+2
+
+,
+(B12)
+which is consistent with the behavior seen in Fig. 6B,C,E,F and Fig. 7B. In summary, during
+the adaptive treatment time period t ∈[τstart, τexit], the growth of Abiraterone resistant cells
+obeys:
+d
+dtxR(t) = rR
+nh
+1 −αRSx↑
+
+1 −ϵ
+2
+i
+−(1 −αRS)xR(t)
+o
+xR(t) ,
+(B13)
+which comes from Eq. (4) and the stabilization Eq. (B8), until xR(t) reaches x↑. The
+solution of this ODE is given by:
+rR
+h
+1 −αRSx↑
+
+1 −ϵ
+2
+i
+(t −τstart) = ln
+
+
+
+
+
+
+
+xR
+1 −
+
+1−αRS
+1−αRSx↑(1−ϵ
+2)
+
+xR
+
+
+
+
+
+
+
+
+xR(t)
+xR(τstart)
+.
+(B14)
+To obtain ∆τ we need to solve:
+∆τ = ln
+
+
+
+
+
+
+
+xR
+1 −
+
+1−αRS
+1−αRSx↑(1−ϵ
+2)
+
+xR
+
+
+
+
+
+
+
+
+x↑(1−ϵ
+2)
+xR(τstart)
+"
+r−1
+R
+1 −αRSx↑
+ 1 −ϵ
+2
+
+#
+,
+(B15)
+in which for xR(τstart) ≪x↑≪1 can help us to further approximate this expression to:
+∆τ ≈ln
+(
+x↑
+ 1 −ϵ
+2
+ 
+1 −αRSx↑
+ 1 −ϵ
+2
+
+xR(τstart)
+) "
+r−1
+R
+1 −αRSx↑
+ 1 −ϵ
+2
+
+#
+.
+(B16)
+For the last phase t ∈[τexit, τtot], the resistant cancer cells has taken over the population,
+the cancer progression can be described with x(t) = xR(t) and the ODE:
+d
+dtxR(t) ≈rR [1 −xR(t)] xR(t) ,
+(B17)
+which can be obtained from the Eq. (4) after setting xS(t) = 0. This ODE can be solved
+analytically to give:
+rR(t −τexit) = ln
+
+xR
+1 −xR
+ 
+xR(t)
+xR(τexit)
+.
+(B18)
+To obtain τcont we need to solve:
+τcont = ln
+
+xR
+1 −xR
+ 
+xthr
+x↑(1−ϵ
+2)
+r−1
+R ,
+(B19)
+32
+in which we can use xthr ≪1 to to approximate its value to be:
+τcont = ln
+"
+xthr
+x↑
+ 1 −ϵ
+2
+
+#
+r−1
+R .
+(B20)
+2.
+An Analytical Expression for the Treatment Ratio ρ
+and the Total Achievable Time τtot
+a.
+The Treatment Ratio ρ
+Define the following averaging during a drug treatment cycle:
+Ω≡
+
+1
+1 −γΛ(t)
+
+= ρ ×
+
+1
+1 −γ
+
++ (1 −ρ) × 1
+= 1 +
+
+γ
+1 −γ
+
+ρ =⇒ρ =
+1 −γ
+γ
+
+(Ω−1) ,
+(B21)
+so that when Eq. (B8) holds, we can use Eq. (4) to obtain:
+d
+dt [xS + xR] = rS
+h
+1 −Ω
+
+xS + xR
+i
+xS + rR
+h
+1 −
+
+xR + αRSxS
+i
+xR = 0
+=⇒ρ =
+1 −γ
+γ
+ 
+
+
+
+
+1 −xR
+βxS
+h
+1 −
+
+xR + αRSxS
+i
+x↑
+ 1 −ϵ
+2
+
+
+
+−1
+
+.
+(B22)
+If the resistant cell population is negligible i.e. xR ≪xS (and note that γ →1 for most
+patients) then this expression can be further simplified:
+ρ ≈
+1 −γ
+x↑
+ 1 −ϵ
+2
+ .
+(B23)
+This implies the tightest control window ϵ (thus the maximum policy parameter η↓) will
+give the smallest treatment ratio ρ.
+b.
+The Total Achievable Time τtot
+The total achievable time can be calculated from the sum of the times given in Eq. (B6),
+Eq. (B16), and Eq. (B20); however, the resulting expression is quite complex. In the limit
+of very small resistant cells in the beginning xR(0) →0, the formula for τtot is simple and
+can be splitted into two parts:
+τtot = τ (c)
+tot + τ (a)
+tot .
+(B24)
+33
+The part τ (c)
+tot is equal to the total achievable time if a continuous drug treatment is applied
+from the beginning, while τ (a)
+tot represents the additional time gained by using an adaptive
+chemotherapeutic treatment (for a given control window ϵ and on-drug level PSA↑) instead:
+τ (c)
+tot ≈ln
+
+xthr
+(1 −xthr)xR(0)
+
+r−1
+R ,
+τ (a)
+tot ≈
+"
+αRSx↑
+ 1 −ϵ
+2
+
+1 −αRSx↑
+ 1 −ϵ
+2
+
+#
+ln
+(
+x↑
+
+1 −x↑
+ 1 −ϵ
+2
+
+xR(0)
+)
+r−1
+R .
+(B25)
+Consider increasing the xthr but does not let it surpasses 1/αRS, then maximum time gained
+corresponds to the tightest control (i.e. smallest possible ϵ) and the highest PSA on-drug
+level below the threshold (i.e. largest allowable x↑):
+max τ (a)
+tot ≤τ (a)
+tot (0, xthr) =
+
+αRSxthr
+1 −αRSxthr
+
+τ (c)
+tot .
+(B26)
+This description is that of the HLTC treatment. If we let xthr exceed 1/αRS, then max τ (a)
+tot
+can be infinitely large, indicating that the cancer disease can become chronic. Note that for
+this to occur, the total number of cancer cells must be stabilized, as indicated in Eq. (B8).
+This stabilization can fail if the population of sensitive cells is too low, as explained in Eq.
+(B11).
+We have made several assumptions and approximations to reach the conclusions outlined
+above. While our findings may not be universally applicable, they can serve as a valuable
+guide, as they agrees with the optimal treatment strategy for most cases (41 out of 43)
+discussed in Appendix C.
+Appendix C: Optimal Treatment Policy Report
+We report the optimal adaptive therapy treatment policy parameters (η∗
+↑, η∗
+↓) found by
+employing a Bayesian optimization approach, with different values of the PSA threshold
+i.e.
+PSAthr/PSAK = 0.14 in Table I and PSAthr/PSAK = 0.19 in Table II. After the
+results found in Section V A 2, instead of select neval = 10 random points to evaluate at the
+beginning, we do that for neval −2 = 8 and let the last two points to be (η↑, η↓) = (0.00, 0.00)
+(representing a continuous treatment start at t = 0) and (η↑, η↓) = (0.90, 0.90) (representing
+a HLTC treatment).
+There is only one patient that has (η∗
+↑, η∗
+↓) ̸= (0.90, 0.90) for both of these PSAthr/PSAK,
+which is patient P1005. Upon closer examination, we find that this patient has very low drug
+34
+Patient ID
+η∗
+↑
+η∗
+↓
+τtot(η∗
+↑, η∗
+↑) τtot(0.90, 0.90) τtot(0.00, 0.00)
+P1001
+0.90 9.00
+112
+112
+108
+P1002
+0.90 0.90
+544
+544
+376
+P1004
+0.90 0.90
+271
+271
+249
+P1005
+0.22 0.81
+10
+10
+10
+P1006
+0.90 0.90
+76
+76
+74
+P1007
+0.90 0.90
+664
+664
+406
+P1009
+0.90 0.90
+680
+680
+555
+P1015
+0.90 0.90
+223
+223
+189
+P1018
+0.90 0.90
+382
+382
+271
+P1020
+0.90 0.90
+495
+495
+345
+C001
+0.90 0.90
+556
+556
+431
+C003
+0.90 0.90
+531
+531
+418
+C004
+0.90 0.90
+205
+205
+177
+C005
+0.90 0.90
+228
+228
+191
+C009
+0.90 0.90
+248
+248
+223
+C010
+0.90 0.90
+285
+285
+244
+C011
+0.90 0.90
+593
+593
+495
+C013
+0.90 0.90
+474
+474
+370
+C014
+0.90 0.90
+494
+494
+405
+C015
+0.90 0.90
+317
+317
+234
+TABLE I: PSAthr/PSAK = 0.14
+effectiveness, indicating that for the PSA threshold values we investigated, it is preferable
+to initiate treatment as soon as possible. In Fig. 10, we show the PSA progressions under
+PSAthr/PSAK = 0.19, for the adaptive treatment using HLTC (η↑, η↓) = (0.90, 0.90) and
+for the optimal treatment (η∗
+↑, η∗
+↓) identified by our Bayesian optimization approach. Note
+that PSA↑for the found optimal treatment is already below PSA(0), and PSA(t) does not
+decrease, indicating that it is effectively equivalent to a continuous treatment initiated from
+the very beginning at t = 0.
+35
+Patient ID
+η∗
+↑
+η∗
+↓
+τtot(η∗
+↑, η∗
+↑) τtot(0.90, 0.90) τtot(0.00, 0.00)
+P1001
+0.90 0.90
+147
+147
+126
+P1002
+0.90 0.90
+959
+959
+427
+P1004
+0.90 0.90
+358
+358
+303
+P1005
+0.41 0.68
+45
+38
+45
+P1006
+0.90 0.90
+101
+101
+93
+P1007
+0.90 0.90
+1196
+1196
+464
+P1009
+0.90 0.90
+1005
+1005
+652
+P1010
+0.90 0.90
+244
+244
+177
+P1015
+0.90 0.90
+365
+365
+230
+P1018
+0.90 0.90
+646
+646
+320
+P1020
+0.90 0.90
+853
+853
+406
+C001
+0.90 0.90
+884
+884
+511
+C003
+0.90 0.90
+831
+831
+489
+C004
+0.90 0.90
+282
+282
+211
+C005
+0.90 0.90
+316
+316
+221
+C007
+0.90 0.90
+295
+295
+191
+C009
+0.90 0.90
+377
+377
+296
+C010
+0.90 0.90
+435
+435
+313
+C011
+0.90 0.90
+913
+913
+579
+C012
+0.90 0.90
+985
+985
+511
+C013
+0.90 0.90
+769
+769
+442
+C014
+0.90 0.90
+724
+724
+470
+C015
+0.90 0.90
+522
+522
+280
+TABLE II: PSAthr/PSAK = 0.19
+36
+FIG. 10: Cancer progression of patient P1005 under the PSA threshold PSAthr/PSAK = 0.19.
+This patient has a low drug effectiveness parameters, so that when the drug is administrated early, it
+only has a small impact. We show the response of this patient P1007 under the HLTC adaptive therapy
+with (η↑, η↓) = (0.90, 0.90) in (A) (A), and under the optimal adaptive therapy (identified via Bayesian
+optimization) with (η∗
+↑, η∗
+↓) = (0.41, 0.68) in (B), which is equivalent to a continuous treatment started from
+the very beginning. The black arrow indicates the PSA threshold for each plot.
+[1] A. B. Turke, K. Zejnullahu, Y.-L. Wu, Y. Song, D. Dias-Santagata, E. Lifshits, L. Toschi,
+A. Rogers, T. Mok, L. Sequist, et al., Cancer cell 17, 77 (2010).
+[2] H.-e. C. Bhang, D. A. Ruddy, V. Krishnamurthy Radhakrishna, J. X. Caushi, R. Zhao, M. M.
+Hims, A. P. Singh, I. Kao, D. Rakiec, P. Shaw, et al., Nature medicine 21, 440 (2015).
+[3] A. Sottoriva, H. Kang, Z. Ma, T. A. Graham, M. P. Salomon, J. Zhao, P. Marjoram, K. Sieg-
+mund, M. F. Press, D. Shibata, et al., Nature genetics 47, 209 (2015).
+[4] D. M. Fitzgerald, P. Hastings, and S. M. Rosenberg, Annual Review of Cancer Biology 1, 119
+(2017).
+[5] A. A. Hoffmann and M. J. Hercus, Bioscience 50, 217 (2000).
+[6] A. N. Hata, M. J. Niederst, H. L. Archibald, M. Gomez-Caraballo, F. M. Siddiqui, H. E.
+Mulvey, Y. E. Maruvka, F. Ji, H.-e. C. Bhang, V. Krishnamurthy Radhakrishna, et al., Nature
+medicine 22, 262 (2016).
+[7] M. Ramirez, S. Rajaram, R. J. Steininger, D. Osipchuk, M. A. Roth, L. S. Morinishi, L. Evans,
+W. Ji, C.-H. Hsu, K. Thurley, et al., Nature communications 7, 10690 (2016).
+37
+[8] J. Qin, X. Liu, B. Laffin, X. Chen, G. Choy, C. R. Jeter, T. Calhoun-Davis, H. Li, G. S.
+Palapattu, S. Pang, et al., Cell stem cell 10, 556 (2012).
+[9] C. J. Ercole, P. H. Lange, M. Mathisen, R. K. Chiou, P. K. Reddy, and R. L. Vessella, The
+Journal of urology 138, 1181 (1987).
+[10] J. R. Prensner, M. A. Rubin, J. T. Wei, and A. M. Chinnaiyan, Science translational medicine
+4, 127rv3 (2012).
+[11] J. S. De Bono, C. J. Logothetis, A. Molina, K. Fizazi, S. North, L. Chu, K. N. Chi, R. J.
+Jones, O. B. Goodman Jr, F. Saad, et al., New England Journal of Medicine 364, 1995 (2011).
+[12] R. A. Gatenby, A. S. Silva, R. J. Gillies, and B. R. Frieden, Cancer research 69, 4894 (2009).
+[13] A. Stein, M. Salvioli, H. Garjani, J. Dubbeldam, Y. Viossat, J. S. Brown, and K. Staˇnkov´a,
+Philosophical Transactions of the Royal Society B: Biological Sciences 378, 20210495 (2023),
+https://royalsocietypublishing.org/doi/pdf/10.1098/rstb.2021.0495.
+[14] J. West, L. You, J. Zhang, R. A. Gatenby, J. S. Brown, P. K. Newton, and A. R. Anderson,
+Cancer research 80, 1578 (2020).
+[15] J. B. West, M. N. Dinh, J. S. Brown, J. Zhang, A. R. Anderson, and R. A. Gatenby, Clinical
+Cancer Research 25, 4413 (2019).
+[16] E. Hansen and A. F. Read, Cancers 12, 10.3390/cancers12123556 (2020).
+[17] J. Zhang, J. Cunningham, J. Brown, and R. Gatenby, Elife 11, e76284 (2022).
+[18] J. E. Oesterling, D. C. Rice, W. J. Glenski, and E. J. Bergstralh, Urology 42, 276 (1993).
+[19] R. B. Ge, Z. W. Wang, and L. Cheng, Npj Precision Oncology 6 (2022), 0z0sc Times Cited:50
+Cited References Count:138.
+[20] J. S. Zhang, J. J. Cunningham, J. S. Brown, and R. A. Gatenby, Nature Communications 8
+(2017), fn9yp Times Cited:235 Cited References Count:36.
+[21] K. Fizazi, N. Tran, L. Fein, N. Matsubara, A. Rodriguez-Antolin, B. Y. Alekseev,
+M. ¨Ozg¨uro˘glu, D. Ye, S. Feyerabend, A. Protheroe, et al., New England Journal of Medicine
+377, 352 (2017).
+[22] K. Hashimoto, H. Tabata, T. Shindo, T. Tanaka, J. Hashimoto, R. Inoue, T. Muranaka,
+H. Hotta, M. Yanase, Y. Kunishima, et al., in Urologic Oncology: Seminars and Original
+Investigations, Vol. 37 (Elsevier, 2019) pp. 485–491.
+[23] M. J. Lindstrom and D. M. Bates, Biometrics , 673 (1990).
+[24] T. M. Inc., Matlab version: 9.14.0.2239454 (r2023a) (2023).
+38
+[25] E. L. Crow and K. Shimizu, Lognormal distributions (Marcel Dekker New York, 1987).
+[26] D. C. Montgomery, E. A. Peck, and G. G. Vining, Introduction to linear regression analysis
+(John Wiley & Sons, 2021).
+[27] B. Efron, Journal of the American Statistical Association 73, 113 (1978).
+[28] R. Anderson-Sprecher, The American Statistician 48, 113 (1994).
+[29] O. Schabenberger and F. J. Pierce, Contemporary statistical models for the plant and soil
+sciences (CRC press, 2001).
+[30] D. McFadden, Conditional logit analysis of qualitative choice behavior (1972).
+[31] T. J. Smith and C. M. McKenna, Multiple Linear Regression Viewpoints 39, 17 (2013).
+[32] A.-N. Spiess and N. Neumeyer, BMC pharmacology 10, 1 (2010).
+[33] S. V. Archontoulis and F. E. Miguez, Agronomy Journal 107, 786 (2015).
+[34] P. I. Frazier, arXiv preprint arXiv:1807.02811 (2018).
+[35] M. A. Oliver and R. Webster, International Journal of Geographical Information System 4,
+313 (1990).
+[36] E. Schulz, M. Speekenbrink, and A. Krause, Journal of Mathematical Psychology 85, 1 (2018).
+[37] A. Chapple, S. Ziebland, A. Herxheimer, A. McPherson, S. Shepperd, and R. Miller, BJU
+international 90, 257 (2002).
+[38] E. C. Hayden et al., Nature 455, 148 (2008).
+[39] V. Schirrmacher, International journal of oncology 54, 407 (2019).
+[40] M. S. Aslam, S. Naveed, A. Ahmed, Z. Abbas, I. Gull, and M. A. Athar, Journal of Cancer
+Therapy 2014 (2014).
+[41] J. J. Cunningham, J. S. Brown, R. A. Gatenby, and K. Staˇnkov´a, Journal of theoretical biology
+459, 67 (2018).
+[42] T. V. Phan, G. Wang, T. K. Do, I. G. Kevrekidis, S. Amend, E. Hammarlund, K. Pienta,
+J. Brown, L. Liu, and R. H. Austin, Journal of Biological Physics 47, 387 (2021).
+[43] P. Kapitza, Zh. Eksp. Teor. Fiz 21, 588 (1951).
+[44] J. Sanz-Serna, Stochastics & Dynamics 8 (2008).
+[45] G. Wang, T. V. Phan, S. Li, J. Wang, Y. Peng, G. Chen, J. Qu, D. I. Goldman, S. A. Levin,
+K. Pienta, et al., Proceedings of the National Academy of Sciences 119, e2120019119 (2022).
+[46] A. Wu, K. Loutherback, G. Lambert, L. Est´evez-Salmer´on, T. D. Tlsty, R. H. Austin, and
+J. C. Sturm, Proceedings of the National Academy of Sciences 110, 16103 (2013).
+39
+[47] T. V. Phan, R. Morris, M. E. Black, T. K. Do, K.-C. Lin, K. Nagy, J. C. Sturm, J. Bos, and
+R. H. Austin, Physical Review X 10, 031017 (2020).
+[48] T. V. Phan, S. Li, D. Ferreris, R. Morris, J. Bos, B. Gou, S. Martiniani, P. Chaikin, Y. G.
+Kevrekidis, and R. H. Austin, arXiv preprint arXiv:2401.16691 (2024).

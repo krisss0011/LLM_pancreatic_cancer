@@ -1,0 +1,1277 @@
+Quantum enhanced stratification of Breast Cancer: exploring quantum expressivity
+for real omics data
+Valeria Repetto,1, 2, ∗Elia Giuseppe Ceroni,1, 3 Giuseppe Buonaiuto,4 and Romina D’Aurizio1
+1National Research Council of Italy (CNR), Institute of Informatics and Telematics (IIT),via Giuseppe Moruzzi 1,Pisa, Italy
+2Computational Biomedicine Unit, Department of Medical Sciences, University of Turin,via Santena 19,Torino,Italy
+3University of Siena,via Roma 56, Siena,Italy
+4Institute for High Performance Computing and Networking (ICAR),
+National Research Council of Italy (CNR), via Pietro Castellino, Naples, Italy
+(Dated: September 24, 2024)
+Quantum Machine Learning (QML) is considered one of the most promising applications of Quan-
+tum Computing in the Noisy Intermediate Scale Quantum (NISQ) era for the impact it is thought to
+have in the near future. Although promising theoretical assumptions, the exploration of how QML
+could foster new discoveries in Medicine and Biology fields is still in its infancy with few examples.
+In this study, we aimed to assess whether Quantum Kernels (QK) could effectively classify subtypes
+of Breast Cancer (BC) patients on the basis of molecular characteristics. We performed an heuristic
+exploration of encoding configurations with different entanglement levels to determine a trade-off
+between kernel expressivity and performances. Our results show that QKs yield comparable cluster-
+ing results with classical methods while using fewer data points, and are able to fit the data with a
+higher number of clusters. Additionally, we conducted the experiments on the Quantum Processing
+Unit (QPU) to evaluate the effect of noise on the outcome. We found that less expressive encodings
+showed a higher resilience to noise, indicating that the computational pipeline can be reliably imple-
+mented on the NISQ devices. Our findings suggest that QK methods show promises for application
+in Precision Oncology, especially in scenarios where the dataset is limited in size and a granular
+non-trivial stratification of complex molecular data cannot be achieved classically.
+I.
+INTRODUCTION
+Quantum Machine Learning (QML) has been proposed
+as one of the most promising and worth investigating
+applications of Quantum Computing (QC) for current
+NISQ devices[1–4]. In the QML framework, classical ML
+algorithms are embedded into the quantum-mechanical
+formalism by exploiting the paradigm shift of QC’s in-
+formation. The quantum processing leverages entangle-
+ment, superposition and interference to enhance, speed
+up and optimise over classical computing, sometimes
+even exponentially faster [5, 6]. This can help in learn-
+ing in both computational and sample complexity aspects
+[7]. Nevertheless, the quantum embedding alone does not
+transversally guarantee learnability [8–10] in particular
+for real classical data [11]. Classical ML methods thrive
+to find and learn patterns in the data and they were
+successfully applied to different fields, including biology
+and medicine.
+Specifically for precision oncology, ML
+methods are crucial in specific tasks, such as prognostic
+predictions, human cancer stratification, and discovery
+of new clinical subgroups using omics datasets[12]. Nev-
+ertheless, despite the substantial progress facilitated by
+computational methods, some fundamental constraints
+in modelling biological and clinical systems still persist.
+In fact, ML models often fail to capture and reconcile
+the real and complex dynamics of tumors due to reduc-
+tionist approaches to the problem. Moreover, due to the
+∗valeria.repetto@iit.cnr.it
+high heterogeneity of complex omics information, avail-
+able data can not be enough for classical ML models to
+properly solve their structure at a granular level [13].
+Facilitated by the technological innovation and rapid re-
+duction in sequencing costs, thousands of cancer samples
+have been profiled so far by pan-cancer studies [14] re-
+vealing high level of heterogeneity both intra- and inter-
+samples. The inter-samples heterogeneity influences clin-
+ical tumor classification, patient prognosis and prediction
+of response to personalized strategies [15]. Hence, it is of
+pivotal importance to take it into account, for an effective
+application of precision oncology. Breast cancer is of spe-
+cial interest given its high prevalence [16] and its complex
+landscape of somatic alterations which gave rise to multi-
+ple and divergent subtype classifications [17, 18]. In this
+respect, it represents an ideal complex and real use case
+to investigate the potentiality of QML approaches to dis-
+entangle molecular heterogeneity and extract meaningful
+non trivial patterns and relationships within the consid-
+ered dataset [19]. Indeed, the exploration of QML ap-
+proaches in biology and medicine is still at an early stage,
+with most proof of concept studies exploiting QML mod-
+els for downsized problem in diagnostics and treatment
+[19].
+In particular, Quantum Support Vector Machine
+(QSVM) has been employed as supervised classification
+method mainly for distinguishing pathological conditions
+using clinical records [20] or biomedical images [21]. For
+Cancer case, BC was classified from mammography using
+Quantum Transfer Learning [22], from ultrasound images
+with Quantum Neural Network [23], and from digitized
+image features of fine needle aspirate [24, 25] or Dig-
+ital Breast Tomosynthesis [26] using QSVM. Very few
+arXiv:2409.14089v1  [quant-ph]  21 Sep 2024
+2
+attempts have been made so far with large and diverse
+datasets as those including omics data. To the best of
+our knowledge, the only study is by Li et al. [27] who
+trained a QSVM exploiting annealing-based Ising ML al-
+gorithms on human tumour data from the TCGA and
+compared its performance with conventional ML algo-
+rithms in distinguishing cancer versus normal healthy
+samples or, among BC tumours, in stratifying by hor-
+monal levels (i.e. LumA vs LumB, ERpos vs ERneg),
+and in reducing sample complexity. Among the possi-
+ble quantum algorithm that promise to be disruptive for
+treating complex data, Quantum Kernel (QK) are re-
+garded as highly efficient tools for identifying non-linear
+data relationships, by measuring the similarity in a given
+higher dimensional representation space, which is native
+when encoding input data in a quantum state[28]. In this
+study, we make use of QK methods with complex multi-
+omics tumoral data, aiming to test their potential to de-
+tect a more granular structure of the tumoral samples and
+seek new subgroups, approaching the problem in an un-
+supervised way. Since the embedding of classical data in
+a proper way is a highly non-trivial task [29], we investi-
+gated different QK setups that modulate the expressivity
+of the embedding itself. We also tested various sampling
+of the BC multi-omics dataset, runnnig the experiments
+on both simulated and real quantum hardware to assess
+the consistency of our findings and, finally, we compared
+them with the classical kernel counterpart. The results
+show that the quantum approach foster a clusterization
+that better fit the data with higher number of cluster.
+Moreover, we noticed that performances trend remains
+consistent across sample sizes with higher coherence for
+higher scoring quantum embeddings, suggesting that, for
+those cases, the patterns extracted can be learnt with
+fewer data points. We furthermore demonstrated that
+quantum noise, which in principle hinders the quantum
+computation, has little or no effect on the computational
+pipeline for some configurations, thus showing that, in
+principle, the approach shown here can be implemented
+on NISQ devices for practical real-world applications.
+II.
+BACKGROUND
+A.
+Kernel theory
+In kernel theory, given a set of training inputs x be-
+longing to the input space X ∈Rn, to recognise patterns
+a similarity measure called kernel k [30] is defined as a
+function
+k : X × X →R
+(1)
+Let H be a Hilbert space, called the feature space, and x
+a sample from an input set X. We can define a feature
+map Φ
+Φ : X →H
+(2)
+as a map from inputs to vectors in the Hilbert space.
+The inner product of two inputs embedded in the feature
+space define a kernel k:
+k(xi, xj) := ⟨Φ(xi), Φ(xj)⟩
+(3)
+For a set of N input points ∈X a positively defi-
+nite matrix called Kernel matrix (or Gram matrix) K ∈
+RN×N is defined using the kernel function k
+K := [k(xi, xj)]ij
+(4)
+for all (xi, xj) ∈X.
+The power of kernel methods is
+that the feature space is usually of much higher dimen-
+sion than the original space, sometimes even of infinite
+dimension, where however the inner product can still be
+computed through efficient manipulation of input data.
+An effective and commonly use example is the Radial
+Basis Functions (RBFs) kernel that projects the input in
+an infinite dimensional feature space by evaluating the
+kernel matrix as follows:
+K(xi, xj) = e−
+||xi−xj ||2
+2σ2
+(5)
+where ||xi −xj||2 is the Euclidean distance between the
+two input vectors and σ being the standard deviation
+of the Gaussian distribution. QK are kernels where the
+kernel is evaluated through inner product of quantum
+states, since the process of encoding inputs in a quantum
+state is interpreted as a feature map that embed data
+to the quantum Hilbert space [28].
+In QK the input
+data x ∈Rn are encoded, via an encoding function
+ϕ(x), in a quantum state.
+Formally this encoding
+process is realized through the application of a unitary
+transformation Uϕ(x) acting on n qubits in the initial
+ground state |0⟩⊗n[31] :
+ϕ : x −→|ϕ(x)⟩= Uϕ(x)|0⟩⊗n
+(6)
+The kernel matrix is then computed as the pairwise inner
+product of each quantum state in the dataset:
+K(xi, xj) = |⟨ϕ(xi)||ϕ(xj)⟩|2
+= ⟨0|⊗nU †
+ϕ(Xi)Uϕ(xj)|0⟩⊗n
+(7)
+Where the QK matrix entries are highly influenced by
+the choice of the unitary transformation Uϕ [32].
+B.
+Quantum Embedding of classical data
+Classical data can be encoded into the state |ϕ(x)⟩in
+several ways and the design of Uϕ(x) should be chosen
+to maximally exploit the quantum setting, yielding to
+classically intractable kernels that are hard to simulate
+but easy to implement on a quantum computer [33]. For
+this reasons we adopted same IPQ-style encoding as in
+3
+[34].
+More formally the unitary ansaz we employed is
+generally described as follows:
+Uϕ(x) = Uz(x)H⊗n
+(8)
+Where there is a layer of Hadamar gates H acting in
+parallel on the n qubits, followed by a unitary UZ that,
+for entangled embeddings in[34], takes the form:
+UZ(x) =
+Y
+[i,j]∈S
+RZiZj(xixj)
+n
+O
+k=1
+RZ(xk)
+(9)
+Where RZZ is a two qubits rotation that makes them
+entangled and S is the set of qubits to be entangled.
+Nevertheless, this choice does not guarantee alone an ad-
+vantage over classical embedding as it is deeply influenced
+by the data characteristics and tasks [29]. The specifics
+of the quantum embeddings chosen for our experiments
+are described in the next ”Experimental set up” section.
+C.
+Expressivity regularization
+The inherent high-dimensionality of the Hilbert space
+used for projecting the input data can hinder the model
+performance.
+In particular for QK it has been shown
+that, as a result of highly expressive problem agnostic en-
+coding, the non-diagonal entries distribution often skews
+around the mean [35], making the points in the Quantum
+Hilbert space nearly indistinguishable. This phenomenon
+has a close parallelism to the curse of dimensionality of
+classical ML. It has been shown [36, 37] that acting on
+the parametric rotational gate angles can regularise the
+model expressivity. This strategy is implemented with
+a tunable hyperparameter called bandwidth, which is a
+constant within the range [0, 1]. This parameter effec-
+tively scales the input, confining the embeddings to a
+more restricted region of the quantum state space as in:
+|ϕ(x)⟩= Uϕ(cx)|0⟩⊗n
+(10)
+were c is the bandwidth parameter.
+III.
+EXPERIMENTAL SET-UP
+A.
+Breast Cancer Multi-omics dataset
+The Molecular Taxonomy of Breast Cancer Interna-
+tional Consortium (METABRIC) dataset [17] includes
+the multi-omics profiles of 1980 primary biopsy samples
+of BC patients and represents the first large effort for
+studying the BC molecular heterogeneity. METABRIC
+dataset offers valuable insights, as it comprehensively en-
+compasses a variety of multi-omics profiles which include
+gene expression and copy number variants. These two
+omics count respectively 20603 and 22544 features and
+have highly distinctive properties: gene expression lev-
+els are positive continuous variables indicating the abun-
+dance of mRNA molecules, whereas CNVs are categorical
+features representing somatic alterations which involve
+the changes in the number of copies of a particular DNA
+segment. In addition, intra-modal and inter-modal inde-
+pendence is not satisfied, and both modalities are subject
+to the intrinsic noise of the experimental procedure em-
+ployed to extract these molecular features [38].
+The integration of the genomic and transcriptomic pro-
+files revealed 10 subtypes, termed integrative clusters
+(IntClust), characterised by distinct genomic drivers [17].
+These subtypes hold significant clinical relevance, as they
+exhibit varying patterns of survival [17]. It is important
+to note that multiple interpretations of the same dataset
+have been proposed so far based on alternative intrin-
+sic subtypes (e.g.luminal A, luminal B, HER2-enriched,
+basal-like or triple-negative, and normal-like), and there-
+fore, the IntClust categorisation should not be viewed as
+overly restrictive [15].
+Due to the high dimensionality of the dataset, we per-
+formed a reduction step formally projecting our input
+data in a lower dimensional space (i.e. 4 dim). To avoid
+flattening of meaningful signals through this stage, we
+used Uniform Manifold Approximation and Projection
+(UMAP) [39] as a reduction strategy since it exploits
+Topological Data Analysis (TDA) ensuring the topology
+of the underlying data is captured and maintained in the
+reduced space.
+The algorithm effectively uses a set of
+hyperparameters to balanced local and global structure;
+for our case we implemented the transformation with the
+default parameters.
+B.
+Quantum encoding of data
+The choice of a suitable quantum embedding, in case
+of complex real data, is not a straightforward task [11].
+Nevertheless, it is possible to explore, as set out in this
+work, a sub set of configurations of the enconding scheme,
+in particular by varying the entanglement map of the
+unitary ansatz. In this way, a trade-off between the ex-
+pressivity of the kernel and the task-related performance,
+can be assessed. We specifically explored three configu-
+ration of the IPQ-style encoding scheme, making use of
+unitary templates with different levels of entanglement
+of the qubits. The most simple configuration employed
+is the Z feature map without any entanglement, utilis-
+ing a sequence of Hadamard and rotational P gates, a
+single qubit rotation around the Z axis, implemented in
+our case for a 4-dim classical input x as shown in Fig.
+1(a).
+We then implemented the ZZ feature map with
+both linear and full entanglement: in the linear entan-
+glement, each qubit is entangled with its neighbouring
+qubits, while in the full entanglement, each qubit is en-
+tangled with every other qubit. These feature map re-
+sulted respectively in the embedding shown in Fig.1(b)
+and Fig. 1(c). Furthermore, we regularised the expres-
+4
+|0i
+H
+P(2x0)
+H
+P(2x0)
+|0i
+H
+P(2x1)
+H
+P(2x1)
+|0i
+H
+P(2x2)
+H
+P(2x2)
+|0i
+H
+P(2x3)
+H
+P(2x3)
+3
+|0i
+H
+P(2x0)
+|0i
+H
+P(2x1)
+P(2(⇡−x0)(⇡−x1))
+|0i
+H
+P(2x2)
+P(2(⇡−x0)(⇡−x2))
+P(2(⇡−x1)(⇡−x2))
+|0i
+H
+P(2x3)
+P(2(⇡−x0)(⇡−x3))
+P(2(⇡−x1)(⇡−x3))
+P(2(⇡−x2)(⇡−x3))
+|0i
+H
+P(2x0)
+|0i
+H
+P(2x1)
+P(2(⇡−x0)(⇡−x1))
+|0i
+H
+P(2x2)
+P(2(⇡−x1)(⇡−x2))
+|0i
+H
+P(2x3)
+P(2(⇡−x2)(⇡−x3)
+1
+(a)
+(b)
+(c)
+FIG. 1. Graphic high-level circuit representation of the four qubits feature maps used with different level of entanglement: (a)
+Z feature map with no entanglement, (b) ZZ feature map with linear and (c) full entanglement.
+sivity of the quantum embeddings tuning the angle range
+β. For each feature map, we tested five different scaling
+of the angle range so that the input data x ∈[0, β], where
+β ∈{ π
+8 , π
+4 , π
+2 , π, 2π}.
+C.
+Clustering evaluation
+Clustering is a widely used approach in complex bio-
+logical data analysis to group similar samples based on
+molecular descriptors, and to uncover relationships be-
+tween cases. Here we choose to adopt Spectral Clustering
+method to stratify BC samples as it relies on the simi-
+larity matrix of the input data like the one we obtain
+from the kernel matrix (eq.7). Diverse internal valida-
+tion metrics exist to evaluate clustering robustness in an
+unsupervised case. Each of them is differently influenced
+by data characteristics (i.e. noise, density, subclusters,
+skewed distributions) [40], and has to be interpreted by
+considering which entities are depicted by the data, as
+for biological dataset [41]. In our case, with access only
+to the kernel matrix, we opted for the Silhouette Coeffi-
+cient (SC) [42] which relies solely on the pairwise distance
+between points, and is defined as:
+SC = 1
+N
+N
+X
+i
+s(i)
+(11)
+given a data set of N points and s(i) being the silhou-
+ette value associated to the i-th point which is defined as
+follows:
+s(i) =
+b(i) −a(i)
+maxi(a(i), b(i))
+(12)
+In which a(i) and b(i) are respectively the average dis-
+tance of the i-th point to its own cluster, and the av-
+erage distance to its second closest cluster. The value
+of the both the SC and the s(i) ranges in the inter-
+val {−1, 1} where a high value indicates that the object
+is well matched to its own cluster and weakly matched
+to neighbouring clusters. In addition, we employed Ad-
+justed Mutual Information (AMI) as a measure of agree-
+ment between two sets of labelled data [43]. Given two
+partitions U and V of the same set of N points, the AMI
+between them is calculated as:
+AMI(U, V ) =
+MI(U, V ) −E{MI(U, V )}
+max{H(U), H(V )} −E{MI(U, V )}
+(13)
+where H is the Shannon entropy over R clusters and MI
+is the mutual information between the two partitions,
+respectively defined as:
+H(U) = −
+R
+X
+i=1
+PU(i) log PU(i)
+(14)
+5
+MI(U, V ) =
+|U|
+X
+i=1
+|V |
+X
+j=1
+|Ui ∩Vj|
+N
+log N|Ui ∩Vj|
+|Ui||Vi|
+(15)
+IV.
+RESULTS
+A.
+Exact simulation
+We analysed the performance of the chosen quantum
+embeddings in an ideal noiseless setting on the full data
+set with 1980 samples and compared the results with a
+classical RBF embedding.
+In this phase we computed
+the QKs on a locally simulated quantum computer with
+4 qubits, using the qasm simulator backend from Qiskit
+, which is designed to simulate the behaviour of an ideal
+quantum circuit. Considering no assumptions were made
+regarding the partition of our data, we optimised the
+number of clusters (K) in a range from 2 to 10, where
+K = 10 refer to the IntClust subtypes [17]. Specifically,
+we evaluate the SC, as defined in eq 11, for each fea-
+ture map (i.e.
+quantum and RBF) and the quantum
+kernels have been evaluated for input values within the
+range [0, β], with β ∈{ π
+8 , π
+4 , π
+2 , π, 2π}.
+The results of
+the SC for the exact simulations are shown in Fig. 2.
+Overall, it can be noticed that ZZ-linear map outper-
+forms the classical RBF model for K = 2, the trivial
+case, and for finer grouping with K ≥9, with β =
+π
+8
+and with β = π
+4 respectively. However, the RBF kernel
+shows higher SCs for 3 ≤K ≤8. This seemingly irregu-
+lar behaviour can be explained taking into consideration
+that the SC might be affected by the presence of macro
+and micro structures within the data, advantaging clus-
+tering with lower K [40]. The SC of ZZ full also show
+an improvement as K increases for all β values, although
+significantly lower than ZZ linear case, suggesting that a
+more granular stratification better suits the data struc-
+ture.
+The Z feature map, on the other hand, favours
+clustering with lower K for β ≤π
+2 being K = 5 the best
+SC value. The trend then switches for β > π
+2 for which
+higher values of K yield a better SC. In addition, the
+experimental results demonstrate that the quality of the
+clustering, entailed by the SC, depends on the complexity
+of the encoding, i.e. on the entanglement structure of the
+feature map, and further by the angle β, which provides
+a regularisation of the expressivity. In fact, the entangled
+ZZ feature maps strongly benefit from regularisation, as
+they show a subsequent decrease of the score with the in-
+crease of the angle range β. Whereas the Z feature map
+provides its bests results with some level of angle tuning
+for π
+4 ≤β ≤π and has its pick for β = π
+2 .
+1.
+Sample complexity analysis
+To further assess the sample complexity of quantum
+models for our data, we focused on the best perform-
+ing ZZ linear feature map.
+We selected the highest
+scoring embedding configuations by setting a threshold
+of SC ≥0.3, and inspected how samples are grouped
+among clusters when the sample size varies from 1980,
+the full set, to a subset of N samples with N
+∈
+{50, 100, 250, 500, 800, 1000}.
+We estimated clustering
+coherence of the reduced sets by calculating the AMI
+with respect to the full data for both classical RBF and
+quantum feature maps. The results are reported in Fig.
+3. On average, the quantum derived clustering reach a
+plateau with an AMI ≥0.8 at N = 250 (Fig.
+3 (a))
+, slightly before the classical one.
+For the trivial case
+K = 2 , which presents the highest SCs for both the
+classical and the quantum case, the ZZ linear map with
+β = π
+8 reaches perfect agreement (AMI = 1) at N = 100
+whereas the RBF kernel needs N = 500 samples (Fig.
+3 (b)). Similar outcomes can be observed with a more
+granular grouping of the samples with still high SC (i.e.
+K = 10), in which the best configurations of quantum
+clustering achieve higher AMI compared to the classical
+one for each sample subset with N < 1000. Moreover,
+the ZZ linear with β = π
+4 , with the highest SC = 0.39,
+shows a high coherence level with AMI = 0.9 even with
+very few samples (i.e.
+N = 100) (Fig.
+3 (c)).
+This
+behaviour suggest that, for those quantum embeddings
+that achieve higher scores, the captured structure can be
+learnt with fewer data points.
+B.
+Execution on QPU
+Moving forward from the ideal simulation, we com-
+puted all QK on a real noisy NISQ device, to assess the
+reliability of numerical simulation in light of quantum
+noise, and verify how clusters might vary between dif-
+ferent embeddings. The current limitations on available
+systems hinder the ability to run the experiments on the
+whole dataset, thus we consider, in the following, a re-
+duced sampling of the data with 100 points. This fact,
+while is expected to affect the results of the clustering
+analysis, does not undermine the capacity of addressing
+the overall effects of the quantum noise on the computa-
+tional pipeline, as it depends mostly on the hardware
+specification and on the circuit composition.
+Indeed,
+to run a quantum circuit on a real quantum computer,
+specifically a gate base quantum hardware, it is necessary
+to rewrite it from an high-level circuit into an equivalent
+circuit that matches the topology of the specific quan-
+tum device, and further to optimize the execution for
+present day noisy quantum systems. This process, called
+transpilation, can change substantially the outline of the
+original circuit in terms of circuit depth, number and
+type of gates used. Since these aspects are crucial for
+determining the resilience of a circuit to noise, they need
+to be taken into account in discussing quantum hardware
+results. In table I we reported the specific of each tran-
+spiled circuit in use. We implemented our experiments
+on the ibm quantum system ibmq Mumbai, fitting the
+6
+2
+3
+4
+5
+6
+7
+8
+9
+10
+K
+0.54
+0.57
+0.43
+0.41
+0.41
+0.39
+0.36
+0.36
+0.35
+(a) rbf
+8
+4
+2
+2
+0.27
+0.32
+0.33
+0.21
+0.092
+0.25
+0.32
+0.35
+0.22
+0.11
+0.23
+0.32
+0.35
+0.24
+0.12
+0.22
+0.33
+0.37
+0.26
+0.14
+0.21
+0.31
+0.36
+0.31
+0.15
+0.15
+0.27
+0.34
+0.31
+0.17
+0.1
+0.27
+0.33
+0.31
+0.17
+0.066
+0.23
+0.28
+0.31
+0.19
+0.026
+0.23
+0.27
+0.32
+0.19
+(b) Z
+8
+4
+2
+2
+0.63
+0.35
+0.14
+0.076
+0.047
+0.53
+0.31
+0.17
+0.085
+0.046
+0.36
+0.31
+0.19
+0.1
+0.051
+0.29
+0.34
+0.22
+0.12
+0.054
+0.3
+0.32
+0.24
+0.13
+0.058
+0.32
+0.35
+0.26
+0.15
+0.062
+0.31
+0.35
+0.29
+0.16
+0.069
+0.32
+0.37
+0.3
+0.17
+0.077
+0.33
+0.39
+0.3
+0.18
+0.078
+(c) ZZ linear
+8
+4
+2
+2
+0.33
+0.17
+0.091
+0.063
+0.037
+0.34
+0.21
+0.099
+0.066
+0.032
+0.31
+0.22
+0.11
+0.074
+0.031
+0.32
+0.24
+0.12
+0.08
+0.035
+0.33
+0.25
+0.12
+0.085
+0.036
+0.31
+0.27
+0.13
+0.091
+0.038
+0.3
+0.28
+0.14
+0.098
+0.04
+0.32
+0.29
+0.16
+0.1
+0.043
+0.33
+0.28
+0.16
+0.11
+0.047
+(d) ZZ full
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+FIG. 2. Heatmaps with the SC at varying numbers of clusters K for each feature map configuration: (a) classical RBF; (b) Z
+encoding; (c) ZZ with linear entanglement; (d) ZZ with full entanglement. For quantum feature maps, SC values are reported
+at varying of the maximum angle range β
+50
+100
+250
+500
+800
+1000
+Sampling(N)
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+AMI
+(a) Avrage AMI 
+50
+100
+250
+500
+800
+1000
+Sampling(N)
+(b) AMI for K=2
+50
+100
+250
+500
+800
+1000
+Sampling(N)
+(c) AMI for K=10
+Classical
+Quantum
+RBF
+ZZ linear, 
+= 8
+ZZ linear, 
+= 4
+ZZ linear, 
+= 2
+FIG. 3. Adjusted Mutual Information (AMI) score plotted against the sampling of the data. Results are relative to classical
+and quantum stratifications, respectively reported in blue and orange, for configuration with SC ≥0.3. (a) Mean AMI of
+classical and quantum kernels. (b) AMI for configuration with K = 2 and (c) K = 10
+.
+quantum circuits to the hardware topology as shown in
+Fig. 4: out of the 27 qubits in the device we heuristi-
+cally selected 4 with higher level of connectivity and that
+minimise the average readout error rate. For each QK
+evaluated on ibmq Mumbai we calculated the SC, here
+reported in Fig. 5, versus the values obtained in sim-
+ulation. The Z feature map with β ≥π
+2 exihibits very
+good consistency with the ideal case, whereas the entan-
+gled ZZ linear and ZZ full feature maps deviate more
+from the ideal scenario. Still the present behaviour can
+be explained considering the depth and composition of
+the circuits transpiled on the QPU: in fact, as reported
+TABLE I. The table describes the depth and CX gate abun-
+dance of the transpiled circuits for each feature map.
+The
+numbers are relative to the full circuit which corresponds to
+U †U.
+Feature map(U) Entanglement type Circuit depth CX gate
+Z
+None
+5
+0
+ZZ
+linear
+63
+34
+ZZ
+full
+45
+24
+in table I, entangled feature maps account for a deeper
+7
+FIG. 4.
+IBMQ Mumbai 27 qubits hardware specifics and
+topology.
+Qubits selected for circuits implementation are
+shown in black.
+circuit and a higher number of CNOT gates and thus are
+more susceptible to noise, both single qubit noise and
+gate-level noise. Since different stratification can yield
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+SC simulation
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+SC QPU
+ftmap
+ZZ_full
+Z
+ZZ_linear
+8
+4
+2
+2
+Noisless simulaton
+FIG. 5.
+Comparison of the SC values obtained on the QPU
+with the noiseless simulation. SC values from QPU plotted
+against SC values from simulated runs. Point are coloured by
+feature map and shaped by angle range β. The dotted grey
+line denotes perfect consistency with the ideal simulation.
+to the same SC values, to further assess the clustering
+coherence we measured the AMI between simulated and
+real quantum stratification for each combination of the
+feature map, K, and β.
+For each feature map we plotted the AMI results for
+each K and β values in Fig.
+6.
+The deepest feature
+map (circuit depth = 63), the ZZ linear, presents the
+lowest AMI scores, while the overall best AMI scores dis-
+tribution are associated with the Z feature map (circuit
+depth = 5), which is in principle the less expressive. The
+fully entangled feature map (circuit depth = 45) shows
+intermediate values. Thus, the overall trend of the AMI
+confirms the previous findings in Fig 5: both the circuits
+depth and the gate composition emerging from the tran-
+spilation process, have a significant impact on the clus-
+ters consistency. In addition, using the Z feature map the
+coherence between simulated and real clusters increases
+with higher values of β: in particular, for β >
+π
+4 and
+K ≤7 , it achieves perfect agreement or almost perfect
+agreement. In contrast, the entangled feature maps ex-
+hibit the opposite trend, where a smaller β corresponds
+to a higher AMI. By crossing these results from real quan-
+tum hardware with the SC obtained in the ideal scenario
+(Fig. 6 ), which provides the best possible outcome for
+these data, it is possible to draw some conclusion about
+the effect of quantum noise on the clustering. It can be
+noticed that quantum kernels of entangled feature maps
+with high β give small SCs, thus they do not provide
+accurate clusters. In these cases the data can be easily
+partitioned very differently upon perturbations, poten-
+tially coming from any noisy source. Hence, when a real
+quantum hardware is in use, as there is an intrinsic noise
+source in the computation, the robustness of the clus-
+tering provided by the entangled kernel functions, with
+corresponding low SC values, is strongly hindered by the
+quantum noise.
+V.
+CONCLUSION
+We have investigated QK models for BC subtyping
+with a real multi-omics dataset addressing the challenges
+of problem-agnostic quantum embeddings for the best
+expressivity task-related trade-off.
+We explored three
+IPQ-style encoding schemes with different levels of entan-
+glement of the qubits, comparing them with a classical
+RBF model. The QK obtained with a noiseless simula-
+tion on the full dataset (N = 1980) show that the ZZ
+linear feature map achieved better clustering results, in
+terms of SC, compared to the classical RBF kernel for
+finer stratification of BC samples, with K ≥9. In addi-
+tion, varying the entanglement level and angle range, we
+noted how entangled feature map, which are in princi-
+ple more expressive, strongly benefits from angle tuning,
+confirming that embedding optimisation is needed. Fur-
+ther, we focused on the best data-fitting feature map, the
+ZZ linear, and demonstrated experimentally that config-
+urations with better clustering results (SC ≥0.3) foster
+a reduction of sample complexity. Indeed for the best
+performing cases (K = 2, K = 10) the ZZ linear was
+able to obtain highly coherent stratification (AMI ≥0.9)
+with the one obtained for the full dataset using only 100
+samples. This finding, already identified by [27] in the
+supervised setting, is potentially highly valuable for clin-
+ical applications, where datasets and sample cohorts are
+often not sufficiently large and representative due to ex-
+perimental and availability limitations. Finally, the ex-
+ecution on a NISQ system, the ibmq Mumbai, showed
+that quantum noise has little to no effect on less expres-
+sive configurations, like the Z feature map that entails
+shallower circuits, while it hinders the results of entan-
+gled feature maps. This behaviour suggests that a trade-
+off between ideal performances and hardware resilience
+should be considered in quantum kernel selection. Nev-
+8
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+circuit depth: 5
+Z
+AMI
+circuit depth: 63
+ZZ linear
+circuit depth: 45
+ZZ full
+2
+3
+4
+5
+6
+7
+8
+9
+10
+K
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Silhouette
+2
+3
+4
+5
+6
+7
+8
+9
+10
+K
+2
+3
+4
+5
+6
+7
+8
+9
+10
+K
+8
+4
+2
+2
+FIG. 6. Plots of AMI comparing simulated and real quantum stratification and SC of ideal simulation for 100 samples. The
+plots in figure are organized in rows by metric (top row AMI and bottom SC) and in columns by feature map type, from left
+to rigth: Z, ZZ linear, and ZZ full. The data points are plotted against the number of clusters K and are coloured and shaped
+by angle range β
+ertheless is important to note that NISQ devices now
+available are rapidly evolving and have reached higher
+accuracy level, compared to the QPU used in this work
+[44]. In addition, a major effort has been made also in
+advancing noise mitigation strategies[45], thus we expect
+that, in the foreseeable future, quantum protocols, like
+the one set out in this work, will achieve sufficient relia-
+bility and scalability to be implemented for real applica-
+tions.
+The clustering of tumour samples using multi-omics data
+is crucial to identify clinically relevant subgroups, still
+the reconstruction of non linear relationship between tu-
+moral molecular descriptors is made hard by classical
+model expressive capacity and limited data. Although
+QML and QK could offer an alternative view, we faced
+some major challenges in building proper quantum rep-
+resentation for biomedical systems, where formulating a
+problem-inspired embedding (eg. [46–48] ) is not possi-
+ble. Nevertheless, similar considerations apply to classi-
+cal ML, and given the early stage of quantum approaches,
+the heuristic exploration of classically complex problems
+is necessary to identify tasks that could be tackled with
+current NISQ devices. In this spirit, the present study
+aimed to investigate the potential use of NISQ devices
+and quantum algorithms in modeling multi-omics data
+for the specific task of tumour stratification.
+ACKNOWLEDGEMENT
+We acknowledge the CINECA award under the IS-
+CRA initiative, for the availability of high performance
+computing resources and support.
+DECLARATIONS
+Funding
+This research was financially supported by the Con-
+sortium GARR fellowship ”Orio Carlini” (to VR), the
+European Union - Next Generation EU, in the context of
+PNRR, Investment 1.5 Ecosystems of Innovation, Project
+Tuscany Health Ecosystem (THE), ECS00000017, Spoke
+3.
+CUP: B83C22003930001 and IIT-CNR Consolida-
+tor grant (to VR and RDA), the PNR MUR project
+PE0000013-FAIRn (to GB).
+Conflict of interest
+The authors have no competing interests to declare
+that are relevant to the content of this article.
+9
+Data and code availability
+METABRIC dataset, including gene expression and-
+copy number data, for the 1980 patients is freely avail-
+able at cBioPortal repository, at the following link:www.
+cbioportal.org/study/summary?id=brca_metabric
+The data, code, and experimental results associated with
+this project is available on GitHub at the following link:
+https://github.com/ctglab/QKomics
+Authors contribution
+VR conceived and conducted the study, performed
+computation and analyses, interpreted the results, and
+drafted the manuscript; EGC contributed in develop-
+ing simulation models and first conceptualization; GB
+contributed to the conceptualization, verified analytical
+methods, and drafted the manuscript; RDA conceived
+and supervised the study, interpreted the results, and
+drafted the manuscript.
+All authors reviewed and ap-
+proved the final manuscript.
+[1] J. D. Biamonte, P. Wittek, N. Pancotti, P. Rebentrost,
+N. Wiebe, and S. Lloyd, Quantum machine learning, Na-
+ture 549, 195 (2016).
+[2] V. Dunjko and H. J. Briegel, Machine learning & artificial
+intelligence in the quantum domain: a review of recent
+progress, Reports on Progress in Physics 81 (2018).
+[3] A. Perdomo-Ortiz, M. Benedetti, J. Realpe-G´omez, and
+R. Biswas, Opportunities and challenges for quantum-
+assisted machine learning in near-term quantum comput-
+ers, Quantum Science and Technology 3 (2017).
+[4] M. Schuld, Quantum machine learning models are kernel
+methods (2021).
+[5] E. S. Bernstein and U. V. Vazirani, Quantum complex-
+ity theory, Proceedings of the twenty-fifth annual ACM
+symposium on Theory of Computing (1993).
+[6] P. W. Shor, Algorithms for quantum computation: dis-
+crete logarithms and factoring, Proceedings 35th Annual
+Symposium on Foundations of Computer Science , 124
+(1994).
+[7] H.-Y. Huang, M. Broughton, M. Mohseni, R. Babbush,
+S. Boixo, H. Neven, and J. R. McClean, Power of data in
+quantum machine learning, Nature Communications 12
+(2020).
+[8] J. eun Park,
+B. Quanz,
+S. P. Wood,
+H. Higgins,
+and R. Harishankar, Practical application improve-
+ment to quantum svm:
+theory to practice, ArXiv
+abs/2012.07725 (2020).
+[9] E.
+Gil-Fuster,
+J.
+Eisert,
+and
+V.
+Dunjko,
+On
+the
+expressivity
+of
+embedding
+quantum
+kernels,
+ArXiv
+abs/2309.14419 (2023).
+[10] L. Slattery, R. Shaydulin, S. Chakrabarti, M. Pistoia,
+S. Khairy, and S. M. Wild, Numerical evidence against
+advantage with quantum fidelity kernels on classical data,
+ArXiv abs/2211.16551 (2022).
+[11] M. Cerezo, G. Verdon, H.-Y. Huang, L. Cincio, and P. J.
+Coles, Challenges and opportunities in quantum machine
+learning, Nature Computational Science 2, 567 (2022).
+[12] K. A. Tran, O. Kondrashova, A. Bradley, E. D. Williams,
+J. V. Pearson, and N. Waddell, Deep learning in can-
+cer diagnosis, prognosis and treatment selection, Genome
+Medicine 13 (2021).
+[13] B. A. Cordier, N. P. D. Sawaya, G. G. Guerreschi, and
+S. K. McWeeney, Biology and medicine in the landscape
+of quantum advantages, Journal of the Royal Society In-
+terface 19 (2021).
+[14] J. N. Weinstein, E. A. Collisson, G. B. Mills, K. R. M.
+Shaw, B. A. Ozenberger, K. Ellrott, I. Shmulevich,
+C. Sander, and J. M. Stuart, The cancer genome atlas
+pan-cancer analysis project, Nature Genetics 45, 1113
+(2013).
+[15] J. L. Caswell-Jin, C. Lorenz, and C. Curtis, Molecular
+heterogeneity and evolution in breast cancer (2021).
+[16] R. L. Siegel, K. D. Miller, and A. Jemal, Cancer statistics,
+2020, CA: A Cancer Journal for Clinicians 70 (2020).
+[17] C. Curtis, S. P. Shah, S.-F. Chin, G. Turashvili, O. M.
+Rueda, M. J. Dunning, D. Speed, A. G. Lynch, S. A.
+Samarajiwa, Y. Yuan, S. Gr¨af, G. Ha, G. Haffari,
+A. Bashashati, R. Russell, S. McKinney, A. Langerød,
+A. R. Green, E. Provenzano, G. C. Wishart, S. E. Pin-
+der, P. H. Watson, F. Markowetz, L. Murphy, I. O. Ellis,
+A. Purushotham, A.-L. Børresen-Dale, J. D. Brenton,
+S. Tavar´e, C. Caldas, and S. Aparicio, The genomic and
+transcriptomic architecture of 2,000 breast tumours re-
+veals novel subgroups, Nature 486, 346 (2012).
+[18] H. G. Russnes, O. C. Lingjærde, A.-L. Børresen-Dale,
+and C. Caldas, Breast cancer molecular stratification:
+From intrinsic subtypes to integrative clusters., The
+American journal of pathology 187 10, 2152 (2017).
+[19] F. F. Flother, The state of quantum computing applica-
+tions in health and medicine (2023).
+[20] Z. O. Krunic, F. F. Fl¨other, G. W. Seegan, N. Earnest-
+Noble, and O. Shehab, Quantum kernels for real-world
+predictions based on electronic health records, IEEE
+Transactions on Quantum Engineering 3, 1 (2021).
+[21] R. K. Ahalya, U. Snekhalatha, and V. Dhanraj, Auto-
+mated segmentation and classification of hand thermal
+images in rheumatoid arthritis using machine learning
+algorithms: A comparison with quantum machine learn-
+ing technique., Journal of thermal biology 111, 103404
+(2022).
+[22] V. Azevedo, C. Silva, and I. de Castro Dutra, Quantum
+transfer learning for breast cancer detection, Quantum
+Machine Intelligence 4 (2022).
+[23] J. Amin, M. Sharif, S. L. Fernandes, S. Wang, T. Saba,
+and A. R. Khan, Breast microscopic cancer segmentation
+and classification using unique 4-qubit-quantum model,
+10
+Microscopy Research and Technique 85, 1926 (2022).
+[24] S. Moradi, C. Brandner, C. P. Spielvogel, D. Krajnc,
+S. Hillmich, R. Wille, W. Drexler, and L. Papp, Clinical
+data classification with noisy intermediate scale quantum
+computers (2021).
+[25] S. Vashisth, I. Dhall, and G. Aggarwal, Design and anal-
+ysis of quantum powered support vector machines for
+malignant breast cancer diagnosis, Journal of Intelligent
+Systems 30, 998 (2021).
+[26] A. R. V, S. S, and I. B, Leveraging quantum kernel sup-
+port vector machine for breast cancer diagnosis from dig-
+ital breast tomosynthesis images, Quantum Machine In-
+telligence (2024).
+[27] R. Y. Li, S. Gujja, S. R. Bajaj, O. E. Gamel, N. A.
+Cilfone, J. R. Gulcher, D. A. Lidar, and T. W. Chitten-
+den, Quantum processor-inspired machine learning in the
+biomedical sciences, Patterns 2 (2019).
+[28] M. Schuld and N. Killoran, Quantum machine learning
+in feature hilbert spaces., Physical review letters 122 4,
+040504 (2018).
+[29] M. Incudini, D. L. Bosco, F. D. Martini, M. Grossi,
+G. Serra, and A. D. Pierro, Automatic and effective dis-
+covery of quantum kernels (2022).
+[30] C. K. I. Williams, Learning with kernels: Support vec-
+tor machines, regularization, optimization, and beyond,
+Journal of the American Statistical Association 98, 489
+(2001).
+[31] R. Mengoni and A. D. Pierro, Kernel methods in quan-
+tum machine learning, Quantum Machine Intelligence 1,
+65 (2019).
+[32] Y. Suzuki, H. Yano, Q. Gao, S. Uno, T. Tanaka,
+M. Akiyama, and N. Yamamoto, Analysis and synthe-
+sis of feature map for kernel-based quantum classifier,
+Quantum Machine Intelligence 2, 1 (2019).
+[33] M. Incudini, F. Martini, and A. D. Pierro, Toward use-
+ful quantum kernels, Advanced Quantum Technologies
+(2024).
+[34] V. Havlicek, A. D. C´orcoles, K. Temme, A. W. Harrow,
+A. Kandala, J. M. Chow, and J. M. Gambetta, Super-
+vised learning with quantum-enhanced feature spaces,
+Nature 567, 209 (2018).
+[35] S. Thanasilp, S. Wang, M. Cerezo, and Z. Holmes, Ex-
+ponential concentration and untrainability in quantum
+kernel methods, ArXiv abs/2208.11060 (2022).
+[36] R. Shaydulin and S. M. Wild, Importance of ker-
+nel bandwidth in quantum machine learning, ArXiv
+abs/2111.05451 (2021).
+[37] A. Canatar, E. Peters, C. Pehlevan, S. M. Wild, and
+R. Shaydulin, Bandwidth enables generalization in quan-
+tum kernel models, ArXiv abs/2206.06686 (2022).
+[38] M. Bersanelli, E. Mosca, D. Remondini, E. Giampieri,
+C. Sala, G. C. Castellani, and L. Milanesi, Methods for
+the integration of multi-omics data: mathematical as-
+pects, BMC Bioinformatics 17 (2016).
+[39] L. McInnes and J. Healy, Umap:
+Uniform manifold
+approximation and projection for dimension reduction,
+ArXiv abs/1802.03426 (2018).
+[40] Y. Liu, Z. Li, H. Xiong, X. Gao, and J. Wu, Understand-
+ing of internal clustering validation measures, 2010 IEEE
+International Conference on Data Mining , 911 (2010).
+[41] T. Ronan, Z. Qi, and K. M. Naegle, Avoiding common
+pitfalls when clustering biological data, Science Signaling
+9, re6 (2016).
+[42] P. J. Rousseeuw, Silhouettes: a graphical aid to the in-
+terpretation and validation of cluster analysis, Journal of
+Computational and Applied Mathematics 20, 53 (1987).
+[43] X. V. Nguyen, J. Epps, and J. Bailey, Information the-
+oretic measures for clusterings comparison: is a correc-
+tion for chance necessary?, in International Conference
+on Machine Learning (2009).
+[44] Y. Kim, A. Eddins, S. Anand, K. X. Wei, E. van den
+Berg, S. Rosenblatt, H. Nayfeh, Y. Wu, M. P. Zaletel,
+K. Temme, and A. Kandala, Evidence for the utility of
+quantum computing before fault tolerance, Nature 618,
+500 (2023).
+[45] Z. Cai, R. Babbush, S. C. Benjamin, S. Endo, W. J. Hug-
+gins, Y. Li, J. R. McClean, and T. E. O’Brien, Quantum
+error mitigation, Reviews of Modern Physics (2022).
+[46] M. Larocca, F. J. de Sauvage, F. M. Sbahi, G. Verdon,
+P. J. Coles, and M. Cerezo, Group-invariant quantum
+machine learning, ArXiv abs/2205.02261 (2022).
+[47] Y. Liu, S. Arunachalam, and K. Temme, A rigorous and
+robust quantum speed-up in supervised machine learn-
+ing, Nature Physics 17, 1013 (2020).
+[48] J. J. Meyer, M. Mularski, E. Gil-Fuster, A. A. Mele,
+F. Arzani, A. Wilms, and J. Eisert, Exploiting sym-
+metry in variational quantum machine learning, ArXiv
+abs/2205.06217 (2022).

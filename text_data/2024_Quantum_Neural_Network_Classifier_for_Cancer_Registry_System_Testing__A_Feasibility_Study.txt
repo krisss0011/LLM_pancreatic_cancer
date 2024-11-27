@@ -1,0 +1,1283 @@
+Quantum Neural Network Classifier for Cancer
+Registry System Testing: A Feasibility Study
+Xinyi Wang
+Simula Research Laboratory
+University of Oslo
+Oslo, Norway
+xinyi@simula.no
+Shaukat Ali
+Simula Research Laboratory
+and Oslo Metropolitan University
+Oslo, Norway
+shaukat@simula.no
+Paolo Arcaini
+National Institute of Informatics
+Tokyo, Japan
+arcaini@nii.ac.jp
+Narasimha Raghavan Veeraragavan
+Cancer Registry of Norway,
+Norwegian Institute of Public Health,
+Oslo, Norway
+nara@kreftregisteret.no
+Jan F. Nyg˚ard
+Cancer Registry of Norway,
+Oslo, Norway
+and The Arctic University of Norway
+Tromsø, Norway
+jfn@kreftregisteret.no
+Abstract—The Cancer Registry of Norway (CRN) is a part
+of the Norwegian Institute of Public Health (NIPH) and is
+tasked with producing statistics on cancer among the Norwegian
+population. For this task, CRN develops, tests, and evolves
+a software system called Cancer Registration Support System
+(CaReSS). It is a complex socio-technical software system that
+interacts with many entities (e.g., hospitals, medical laboratories,
+and other patient registries) to achieve its task. For cost-effective
+testing of CaReSS, CRN has employed EvoMaster, an AI-
+based REST API testing tool combined with an integrated
+classical machine learning model. Within this context, we pro-
+pose Qlinical to investigate the feasibility of using, inside
+EvoMaster, a Quantum Neural Network (QNN) classifier, i.e.,
+a quantum machine learning model, instead of the existing
+classical machine learning model. Results indicate that Qlinical
+can achieve performance comparable to that of EvoClass.
+We further explore the effects of various QNN configurations
+on performance and offer recommendations for optimal QNN
+settings for future QNN developers.
+Index Terms—Quantum Neural Network Classifier, testing,
+EvoMaster, Cancer Registry
+I. INTRODUCTION
+As machine learning (ML) and quantum computing (QC)
+advance rapidly, there is an increased interest in enhancing
+classical ML with QC. Such interest has resulted in the
+area of quantum machine learning (QML). QML has a new
+class of ML models that leverages the unique properties of
+quantum mechanics, such as superposition and entanglement,
+to train ML models on quantum computers. Research has
+demonstrated the advantages of QML for solving real-world
+problems, such as image processing, natural language process-
+ing, and pattern recognition [1], [2], [3]. Some commercial-
+The work is supported by the Qu-Test project (Project #299827) funded by
+the Research Council of Norway and Simula’s internal strategic project on
+quantum software engineering. S. Ali is also supported by Oslo Metropolitan
+University’s Quantum Hub. P. Arcaini is supported by Engineerable AI
+Techniques for Practical Applications of High-Quality Machine Learning-
+based Systems Project (Grant Number JPMJMI20B8), JST-Mirai.
+industrial applications based on QML have also been devel-
+oped [4], [5].
+As the QML field is establishing, assessing how various
+QML algorithms perform in real-world contexts is essential.
+To this end, we explore the application of one such algorithm,
+i.e., Quantum Neural Network (QNN) [6], in the context of
+the Cancer Registry of Norway (CRN), a division in the
+Norwegian Institute of Public Health (NIPH)—a governmental
+body responsible for various activities related to Norwegian
+citizens’ health. CRN collects data, analyzes it, and provides
+statistics to the public on cancer incidences in Norway for
+conducting research. To facilitate this, it built the Cancer
+Registration Support System (CaReSS), a complex socio-
+technical system responsible for receiving data, processing it,
+and finally producing the processed data and statistics for vari-
+ous purposes (e.g., for governmental agencies and researchers).
+The software system receives data as cancer messages of
+patients from different medical entities (e.g., medical labs and
+hospitals) in Norway and registers this patient information.
+These received messages are then validated by GURI, an
+automated key component within CaReSS responsible for
+handling the received data and validating it against medical
+rules, which are implemented based on various information,
+such as medical knowledge, standards, and regulations.
+CaReSS undergoes continuous evolution due to factors such
+as the emergence of new medical standards, and software
+updates, which lead to frequent changes in validation rules
+in GURI. Thus, GURI requires automated testing tools for
+continuous testing. EvoMaster [7], [8], an automated test
+case generation tool aiming at Representational State Trans-
+fer (REST) Application Programming Interfaces (APIs), is
+used for testing GURI. It implements evolution algorithms
+to generate various requests, which are cancer messages, to
+identify faults of GURI effectively. However, there is the
+possibility that EvoMaster generates invalid requests that
+are against the requirements of specific REST endpoints (i.e.,
+arXiv:2411.04740v1  [cs.SE]  7 Nov 2024
+Fig. 1: Qubit visualization as Bloch sphere
+validation endpoint and aggregation endpoint). When testing
+GURI with EvoMaster, each request should be sent to GURI
+running in real-time. Executing those invalid requests leads to
+unnecessary GURI execution costs and negatively affects the
+performance of CaReSS during operation. However, identi-
+fying all potential invalid combinations or patterns within the
+requests is complex. Thus, EvoClass [9] has been proposed
+to use a machine learning model to enhance the performance
+of EvoMaster in this context. It is a classifier that predicts
+whether an API request generated by the EvoMaster testing
+tool is likely to be invalid. It filters out those requests before
+sending them to GURI, thereby reducing the number of
+requests executed during testing.
+Motivated by the current active investigation of QML in
+practice in various domains, we propose Qlinical to investi-
+gate the feasibility of applying QNN, a specific type of QML
+model, as an alternative to EvoClass, assessing its potential
+in the context of a real-world application. We evaluate the
+performance of QNN models across various configurations,
+and results show that QNN models can achieve performance
+comparable to that of the classical machine learning approach
+EvoClass, but by using significantly fewer training features
+in certain configurations. Then, we examine the impact of four
+hyperparameters and their interactions on QNN performance.
+Finally, we offer configuration recommendations for the four
+hyperparameters to assist future QNN developers.
+II. BACKGROUND
+A. Quantum Computing
+Traditional computers operate on bits, which can be either 0
+or 1. In contrast, Quantum Computing (QC) utilizes quantum
+bits (qubits) for computations, which can be in a superposition
+of both |0⟩and |1⟩states at the same time with different prob-
+abilities. The superposition is one of the key principles that
+enables QC to perform complex calculations more efficiently.
+Another key principle in QC is entanglement, where involved
+qubits are strongly correlated and the operation on one qubit
+will simultaneously affect the other qubit. Commonly, to
+visualize a qubit’s state, a Bloch sphere (see Fig. 1) is used.
+Any position in the sphere corresponds to a quantum state of
+the qubit. Thus, a qubit’s state can be described through the
+rotation angles relative to the x, y, and z axes.
+In this work, we use gate-based QC to build quantum neural
+networks, which are built upon quantum circuits. Fig. 2 shows
+Ry(θ0)
+Ry(θ3)
+Ry(θ1)
+X
+Ry(θ4)
+Ry(θ2)
+X
+Ry(θ5)
+Fig. 2: An example of quantum circuit
+an example of a quantum circuit example of three qubits. Each
+line represents a qubit. By applying different quantum gates
+to those qubits, we can rotate the qubit around three axes and
+change their states to perform computation.
+Below, we describe the main quantum gates used in this
+work to build a QNN circuit, including some one-qubit gates
+and two-qubit gates. Notably, the two-qubit gates play an
+important role in creating entanglement between the two
+involved qubits.
+• Hadamard gate (H): A single-qubit gate that puts a qubit
+into an equal superposition of gates, resulting in equal
+probability of measuring the qubit as |0⟩or |1⟩.
+• Phase gate (P): A single-qubit gate that applies a partial
+z-rotation to the |1⟩state with customized radians.
+• Pauli gates (X/Y/Z): A set of single-qubit gates rotating
+around the x/y/z-axis through π radians.
+• Standard rotation gates (RX/RY /RZ): A set of single-
+qubit gates rotating around the x/y/z axis through a
+customized radians.
+• Controlled Pauli gates (CX/CY /CZ): A set of two-
+qubit gates involving a control and a target qubit. It
+applies the Pauli-X/Y/Z gate to the target qubit if the
+control is in state |1⟩.
+• Controlled rotation gates (CRX/CRY /CRZ): A set of
+two-qubit gates involving a control and a target qubit. It
+applies the RX/RY /RZ gate with a customized radian
+on the target qubit if the control qubit is in state |1⟩.
+• Two qubit rotation gates (RXX/RY Y /RZZ): A set of
+two-qubit gates rotating the two qubits around x/y/z axes
+simultaneously with a customized radians.
+At the end of a quantum circuit, a set of observables
+is applied to different qubits to measure the final quantum
+state. This causes the measured qubits to collapse and is
+key in extracting outputs from the quantum circuits. Common
+observables include Pauli operators, X, Y and Z, which can
+obtain partial information of x, y, z bases from the measured
+qubits, respectively.
+B. Quantum Neural Network
+QNN is a variational quantum algorithm containing param-
+eterized quantum circuits. The following key components are
+part of a QNN circuit.
+1) Feature map: In a QNN, classical input information is
+commonly first encoded into quantum space with a feature
+map as shown in Fig. 3 to enable processing by the following
+quantum operations in the ansatz. These input feature values
+are translated into parameters of quantum circuits to create
+a quantum state. This process is called quantum embedding.
+2
+Fig. 3: QNN structure
+There have been a few widely used embedding techniques,
+such as angle embedding, which encodes each feature value
+of input into rotation angles of the qubits.
+2) Ansatz: Once the input features are encoded into a
+quantum state, an ansatz (shown in Fig. 3), typically with
+multiple repetitions, is applied with trainable parameters,
+similar to classical neural networks. Those parameters are
+usually rotation angles of quantum gates. The structure of the
+ansatz is fixed before training. Thus, the choice of ansatz is
+significant since, when training starts, only the parameters (i.e.,
+rotation angles) will be optimized for the specific task, such as
+regression or classification problems. The optimization process
+is performed based on a cost function.
+3) Observables: A list of observables to extract partial
+information of the circuit outputs from the three axes.
+4) Optimizer: With a defined cost function, the classical
+optimizer aims to minimize the loss based on the outputs from
+the circuit. In each iteration, the classical optimizer updates all
+trainable parameters in the ansatz until meeting the stopping
+condition.
+The details of the QNN circuits used in this paper will be
+explained in detail in Sect. IV.
+III. INDUSTRIAL CONTEXT
+The Cancer Registry of Norway (CRN) collects data about
+cancer patients, such as basic information (e.g., gender and
+age), as well as cancer information of cancer types and
+treatment records, and provides the data and statistics to
+various stakeholders, such as researchers, doctors, and poli-
+cymakers. An interactive, human-in-the-loop decision support
+system, Cancer Registration Support System (CaReSS), is
+developed to collect, validate, and process patient information
+(i.e., cancer messages) from medical entities such as hospitals,
+clinical departments, and other registries.
+GURI is a key component inside CaReSS, that is re-
+sponsible for receiving cancer messages via a web appli-
+cation through REST APIs and performing validation and
+aggregation on them with hundreds of medical rules. Such
+medical rules are built based on diverse information, such as
+the domain knowledge from medical experts, standards, and
+regulations. However, these rules change constantly as CRN
+keeps introducing new rules and revising existing ones due to,
+e.g., changes in regulations and standards as well as when new
+scientific knowledge becomes available. Additionally, software
+updates in CaReSS are ongoing on a regular basis, which
+results in changing the software processing these rules. Thus,
+CaReSS (specifically GURI) requires continuous evolution
+and must be tested continuously with automated testing tools
+to ensure data quality, accuracy, and security, which is crucial
+since CaReSS supports critical decision-making by policy-
+makers and epidemiological studies by researchers [10].
+EvoMaster (i.e., an AI-based system-level testing tool
+focusing on testing REST APIs [11]) is used to test GURI by
+automatically generating HTTP requests (i.e., including cancer
+messages inside) based on the OpenAPI Specification (OAS)
+Swagger. The testing focuses on two REST endpoints: the
+validation endpoint, validating cancer messages with valida-
+tion rules, and the aggregation endpoint, consolidating cancer
+messages into cancer cases with aggregation rules.
+An HTTP request can effectively test the core functionality
+of the two endpoints only if it is meaningful, i.e., it meets the
+specific input requirements for each endpoint, such as correct
+data types and constraints. We refer to these meaningful
+requests as valid requests; otherwise, they are termed invalid
+requests. The validity of a request cannot be determined until it
+is executed in GURI. Specifically, once a request is generated,
+GURI executes it and returns a response. The request is
+ultimately deemed valid only if the status code in the response
+is “200”, indicating an “OK” server response. Any other status
+code signifies that the request is invalid. Executing invalid
+requests can unnecessarily increase testing costs, as GURI
+processes these requests in real-time, potentially impacting the
+system’s operational performance.
+However, there is a high possibility that EvoMaster
+generates invalid requests, and it is difficulty to identify them
+due to the complexity of determining the request validity based
+on query, path, and body parameters/content. To avoid unnec-
+essary testing costs in GURI, EvoClass [9] was introduced
+to filter out those requests that are highly likely to be invalid
+before actually executing them in GURI. EvoClass uses a
+machine-learning classifier and is trained based on requests
+generated by EvoMaster and their corresponding responses
+with the status codes.
+Motivated by current research on real-world applications of
+QML in various domains [12], this work proposes to explore
+the feasibility of applying QML, QNNs in particular, to aid the
+testing of the GURI system. Instead of using classical machine
+learning approaches, we train the QNN classifiers to identify
+possibly invalid requests generated by EvoMaster. Even
+though QNNs are quite an early-stage technology, with their
+full potential still limited by the current small-scale quantum
+computers and the noise in the computations, it is still worth
+investigating their feasibility in real-world contexts.
+IV. METHODOLOGY
+A. Overview
+We propose Qlinical, a QNN-based method, to classify
+requests generated by EvoMaster into two categories, valid
+and invalid. This approach aims to prevent the execution of
+3
+Fig. 4: Training process of Qlinical
+invalid requests in GURI during the testing process, thereby
+reducing testing costs.
+Fig.
+4
+illustrates
+the
+training
+process
+of
+Qlinical.
+EvoMaster begins by generating a set of requests based on
+the OAS schema, which are then sent to GURI for execution.
+GURI processes these requests and returns the corresponding
+responses. Both the requests and their responses are logged
+into a file for further analysis. Then, useful data is extracted
+and processed from the log files. For each request, the corre-
+sponding generated status code in the response is considered
+as label for training, where “200” represents valid while other
+codes are considered invalid. Other information related to the
+generation information is converted into feature values suitable
+for training, which are inputs of the QNN model. Suppose
+there are n features in the feature set {F0, F1, . . . , Fn−1},
+the feature values are represented as v = {v0, v1, . . . , vn−1}.
+Next, in the training process, for each request, the corre-
+sponding feature values are encoded into the QNN model.
+As explained in Sect. II-B, we encode feature values into
+a feature map. Specifically, in Qlinical, we use the ZZ
+feature map [13] to encode the classical values into quantum
+space. Then, an ansatz is applied to process the inputs, which
+contain parameterized quantum gates for training. This work
+mainly implements two-local circuits as ansatz [14], typically
+consisting of alternating rotation layers and entanglement
+layers. Specifically, the gates applied in blocks of rotation
+layers and entanglement layers can be customized. We can
+also specify the number of repetitions of these alternating
+rotation layers and entanglement layers, denoted as num rep,
+which decides the complexity of the circuit. At the end of
+the circuit execution, observables are applied to all the qubits
+to measure the output results. We apply Pauli-Z operator on
+each qubit as observables to extract output information. A
+cost function is defined to calculate the distance between the
+current output and the target output (i.e., the label). A classical
+optimizer is applied to minimize the cost function and update
+the parameters of quantum gates in the ansatz in each iteration.
+Entanglement Unit
+q0
+H
+P(2v0)
+q1
+H
+P(2v1)
+X
+P(2φ(v0, v1))
+X
+q2
+H
+P(2v2)
+X
+P(2φ(v1, v2))
+X
+Fig. 5: An example of ZZ feature map with linear entangle-
+ment (ln)
+B. QNN Circuits
+In this paper, we perform an empirical study on the perfor-
+mance of a specific quantum feature map combined with var-
+ious ansatz. Both the feature map and the ansatz implemented
+in this paper belong to the two-local circuit category, which are
+parameterized circuits where interactions are limited to pairs
+of qubits at a time, rather than involving multiple qubits in a
+single operation. These circuits are commonly used in quantum
+machine learning and are more practical to implement on
+quantum hardware, as they only require single- and two-qubit
+gates. Specifically, these circuits comprise multiple blocks of
+rotation and entanglement layers. The rotation layers consist
+of single-qubit rotation gates, while entanglement layers usu-
+ally consist of two-qubit gates. Here we first introduce the
+entanglement structure, as they are applied in both the feature
+map and the ansatz.
+1) Entanglement structure: The structure of entanglement
+layers can be customized. Here, we first introduce the six
+entanglement structures that we consider. Note that the specific
+gates used depend on the applied ansatz types or feature map,
+and they are not decided by entanglement itself.
+• Linear entanglement (ln): Each qubit qi is entangled with
+qi+1. This means that there is at least one two-qubit gate
+applied between every pair of qi and qi+1. Taking the
+entanglement layer in Fig. 5 as an example (i.e., right
+side of the red dashed line), ZZ feature map uses three
+gates (i.e., two CX gates and a Phase gate in the blue
+box as an entanglement unit) to entangle and rotate the
+corresponding two qubits. q0 and q1 are entangled, as
+well as q1 and q2. However, q0 and q2 are not directly
+entangled.
+• Full entanglement (fl): Every two qubits are entangled,
+meaning there is at least one two-qubit gate applied
+between every two qubits. Taking the entanglement layer
+in Fig. 6 as an example (i.e., between red dashed lines a
+and b), CX gates are applied between qubit q0 and q1, q0
+and q2, as well as q1 and q2 to entangle all three qubits.
+• Pairwise entanglement (pw): It consists of two layers. In
+the first layer, qubits with even numbers are entangled
+with the next qubit. In the second layer, qubits with odd
+numbers are entangled with the next qubit. Taking the
+entanglement layer in Fig. 7 as an example (i.e., between
+red dashed lines b and c), CZ gates are first applied
+between qubit q0 and q1, q2 and q3, since 0 and 2 are even
+numbers. In the second layer, q1 and q2 are entangled with
+a CZ gate.
+4
+q0
+Ry(θ0)
+Ry(θ3)
+q1
+Ry(θ1)
+X
+Ry(θ4)
+q2
+Ry(θ2)
+X
+X
+Ry(θ5)
+a
+b
+Fig. 6: Real amplitudes circuit (ra) with full entanglement
+(fl)
+q0
+Ry(π/4)
+Rz(θ0)
+Ry(θ4)
+q1
+Ry(π/4)
+Rz(θ1)
+Rx(θ5)
+q2
+Ry(π/4)
+Rx(θ2)
+Rx(θ6)
+q3
+Ry(π/4)
+Rz(θ3)
+Rz(θ7)
+a
+b
+c
+Fig. 7: Pauli two-design circuit (ptd) with pairwise entangle-
+ment (pw)
+Entanglement Unit
+q0
+Rz(θ0)
+Rxx(θ4)
+Ryy(θ4)
+Rz(θ5)
+q1
+Rz(θ1)
+Rxx(θ3)
+Ryy(θ3)
+Rz(θ6)
+q2
+Rz(θ2)
+Rz(θ7)
+a
+b
+Fig. 8: Excitation preserving circuit for mode “iswap”
+(ep is) with reserve-linear entanglement (rl)
+• Reserve linear entanglement (rl): Gates are the same as
+linear entanglement except in a reserved order. Taking
+the entanglement layer in Fig. 8 as an example (i.e.,
+between red dashed lines a and b), excitation preserving
+circuit applies RXX and RY Y gates as a entanglement
+unit to entangle qubits. It is clear to see that q1 and q2
+are entangled first, then q1 and q0 are entangled, which
+is in a reserved order of Fig. 5.
+• Circular entanglement (cl): Entanglement is applied be-
+tween the first and the last qubits, after that linear entan-
+glement is applied on all qubits. Taking the entanglement
+layer in Fig. 9 as an example (i.e., between red dashed
+lines a and b), excitation preserving circuit here applies
+RXX, RY Y , and CPhase gates as an entanglement unit
+to entangle qubits. q0 and q2 are entangled before the
+linear entanglement applied on q0 and q1, as well as q1
+and q2.
+• Shifted circular alternating entanglement (sca): It is
+implemented according to [15]. The structure is sim-
+ilar to circular entanglement, except for the position
+of entanglement shifts positions in different repetitions.
+Also, the role control and target qubits are swapped
+Entanglement Unit
+θ4
+θ6
+θ8
+q0
+Rz(θ0)
+Rxx(θ3)
+Rxx(θ3)
+Rxx(θ5)
+Ryy(θ5)
+Rz(θ9)
+q1
+Rz(θ1)
+Rxx(θ7)
+Ryy(θ7)
+Rz(θ10)
+q2
+Rz(θ2)
+Rz(θ11)
+a
+b
+Fig. 9: Excitation preserving circuit for mode “fsim” (ep fs)
+with circular entanglement (cl)
+q0
+Ry(θ0)
+Z
+X
+Ry(θ3)
+Z
+X
+Ry(θ6)
+Z
+q1
+Ry(θ1)
+Z
+X
+Ry(θ4)
+Z
+X
+Ry(θ7)
+Z
+q2
+Ry(θ2)
+Z
+X
+Ry(θ5)
+Z
+X
+Ry(θ8)
+Z
+a
+b
+c
+d
+Fig. 10: Efficient SU2 circuit (es) with sca entanglement (sca)
+in each repetition. Let’s take the entanglement layer in
+Fig. 10 as an example. This example circuit contains
+two repetitions, and gates between dashed lines a, b, and
+c, d are two entanglement layers. In the first layer, the
+implementation is the same as the circular entanglement.
+In the second layer, the entanglement among three qubits
+shifts positions with each other. In addition, the three
+pairs of control and target qubits are all swapped.
+Next, we introduce the quantum feature map and ansatz
+types used in this work.
+2) Quantum feature map: In Qlinical, we apply the ZZ
+feature map to encode classical feature values of each request
+into quantum states. It is a quantum feature map that is
+specially designed for QML in a way that captures correlations
+between features with quantum entanglement [13].
+To construct the feature map circuit for each request, n
+qubits are required to map n features. Consider Fig. 5 as
+an example. Suppose that three features are available, and
+we encode the three feature values v = {v0, v1, v2} into the
+feature map circuit. As shown in the figure on the left side of
+the dashed line, each qubit is first applied with a Hardamard
+gate H followed by a phase gate P, where the rotation angle
+of each phase gate is decided by one of the three feature values
+vi. Next, entanglement operations are performed between pairs
+of qubits, as shown on the right side of the dashed line.
+We implement linear entanglement (i.e., ln) in the feature
+map where two CX gates and a phase gate are combined as
+a block to rotate the two applied qubits simultaneously by
+the angles of the corresponding feature values vi and vj in
+order to create superposition between qi and qj. Note that
+φ(vi, vj) = (π −vi)(π −vj) in Fig. 5. In this example,
+q0 and q1 are directly entangled, as are q1 and q2. This
+entanglement step captures non-linear relationships between
+the feature values.
+3) Ansatz types: In this work, we select four widely used
+ansatz types to train the QNN model, which are Real Ampli-
+tude, Pauli Two Design, Efficient SU2, and Excitation Preserv-
+ing circuits. The entanglement structures described are used in
+each ansatz implemented in this paper. The four types of ansatz
+5
+comprise alternating rotation layers and entanglement layers.
+Typically, an additional rotation layer is added at the end of
+the ansatz.
+Real Amplitude (ra): The Real Amplitudes circuit is used
+as the ansatz in both chemistry applications and classification
+circuits in quantum machine learning. Its rotation layer only
+consists of RY gates, whose rotation angles are trainable
+parameters in the QNN circuit. These parameters are updated
+by the classical optimizer in a training process. The entangle-
+ment layer is composed of CX gates, whose structure can be
+flexible, as we can choose from any entanglement structure
+introduced before, though it does not include any trainable
+parameters. Fig. 6 is an example of a Real Amplitude circuit
+with three qubits. θ0 to θ5 are trainable parameters.
+Pauli Two-Design (ptd): Pauli Two-Design circuits are
+two-design circuits [16] frequently studied in QML [17]. Pauli
+Two-Design circuit starts with an initial layer by applying
+RY (π/4) gates on each qubit before the alternating rotation
+and entanglement layers (i.e., the left side of the dashed line
+a in Fig. 7). The rotation layer consists of rotation gates (i.e.,
+RX, RY , and RZ gates) that are uniformly sampled. The
+entanglement layer comprises CZ gates, which can only be
+arranged in a pairwise entanglement (pw) structure. In the
+rotation layers shown in Fig. 7, the standard rotation gates
+at all eight positions in the circuits are randomly selected.
+Excitation Preserving (ep is and ep fs): Excitation pre-
+serving circuits are particularly important for applications in
+quantum chemistry and variational algorithms (e.g., QNN),
+which maintain the ratio between the |00⟩, |01⟩+|10⟩, and |11⟩
+states to ensure the total number of excitations (i.e., qubits in
+the |1⟩state of being constant. The rotation layer is composed
+of RZ gates. The entanglement layer consists of RXX and
+RY Y gates in “iswap” mode (ep is). In “fsim” mode (ep fs),
+an extra CPhase gate is applied to further entangle the two
+qubits. The entanglement structure is flexible. The rotation
+angles involved in the two layers are all trainable parameters.
+Fig. 8 and Fig. 9 show two examples respectively.
+Efficient SU(2) (es): Efficient SU(2) circuits are ideal
+for classification tasks in quantum machine learning. SU(2)
+represents a class of quantum gates that includes both standard
+rotation gates and Pauli gates, which are used in the rotation
+layers. The number and type of gates applied in these layers
+can be selected and remain consistent across each repetition.
+If standard rotation gates are chosen, they contain trainable
+parameters. In contrast, if Pauli gates are used, they do not
+include any trainable parameters. Let’s take Fig. 10 as an
+example, which shows two repetitions. It applies two gates
+in each rotation layer, which are RY and Z gates. Thus,
+all rotation angles in RY gates are the trainable parameters.
+Besides, the gates applied in the rotation layer are CX gates
+and the entanglement structure is flexible.
+V. EXPERIMENT DESIGN
+In this section, we describe the design of the experiment we
+conducted to assess Qlinical. The code is available online
+at [18]. For IP protection, data and models cannot be shared.
+A. Research questions
+Our study has the goal of answering the following research
+questions (RQs):
+RQ1: How does Qlinical compare to EvoClass, i.e., the
+classical approach that uses a classical machine learning
+model?
+The goal of this RQ is to assess whether applying
+QNNs is feasible for testing CaReSS, i.e., if it obtains
+performance results that are comparable to those of the
+classical machine learning approach EvoClass.
+RQ2: What is the effect of each individual hyperparameter
+on the accuracy of Qlinical?
+In this RQ, we analyze the effect of different hyperparam-
+eters individually on the model accuracy. We first inves-
+tigate the significance of the four hyperparameters (i.e.,
+number of features, number of repetitions, entanglement
+structure, and ansatz type) on the accuracy of Qlinical.
+Next, for each individual hyperparameter, we recommend
+its optimal value. By identifying the best value for each
+hyperparameter, we can provide guidance for developers
+who want to tune their QNN models based on these key
+hyperparameters.
+RQ3: What is the effect of combined hyperparameters on the
+accuracy of Qlinical?
+This RQ focuses on exploring the interaction between
+hyperparameters. Based on RQ2, by combining the hyper-
+parameters having a higher contribution to the accuracy,
+we recommend the best-performing combinations of two
+and three hyperparameters. This recommendation allows
+developers to start with optimized combinations, reducing
+costs, while maintaining the flexibility to further tune
+their QNN model.
+B. Experimental setup
+Experiment
+environment:
+We
+have
+implemented
+Qlinical on the ideal AerSimulator in the Qiskit framework.
+Experiments are run on Intel(R) Xeon(R) Platinum 8360Y
+CPU @ 2.40GHz.
+Datasets and features: Due to the long QNN training time
+on a simulator, we randomly select a subset from the dataset
+created in the original paper [9], using 1000 instances for
+training and 500 instances for testing. Additionally, to train the
+QNN, out of 56 original features we select subsets of the most
+important ones from the dataset, based on their importance
+scores in the original paper.
+QNN hyperparameters: We train Qlinical using dif-
+ferent combinations comb = ⟨num feat, num rep, entagl,
+ansatz⟩
+of
+its
+hyperparameters:
+number
+of
+features
+(num feat), number of repetitions (num rep), entanglement
+structure (entagl), and ansatz type (ansatz). We identify
+with Qlinicalcomb the setting of Qlinical with comb.
+Specifically, we experiment with num feat ∈{4, 5, 6, 7, 8},
+num rep ∈{1, 3, 5, 7}, entagl ∈{fl, ln, rl, pw, cl, sca},
+and ansatz ∈{ra, es, ep fs, ep is, ptd}. For the ansatz
+types ra, ep fs, ep is, and ptd, we conduct experiments
+by pairing each with the six different entanglement structures
+6
+entagl. The ansatz es, instead, has a fixed entanglement
+structure pw. Thus, we build a total of 25 types of QNN
+circuits. Additionally, when setting num feat, we select the
+top 4, 5, 6, 7, and 8 most important features from the original
+dataset to train the QNN. We further implement each QNN
+circuit with all 4 different numbers of repetitions (i.e., 1, 3, 5,
+7). Thus, overall, we construct and train 500 QNN models.
+Baseline: We train the classical ML model EvoClass with
+the optimal setting from the paper [9], using the same dataset
+as Qlinical but with the original 56 features.
+Parameter settings: In Qlinical, the classical optimizer
+we select is Constrained Optimization By Linear Approxima-
+tion optimizer (COBYLA) [19] with 400 iterations, which is
+commonly used in the literature, combined with squared error
+as the loss function. To tackle the non-determinism of the
+training process, we repeat the training for EvoClass and
+each QNN model 10 times.
+C. Statistical tests and evaluation metrics
+In order to answer RQ1, we first compute the average
+accuracy avgAcccomb (across the ten runs) of each version of
+Qlinicalcomb. Then, we sort all the versions of the approach,
+and we experimentally select the combination bestComb
+that has the highest avgAccbestComb. Finally, we compare
+the avgAccbestComb with the accuracy of the classical model
+avgAccEvoClass.
+To answer RQ2, we apply the analysis of variance (ANOVA)
+on all four hyperparameters (i.e., num feat, num rep,
+ansatz, entagl) to evaluate their contribution to the ac-
+curacy of Qlinical. If the p-value for a hyperparameter
+is smaller than 0.05, the variations in this hyperparameter
+can significantly affect the accuracy. Otherwise, there is no
+significant effect. On the other hand, a higher F statistics for a
+hyperparameter represents a greater influence on the accuracy
+of Qlinical. Then, for each hyperparameter with significant
+effect, we identify the optimal value by ranking the average
+accuracy avgAcchp (across all other hyperparameters among
+the ten runs) of each value.
+To
+answer
+RQ3,
+we
+calculate
+the
+average
+accuracy
+avgAcccomb of pairwise and three-way combinations (across
+all other hyperparameters with ten runs) of hyperparame-
+ters with the top two contribution and top three contribu-
+tion respectively, then we rank them to find the optimal
+combination values (i.e., bestComb2hps and bestComb3hps)
+that achieve the highest accuracy (i.e., avgAccbestComb2hps and
+avgAccbestComb3hps).
+VI. EXPERIMENTAL RESULTS
+A. RQ1 – How does Qlinical compare to EvoClass, i.e.,
+the classical approach that uses a classical machine learning
+model?
+In this RQ, we want to assess whether the application of
+Qlinical is feasible in practice, i.e., if it can provide results
+comparable to those of EvoClass that is based on a classical
+ML model, i.e., random forest.
+TABLE I: RQ2 – Results of ANOVA
+num feat
+num rep
+entagl
+ansatz
+F statistics
+1480.76
+303.35
+16.21
+0.03
+p-value
+6.46 × 10−150
+3.44 × 10−53
+8.49 × 10−15
+9.98 × 10−1
+Notably, as explained in Sect. V-B, due to the limited
+quantum resources available, we cannot use all the information
+in the dataset to train a QNN model, but we can only rely on
+a small number of features (i.e., num feat ∈{4, 5, 6, 7,
+8} among all 56 features). If this proves to be effective, it
+will justify further investigation into QNN hyperparameters
+for future performance improvement of the application on
+CaReSS even with current quantum resources.
+We assess the feasibility of Qlinical by experimen-
+tally selecting the combination bestComb of hyperparameters
+⟨num feat, num rep, entagl, ansatz⟩that provides the
+best average accuracy avgAccbestComb. We observe that such
+combination is bestComb = ⟨5, 7, sca, ep is⟩, achieving
+avgAccbestComb = 0.921. The average accuracy (among 10
+runs) of the classical model EvoClass trained on 56 features,
+instead, is avgAccEvoClass = 0.946. The two accuracy values
+are both higher than 0.90, and the difference is smaller than
+0.03, which is relatively small and shows that a QNN can
+closely approximate the performance of a well-established
+classical method, which is a significant result in the context of
+early applications of quantum approaches, even with limited
+quantum computation resources. Therefore, we can conclude
+that Qlinical is a valid alternative to EvoClass as it
+provides comparable accuracy results.
+We believe that, with more investigation of QML and
+advancement of quantum hardware, it would be possible to
+overcome obstacles such as hardware limitation, expand ansatz
+selection and scalability (not only two-local circuits), develop
+more effeicient encoding techniques, and so on; these points
+will allow us to fill the small gap that currently exists in
+the accuracy results. In addition, the inherent high computing
+speed of quantum computing will show the performance
+advantage of QNN over classical ML models in the future.
+Answer to RQ1: Qlinical demonstrated to be feasible
+to be applied to test CaReSS using the limited number of
+features and training on constrained quantum computing
+resources. It has great potential to be an alternative to
+EvoClass in the future.
+B. RQ2 – What is the effect of each individual hyperparameter
+on the accuracy of Qlinical?
+In this RQ, we aim to analyze the individual impact of
+each hyperparameter (i.e., num feat, num rep, entagl, and
+ansatz) on the performance of Qlinical. First of all, we
+identify the key parameters that can significantly affect the
+accuracy. We apply the statistical test ANOVA on each hyper-
+parameter based on the performance of each QNN model with
+10 runs. Table I reports the results in terms of p-values and F
+statistics. We observe that p-values of entagl, num feat, and
+7
+(a) Number of features (num feat)
+(b) Number of repetitions (num rep)
+(c) Entanglement (entagl)
+Fig. 11: RQ2 – Effect of individual hyperparameter on accuracy of Qlinical. Black dots • represent average values.
+num rep are all much lower than 0.05, indicating that all three
+hyperparameters have a significant effect on the accuracy of
+the QNN model. According to the F statistics, we can identify
+that num feat has the largest effect on the accuracy, followed
+by num rep and entagl.
+Instead, the p-value of ansatz is higher than 0.05, in-
+dicating that we cannot observe a clear trend in accuracy
+when changing ansatz alone. This implies that any noticeable
+impact might only emerge when ansatz is combined with
+other hyperparameters. Consequently, in the context of this
+paper’s case study, changing the ansatz type in a QNN model
+does not significantly affect performance, potentially due to
+the characteristics of the dataset and the classification task.
+Nonetheless, in other case studies or different tasks, ansatz
+could prove to be a critical factor.
+Regarding the three hyperparameters that have a significant
+impact, we can analyze how the setting of each hyperparameter
+affects the performance. Based on this analysis, we recom-
+mend the optimal value for each parameter so that developers
+of QNN can have clear starting points for optimizing their
+own models. In addition, they can focus on individual pa-
+rameter tuning before considering combinations, to reduce the
+complexity of the initial experiments.
+In Fig. 11, we report the boxplots of accuracy values for the
+three hyperparameters having a significant impact on accuracy.
+Each boxplot contains data points of all combinations with a
+specific feature value. In Fig. 11a, the trend is clear: num feat
+with lower values (i.e., 4 and 5) tend to achieve higher
+accuracy, followed by num feat = 6. num feat of 7 and
+8 achieve the worse accuracy. Additionally, num feat = 4
+achieves the optimal performance among the 5 values with
+avgAccnum feat=4 = 0.895. There are two possible explana-
+tions for these results.
+First, QNN with higher feature numbers (i.e., number of
+qubits) may require more iterations in the classical optimizer,
+along with more complex feature mapping and ansatz circuits.
+However, in this work, considering the limits of current
+quantum computers, we are investigating circuits with gates
+involving at most two qubits, without considering gates involv-
+ing three qubits (which could provide better results. Thus, in
+the future, when implementing other ansatz types, and feature
+mapping, the performance with higher qubits may improve.
+Second, it is also possible that the sensitivity of QNN
+is higher than that of classical approaches. Since we select
+the top important features for training each time, using less
+important features in the QNN model (e.g., the additional four
+features used in num feat = 8 comparing num feat = 4 )
+could potentially reduce performance instead.
+Regarding
+the
+number
+of
+repetitions
+num rep
+(see
+Fig. 11b), we can see a clear increasing trend when applying
+QNN with higher num rep values. This could be due to
+the fact that increasing the number of repetitions in a QNN
+circuit will increase the depth of the circuit, and, consequently,
+the number of trainable parameters; this enables the model
+to capture complex data patterns and handle more intricate
+relationships between the input features and output. However,
+due to the effect of low performance of Qlinical with 7
+and 8 features when num rep = 7 (which will be intro-
+duced in RQ3), the optimal value is num rep = 5 with
+avgAccnum rep=5 = 0.848.
+Regarding entagl (see Fig. 11c), the optimal value is
+entagl = fl, which is probably because it is the only
+entanglement structure in which any two qubits are directly
+entangled between each other when there are 4 or more
+qubits in the circuit. This means that higher entanglement may
+increase the ability to capture the data pattern.
+Answer to RQ2: num feat has the strongest influence
+on the accuracy of Qlinical, followed by num rep
+and entagl, while ansatz shows no significant ef-
+fect. To provide developers with optimal starting points
+and minimize extensive tuning, we recommend the best
+values for each hyperparameter with a positive impact:
+num feat = 4, num rep = 5, and entagl = fl.
+C. RQ3: What is the effect of combined hyperparameters on
+the accuracy of Qlinical?
+We investigate the interaction among hyperparameters since
+some hyperparameters might interact in ways that enhance
+or diminish each other’s effect, which cannot be captured by
+observing them individually. Thus, we analyze the hyperpa-
+8
+Fig. 12: RQ3 – Effect of hyperparameter pairs (num feat,
+num rep) on the accuracy of Qlinical. Black dots • repre-
+sent average values.
+rameter interactions by observing the impact of parameter
+combinations on the accuracy of QNN.
+First, we analyze the effect of the hyperparameter pairs
+with the top two contributions (i.e., num feat and num rep).
+Fig. 12 shows the boxplot of the accuracy across various
+values combination. We observe that, with num feat ∈{4, 5}
+and num rep ∈{3, 5, 7}, the accuracy values are consistently
+higher than 0.85. Furthermore, with num feat ∈{4, 5, 6},
+accuracy tends to improve when num rep increases. Also,
+when num feat ∈{4, 5, 6} and num rep ∈{3, 5, 7},
+the accuracy variation is relatively smaller than other com-
+binations. However, it is not the same case when num feat
+equals 7 and 8, where no clear increasing pattern can be
+observed across num rep values of 3, 5, 7. The average
+accuracy values of num rep = 5 are the highest in both
+cases, followed by num rep = 3, 7, and 1. Additionally,
+when num feat ∈{7, 8} and num rep ∈{3, 5, 7}, the
+accuracy variation is generally larger than other combinations.
+Notably, when num rep = 1, with the same num feat, the
+accuracy is much lower than any other num rep values. By
+ranking the average values avgAcccomb, we find the optimal
+combination is bestComb2hps = ⟨5, 7, −, −⟩, who achieves
+avgAccbestComb2hps = 0.909.
+Next, we analyze the effect of the hyperparameter com-
+bination consisting of the three with significant contribu-
+tions (i.e., num feat, num rep, and entagl). We calculate
+avgAcc of ⟨num feat, num rep, entagl, −⟩. Following the
+above conclusions, we find that bestComb2hps together with
+the optimal entagl (i.e., fl) achieves the highest accuracy
+avgAccbestComb3hps
+=
+0.912. Thus, we can conclude that
+bestComb3hps = ⟨5, 7, fl, −⟩.
+Answer to RQ3: We recommend the best combination
+values of ⟨num feat, num rep, −, −⟩and ⟨num feat,
+num rep, entagl, −⟩. Results show that QNN performs
+best with num feat = 5 and num rep = 7. Furthermore,
+with entagl
+=
+fl, it reached the highest average
+accuracy of 0.912.
+VII. DISCUSSION
+In this section, we present the key lessons learned that are
+valuable for researchers and practitioners.
+Recommendations for Future Development: In this
+paper, we evaluate the QNN models across various configura-
+tions by changing the four hyperparameters (i.e., num feat,
+num rep, entagl, and ansatz). We first investigate the indi-
+vidual impact of each hyperparameter on the performance of
+the QNN. We find that three hyperparameters (i.e., num feat,
+num rep, entagl) can significantly affect the performance,
+where num feat has the highest impact, followed by num rep
+and entagl. Next, we show how the specific settings of each
+hyperparameter, as well as interactions among those hyper-
+parameters, affect the performance. Additionally, we present
+the optimal values for individual hyperparameters and their
+combinations.
+By approaching the problem stepwise (i.e., first analyzing
+individual effects, then interactions), we offer practitioners a
+practical, structured way to tune QNNs, reducing the need
+for brute-force parameter testing across all combinations.
+Practitioners can have a clear starting point from tuning one
+specific hyperparameter and then moving to combinations. The
+findings of this work can benefit developers of QNNs, as they
+will have both general guidelines and specific recommenda-
+tions for building well-performing models.
+Potential of Quantum Neural Networks: In this pa-
+per, we demonstrate that QNNs, even with a simple QNN
+model, can achieve performance similar to that of the classical
+approach EvoClass. Specifically, in Qlinical, we use at
+most 8 features to train the model; instead, EvoClass uses
+56 features for training. This shows that quantum circuits
+can encode low-dimension classical data into high-dimensional
+data to enhance the model’s prediction ability.
+Moreover, the trainable parameters used in Qlinical are
+far fewer than those used in EvoClass. Specifically, the
+hyperparameter combination with the best performance ⟨5,
+7, sca, ep is⟩contains only 75 parameters. However, in
+EvoClass, the number of trainable parameters in the classi-
+cal machine learning model is consistently higher than 16,000,
+which is over 200 times that of the QNN. We did a small
+experiment by comparing the two models with a closer number
+of trainable parameters, in order to get more insight into the
+potential advantage of QNN over the classical approach. We
+reduced the size of the random forest inside EvoClass as
+follows: n_estimator = 1, max_feature = None,
+min_samples_split = 2, min_samples_leaf = 1.
+In order to keep the overall robustness of the model, we kept
+max_depth = 2. As a result, we reduced the number of
+trainable parameters to a range of 275 to 325 parameters.
+We trained the model 10 times. The average accuracy we
+achieved is 0.894 among 10 runs, which is lower than the best
+configurations achieved in Qlinical. It indicates that QNN
+models can learn more efficiently than the classical random
+forest with fewer trainable parameters since unique features of
+9
+quantum computing (e.g., entanglement and superposition) can
+capture data correlations with fewer trainable parameters. Such
+efficiency can reduce over-fitting and improve generalization,
+especially in scenarios where it is difficult to collect large
+amounts of training data. It also saves time and energy for
+training on the real hardware.
+Given that we use simple QNN models, we expect even
+better performance in future work. For example, hybrid quan-
+tum neural networks can be considered to enhance the perfor-
+mance [20].
+Generalizability to Other Software Engineering Prob-
+lems: In this paper, we present the application of QNN on
+a binary classification problem aiming at detecting invalid
+requests generated by EvoMaster when testing CaReSS.
+However, the implementation of QNN can be adapted to other
+classification problems in the software engineering domain,
+such as software defect prediction, as our work demonstrates
+the great potential of QNN in practical software engineering
+classification tasks. The practitioners can follow our recom-
+mendation to build effective QNN with optimized performance
+while saving computational resources. Additionally, this work
+opens avenues for further research to enhance QNN perfor-
+mance and explore the applicability of other QML models
+for different software engineering tasks, such as requirements
+optimization, test prioritization, and test generation.
+Limitations: Given that this work is a new exploration of
+applying QNN to classification problems in software engineer-
+ing, there are still some limitations. First, the implementation
+of the QNN models is on an ideal simulator in the Qiskit
+framework, without considering the effect of hardware noise.
+Such noise is unavoidable on current quantum computers. One
+of our main future works will be to evaluate the noise effect
+and integrate noise handling approaches [21], [22].
+In addition, due to the slow QNN training process on the
+simulator, we only consider simple two-local circuits (i.e., fea-
+ture mapping and ansatz) to build the QNN model. However,
+in the future, with more accessible quantum computers, more
+complex QNN models can be built to enhance performance.
+VIII. THREATS TO VALIDITY
+In Qlinical, we train the QNN using a limited number of
+features and a smaller dataset size due to the long training
+time on the quantum simulator. Despite these constraints,
+results show that QNN can still achieve competent results.
+Similarly, EvoClass trained on the subset dataset performs
+comparably to the results in the original study [9]. Further, we
+select, num rep ∈{1, 3, 5, 7} since there is no significant
+performance difference among consecutive values. Also, we
+cannot see significant improvement with higher values (e.g.,
+num rep = 9). To reduce the randomness of QNN and
+EvoClass, we repeat 10 times and calculate the average
+accuracy value.
+IX. RELATED WORK
+In recent years, advancements in quantum computing have
+driven increasing interest among researchers in investigating
+its potential to enhance machine learning algorithms, referred
+to as quantum machine learning (QML). Within QML, quan-
+tum neural network (QNN) is a widely used algorithm, which
+has been applied in various fields [12], [23]. In the high-energy
+physics field, for example, Blance et al. [20] constructed a
+hybrid QNN to distinguish rare signals from a large number of
+standard model background events. Cugini et al. [24] system-
+atically compared the performance of QNN with classical deep
+learning algorithms on the signal and background classification
+problem. Results show that current quantum computers have
+reached performance comparable to classical deep learning
+algorithms. In finance, Thakkar et al. [25] applied QNNs for
+credit risk assessment with far fewer parameters and higher
+accuracy than the classical counterpart. Zoufal et al. [26]
+applied Quantum Generative Adversarial Networks (qGAN) to
+enhance the efficiency of loading classical data into quantum
+states and demonstrated the performance of facilitating finan-
+cial derivative pricing. In healthcare, QNN was applied for
+medical image classification [27]. Innan et al. [28] introduced
+the Federated Quantum Neural Network (FedQNN) framework
+and applied it to classification problems in a breast cancer
+dataset and a custom synthetic DNA dataset, proving high
+accuracy and suitability of QML for various tasks. In contrast
+to these works, we explore QNNs’ potential for classification
+in software testing by integrating QNN with EvoMaster,
+a test case generation tool, to support continuous testing in
+CaReSS, a real-world software system.
+Building on this growing enthusiasm for quantum comput-
+ing applications, several works have been proposed to tackle
+realistic problems in software testing. For example, Miran-
+skyy [29] implements the Grover’s search algorithm to speed
+up dynamic testing in classical software. Quantum extreme
+learning machines [30], [31] have demonstrated the potential
+of solving waiting time prediction problems in the context
+of regression testing of an industrial elevator. In addition,
+quantum optimization problems such as quantum annealing
+and the quantum approximate optimization algorithm have
+been applied for test case optimization problems [32], [33].
+In this work, we employ QNN for solving a classification
+problem in the context of testing CaReSS at the Cancer
+Registry of Norway, a new application area of QNNs.
+X. CONCLUSION
+We propose Qlinical to investigate the feasibility of apply-
+ing QNN for testing a real-world industrial system, the Cancer
+Registration Support System (CaReSS). We use Qlinical to
+predict the invalidity of requests generated by EvoMaster to
+avoid unnecessary testing costs. Results show that Qlinical
+achieves comparable performance with the classical machine
+learning approach EvoClass. We also investigate how dif-
+ferent QNN configurations affect performance and provide
+recommendations for future developers of QNN according
+to our empirical findings. In the future, we plan to improve
+QNN by investigating more ansatz types and feature maps,
+and exploring the potential of hybrid QNN. In addition, we
+will consider the effect of hardware noise on our approach.
+10
+REFERENCES
+[1] R. Zhou, W. Hu, G. Luo, X. Liu, and P. Fan, “Quantum realization of
+the nearest neighbor value interpolation method for INEQR,” Quantum
+Information Processing, vol. 17, pp. 1–37, 2018.
+[2] R. Lorenz, A. Pearson, K. Meichanetzidis, D. Kartsaklis, and B. Coecke,
+“QNLP in practice: Running compositional models of meaning on a
+quantum computer,” Journal of Artificial Intelligence Research, vol. 76,
+pp. 1305–1342, 2023.
+[3] S. Das, J. Zhang, S. Martina, D. Suter, and F. Caruso, “Quantum pat-
+tern recognition on real quantum processing units,” Quantum Machine
+Intelligence, vol. 5, no. 1, p. 16, 2023.
+[4] A. Bayerstadler, G. Becquin, J. Binder, T. Botter, H. Ehm, T. Ehmer,
+M. Erdmann, N. Gaus, P. Harbach, M. Hess et al., “Industry quantum
+computing applications,” EPJ Quantum Technology, vol. 8, no. 1, p. 25,
+2021.
+[5] F. Bova, A. Goldfarb, and R. G. Melko, “Commercial applications of
+quantum computing,” EPJ quantum technology, vol. 8, no. 1, p. 2, 2021.
+[6] Y. Kwak, W. J. Yun, S. Jung, and J. Kim, “Quantum neural networks:
+Concepts, applications, and challenges,” in 2021 Twelfth International
+Conference on Ubiquitous and Future Networks (ICUFN). IEEE, 2021,
+pp. 413–416.
+[7] A. Arcuri, “EvoMaster: Evolutionary multi-context automated system
+test generation,” in 2018 IEEE 11th International Conference on Soft-
+ware Testing, Verification and Validation (ICST). IEEE, 2018, pp. 394–
+397.
+[8] A. Arcuri, J. P. Galeotti, B. Marculescu, and M. Zhang, “EvoMaster:
+A
+search-based
+system
+test
+generation
+tool,”
+Journal
+of
+Open
+Source Software, vol. 6, no. 57, p. 2153, 2021. [Online]. Available:
+https://doi.org/10.21105/joss.02153
+[9] E. Isaku, H. Sartaj, C. Laaber, T. Yue, S. Ali, T. Schwitalla, and J. F.
+Nyg˚ard, “Cost reduction on testing evolving cancer registry system,”
+in 2023 IEEE International Conference on Software Maintenance and
+Evolution (ICSME).
+IEEE, 2023, pp. 508–518.
+[10] C. Laaber, T. Yue, S. Ali, T. Schwitalla, and J. F. Nyg˚ard, “Challenges
+of testing an evolving cancer registration support system in practice,”
+in 2023 IEEE/ACM 45th International Conference on Software Engi-
+neering: Companion Proceedings (ICSE-Companion).
+IEEE, 2023, pp.
+355–359.
+[11] A. Arcuri, “RESTful API Automated Test Case Generation with
+EvoMaster,” ACM Trans. Softw. Eng. Methodol., vol. 28, no. 1, Jan.
+2019. [Online]. Available: https://doi.org/10.1145/3293455
+[12] Y. Gujju, A. Matsuo, and R. Raymond, “Quantum machine learning on
+near-term quantum devices: Current state of supervised and unsuper-
+vised techniques for real-world applications,” Physical Review Applied,
+vol. 21, no. 6, p. 067001, 2024.
+[13] V. Havl´ıˇcek, A. D. C´orcoles, K. Temme, A. W. Harrow, A. Kandala,
+J. M. Chow, and J. M. Gambetta, “Supervised learning with quantum-
+enhanced feature spaces,” Nature, vol. 567, no. 7747, pp. 209–212, 2019.
+[14] K. Bharti, A. Cervera-Lierta, T. H. Kyaw, T. Haug, S. Alperin-Lea,
+A. Anand, M. Degroote, H. Heimonen, J. S. Kottmann, T. Menke et al.,
+“Noisy intermediate-scale quantum algorithms,” Reviews of Modern
+Physics, vol. 94, no. 1, p. 015004, 2022.
+[15] S. Sim, P. D. Johnson, and A. Aspuru-Guzik, “Expressibility and entan-
+gling capability of parameterized quantum circuits for hybrid quantum-
+classical algorithms,” Advanced Quantum Technologies, vol. 2, no. 12,
+p. 1900070, 2019.
+[16] Y. Nakata, C. Hirche, C. Morgan, and A. Winter, “Unitary 2-designs
+from random X-and Z-diagonal unitaries,” Journal of Mathematical
+Physics, vol. 58, no. 5, 2017.
+[17] J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush, and H. Neven,
+“Barren plateaus in quantum neural network training landscapes,” Nature
+communications, vol. 9, no. 1, p. 4812, 2018.
+[18] X. Wang, S. Ali, P. Arcaini, N. R. Veeraragavan, and J. F. Nyg˚ard,
+“Supplementary material for the paper “Quantum Neural Network
+Classifier for Cancer Registry System Testing: A Feasibility Study”,”
+https://github.com/qiqihannah/Qlinical, 2025.
+[19] M. J. Powell, “A view of algorithms for optimization without deriva-
+tives,” Mathematics Today-Bulletin of the Institute of Mathematics and
+its Applications, vol. 43, no. 5, pp. 170–174, 2007.
+[20] A. Blance and M. Spannowsky, “Quantum machine learning for particle
+physics using a variational quantum classifier,” Journal of High Energy
+Physics, vol. 2021, no. 2, pp. 1–20, 2021.
+[21] A. Muqeet, T. Yue, S. Ali, and P. Arcaini, “Mitigating noise in quan-
+tum software testing using machine learning,” IEEE Transactions on
+Software Engineering, pp. 1–15, 2024.
+[22] A. Muqeet, S. Ali, T. Yue, and P. Arcaini, “A machine learning-
+based error mitigation approach for reliable software development
+on IBM’s quantum computers,” in Companion Proceedings of the
+32nd ACM International Conference on the Foundations of Software
+Engineering, ser. FSE 2024.
+New York, NY, USA: Association
+for Computing Machinery, 2024, pp. 80–91. [Online]. Available:
+https://doi.org/10.1145/3663529.3663830
+[23] A. Abbas, D. Sutter, C. Zoufal, A. Lucchi, A. Figalli, and S. Woerner,
+“The power of quantum neural networks,” Nature Computational Sci-
+ence, vol. 1, no. 6, pp. 403–409, 2021.
+[24] D. Cugini, D. Gerace, P. Govoni, A. Perego, and D. Valsecchi, “Compar-
+ing quantum and classical machine learning for vector boson scattering
+background reduction at the large hadron collider,” Quantum Machine
+Intelligence, vol. 5, no. 2, p. 35, 2023.
+[25] S. Thakkar, S. Kazdaghli, N. Mathur, I. Kerenidis, A. J. Ferreira-Martins,
+and S. Brito, “Improved financial forecasting via quantum machine
+learning,” Quantum Machine Intelligence, vol. 6, no. 1, p. 27, 2024.
+[26] C. Zoufal, A. Lucchi, and S. Woerner, “Quantum generative adversarial
+networks for learning and loading random distributions,” npj Quantum
+Information, vol. 5, no. 1, p. 103, 2019.
+[27] N. Mathur, J. Landman, Y. Y. Li, M. Strahm, S. Kazdaghli, A. Prakash,
+and I. Kerenidis, “Medical image classification via quantum neural
+networks,” arXiv preprint arXiv:2109.01831, 2021.
+[28] N. Innan, M. A.-Z. Khan, A. Marchisio, M. Shafique, and M. Bennai,
+“FedQNN: Federated learning using quantum neural networks,” arXiv
+preprint arXiv:2403.10861, 2024.
+[29] A. Miranskyy, “Using quantum computers to speed up dynamic testing
+of software,” in Proceedings of the 1st International Workshop on
+Quantum Programming for Software Engineering, ser. QP4SE 2022.
+New York, NY, USA: Association for Computing Machinery, 2022, pp.
+26–31. [Online]. Available: https://doi.org/10.1145/3549036.3562061
+[30] X. Wang, S. Ali, A. Arrieta, P. Arcaini, and M. Arratibel, “Application
+of quantum extreme learning machines for QoS prediction of elevators’
+software in an industrial context,” in Companion Proceedings of the
+32nd ACM International Conference on the Foundations of Software
+Engineering, ser. FSE 2024.
+New York, NY, USA: Association
+for Computing Machinery, 2024, pp. 399–410. [Online]. Available:
+https://doi.org/10.1145/3663529.3663859
+[31] A. Muqeet, H. Sartaj, A. Arreieta, S. Ali, P. Arcaini, M. Arratibel,
+J. M. Gjøby, N. R. Veeraragavan, and J. F. Nyg˚ard, “Assessing quantum
+extreme learning machines for software testing in practice,” arXiv
+preprint arXiv:2410.15494, 2024.
+[32] X.
+Wang,
+A.
+Muqeet,
+T.
+Yue,
+S.
+Ali,
+and
+P.
+Arcaini,
+“Test
+case minimization with quantum annealers,” ACM Trans. Softw.
+Eng.
+Methodol.,
+jul
+2024,
+just
+Accepted.
+[Online].
+Available:
+https://doi.org/10.1145/3680467
+[33] X. Wang, S. Ali, T. Yue, and P. Arcaini, “Quantum approximate
+optimization algorithm for test case optimization,” IEEE Transactions
+on Software Engineering, pp. 1–16, 2024.
+11

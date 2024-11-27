@@ -1,0 +1,2241 @@
+Role of intercellular adhesion in modulating tissue fluidity
+Soumyadipta Ray1, Santidan Biswas2,∗and Dipjyoti Das1†
+1Department of Biological Sciences, Indian Institute of Science Education And Research Kolkata,
+Mohanpur, Nadia - 741 246, West Bengal, India
+2Chemical Engineering Department, University of Pittsburgh, Pittsburgh, PA 15261, USA
+Tuning cell rearrangements is essential in collective cell movement that underlies cancer progres-
+sion, wound repair, and embryonic development. A key question is how tissue material properties
+and morphology emerge from cellular factors such as cell-cell adhesion.
+Here, we introduce a two-
+dimensional active force-based model of tissue monolayers that captures the liquid-to-solid transition
+exhibited by tissues. Unlike the Vertex and Voronoi models, our model shows that reducing inter-
+cellular adhesion in near-confluent tissues leads to spontaneous neighbor exchanges and fluidization.
+Near the liquid-solid phase boundary, we also found glassy behavior characterized by subdiffusive
+dynamics, swirling cell motion, and non-Gaussian exponential tails in displacement distributions.
+These exponential tails collapse onto a single master curve, suggesting a universal ’diffusion length’
+in the glassy regime. Notably, we demonstrate that structural parameters based on cell shape cannot
+always distinguish tissue phases due to huge cell shape fluctuations that are not observed in Vertex
+and Voronoi models. Our general simulation framework streamlines previous approaches by remov-
+ing many arbitrary features and can reproduce known model behaviors under different conditions,
+offering potential applications in developmental biology and physiology.
+I.
+INTRODUCTION
+Tissue fluidity is modulated in diverse biological con-
+texts such as embryonic development [1, 2], wound heal-
+ing [3, 4], and cancer progression [5, 6]. A solid-to-fluid
+transition can sculpt tissues during tail elongation in de-
+veloping zebrafish embryos [1, 2, 7]. This phase transition
+also coincides with the cell-state switching and changes in
+gene expressions, called Epithelial-to-Mesenchymal tran-
+sition (EMT) [1, 8]. EMT has been proposed to mimic
+an unjamming transition in tissues [9–11].
+Fluid-solid
+transitions were also observed in cell monolayers [12, 13],
+where transitions occur either with increasing cell density
+(due to proliferation) [13] or with increasing cellular ad-
+hesion [12]. Tissue monolayers further undergo solid-to-
+fluid transitions by applying external compressive stress
+[10, 11]. How tissue-level transitions emerge from gov-
+erning cellular parameters is an important question yet
+to be fully understood [9, 14, 15].
+Two classes of computational frameworks mainly exist
+to explain tissue-level transitions: Self-propelled particle
+(SPP) models and models that treat cells as extended ob-
+jects. SPP models describe cells as soft discs [16–18] and
+have been used to study the density (or packing fraction)
+dependent [19–23] and motility-driven [12, 19, 20, 23]
+jamming transitions. However, SPP models can not cap-
+ture the cell shape changes in a confluent tissue where
+there are almost no gaps between cells (i.e., packing frac-
+tion close to unity). Meanwhile, the Vertex model and
+its variants [24–31], Self-propelled Voronoi model [32–
+34], Deformable Particle model [35], Cellular Potts model
+[36–38], and Phase Field model [39] describe cells as ex-
+∗sab231@pitt.edu
+† dipjyoti.das@iiserkol.ac.in
+tended objects accounting for the cell geometry. Cell dy-
+namics in all these models depend on energy functions,
+unlike SPP models that describe the force-based motion
+of cell centers. For instance, 2D Vertex and Self-propelled
+Voronoi (SPV) models define a shape-energy function
+that depends on each cell’s target area (a0) and perimeter
+(p0). These models predict a density-independent solid-
+to-fluid transition with an increasing target shape index,
+s0, defined as a dimensionless parameter (s0 = p0/√a0).
+However, the increase in shape index was interpreted as
+an increase in cell-cell adhesion [26, 32]. This counter-
+intuitively implies that increasing adhesion drives tissue
+fluidization.
+In contrast, increasing cell-cell adhesion induces solid-
+ification in MDCK cell monolayers [12, 40] and organ-
+otypic cultures [41]. Also, the downregulation of adhe-
+sion molecules in the elongating zebrafish tail coincides
+with EMT and tissue fluidization [1, 8]. Thus, the role
+of intercellular adhesion on the tissue scale transitions is
+still debatable. We address this by introducing a 2D ac-
+tive force-based model of tissue monolayers, where each
+cell made with beads and springs represents a soft de-
+formable object.
+We combine the particle-like nature and force-based
+dynamics of SPP models with the spatial extension of
+cells as in Vertex and SPV models, eliminating the defi-
+ciencies of both types of models. For instance, our model
+displays spontaneous neighbor exchanges, while Vertex
+and SPV models implement these events in an ad hoc
+manner, using a threshold value on cellular edge lengths.
+Additionally, the interface of adjoining cells in Vertex and
+SPV models is represented by a shared (common) edge,
+making it impossible for adjoining cells to move relative
+to one another, thereby dictating a geometric constraint
+[42]. Our model removes this unphysical constraint, al-
+lowing for spontaneous fluctuations in cell shapes. No-
+tably, our model significantly differs from topological
+arXiv:2409.19440v1  [physics.bio-ph]  28 Sep 2024
+2
+energy-based models, like the Vertex and Voronoi mod-
+els, where a single cell loses its physical meaning in iso-
+lation (see Section III in SI).
+In our model, increasing cell-cell adhesion leads to
+liquid-to-solid transition, contrary to the predictions of
+Vertex and Voronoi models. Our observation is consis-
+tent with in vitro experiments on tissues [12, 41] and in
+vivo experiments on morphogenesis during embryonic de-
+velopment [1, 8]. Near the liquid-solid phase boundary,
+we also observe glassy dynamics with many signatures
+of dynamic heterogeneity. In the glassy regime, we col-
+lapse distinct exponential tails of displacement distribu-
+tions onto a master curve, revealing a universal ‘diffusion
+length’ that explains the origin of dynamic heterogeneity.
+Our framework provides precise control over individual
+cell properties and cell-cell interaction to gain mechanis-
+tic insights into emerging tissue behavior, with potential
+applications in various developmental and physiological
+contexts.
+II.
+MODEL
+We adopted a force-based passive mechanical model of
+2D soft grains (or cells) [43–45] instead of commonly used
+frameworks of energy-based Vertex or Voronoi models. A
+single cell is assumed to be a closed loop of beads con-
+nected by springs with stiffness Ks and natural length l0
+(Fig. 1A(top), Fig. S1). Each bead encounters tangential
+tension from adjacent springs and internal pressure, P.
+These intracellular forces capture the roles of actomyosin
+cortex and cytoplasmic pressure, respectively. Thus, the
+total intracellular force experienced by the i-th bead in
+a cell is:
+F intra
+i
+= Ks(li −l0)ˆti −Ks(li+1 −l0)ˆti+1 + Pl0
+2 (ˆni + ˆni+1).
+(1)
+Here li is the bond length between i-th and (i −1)-
+th beads; while ˆti and ˆni denote the tangential and
+the outward normal unit vectors corresponding to the
+i-th bead, respectively (Fig. S1).
+Moreover, beads of
+distinct cells experience short-ranged intercellular forces
+consisting of two parts:
+a spring-like attraction, de-
+scribing the cell-cell adhesion, and a spring-like re-
+pulsion, preventing cell interpenetration.
+Thus, in-
+tercellular forces on the i-th bead of one cell due to
+the interaction with the j-th bead of another cell are
+F inter
+ij
+= Kadh(rc
+adh −rij)ˆrij , if rc
+rep ≤rij ≤rc
+adh
+= −Krep(rc
+rep −rij)ˆrij , if rij < rc
+rep
+= 0
+,
+otherwise.
+(2)
+The distance between two interacting beads is rij =
+|ri,α −rj,β|, and the corresponding unit vector is ˆrij =
+(ri,α−rj,β)/rij, where i-th and j-th beads belong to α-th
+and β-th cell, respectively. Adhesive and repulsive forces
+are characterized by corresponding strengths (Kadh and
+Krep respectively) and cut-off ranges (rcadh and rcrep).
+Additionally, we incorporate a polarity vector ˆpα =
+(cos θα, sin θα),
+in which direction each bead of α-
+th cell exerts a self-generated motility force of mag-
+nitude
+cv0
+(where
+c
+is
+the
+coefficient
+of
+viscous
+drag
+and
+v0
+is
+the
+self-propulsion
+speed).
+All
+beads in each cell possess the same motility direc-
+tion (Fig. 1A(bottom)), but it differs from cell to cell.
+Together, the equation of motion governing the over-
+damped dynamics of the i-th bead of α-th cell becomes
+c ˙ri,α = F intra
+i,α
++
+X
+j
+F inter
+ij,α
++ cv0ˆpα.
+(3)
+Here, j-th bead belongs to another cell, interacting
+with the α-th cell. The unit polarity vector for the α-
+th cell further undergoes a rotational diffusion given by
+∂θα
+∂t = ζα(t) ;
+⟨ζα(t)ζβ(t′)⟩= 2Drδ(t −t′)δαβ.
+(4)
+Here, the angle θα defines ˆpα, and ζα(t) is a Gaus-
+sian white noise with zero mean and variance 2Dr. We
+nondimensionalized the model by choosing the units of
+length and time as l0 and c/Ks, respectively.
+Thus,
+four dimensionless parameters mainly determine the col-
+lective dynamics: non-dimensional intracellular pressure
+( ˜P = P/Ks), adhesion strength ( ˜Kadh = Kadh/Ks), self-
+propulsion speed (˜v0 = cv0/Ksl0), and rotational noise
+strength ( ˜Dr = Drc/Ks). We used the model to simulate
+a nearly confluent tissue with 256 cells, each consisting
+of 50 beads. Starting with random cell centers, the tissue
+monolayer was simulated using Euler’s method up to 107
+iterations with a time step 10−3, under periodic bound-
+ary conditions (see SI for simulation details and Table S1
+for parameter values).
+A
+Molity 
+B
+Adhesion
+Noise Strength (𝐷𝑟)
+5
+10
+15
+20
+25
+30
+35
+40
+X
+5
+10
+15
+20
+25
+30
+35
+40
+Y
+5
+10
+15
+20
+25
+30
+35
+X
+5
+10
+15
+20
+25
+30
+35
+40
+Y
+(𝐾𝑎𝑑ℎ)
+𝑣0
+𝑝𝛼
+Tension
+Pressure
+𝑡𝑖
+𝑛𝑖
+𝑖
+𝑖-1
+𝑖+1
+(Passive)
+Cell 𝛼
+(Acve)
+Cell 𝛼
+FIG. 1.
+Model and configurations. (A) A single cell
+modeled as a closed loop of beads and springs. Each bead ex-
+periences an outward-normal pressure and tangential spring
+forces (Top). Additionally, in an active cell, all beads move
+with a self-propulsion speed vo along a noisy polarity direc-
+tion, ˆpα (Bottom).
+(B) Steady-state tissue configurations.
+Increasing adhesion and noise strength can lead to cell jam-
+ming with reduced intercellular space.
+3
+III.
+RESULTS
+We first explored how the cell shapes and tissue state
+qualitatively change with the variations of cell-cell ad-
+hesion ( ˜Kadh) and rotational noise strength ( ˜Dr) (see
+Fig. 1B). When ˜Kadh and ˜Dr are low, cells are mostly
+elliptical and rounded shaped with noticeable intercel-
+lular gaps (Fig. 1B, bottom-left). With an increase in
+˜Kadh or ˜Dr, regular polygonal cell shapes (like hexagons
+and pentagons) coexist with rounded shapes, along with
+some intercellular gaps in the tissue (Fig. 1B, top-left and
+bottom-right). In contrast, when both ˜Kadh and ˜Dr are
+high, almost all cells become regular hexagonal-shaped
+with virtually no cell-cell gaps (Fig. 1B, top-right), sug-
+gesting cell jamming.
+To characterize the above phenomenon, we first evalu-
+ated the mean-squared displacement (MSD) of cell cen-
+ter trajectories, defined as ⟨∆r 2(∆t)⟩= ⟨[r cm
+α (t0 +∆t)−
+r cm
+α (t0)]2⟩. Here, r cm
+α (t) is the position vector of the α-th
+cell center at time t, t0 is a reference time, ∆t is the lag
+time, and the angular brackets denote the average over
+all cells and over different ensembles.
+We found that
+the cell motion is diffusive for low ˜Kadh (see Fig. 2A).
+However, with the increasing ˜Kadh, the motion becomes
+subdiffusive, and eventually, the MSD plateaus at large
+times, indicating the arrested motion of cells caged by
+their neighbors. Thus, the monolayer transforms from
+a fluid to a solid regime with increasing adhesion (when
+other parameters are fixed). The monolayer also gets so-
+lidified with increasing ˜P or ˜Dr, and decreasing ˜v0 (Fig.
+S3).
+We further observed that cells spontaneously exchange
+their neighbors (known as T1 transition [46]) in the
+fluid phase (see Movie S1 and Fig. 2B). Correspond-
+ingly, the cell center trajectories appear diffusive in na-
+ture (Fig. 2B). In contrast, the trajectories look caged
+in the solid phase, as expected from the MSD curves
+(Fig. 2A). We then computed an effective diffusivity from
+the long-time MSD behavior [32], defined by Deff =
+limt→∞⟨∆r 2(∆t)⟩/4D0∆t, where D0 = v02/2Dr can be
+regarded as the self-diffusivity for an isolated single cell
+[32]. The order parameter, Deff, showed a transition with
+increasing intercellular adhesion (Fig. 2D). We also mea-
+sured the MSD exponents (β) by fitting the MSD curves
+at large times with the function: ⟨∆r 2(∆t)⟩∼∆tβ. The
+MSD exponent was 1 for the fluid regime and showed a
+sharp drop as the tissue solidified (Fig. 2E).
+Next, we explored the phase space spanned by the
+three dimensionless parameters, the intercellular adhe-
+sion ( ˜Kadh), the intracellular pressure ( ˜P), and the ro-
+tational noise strength ( ˜Dr). We determined the phase
+diagrams in the 2D parameter space by varying two of
+the above parameters (Fig. 3A-C). We identified the fluid
+phase by the cut-off Deff > 0.001 and solid by Deff ≤
+0.001 (cut-off values were chosen following Fig. 2D). Here,
+we determined the phase diagrams by keeping the cell
+motility (˜v0) fixed, though the phase planes can also be
+B
+C
+Time
+5
+10
+15
+20
+25
+30
+X
+5
+10
+15
+20
+25
+30
+35
+Y
+5
+10
+15
+20
+25
+30
+35
+40
+X
+5
+10
+15
+20
+25
+30
+Y
+0.00
+0.01
+0.03
+0.02
+D
+10-5
+10-3
+10-1
+𝐾𝑎𝑑ℎ
+𝐷eff
+𝐾𝑎𝑑ℎ
+10-1
+10-3
+10-5
+0.1
+0.4
+0.7
+1.0
+E
+𝛽
+106
+105
+104
+102
+100
+101
+Increasing 𝐾𝑎𝑑ℎ
+A
+(B)
+(C)
+(Iteraon)
+∆𝑡
+∆𝒓2
+FIG. 2.
+Fluid to solid transition with increasing in-
+tercellular adhesion. (A) MSD of cell centers for different
+values of ˜Kadh (top to bottom:
+˜Kadh = 8.3 × 10−5, 8.3 ×
+10−3, 0.025, 0.042, 0.083, 0.25), showing diffusive to subdiffu-
+sive and caged behavior as ˜Kadh increases. The dashed line
+indicates a slope of 1 on the log-log plot. (B-C) Zoomed-in
+snapshots of cell collectives and the cell center trajectories
+at low (B) and high (C) adhesion strengths (corresponding
+to extreme values of ˜Kadh, denoted by (B) and (C) in Panel
+A). Regular polygonal shapes arise in C, but mostly rounded
+shapes emerge in B with noticeable intercellular gaps. Cell
+center trajectories look diffusive in B, while they appear caged
+in C. In B (left), red and green cells show spontaneous neigh-
+bor exchange (T1 transition) in the liquid phase. (D) The
+effective diffusivity, quantified as an order parameter, is shown
+against ˜Kadh. (E) MSD exponent, as a function of ˜Kadh. Pa-
+rameters: ˜v0 = 16.6 × 10−3, ˜P = 0.2, ˜Dr = 5.2 × 10−4. Other
+parameters are from Table S1.
+constructed by varying ˜v0 (Fig. S4). The 2D phase planes
+can be combined to visualize a schematic 3D phase di-
+agram (Fig. 3D). Similar to the SPV model prediction
+[32], Fig. 3D shows that the monolayer gets fludized with
+increasing persistence time scale for the rotational noise
+(given by 1/ ˜Dr). But, concerning the effect of cell-cell
+adhesion ( ˜Kadh), our phase diagram fundamentally dif-
+fers from Vertex and SPV models [32, 47], where adhe-
+sion helps fluidization in a confluent tissue. However, our
+prediction agrees with the speculated jamming phase di-
+agrams derived from previous experiments [9, 41], which
+hypothesized that intercellular adhesion solidifies the tis-
+sue. In addition, our phase diagram crucially points out
+that solidification can occur with increasing intracellu-
+lar pressure, consistent with the observation that high
+cytoplasmic pressure promotes epithelial integrity [48].
+Since cells can modulate cortical tension during mor-
+phogenesis [49], we calculated the tension in cell-edges,
+defined as Ti = |li −l0| (ignoring the multiplicative con-
+stant), where li is the distance between i-th and (i−1)-th
+beads in a cell and l0 is the natural spring length. Deep in
+the fluid phase, the tension is highly heterogeneous over
+the tissue (Fig. 4A), while it is homogeneous in the solid
+4
+B
+12
+0
+4
+8
+101
+105
+103
+1/𝐷𝑟
+1/𝐾𝑎𝑑ℎ
+101
+105
+103
+1/𝐾𝑎𝑑ℎ
+4.8
+4.0
+3.2
+1/𝑃
+F
+F
+S
+S
+F
+S
+1/𝐷𝑟
+1/𝑃
+4.8
+4.0
+3.2
+×103
+×103
+12
+0
+4
+8
+A
+C
+D 1/𝑃
+F
+F
+𝑟
+1/𝐷
+1/𝐾𝑎𝑑ℎ
+S
+F
+FIG. 3.
+Tissue phase diagrams. (A-C) Phase diagrams
+are shown in the 2D parameter space of 1/ ˜Dr vs.
+1/ ˜Kadh
+(A), 1/ ˜P vs. 1/ ˜Kadh (B), and 1/ ˜Dr vs. 1/ ˜P (C). Blue dots
+represent the fluid phase with Deff > 0.001, and red trian-
+gles represent the solid phase with Deff ≤0.001. Arrowheads
+in panel A correspond to extreme opposite phases that are
+discussed in Fig.
+4.
+(D) The 2D phase planes are orga-
+nized into a schematic 3D phase diagram. Letters ‘F’ and ‘S’
+denote the fluid and solid phases, respectively. Parameters:
+˜v0 = 16.6×10−3, ˜P = 0.2, ˜Dr = 5.2×10−4, ˜Kadh = 8.3×10−4
+(Note that two of these parameters are varied in panels A-C).
+Other parameters are from Table S1.
+phase (Fig. 4B). We also calculated the average tension
+in the steady state (given by T = (P
+M,N Ti)/MN, where
+M and N are the bead and cell numbers, respectively),
+and found that it is lower and display higher fluctua-
+tions in the fluid phase than the solid phase (Fig. 4C,
+Fig. S5). Thus, tension fluctuations decrease with the
+solidification, as recently shown in the ‘Dynamic Vertex
+Model’ (DVM) with active tension dynamics [7].
+However, tension fluctuation is an emerging property
+of our model, while in DMV, tension fluctuation was in-
+troduced via a dynamical equation for the edge tension.
+We also measured the area fraction (ϕ) over time, de-
+fined as ϕ = (PN
+α=1 Aα)/L2, where Aα is the area of
+the α-th cell and L is the simulation box length. The
+area fraction substantially fluctuates in the fluid phase
+compared to the solid phase (Fig. 4D), although it in-
+creases marginally (from 0.83 to 0.87) from the fluid to
+solid phase (Fig. 4D). Thus, the tissue remains near con-
+fluent throughout the transition, similar to the measured
+in vivo volume fraction (around 80% −90%) in dense ze-
+brafish tissues [1]. We next computed the cell shape in-
+dex, S = (PN
+α=1 Sα)/N = (PN
+α=1 Pα/√Aα)/N, Pα and
+Aα being the perimeter and area of the α-th cell, respec-
+tively [26, 32]. Note that this shape index can be mea-
+sured as an emerging property [7, 10, 26, 32, 37], while
+the ‘target shape index’ is a tunable parameter defined in
+the energy function of Vertex and Voronoi (SPV) mod-
+els [26, 32]. We observed that the shape index fluctuates
+wildly over time in the fluid phase, but its fluctuations
+diminish in the solid phase (Fig. 4E).
+The Vertex and SPV models [26, 32] showed that the
+average shape index, ⟨S⟩, serves as a structural order
+parameter.
+In DVM and SPV models [7, 32], ⟨S⟩in-
+creases monotonically as the tissue fluidizes. In contrast,
+our model reveals that ⟨S⟩behaves non-monotonically
+with adhesion near the fluid-solid transition, especially
+for lower ˜Dr (Fig. 4F). Moreover, the dynamical order
+parameter, Deff, is also non-monotonic with ⟨S⟩(Fig. 4F
+inset), indicating that both fluid and solid phases can
+possess the same ⟨S⟩value close to the transition. Thus,
+the shape index alone cannot distinguish between the tis-
+sue phases. We then examined how the shape index fluc-
+tuates across the transition, as marked by (i), (ii), and
+(iii) in Fig. 4F (denoting three distinct regions: deep
+in the fluid phase, near the phase boundary, and the
+solid phase, respectively). The standard deviation of S
+(σS =
+p
+⟨S2⟩−⟨S⟩2) displayed a peak near the transi-
+tion boundary in region-ii (Fig. 4G). Corresponding tis-
+sue configurations are shown in Fig. 4H, and the distribu-
+tions of the shape index (P(S)) are plotted in Fig. 4I. At
+region-ii, where σS has a peak, the distribution P(S) be-
+comes more skewed and broader than other regimes (see
+Fig. 4I). Interestingly, elongated polygonal and rounded
+cell shapes coexist in region-ii (Fig. 4H(ii)), whereas cell
+shapes are mostly rounded in region-i and polygonal (i.e.,
+pentagonal or hexagonal) in region-iii (Fig. 4H). More-
+over, in the solid regime (region-iii), the monolayer re-
+sembles a tightly packed foam, where the normalized cell
+area follows a generalized k-gamma distribution as found
+earlier in granular material [50], foam [51], and the Ver-
+tex model [52] (see Fig. S6).
+The cell shape heterogeneity that arises near the tran-
+sition (Fig. 4G, H) may be linked with underlying dy-
+namic heterogeneity in cell motion.
+To examine this,
+within a time window (t1 to t2), we measured the to-
+tal normalized distance covered by individual cell cen-
+ters, ¯dα, defined for the α-th cell as ¯dα = dα/(PM
+α=1 dα),
+where dα = Pt2−∆t
+ti=t1 ∆rα(ti) = Pt2−∆t
+ti=t1 |r cm
+α (ti + ∆t) −
+r cm
+α (ti)|. As suggested by the heatmaps of Fig. 4J, dif-
+ferent mobilities exist in region-i but in a spatially ran-
+dom fashion (Fig. 4J(i)).
+However, cells in region-iii
+mostly have lower mobilities (Fig. 4J(iii)). Significantly,
+in region-ii, fast-moving and slow-moving cells form clus-
+ters (Fig. 4J(ii)), suggesting that cells with distinct mo-
+bilities coexist with spatial correlation.
+This indicates
+that cells are dynamically heterogeneous, suggesting a
+glass transition, as found in colloidal glasses [53, 54] and
+in dense bacterial biofilm [55].
+To probe the glassy versus fluidic behavior, we plotted
+the vector field of cell center displacements for region-i
+and region-ii, corresponding to lower and higher adhesion
+strengths, respectively (see Fig. 5A, B). The displace-
+ment vectors are random for region-i but exhibit swirling
+patterns indicating spatial correlations in region-ii. Also,
+large and small displacements coexist in the vector field
+of region-ii, suggesting dynamic heterogeneity similar to
+polycrystalline materials and glasses [53, 56–58].
+No-
+5
+0.2
+0.1
+0
+G
+𝜎𝑠
+(×10-3)
+5
+13
+9
+0.05
+0.25
+0.45
+𝐾𝑎𝑑ℎ
+= 0.8
+𝐷𝑟×104
+(i)
+(ii)
+(iii)
+F
+𝐾𝑎𝑑ℎ
+3.64
+3.60
+3.68
+3.72
+10-2
+10-3
+10-4
+3.63
+3.66
+0.05
+0.25
+0.45
+(iii)
+(ii)
+A
+B
+C
+E
+Tension
+9.7
+9.0
+×10-2
+7
+9
+(B)
+(A)
+×106
+Iteraon
+×106
+×106
+(A)
+𝑆
+0.87
+7
+9
+Iteraon
+(B)
+(A)
+∅
+0.83
+Iteraon
+D
+101
+102
+100
+10-1
+(i)
+(iii)
+(i)
+(ii)
+H
+I
+(ii)
+3.68
+3.72
+3.76
+𝑃(𝑆)
+𝑃(𝑆)
+(iii)
+𝑆
+101
+102
+100
+10-1
+101
+102
+100
+10-1
+𝑆
+𝑇
+𝑃(𝑆)
+7
+9
+3.70
+3.67
+(B)
+J
+(i)
+(ii)
+(iii)
+×10-3
+3.3
+4.7
+4.0
+𝑑𝛼
+𝑆
+𝐷eff
+0.8
+10
+5
+𝐷𝑟×104=
+(i)
+FIG. 4.
+Tension and shape fluctuations in tissue monolayers. (A-B) Heat maps showing cellular edge tensions in
+the tissue kept in fluid (A) and solid (B) phases, as shown by arrowheads in the phase diagram of Fig.
+3A. Parameters:
+˜Kadh = 8.3 × 10−6, ˜Dr = 0.8 × 10−4 for A and ˜Kadh = 0.42, ˜Dr = 0.001 for B. Other parameter values are as mentioned in
+Fig. 3 caption. (C-E) For a single tissue, the average tension (C), area fraction (D), and shape index (E) are plotted over
+time in the steady state. The grey and black lines denote two opposite phases (fluid and solid, respectively) corresponding to
+panels A and B. (F) The shape index, averaged over time and many ensembles, is shown with ˜Kadh for various ˜Dr values.
+Inset: The dynamical order parameter, Deff, versus ⟨S⟩for ˜Dr × 104 = 5. (G) Standard deviation of the shape index showed a
+peak when plotted with ˜Kadh. Blue circles and red triangles represent fluid and solid phases, respectively, in F and G. (H-I)
+Instantaneous zoomed configurations (H) and probability distributions of shape indices (I), corresponding to the marked points,
+(i), (ii), and (iii) in the panels F, G. In H(ii), regular polygonal cell shapes (within the dashed red circle) coexist with elliptical
+shapes, suggesting shape fluctuations. In I(ii), the shape index distribution is much broader than the other regions (I(i) &
+I(ii)). (J) Each cell is color mapped with the amount of distance it traversed within a time window (from 2 × 105 to 2 × 106
+iterations) in the three specified regions, (i), (ii), and (iii) of Panel G. In J(ii), cells with large and small displacements coexist
+together, forming connected clusters. Parameters: ˜Kadh = 8.3 × 10−4 for region-i, ˜Kadh = 0.25 for region-ii, and ˜Kadh = 0.46
+for region-iii. Other parameters are from Fig. 3 and Table S1.
+tably, similar swirling displacement fields were observed
+in previous models [32, 59, 60] and epithelial monolayers
+[3, 12, 13, 61].
+Another quantity that can capture the glassy behav-
+ior is the non-Gaussian parameter defined by α2(∆t) =
+⟨∆r 4(∆t)⟩/(2⟨∆r 2(∆t)⟩
+2) −1. It is non-zero if displace-
+ment distributions deviate from Gaussian [37, 57].
+In
+Fig. 5C, α2 is almost zero in region-i (lower adhesion),
+for which diffusive cell dynamics is expected.
+In con-
+trast, α2 has a sharp non-zero peak at the lag time ∆t∗
+in region-ii (higher adhesion), for which cell dynamics
+is subdiffusive. Accordingly, the displacement distribu-
+tion P(∆), measured at ∆t∗, is Gaussian in region-i, but
+it develops broad exponential tails in region-ii (Fig. 5D,
+5E). Such non-zero peaks in α2 and corresponding non-
+Gaussian tails in displacement distributions have been
+observed in inanimate glassy materials [53, 57, 58], and
+also in living systems like embryonic tissues [62] and cy-
+toskeletal dynamics in human muscle cells [63].
+The broad exponential tail in the displacement distri-
+bution (Fig. 5E) represents the motile cells performing
+random jumps between cages [53, 57, 63]. The lag time
+∆t∗, at which α2 shows a peak (Fig. 5C), gives the cage
+breaking time scale [53, 57, 58]. Indeed, within a time
+window spanning ∆t∗, a sample trajectory in region-ii
+displays rare and quick hopping of a cell between cages
+formed by its neighbors (Fig. 5F(ii)), but the trajectory
+looks simply diffusive in region-i (Fig. 5F(i)).
+However, what could be the physical origin of the ex-
+ponential tails in displacement distributions observed in
+the glassy regime (region-ii)?
+We found that the in-
+dividual diffusion coefficients (D), measured from the
+6
+∆𝑡∗
+H
+𝑒−∆
+=0.21 
+𝐾𝑎𝑑ℎ
+𝐾𝑎𝑑ℎ=0.17 
+𝐷𝑟
+=1.1
+x104
+𝐷𝑟
+=1.1
+x104
+=0.21 
+𝐾𝑎𝑑ℎ
+𝐾𝑎𝑑ℎ=0.125 
+𝐷𝑟
+=1.3
+x104
+𝐷𝑟
+=1.3
+x104
+=0.25 
+𝐾𝑎𝑑ℎ
+𝐾𝑎𝑑ℎ=0.21 
+𝐷𝑟
+=0.8
+x104
+𝐷𝑟
+=0.9
+x104
+I
+10-2
+10-4
+4
+12
+-10
+10
+-10
+10
+10-2
+10-4
+4
+12
+G
+B
+E
+(ii)
+(i)
+(ii)
+A
+D
+(i)
+(ii)
+10-4
+10-2
+100
+0
+-10
+10
+∆
+P(∆)
+𝑒(−0.75 ∆)
+:
+:
+∆𝑥
+∆𝑦
+(ii)
+0.4
+0.2
+0.0
+104
+105
+106
+∆𝑡
+𝛼2
+(ii)
+(i)
+C
+(i)
+0
+-25
+25
+10-4
+10-2
+100
+P(∆)
+∆
+:
+:
+∆𝑥
+∆𝑦
+(×106)
+(×10-3)
+Iteraon
+2.0
+1.0 
+0.1
+F
+Y
+X
+X
+Y
+P(𝐷)
+𝐷
+10-1
+10-2
+10-3
+10-4
+0
+0
+101
+103
+0
+4
+6
+2
+8
+10
+𝑒(−𝐷/𝐷)
+∆
+P(∆)
+P(∆)
+∆
+FIG. 5.
+Dynamic heterogeneity and glassy dynamics. (A-B) Cell center displacements over a time window (from
+105 to 2 × 106 iterations) for low and high adhesion strengths (marked by (i) and (ii), respectively, corresponding to Fig.
+4G). For lower adhesion (region-i, A), instantaneous displacements are random and uncorrelated, whereas the displacement
+field shows swirling patterns for higher adhesion (region-ii, B). (C) The non-Gaussian parameter, α2(∆t), shows a peak for
+higher adhesion (region-ii) around the lag time ∆t∗. The shaded region spanning ∆t∗indicates the time window where the
+displacement fields (panels A, B) and trajectories (panel F) were observed. (D-E) Probability distributions of cell center
+displacements at the lag time ∆t∗. Black dashed lines indicate the best fit Gaussian. The Blue dashed line (in E) shows
+an exponential fit. (F) Sample cell center trajectories within a time window (corresponding to the shaded region in C). The
+trajectory is diffusive for lower adhesion (region-i), but a cage rearrangement event (hopping trajectory) was seen for higher
+adhesion (region-ii). (G) Probability distribution of diffusion coefficients (D) measured from time-averaged MSD curves of
+individual cells for the region-ii. The red line is an exponential fit. (H-I) Probability distributions of cell center displacements
+(H) and scaled displacements (I) for different values of ˜Kadh and ˜Dr. Note that the tails of all distributions of normalized
+displacements (defined by ˜∆= 1/
+p
+(2 ¯D∆t∗)) follow a single master curve with exponent 1 (indicated by the dashed line in I).
+Insets of H and I show zoomed tail parts of corresponding distributions. The parameters are the same as in Fig. 4.
+time-averaged MSD curves, have a broad skewed dis-
+tribution that has an exponential-like form (Fig. 5G).
+Thus, the exponential tails in displacement distribu-
+tions (Fig. 5H) can stem from the cell-to-cell hetero-
+geneity in individual diffusivities [64, 65]. Suppose in-
+dividual cells in the ensemble follow independent diffu-
+sive dynamics characterized by Gaussian displacement
+distributions but with an exponentially distributed dif-
+fusion coefficient, D.
+Then, non-gaussian displace-
+ments can be achieved as the convolution of Gaus-
+sian — We can write the displacement distribution (at
+a lag time ∆t∗) as:
+P(∆x) =
+R
+p(D) g(∆x|D) dD,
+where, g(∆x|D) = (1/
+√
+4πD∆t∗) exp(−∆x2/4D∆t∗).
+If
+we
+assume
+the
+distribution
+of
+D
+as
+p(D)
+=
+(1/ ¯D) exp(−D/ ¯D), where
+¯D
+= (PN
+α=1 D)/N is the
+mean value of D averaged over all cells, we obtain
+the form:
+P(∆x) = (1/2
+√¯D∆t∗) exp(∆x/
+√¯D∆t∗) ∼
+exp(−∆x/
+√¯D∆t∗). Further, note that we numerically
+obtained individual diffusion coefficients by the defini-
+tion D = limt→∞⟨∆r 2(∆t)⟩/4∆t for the 2-dimensional
+dynamics. Thus, for the 1D component of displacements
+(∆x or ∆y), we take the mean diffusivity to be 2 ¯D to
+consider the dimensionality. Therefore, if we consider the
+scaled 1D displacement ˜∆= ∆/
+√
+2 ¯D∆t∗, the distribu-
+tion P( ˜∆) then follows an exponential distribution with
+exponent 1. Indeed, for various values of ˜Kadh and ˜Dr,
+different non-Gaussian exponential tails with distinct ex-
+ponents collapse onto a single master curve (∼exp(−| ˜∆|)
+when the scaled displacement ( ˜∆) is used (see Fig. 5H,
+I). Thus,
+√
+2 ¯D∆t∗represents a mean diffusion length by
+which displacements can be normalized to obtain a uni-
+versal form, elucidating the link between exponential tails
+and the heterogeneous diffusivities of individual cells.
+IV.
+DISCUSSION
+Summary and relevance: Our result of tissue solid-
+ification with adhesion, though contrasts the prediction
+of Vertex and Voronoi models [26, 32], are in line with in
+vitro experiments [12, 40, 41]. This also explains how the
+downregulation of adhesion molecules leads to in vivo tis-
+sue fluidization during zebrafish tail development [1, 8].
+Similar to the experiment [1], adhesion-induced solidifi-
+7
+cation accompanies a marginal change in packing fraction
+in our model. We also found tissue fluidization with in-
+creasing self-propulsion speed that captures a recent ex-
+periment on motility-driven unjamming in gastrulation
+[2]. We further show that the average shape index alone
+cannot be used as a structural order parameter to distin-
+guish the phases due to large shape fluctuations near the
+transition point. Also, increased adhesion results in dy-
+namic heterogeneity and glassy behavior near the phase
+boundary.
+Our force-based framework, which is conceptually
+straightforward to implement, relies on a free energy
+function that obeys the Young-Laplace equation at the
+level of a single cell in equilibrium (see Section III, SI) —
+this is distinct from the topological energy functions used
+in Vertex, Voronoi, and Cellular Potts models [26, 32, 37].
+Contrasting these models, we do not assume any tar-
+get shape parameters since there is no experimental sup-
+port and such parameters are difficult to physically inter-
+pret. Our model exhibits spontaneous neighbor exchange
+(T1 transitions) unlike the Vertex/Voronoi frameworks,
+where T1 transitions are performed using an ad hoc cri-
+terion of a threshold value on cellular edge lengths [7, 26].
+Further, intercellular gaps naturally arise in our model,
+unlike the Voronoi tesselation framework, where cell-cell
+gaps are either completely absent [26, 32] or implemented
+by assuming extra ‘non-physical’ vertices [7]. We also ob-
+serve the spontaneous formation of multicellular rosettes
+(where five or more cells share a vertex) [66] (Fig. S7).
+In contrast, rosettes were formed in Vertex models by
+implementing an ad hoc ‘edge collapse’ procedure that
+randomly reduces edge lengths to zero [30].
+Connection with other models:
+To compare with
+the jamming in passive foams, we studied our model
+without the self-propulsion and adhesion (v0 = 0, Kadh =
+0). In a rigid box, we produced jammed states by inflat-
+ing the cells with increasing pressure (i.e., with increasing
+packing fraction). We show that the tissue becomes con-
+fluent when the normalized area fraction reaches unity
+(ϕ/ϕmax = 1) at an average shape index ⟨S⟩≈3.81
+(see Fig. S8 and Section V, SI). This is similar to the
+crowding-dependent jamming in the Deformable Parti-
+cle (DP) model [35]. Interestingly, the Vertex and SPV
+models [26, 32] also show a liquid-to-solid transition at
+⟨S⟩≈3.81.
+Note that the level of confluency can be described
+by ϕ/ϕmax (ϕ/ϕmax = 1 implies full confluency) [35].
+Though the absolute packing fraction cannot reach unity
+in our particle-based model (unlike Vertex and SPV
+models), we maintained a near-confluent regime, where
+(ϕ/ϕmax) ∼0.94−1 across the transition (corresponding
+to Fig. 2-4). This is similar to the in vivo experiment on
+zebrafish tissues that show 80%-90% confluency [1].
+However, to compare with Vertex and SPV models,
+we performed the Voronoi tessellation of space (using
+the cell centers) to obtain the Voronoi polygons cor-
+responding to the cells (Fig.
+S9A) and measured the
+shape indices of the Voronoi cells, ⟨S⟩V or (see Section
+VI, SI). We found that the liquid-solid transition takes
+place at ⟨S⟩V or ≈3.81 for low values of Dr, similar to
+the Vertex and SPV models [26, 32], though the transi-
+tion point deviates from 3.81 for higher Dr (Fig. S9B-C).
+Moreover, we achieved very high confluency by increas-
+ing the rest length of cell edges (represented by Hookean
+springs) and found that the packing fraction hardly al-
+tered during the liquid-solid transition (ϕ ∼0.891−0.893,
+i.e., (ϕ/ϕmax) ∼0.998 −1), when adhesion was in-
+creased from zero (Fig. S10C-E). The average coordina-
+tion number also stayed very high and almost constant
+(Z ∼5.90−5.98) during the transition (Fig. S10F). This
+indicates an adhesion-dependent active glass transition in
+the confluent limit, not a crowding-dependent jamming.
+Thus, tissue solidification arises from dampening the ac-
+tive motility as higher adhesion leads to increased resis-
+tance to shear forces between cells. Further, measuring
+⟨S⟩V or from Voronoi cells again showed that the transi-
+tion happens at ⟨S⟩V or ≈3.81 (Fig. S10G), exhibiting
+the behavior of Vertex and SPV models [26, 32]. Never-
+theless, the actual shape indices measured from cell con-
+tours are non-monotonic across the transition (Fig. 4F,
+S10H).
+As shown before, in the passive limit, our active model
+is similar to passive deformable particle (DP) models
+[35, 44].
+However, including ‘active and noisy’ motil-
+ity is crucial to observe the glass transition. Though a
+few studies included tunable confluency in the Voronoi
+framework [7, 67], our implementation is distinct and
+straightforward, inspired by DP models. There are also
+a few active models of deformable cells like ours [68, 69].
+However, the intracellular pressure in these models de-
+pends on the instantaneous cell area, which is similar to
+vertex-based models but distinct from our constant pres-
+sure framework that aligns with in vivo measurement of
+osmotic pressure in tissues [70].
+Recently, a computa-
+tional package [71] has been developed to simulate var-
+ious soft materials, including biological tissues, foams,
+bubbles, etc. However, this framework is overtly com-
+plex (with 23 parameters), while ours is a simple coarse-
+grained framework with a few parameters corresponding
+to experiments (such as adhesion, intracellular pressure,
+edge tension, etc.).
+Application and future directions: Intriguingly,
+despite having a distinct single-cell energy function com-
+pared to the DP, Vertex, and SPV models, our model
+still shows the liquid-solid transitions at ⟨S⟩V or ≈3.81
+in certain limits. This may be tied to the argument of
+isostaticity based on the polygonal tiling of the 2D space,
+leading to an isostatic coordination number of Ziso = 5
+(corresponding to the ⟨S⟩V or = 3.81 for a pentagon) as
+explained in [26]. However, a detailed correspondence be-
+tween the vertex-based framework and ours would be an
+interesting future problem. Since real biological tissues
+are near-confluent, our model is suitable for studying the
+effect of confluency on active glassy behaviors. In near-
+confluent systems, it is worthwhile to study the interplay
+of two mechanisms of solidification: crowding-dependent
+8
+jamming (in sub-confluent regimes) and adhesion-driven
+or tension-dependent rigidity transition (in full confluent
+regimes) [72]. For instance, a recent study on Xenopus
+development [73] shows the signatures of both mecha-
+nisms.
+Another work has discovered that periodic as-
+semblies of myosin motors interconnect with the actin
+cortex and act like a chain of sarcomeric units in each
+epithelial cell [74]. Such an arrangement resembles our
+bead-spring loops representing the cell cortex. The au-
+thors found that the distance between sarcomeric units
+changes upon perturbation of the actin cortex, and it
+relaxes to the original state when the perturbation is re-
+moved. Our model could be suitable to understand the
+effect of such mechanical perturbation on cell shape and
+tissue rigidity.
+Moreover, a detailed continuum model
+has recently explored how T1 transitions emerge from
+stochastic formation and dissociation of cell-cell adhesive
+bonds at the level of a few cells [75]. Since T1 transitions
+spontaneously emerge at the tissue level in our coarse-
+grained model, an interesting question would be how the
+T1 transitions depend on confluency and adhesion.
+ACKNOWLEDGMENTS
+DD and SR thank DBT (Government of India, Project
+No. BT/RLF/Re-entry/51/2018) and IISER-Kolkata for
+financial support. We also thank Dapeng Bi (Northeast-
+ern University), Dibyendu Das (IIT Bombay), Anirban
+Sain (IIT Bombay) and Somajit Dey (IISER Kolkata) for
+their useful discussions.
+1
+Supplementary Information:
+Role of intercellular adhesion in modulating tissue fluidity
+I.
+MODEL DETAILS
+A.
+Force inherent to an isolated cell
+Motivated from previous studies [43–45], a single cell is modeled as a closed loop of beads connected through elastic
+springs with stiffness constant Ks and natural spring length l0 (Fig. S1). In our simulation, each cell is made up of
+50 beads. Each bead experiences tangential tension forces from the two adjacent neighbor springs, and an internal
+pressure force, Pl0, directed (outward) normal to the line tension of the given spring. (Fig. S1).
+𝑖
+𝑖−1
+𝑖+ 1
+Tension
+Pressure
+(Passive)
+Cell 𝛼
+𝑃𝑙0
+2
+𝑛𝑖
+𝑃𝑙0
+2
+𝑛𝑖+1
+−𝐾𝑠𝑙𝑖+1 −𝑙0 𝑡𝑖+1
+𝐾𝑠𝑙𝑖−𝑙0 𝑡𝑖
+FIG. S1.
+Bead-spring model of a single cell. The force components due to the tangential spring tension are shown in
+black arrows. The blue arrows denote the normal components of the pressure force. The neighbors of the i-th bead are the
+(i −1)-th and (i + 1)-th beads.
+In a coarse-grained view, these intracellular forces describe the roles of the actomyosin cortex and cytoplasmic
+pressure that give the cell its structural integrity. The intracellular force for the i-th bead can be explicitly written
+as follows:
+F intra
+i
+=
+Ks(li −l0)ˆti −Ks(li+1 −l0)ˆti+1 + Pl0
+2 (ˆni + ˆni+1)
+(1)
+Here, li is the bond length between i-th and (i −1)-th bead pair, and li+1 is the bond length between (i + 1)-th
+and i-th beads, respectively. Also, ˆti and ˆti+1 are the tangential unit vectors, and ˆni and ˆni+1 are the corresponding
+outward normal unit vectors perpendicular to ˆti and ˆti+1, respectively (see Fig. S1). The first two terms represent
+the total spring-tension force, and the third term represents the outward pressure force on the i-th bead.
+B.
+Effect of cell-cell interactions
+The intercellular force arising due to cell-cell interactions consists of two parts: (i) the spring-like attractive force,
+which resembles the cell-cell adhesion through adhesive proteins (like E-cadherins), and (ii) the spring-like repulsion
+that prevents the interpenetration among neighboring cells. Two beads of two different cells would feel the force of
+adhesion or repulsion only when the Euclidean distance between them is below the cut-off range of the attractive or
+repulsive forces. Thus the interaction force on the i-th bead of α-th cell due to the j-th bead of β-th cell is as follows:
+F inter
+ij,αβ = Kadh(rc
+adh −rij,αβ)ˆrij,αβ , if rc
+rep ≤rij,αβ ≤rc
+adh
+= −Krep(rc
+rep −rij,αβ)ˆrij,αβ , if rij,αβ < rc
+rep
+= 0
+,
+otherwise
+(2)
+2
+Here, rij,αβ =
+ri,α−rj,β
+|ri,α−rj,β| is the unit vector of the Euclidean distance between the two interacting beads. Kadh and
+rcadh are the strength and cut-off range, respectively, for the attractive force, and Krep and rcrep are that of the
+repulsive force.
+Now, considering all the contributions from other cells within the interaction ranges, the total force of interaction on
+the i-th bead of the α-th cell would be :
+F inter
+i,α
+=
+X
+j̸=i,β̸=α
+F inter
+ij,αβ
+(3)
+C.
+Active force term via self-propulsion and Equations of motion
+In addition to the intracellular and intercellular forces, cells can also move via self-propulsion.
+As in the self-
+propelled particle (SPP) model [19] and self-propelled Voronoi (SPV) model [32], we also incorporate a polarity
+vector ˆpα = (cos θα, sin θα) for every cell. In the direction of ˆpα, each bead of a cell exerts a self-generated motility
+force of magnitude cv0, where c is the coefficient of viscous drag, and v0 is the self-propulsion speed. Thus, in each
+cell, all the beads have the same polarity direction, but the polarity direction differs from cell to cell. All together,
+the overdamped equation of motion for the i-th bead of the α-th cell is:
+c ˙ri,α = F intra
+i,α
++ F inter
+i,α
++ cv0ˆpα
+(4)
+And, the unit polarity vector undergoes a rotational diffusion described as:
+∂θα
+∂t = ζα(t) ;
+⟨ζα(t)ζβ(t′)⟩= 2Drδ(t −t′)δαβ,
+(5)
+where, ζα(t) is a Gaussian white noise with zero mean and variance 2Dr, which specifies the timescale for reorien-
+tation of the polarity vectors as 1/Dr.
+Thus Eq. (4) and Eq. (5) are the governing equations of motion in our model.
+D.
+Non-dimensional Parameters
+To non-dimensionalize our governing equations, we take the unit of length as l0 and the unit of time as τ =
+c
+Ks
+(where c is the coefficient of viscous drag and Ks is the spring constant for a single cell). Thus, the non-dimensional
+position vector (˜r i,α) would be :
+˜r i,α = r i,α/l0
+⇒r i,α = ˜r i,αl0
+(6)
+And, non-dimensional time (˜t) would be :
+˜t = t/τ
+= tKs/c
+⇒t = ˜tc/Ks
+(7)
+3
+Therefore, replacing the position vectors and time with the non-dimensionalized values in Eq. (4), we obtain
+cd(˜r i,αl0)
+d(˜t c
+Ks ) = {Ksl0[( li
+l0
+−1)ˆti −(li+1
+l0
+−1)ˆti+1] + Pl0
+2 (ˆni + ˆni+1)}
++ {
+X
+j̸=i,β̸=α
+Kint(l0˜rc −l0˜rij,αβ)ˆrij,αβ} + cv0ˆpα
+⇒d˜r i,α
+d˜t
+= [( li
+l0
+−1)ˆti −(li+1
+l0
+−1)ˆti+1] +
+ P
+Ks
+(ˆni + ˆni+1)
+2
++ {
+X
+j̸=i,β̸=α
+Kint
+Ks
+
+(˜rc −˜rij,αβ)ˆrij,αβ} +
+ cv0
+Ksl0
+
+ˆpα
+⇒d˜r i,α
+d˜t
+= [( li
+l0
+−1)ˆti −(li+1
+l0
+−1)ˆti+1] + ˜P (ˆni + ˆni+1)
+2
++ {
+X
+j̸=i,β̸=α
+˜Kint(˜rc −˜rij,αβ)ˆrij,αβ} + ˜v0ˆpα
+(8)
+Here, Kint denotes the strength of adhesion or repulsion (Kadh or Krep) in a compact notation. Also, ˜P =
+P
+Ks ,
+˜Kint = Kint
+Ks
+and ˜v0 =
+cvo
+Kslo are dimensionless pressure, interaction strength, and self-propulsion speed, respectively.
+Note that Eq. (8) is a non-dimensional form of Eq. (4). Treating Eq. (5) in a similar way, we get
+∂θα
+∂(˜tτ) = ζα(˜t) ; ˜ζα(˜t) = τζα(t/τ)
+⇒∂θα
+∂˜t = ζα(˜t)
+(9)
+and
+⟨˜ζα(˜t)˜ζβ(˜t′)⟩= 2(Drτ)(δ(˜t −˜t′) = 2 ˜Drδ(˜t −˜t′)
+(10)
+Where, ˜Dr = Drc/Ks is the non-dimensional rotational noise strength. Thus, the main non-dimensional parameters
+of our model are ˜P, ˜Kadh, ˜v0 and ˜Dr (ignoring ˜Krep, since we kept ˜Krep >> ˜Kadh).
+II.
+SIMULATION DETAILS
+We consider a system of N = 256 cells in a square box of size L = 460l0. Each cell contains M = 50 beads. The bead
+positions are updated by numerically integrating Eq. (4) and Eq. (5) using the Euler method. The time step is 10−3
+and the total number of iterations is 107. The simulations are carried out using a periodic boundary condition.
+A.
+Initialization procedure
+Generating nearly confluent tissue configuration:
+To populate the desired number of cells in a given
+square box, we choose a smaller initial radius for each cell.
+In our simulation, the initial radius of each cell
+is taken as a = 10l0, and the box length is chosen to be L = 460l0.
+To avoid cell-cell overlap during the
+random generation of cells, the minimum separation between two cell centers is chosen to be 2a + rrep
+c
+.
+In a
+square box of fixed length, L, we generate two random numbers from a uniform distribution as the X and Y
+coordinates of each cell center.
+The cell centers are then checked to meet the criterion of lying inside the box
+and also have no overlap with already generated cells.
+If there is an overlap, the cell center coordinates are
+generated repeatedly till the criteria are met. The 50 beads that make up the cell boundaries are then positioned in
+an equidistant manner along the perimeter of each cell such that the spring length between successive beads is 2πa/50.
+Equilibrium dynamics of the tissue configuration: The initially generated cell-system is then evolved by
+integrating Eq. (4) with ˜v0 = 0, i.e., we evolve the passive system without Eq. (5). During this time window, the
+4
+cells grow, and by interacting with each other, they approach a nearly confluent equilibrium configuration (with an
+area fraction above 0.8). This equilibrium configuration then serves as an initial configuration for simulations of the
+active system. In all our simulations, we equilibrate the randomly generated configurations up to the total iteration
+of 5 × 104. Also note, to avoid any global drift of the system, we integrate Eq. (4) in the center of mass reference
+frame, i.e., we use the transformed position vectors for each bead, r
+′i,α = ri,α −Rcm, where Rcm is the position of
+the center of mass of the entire tissue monolayer.
+B.
+Dynamics of the active system
+Simulation of the active system: After the passive system attained an equilibrium configuration (described
+above), we reset the time to zero. The final equilibrated configuration of the passive system is then used as the initial
+configuration for the active dynamics of the tissues. The system is then evolved for a further 107 iteration steps with
+a non-zero self-propulsion speed (˜v0 ̸= 0), and the dynamics is governed by both Eq. (4) and Eq. (5) simultaneously.
+Measurement of observable quantities: We found that after 105 iterations, the active system entered into a
+steady state, which was determined by observing the time evolution of the dynamical or structural observables like
+instantaneous area fraction and the shape index (as defined in the next section). The steady-state was confirmed
+when the observables fluctuated around a well-defined average value over time (as in Fig. 4(C-E), main text). We
+took this approximate steady-state reaching time as the reference time (t0 = 105 iterations) for measuring the
+dynamical quantities like MSD and the non-Gaussian parameter (as defined in the next section).
+Code details:
+The main simulation as well as codes for analysing the data are all written in FORTRAN
+90.
+We implemented the ‘cell linked-list’ algorithm [76] (which provides a significant speed-up) in the neigh-
+bor search process to compute the intercellular forces.
+The codes are available in the GitHub repository:
+https://github.com/PhyBi/Collective-Cell-Dynamics/tree/legacy.
+TABLE S1. List of system parameters.
+Parameters
+Description
+Value
+Kadh
+Intercellular adhesion strength
+Varied: 0.001 −50
+Pl0
+Intracellular pressure force
+Varied: 2.5 −4.0
+v0
+Motility
+Varied: 0.09 −0.25
+Dr
+Rotational noise strength
+Varied: 0.02 −1.125
+Krep
+Intercellular repulsion strength
+1000
+radh
+c
+Cut-off distance for intercellular adhesion
+2.8l0
+rrep
+c
+Cut-off distance for intercellular repulsion
+1.8l0
+l0
+Equilibrium spring length
+0.1
+Ks
+Spring stiffness constant
+120
+c
+Coefficient of viscous drag
+0.5
+III.
+COMPARISON OF OUR MODEL WITH THE TOPOLOGICAL ENERGY FUNCTION OF VERTEX
+AND VORONOI MODELS
+The free energy of our model fundamentally differs from the topological energy function of Vertex/Voronoi-type
+models. For instance, consider a single isolated cell at equilibrium. Under an isotropic pressure, the cell will attain
+the equilibrium shape of an n-sided regular polygon having n beads and n springs (with spring constant Ks and rest
+length l0). Following Fig. S2, the free energy is:
+F = −nPl0(r −r0) + n
+2 Ks(2∆l)2
+= −nPl0(r −r0) + 2nKs(r −r0)2sin2(π/n),
+(11)
+5
+FIG. S2. A single cell (at equilibrium) idealized as an n-sided regular polygon (here n = 8). An isotropic pressure force Pl0
+inflates the cell, pushing each vertex point outward and increasing the radius of the circumcircle from r0 to r. Correspondingly,
+the surface springs at the edges extend from l0 to (l0 + 2∆l). The diagram is not drawn to scale and is magnified for visual
+clarity.
+where the first term is the work done by the pressure, the second term is the spring energy, and we invoke the geometric
+relation, ∆l = (r −r0)sin(π/n) (see Fig. S2). Differentiating Eq. (11) with respect to r, we obtain at equilibrium:
+∂F
+∂r = −nPl0 + 4nKs(r −r0)sin2(π/n) = 0.
+(12)
+Using the geometric relation, l0 = 2r0sin(π/n) (see Fig. S2 ), Eq. (12) can be reduced to
+P = Ks(2∆l)/r0 = T/r0,
+(13)
+where T = Ks(2∆l) can be considered as the local surface tension at each edge. The Eq. (13) is basically the Young-
+Laplace (YL) equation, which is thus satisfied in our model. In contrast, the vertex energy function for a single cell
+is given by
+E = KP
+2 (p −p0)2 + KA
+2 (a −a0)2,
+(14)
+where p and a are perimeter and area of a cell, while p0 and a0 are target perimeter and target area parameters,
+respectively.
+The first term in Eq. (14) is similar to the surface spring energy in our model.
+However, the 2nd
+term is the ‘area elasticity,’ which represents a pressure dependent on the cell’s instantaneous area (pressure,
+P = KA(a −a0)). This is inconsistent with the YL equation, which is arguably responsible for the tendency of
+rounding of a single cell during detachment [77, 78]. The YL equation was also invoked to quantify adhesion [78, 79],
+and it formed the basis of inferring tension at cellular edges from analysis of tissue images [80, 81].
+Since the
+vertex energy function does not obey the YL equation, it can lead to skewed non-rounded shapes for a single cell
+at equilibrium, depending on independent choices of a0 and p0. Thus, a single isolated cell is poorly defined in this
+framework. An explicit ‘pressure’ term must be incorporated into the energy function to make it consistent with the
+YL equation (see [82]).
+IV.
+MEASURED OBSERVABLES
+A.
+Mean Square Displacement (MSD)
+To analyze the cell motions in the monolayer, we measured the mean square displacement (MSD) of the cell centers.
+The MSD is defined as
+MSD(∆t) := ⟨∆r 2(∆t)⟩
+(15)
+6
+where
+∆r = r α
+cm(t0 + ∆t) −r α
+cm(t0)
+(16)
+r αcm(t) = (PM
+i=1 r i,α)/M is the position vector of the center of mass of the α-th cell at time instant t. The angular
+bracket ⟨...⟩denotes the average over all the cells and over different ensemble runs.
+B.
+Effective Diffusivity
+From the MSD, we determined the effective diffusivity Deff as a dynamical order parameter that differentiates the
+solid and fluid phases and is defined as
+Deff := lim
+t→∞
+MSD(∆t)
+4D0∆t ,
+(17)
+where D0 = v02/2Dr is the self-diffusivity for an isolated single cell [32]. Deff is estimated from the slope of the linear
+fits to the MSD curves at long time (from 5 × 106 to 107 iterations).
+C.
+Non-Gaussian Parameter
+The non-Gaussian parameter (α2(∆t)), in 2D, is defined as [37] :
+α2(∆t) := 1
+2
+⟨∆r 4(∆t)⟩
+⟨∆r 2(∆t)⟩2 −1,
+(18)
+where ∆r is as defined in Eq. (16). This parameter includes the 2nd and 4th order moments of the distribution of
+∆r. The parameter value is zero for a Gaussian distribution and becomes non-zero when the distribution deviates
+from the Gaussian. The higher-order moments capture the deviation of the distribution, especially in the tail part,
+which cannot be accounted for by MSD.
+D.
+Area Fraction
+The area fraction in our model can be calculated in the following two ways. First, the area fraction (ϕ) of the tissue
+monolayer at a particular time is given by
+ϕ = (
+N
+X
+α=1
+Aα)/Abox
+(19)
+Here Aα is the area of the α-th cell, N is the cell number, and Abox = L2, is the area of the simulation box. This
+definition considers the beads as point particles. However, since we have a cut-off range of the repulsion interaction
+(rcrep), each bead can be treated as a disc of diameter rcrep, contributing a factor of (π/2)(rcrep/2)2 to the single cell
+area. Thus, according to this factor, we can have a higher value of the area fraction given by
+ϕ′ = ϕ + (MN/Abox)π(rc
+rep)2/8
+(20)
+Here M is the bead number per cell. We calculated that ϕ ranges 0.85−0.88 across the extreme fluid and solid phases
+(corresponding to Fig. 2 of our manuscript), while ϕ′ ∼0.93 −0.95 during the transition. Both these estimates show
+high confluency, and the area fraction changes negligibly across the transition, as found during the liquid-to-solid
+transition in dense zebrafish tissues [1].
+E.
+Shape Index
+Following previous studies [26, 32], the cell shape index (S) is defined as:
+S = 1
+N
+N
+X
+α=1
+Pα
+√Aα
+(21)
+7
+Where Pα is the perimeter and Aα is the area of the α-th cell at a particular time instant. S denotes the averaged
+shape index over all the cells at a particular instant. And, ⟨S⟩indicates the average of S over time and over different
+simulations (ensemble average). While calculating ⟨S⟩, we averaged over the time window from 5×106 to 107 iterations
+when the system is deep in the steady state, as confirmed from the temporal evolution of shape index (S) (see Fig.
+4E, main text).
+We also measured ⟨S⟩V or, the averaged shape index obtained from the Voronoi tessellated polygons. Following
+standard protocol [35], we performed the Voronoi space tessellation from the actual cell center data in a simulated
+tissue, to obtain the corresponding Voronoi polygons (see Fig. S9A). Then we calculated the shape index, SV or, for
+each of the Voronoi polygons using Eq. 21. Note that, ⟨S⟩V or represents the ensemble average as well as the time
+average in the steady-state (as stated above for measuring ⟨S⟩).
+F.
+Edge Tension
+For the i-th bead of a particular cell at an instant, the edge tension is estimated as the extension of the corresponding
+spring length (apart from a multiplicative constant):
+Ti = |li −l0|
+(22)
+where, li is the instantaneous length of the spring between i-th and (i −1)-th beads of the cell and l0 is the rest
+length. Then we calculated the average tension over all the beads of a cell and over all the cells as below:
+T =
+1
+NM
+N
+X
+α=1
+M
+X
+i=1
+Ti
+(23)
+G.
+Coordination Number
+By definition, the number of cells with which a particular cell is ‘in contact’, is the coordination number (Z) of that
+particular cell [83]. Now, in our model, a particular cell, say the α-th cell, would be ‘in contact’ with the β-th cell
+and vice versa, if any two beads of the two cells come within the interaction ranges, either rrep
+c
+or radh
+c
+. Thus, Z of
+a particular cell at a particular time instant is the total number of cells that are interacting with it through either
+repulsion or adhesion.
+V.
+JAMMING ONSET IN THE ‘PASSIVE LIMIT’ OF OUR MODEL
+The ‘passive-tissue’ limit of our model essentially means the absence of any active self-propulsion vector (v0 = 0). In
+this limit, we studied the system without cell-cell adhesion (Kadh = 0) in order to compare with previous studies on
+the packing of soft grains [35, 43]. The intercellular interactions are purely repulsive in this case. We considered a
+system of N = 256 cells in a square box of size L = 460l0, each cell containing M = 50 beads (same system size as
+described in the ‘Simulation Details’ section). We followed the same initialization protocol stated in the ‘Simulation
+Details’ section. Here, we performed the simulations using a ‘stiff’ or ‘rigid’ boundary condition. The stiff/rigid
+boundary condition was implemented as follows: At a particular time instant t, if any bead of a cell touches the
+boundary lines of the square box, i.e., if the Euclidean distance between the bead and any of the boundary lines
+becomes smaller than the range of repulsion (rrep
+c
+), then the bead position was not updated, and the bead was kept
+fixed to its previous position at the time instant t −dt (where dt is the integration timestep).
+The system was then evolved by integrating Eq. 4 with ˜Kadh = 0 and ˜v0 = 0 (i.e., without Eq. 5) using the Euler
+method with integration time step 10−3. We equilibrated the system by iterating up to 105 steps. The system then
+reached an equilibrium configuration with a particular level of confluency, depending on the value of the intracellular
+pressure ˜P. With increasing intracellular pressure, the equilibrium configurations slowly went from sub-confluent to
+highly confluent. Thus, we took a series of ˜P values to generate configurations with increasing packing fractions (see
+Fig S8(A-C)), similar to a protocol used in prior studies [43].
+Finally, for each value of ˜P, we calculated the observable quantities like cell shape index, area fraction, coordina-
+tion number, etc, by averaging over 50 independent simulation runs. During the calculations of the quantities, we
+considered only the cells in the bulk, not those in contact with the box boundaries. Notably, we observed the onset
+of crowding-dependent jamming in our passive model similar to the Deformable Particle (DP) model [35] published
+before (see Fig. S8(D-E)). As shown in Fig. S8D, the tissue reaches the confluence when the normalized area fraction
+8
+reaches unity (ϕ/ϕmax = 1.0 with ϕmax = 0.883), at the measured shape index ⟨S⟩≈3.81. The average coordination
+number Z ∼5.7 indicates a jammed confluent tissue at ⟨S⟩= 3.81 (Fig. S8E). Note that this value of Z at the
+confluence is higher than the isostatic contact number for the Vertex model (Ziso = 5), as argued from the Voronoi
+tesselation of the 2D space [26]. Interestingly, the Self-propelled Voronoi (SPV) model [32] also shows a liquid-to-solid
+transition at ⟨S⟩≈3.81 in the zero motility limit. Also note that our model, despite having a distinct single-cell
+energy function (in equilibrium) compared to the DP and Vertex models, still shows the jamming onset at ⟨S⟩≈3.81.
+This indicates that the jamming onset can be explained from the argument of isostaticity based on the polygonal
+tiling of the 2D space (since Ziso = 5 corresponds to the ⟨S⟩= 3.81 for a pentagon), as described in [26].
+VI.
+THE CONFLUENT LIMIT OF OUR MODEL
+As discussed in the previous section (Section V of the SI), the level of confluency may be described by the average area
+fraction normalized by the maximum area fraction in a parameter regime (ϕ/ϕmax). The tissue becomes confluent
+as ϕ/ϕmax →1. Note that a particle-based description like our model cannot have ϕmax = 1 since two adjacent
+cells have distinct, non-overlapping adjoining edges unlike the Voronoi-tessellation-based models, where adjacent cells
+share a common edge with ‘zero-thickness’. In our case, ϕmax →1 only when the bead number per cell approaches
+infinity. Nevertheless, 100% confluency is an idealization since in vivo tissues still show 80%-90% confluency (see Fig.
+2e, 2h in [1]).
+In the main paper, we kept the tissue at a near-confluent regime (where (ϕ/ϕmax) ∼0.94−1 across the transition).
+We calculated that ϕ ranges 0.83−0.88 across the fluid and solid phases (corresponding to Fig. 2-4, main text), while
+ϕ′ ∼0.91 −0.96 during the transition (note the slightly different definition of packing fractions, ϕ, and ϕ′, as given in
+Eq. 19-20 in SI). These estimates show near-confluency, and the area fraction hardly changes across the transition.
+As mentioned above, since our model does not attain ϕ = 1, we cannot directly compare the average shape
+indices of cells with the shape indices of the Voronoi cells in the Vertex and SPV models. Thus, for comparison, we
+performed the Voronoi tessellation of space (using the cell centers) to obtain the Voronoi polygons corresponding to
+the cells (Fig. S9A), and we then measured the shape indices of the Voronoi cells (⟨S⟩V or, as defined in Sec. IV E,
+SI). Interestingly, in this near-confluent regime, ⟨S⟩V or measured from the Voronoi polygons shows that the liquid-
+solid transition takes place at ⟨S⟩V or ≈3.81 for the low values of rotational noise strength (Dr), similar to the
+behavior of Vertex and SPV models [26, 32] (see Fig. S9B,C). However, for higher Dr, the phase boundary shifts from
+⟨S⟩V or = 3.81 (Fig. S9C). Thus, our model replicates the behavior of the Vertex model in certain regimes if we treat
+⟨S⟩V or as a structural order parameter. But, note that the actual shape index ⟨S⟩measured from cell contours are
+nonmonotonic near the phase boundary (Fig. 4F, main text), contrasting the behavior of the Vertex model.
+Furthermore, as our model has tunable confluency depending on parameter variations, we could achieve high
+confluency by increasing the natural spring length (l0 from 0.1 to 0.14) and explored the effect of increasing adhesion
+from zero to a much higher value (see Fig. S10(A-B)). Though the packing fraction did not alter up to the second
+decimal place (ϕ = 0.891 −0.893), the MSD of cell centers still showed a liquid-solid transition, where the cell
+dynamics changed from sub-diffusive to caged (plateau) behavior with adhesion (Fig. S10C, D). The transition points
+are located based on a cut-off value of the MSD exponent (see Fig. S10D, where the cut-off exponent was set to 0.2).
+Notably, the average packing fraction (both ϕ and ϕ′) hardly changed across the liquid-solid transition, suggesting
+a rigidity-driven glass transition, not a crowding-dependent jamming (Fig. S10E). Also, note that the values of the
+area fraction in Fig. S10E are well above the critical packing fraction for jamming transition in passive foams — in
+previous simulations of the ‘deformable polygon model’ and ‘dynamic vertex model,’ the critical packing fraction for
+jamming was reported to be ϕc ∼0.83 in 2D (see Fig. 2f in [7] and Fig. 4a in [84]). Thus, for the chosen parameters
+of our model, the tissue is already ‘jammed’ without adhesion, showing sub-diffusive dynamics with active cellular
+motility (Fig. S10C). However, with increasing adhesion, solidification arises from dampening the active motility of
+cells, which is caused by the increased resistance to shear forces between cells due to higher adhesion.
+Moreover, the solidification in the highly confluent state accompanied a negligible change in the average contact
+number per cell (Z changes from 5.90 to 5.98 in Fig. S10F corresponding to the red and blue curves, representing
+the confluent limit). In this regard, a simple counting of constraints for passive non-adhesive spheres shows that the
+critical isotactic contact number for jamming is Zc ∼4 in 2D. Note, the degrees of freedom for N cells is nDOF = 2N,
+while the number of constraints is nc = ZN/2 as each contact is shared between two cells. This leads to Zc = 4
+when nDOF = nc (see [85]). However, another constraint counting argument based on the Voronoi tesselation of the
+2D space suggests that the isostatic value of Z at the confluence should be Zvor
+iso = 5, as explained for the Vertex
+model [26]. Importantly, as shown in Fig. S10F, our observed contact number in the confluent limit is above both the
+estimated isostatic values (Zc = 4 and Zvor
+iso = 5). Thus, the solidification is essentially an adhesion-dependent active
+glass transition, not crowding-dependent jamming.
+Additionally, in the confluent limit, we measured both the average shape indices from the Voronoi cells (⟨S⟩V or)
+9
+and from the actual cell contours (⟨S⟩) (Fig. S10G, H). Notably, the liquid-solid transition boundaries (pinpointed
+by arrowheads in Fig. S10D) closely coincide with ⟨S⟩V or ≈3.81 (Fig. S10G), again exhibiting the Vertex and SPV
+model-like behavior [26, 32] for the given parameter choices. Nevertheless, the actual shape indices still show non-
+monotonic behavior across the transition (Fig. S10H), similar to what was observed before (as in Fig. 4F, main text).
+10
+VII.
+SUPPLEMENTAL FIGURES
+106
+105
+104
+102
+100
+101
+Increasing 𝑃
+Decreasing𝑣0
+Increasing 𝐷𝑟
+B
+C
+A
+106
+105
+104
+106
+105
+104
+(Iteraon)
+∆𝑡
+∆𝒓2
+FIG. S3.
+Fluid to solid transition with respect to three dimensionless parameters.
+The mean-squared dis-
+placements of cell centers show transitions from the fluid-like diffusive to the solid-like sub-diffusive behavior (A) with
+increasing intracellular pressure (top to bottom:
+˜P = 0.20, 0.22, 0.24, 0.33), (B) with decreasing motility (top to bottom:
+˜v0 = 16.6 × 10−3, 15.0 × 10−3, 13.2 × 10−3, 10.8 × 10−3), and (C) with increasing rotational noise strength (top to bottom:
+˜Dr = 5.2×10−4, 7.5×10−4, 13.0×10−4, 47×10−4). Parameters: ˜v0 = 16.6×10−3, ˜P = 0.2, ˜Dr = 5.2×10−4, ˜Kadh = 8.3×10−4
+(Note that one of these parameters are varied in panels A-C). Other parameters are from Table S1.
+×10-3
+𝑣0
+×10-3
+×10-3
+(×103) 
+B
+0
+4
+8
+12
+101
+105
+103
+1/𝐷𝑟
+1/𝐾𝑎𝑑ℎ
+4.8
+4.0
+3.2
+F
+S
+8
+20
+𝑣0
+8
+𝑣0
+8
+20
+14
+F
+S
+F
+S
+A
+C
+1/𝑃
+14
+20
+14
+FIG. S4.
+Phase diagrams in the parameter space of (A) ˜v0 vs. 1/ ˜Kadh, (B) ˜v0 vs. 1/ ˜P, and (C) ˜v0 vs. 1/ ˜Dr. Dashed
+lines correspond to the phase boundaries. Parameters: ˜P = 0.2, ˜Dr = 5.2 × 10−4, ˜Kadh = 8.3 × 10−4 (Note that one of these
+parameters are varied along with ˜v0 in panels A-C). Other parameters are from Table S1.
+5
+0
+𝑃(𝑙𝑖−𝑙0)
+𝑙𝑖−𝑙0
+10
+15
+20
+25
+0
+0.05
+0.15
+0.1
+0.2
+FIG. S5. Edge-tension distributions. Probability distributions of the edge elongation (li −l0) in the tissue kept in fluid
+(blue) and solid (red) phases, corresponding to Fig. 4C (main paper). Parameters: ˜Kadh = 8.3 × 10−6, ˜Dr = 0.8 × 10−4 (blue)
+and ˜Kadh = 0.42, ˜Dr = 0.001 for B. Other parameter values are as mentioned in Fig. 3 caption.
+11
+𝑘= 17
+𝑘= 25
+𝑘= 40
+1.8
+1.4
+1.0
+0.6
+0.0
+1.0
+2.0
+(i)
+(ii)
+(iii)
+𝐴
+𝐴
+𝑃
+𝐴
+𝐴
+FIG. S6. Cell-area distributions. Probability distributions of the scaled cell-area, ˜A = A/⟨A⟩, for region-i (red), ii (green),
+and iii (blue), corresponding to Fig. 4F. Solid lines are the fits with the generalized k-Gamma distribution,
+kk
+Γ(k) ˜Ak−1exp(−k ˜A).
+Note that the k value increases with an increase in ˜Kadh as the tissue progressively solidifies. Here, ⟨A⟩denotes the mean of
+cell-area. Parameters: Same as Fig. 4F.
+FIG. S7. Spontaneous formation of a muticellular rosette. A configuration showing a five-cell junction (highlighted in
+red) known as a rosette that can be formed when five or more cells share a vertex. Parameters: ˜Kadh = 8.3 × 10−5, ˜P = 0.2,
+˜v0 = 16.6 × 10−3, ˜Dr = 5.2 × 10−4, l0 = 0.14. Other parameters are from Table S1.
+12
+E
+D
+𝑆
+3.55
+3.65
+3.75
+3.85
+3.5
+4.0
+4.5
+5.0
+5.5
+6.0
+3.81
+𝑍
+3.81
+A
+∅/∅𝑚𝑎𝑥= 0.84
+B
+C
+∅/ ∅𝑚𝑎𝑥
+0.80
+0.85
+0.90
+0.95
+1.00
+𝑆
+3.55
+3.65
+3.75
+3.85
+∅/∅𝑚𝑎𝑥= 0.95
+∅/∅𝑚𝑎𝑥= 1.0
+FIG. S8.
+Jamming onset in the ‘passive limit’.
+We obtained the ‘passive limit’ of our model by switching off the
+self-propulsion speed (v0 = 0) in the absence of cell-cell adhesion (Kadh = 0). Jammed states are formed by systematically
+increasing the intracellular pressure (consequently increasing the packing fraction) in a box with rigid boundaries. For more
+details, see the SI text, Section V. (A-C) Steady state simulation snapshots with increasing packing fractions: ϕ/ϕmax = 0.84
+(A), 0.95 (B), and 1.0 (C). (D) Normalized area fraction (ϕ/ϕmax) and (E) the average contact number per cell (Z), as
+functions of the averaged shape index (⟨S⟩). The tissue reaches the confluence when the normalized packing fraction becomes
+unity (ϕ/ϕmax = 1) at the measured shape index ⟨S⟩≈3.81 (shown by the vertical dashed line in D). The maximal packing
+fraction achieved is ϕmax = 0.883, as shown by the horizontal dotted line in panel D. The average coordination number Z ∼5.7
+indicates a jammed confluent state at ⟨S⟩= 3.81 (indicated by the vertical dashed line in E). Parameters: ˜Kadh = 0, v0 = 0,
+l0 = 0.1 and varying ˜P from 0.0875 to 0.75. Other parameters are from Table S1.
+C
+A
+𝐾𝑎𝑑ℎ
+10
+15
+20
+25
+30
+35
+40
+𝐾𝑎𝑑ℎ
+0.8
+10
+5
+𝐷𝑟×104=
+1.8
+0.8
+10
+5
+𝐷𝑟×104=
+1.8
+3.90
+3.88
+3.86
+3.84
+3.82
+3.80
+3.78
+3.76
+0.05
+0.25
+3.81
+0.45
+𝑆𝑉𝑜𝑟
+0.00
+0.02
+0.04
+0.06
+0.08
+0.10
+10-5
+10-4
+10-3
+10-2
+10-1
+B
+𝐷eff
+×104 
+𝐷𝑟
+= 0.8
+𝐾𝑎𝑑ℎ= 8.3× 10-6,
+   = 0.83
+∅
+(∅/∅𝑚𝑎𝑥= 0. 94 )
+Liquid Phase
+FIG. S9. Calculation of shape indices by Voronoi tessellation (corresponding to Fig. 4F). (A) A configuration of
+polygonal cells (red solid lines), encompassing the original cells (grey), obtained from the Voronoi tesselation of the space in
+the liquid phase (corresponding to the blue star-marked point in panel B). (B) The effective diffusivity from long time MSD
+slope, Deff, is shown against ˜Kadh for different values of ˜Dr (rotational noise strength). Data points with Deff > 0.001 are
+marked as liquid (blue circles), and Deff ≤0.001 are marked as solid (red triangles). (C) The average shape index measured
+from the Voronoi polygons(⟨S⟩V or) is plotted with adhesion strength ( ˜Kadh) for different values of ˜Dr. The horizontal dashed
+line corresponds to ⟨S⟩V or = 3.81. The black, green, and brown curves in panel B correspond to Fig. 4F of the main paper. In
+Panels B and C, blue circles and red triangles represent fluid and solid phases, respectively. Parameters are from Fig. 4 of our
+manuscript and Table S1.
+13
+B
+A
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+𝛽
+5.4
+5.5
+5.6
+5.7
+5.8
+5.9
+6.0
+𝑍
+10-4
+10-3
+10-2
+10-1
+F
+𝐾𝑎𝑑ℎ
+D
+10-4
+10-3
+10-2
+10-1
+𝐾𝑎𝑑ℎ
+Frame: 6300000
+102
+100
+101
+10-1
+104
+105
+106
+𝐾𝑎𝑑ℎ= 0.00
+= 0.25
+~∆𝑡0.67
+×104 
+𝐷𝑟
+= 0.8
+C
+(Iteraon)
+∆𝒓2
+∆𝑡
+𝑆𝑉𝑜𝑟
+∅′
+0.86
+0.87
+0.93
+0.94
+0.95
+0.96
+0.97
+0.88
+0.89
+E
+10-4
+10-3
+10-2
+10-1
+∅
+𝐾𝑎𝑑ℎ
+×104 
+𝐷𝑟
+= 0.8
+×104 
+𝐷𝑟
+= 1.3
+×104 
+𝐷𝑟
+= 0.8
+×104 
+𝐷𝑟
+= 1.3
+10-4
+10-3
+10-2
+10-1
+𝐾𝑎𝑑ℎ
+3.86
+3.85
+3.84
+3.83
+3.82
+3.81
+3.80
+G
+10-4
+10-3
+10-2
+10-1
+𝐾𝑎𝑑ℎ
+3.80
+3.79
+3.78
+3.77
+3.76
+𝑆
+H
+=0.891
+×104 
+𝐷𝑟
+0.8, 
+=  
+=
+𝑙0
+0.14
+∅
+𝐾𝑎𝑑ℎ= 0.00 ,
+=0.893
+×104 
+𝐷𝑟
+0.8, 
+=  
+=
+𝑙0
+0.14
+∅
+𝐾𝑎𝑑ℎ= 0.25 ,
+FIG. S10.
+Solidification at highly confluent tissues. (A-B) Tissue configurations for ˜Kadh = 0 (A) and ˜Kadh = 0.25
+(B). Note that high confluence was achieved by increasing l0. (C) MSD of cell centers (corresponding to ˜Kadh values as in
+panels A and B), showing a transition from sub-diffusive to caged behavior. The dashed line shows the MSD exponent of 0.67
+for ˜Kadh = 0. (D) MSD exponent (β) shows transition with ˜Kadh at a lower ˜Dr (red curve) and at a higher ˜Dr (blue curve).
+The blue and red arrowheads indicate the transition points (and corresponding ˜Kadh values) based on a cut-off, β = 0.2, as
+shown by the dotted horizontal line. (E) The area fraction (both ϕ and ϕ′, as defined in Sec. IVD, SI) and (F) the average
+contact number per cell (Z), are plotted against ˜Kadh for the highly confluent tissues at two different ˜Dr values (red and blue
+ones). Note that in panels D, E, and F, the black dashed curve is for the parameters corresponding to Fig. 2E (main text),
+given here for comparison with a near-confluent tissue. Notably, ϕ and Z are almost constant for the fully confluent tissue
+compared to the near-confluent tissue denoted by the dashed reference curves. (G) The average shape index measured from
+the Voronoi tessellated polygons (⟨S⟩V or), and (H) the average shape index (⟨S⟩) obtained from the actual cell contours, are
+plotted against ˜Kadh. In G, the blue and red arrowheads indicate the ˜Kadh values corresponding to ⟨S⟩V or = 3.81, which
+coincide with the liquid-solid transition points located in panel D. For all panels, l0 = 0.14 except the dashed reference curve
+(in D-F), for which l0 = 0.1. Other parameters are from Fig. 3 (main text) and Table S1.
+14
+VIII.
+SUPPLEMENTAL MOVIE CAPTIONS
+Movie S1. Fluid tissue phase (low adhesion regime). The steady-state dynamics of the tissue exhibiting a
+liquid-like phase at (low) adhesion strength ˜Kadh = 8.3 × 10−5. A group of neighboring cells are marked in red and
+green to highlight a T1 transition. Also, note the freely diffusive dynamics of the cells. Parameter values: ˜P = 0.2,
+˜v0 = 16.6 × 10−3, ˜Dr = 5.2 × 10−4. Other parameters are from Table S1.
+Movie S2. Solid tissue phase (high adhesion regime). The steady-state dynamics of the tissue exhibiting a
+solid-like phase at (high) adhesion strength, ˜Kadh = 0.25. A randomly chosen cell is marked red to highlight that its
+motion is completely caged by its neighbors. Rest of the parameter values are the same as in Movie S1.
+[1] Alessandro Mongera, Payam Rowghanian, Hannah J. Gustafson, Elijah Shelton, David A. Kealhofer, Emmet K. Carn,
+Friedhelm Serwane, Adam A. Lucio, James Giammona, and Otger Camp`as. A fluid-to-solid jamming transition underlies
+vertebrate body axis elongation. Nature, 561:401–405, 9 2018.
+[2] Diana Pinheiro, Roland Kardos, ´Edouard Hannezo, and Carl-Philipp Heisenberg. Morphogen gradient orchestrates pattern-
+preserving tissue morphogenesis via motility-driven unjamming. Nature Physics, pages 1–12, 2022.
+[3] Mathieu Poujade, Erwan Grasland-Mongrain, A Hertzog, J Jouanneau, Philippe Chavrier, Benoˆıt Ladoux, Axel Buguin,
+and Pascal Silberzan. Collective migration of an epithelial monolayer in response to a model wound. Proceedings of the
+National Academy of Sciences, 104(41):15988–15993, 2007.
+[4] Medhavi Vishwakarma, Basil Thurakkal, Joachim P Spatz, and Tamal Das. Dynamic heterogeneity influences the leader–
+follower dynamics during epithelial wound closure. Philosophical Transactions of the Royal Society B, 375(1807):20190391,
+2020.
+[5] Jae Hun Kim, Adrian F. Pegoraro, Amit Das, Stephan A. Koehler, Sylvia Ann Ujwary, Bo Lan, Jennifer A. Mitchel, Lior
+Atia, Shijie He, Karin Wang, Dapeng Bi, Muhammad H. Zaman, Jin Ah Park, James P. Butler, Kyu Ha Lee, Jacqueline R.
+Starr, and Jeffrey J. Fredberg. Unjamming and collective migration in mcf10a breast cancer cell lines. Biochemical and
+Biophysical Research Communications, 521:706–715, 1 2020.
+[6] Linda Oswald, Steffen Grosser, David M Smith, and Josef A K¨as. Jamming transitions in cancer. Journal of physics D:
+Applied physics, 50(48):483001, 2017.
+[7] Sangwoo Kim, Marie Pochitaloff, Georgina A. Stooke-Vaughan, and Otger Camp`as. Embryonic tissues as active foams.
+Nature Physics, 17:859–866, 7 2021.
+[8] Dipjyoti Das, Veena Chatti, Thierry Emonet, and Scott A. Holley. Patterned disordered cell motion ensures vertebral
+column symmetry. Developmental Cell, 42:170–180.e5, 7 2017.
+[9] Monirosadat Sadati, Nader Taheri Qazvini, Ramaswamy Krishnan, Chan Young Park, and Jeffrey J. Fredberg. Collective
+migration and cell jamming. Differentiation, 86:121–125, 10 2013.
+[10] Jin Ah Park, Jae Hun Kim, Dapeng Bi, Jennifer A. Mitchel, Nader Taheri Qazvini, Kelan Tantisira, Chan Young Park,
+Maureen McGill, Sae Hoon Kim, Bomi Gweon, Jacob Notbohm, Robert Steward, Stephanie Burger, Scott H. Randell,
+Alvin T. Kho, Dhananjay T. Tambe, Corey Hardin, Stephanie A. Shore, Elliot Israel, David A. Weitz, Daniel J. Tschumper-
+lin, Elizabeth P. Henske, Scott T. Weiss, M. Lisa Manning, James P. Butler, Jeffrey M. Drazen, and Jeffrey J. Fredberg.
+Unjamming and cell shape in the asthmatic airway epithelium. Nature Materials, 14:1040–1048, 10 2015.
+[11] Jennifer A. Mitchel, Amit Das, Michael J. O’Sullivan, Ian T. Stancil, Stephen J. DeCamp, Stephan Koehler, Oscar H.
+Oca˜na, James P. Butler, Jeffrey J. Fredberg, M. Angela Nieto, Dapeng Bi, and Jin Ah Park. In primary airway epithelial
+cells, the unjamming transition is distinct from the epithelial-to-mesenchymal transition. Nature Communications, 11, 12
+2020.
+[12] Simon Garcia, Edouard Hannezo, Jens Elgeti, Jean Fran¸cois Joanny, Pascal Silberzan, and Nir S. Gov. Physics of active
+jamming during collective cellular motion in a monolayer. Proceedings of the National Academy of Sciences of the United
+States of America, 112:15314–15319, 12 2015.
+[13] Thomas E Angelini, Edouard Hannezo, Xavier Trepat, Manuel Marquez, Jeffrey J Fredberg, and David A Weitz. Glass-like
+dynamics of collective cell migration. PNAS, 108, 2011.
+[14] Lior Atia, Jeffrey J Fredberg, Nir S Gov, and Adrian F Pegoraro. Are cell jamming and unjamming essential in tissue
+development? Cells & development, 168:203727, 2021.
+[15] Xavier Trepat and Erik Sahai. Mesoscale physical principles of collective cell organization. Nature Physics, 14(7):671–682,
+2018.
+[16] B. Szab´o, G. J. Sz¨oll¨osi, B. G¨onci, Zs Jur´anyi, D. Selmeczi, and Tam´as Vicsek. Phase transition in the collective migration
+of tissue cells: Experiment and model. Physical Review E - Statistical, Nonlinear, and Soft Matter Physics, 74, 2006.
+[17] Julio M. Belmonte, Gilberto L. Thomas, Leonardo G. Brunnet, Rita M.C. De Almeida, and Hugues Chat´e. Self-propelled
+particle model for cell-sorting phenomena. Physical Review Letters, 100, 6 2008.
+[18] N´estor Sep´ulveda, Laurence Petitjean, Olivier Cochet, Erwan Grasland-Mongrain, Pascal Silberzan, and Vincent Hakim.
+15
+Collective cell motion in an epithelial sheet can be quantitatively described by a stochastic interacting particle model.
+PLoS computational biology, 9(3):e1002944, 2013.
+[19] Silke Henkes, Yaouen Fily, and M. Cristina Marchetti.
+Active jamming: Self-propelled soft particles at high density.
+Physical Review E - Statistical, Nonlinear, and Soft Matter Physics, 84, 10 2011.
+[20] Yaouen Fily, Silke Henkes, and M. Cristina Marchetti. Freezing and phase separation of self-propelled disks. Soft Matter,
+10:2132–2140, 4 2014.
+[21] Yaouen Fily and M Cristina Marchetti. Athermal phase separation of self-propelled particles with no alignment. Physical
+review letters, 108(23):235702, 2012.
+[22] Ludovic Berthier. Nonequilibrium glassy dynamics of self-propelled hard disks. Physical Review Letters, 112, 6 2014.
+[23] Ran Ni, Martien A Cohen Stuart, and Marjolein Dijkstra. Pushing the glass transition towards random close packing using
+self-propelled hard spheres. Nature communications, 4(1):2704, 2013.
+[24] Tatsuzo Nagai and Hisao Honda. A dynamic cell model for the formation of epithelial tissues. Philosophical Magazine B,
+81(7):699–719, 2001.
+[25] Reza Farhadifar, Jens Christian R¨oper, Benoit Aigouy, Suzanne Eaton, and Frank J¨ulicher. The influence of cell mechanics,
+cell-cell interactions, and proliferation on epithelial packing. Current Biology, 17:2095–2104, 12 2007.
+[26] Dapeng Bi, J. H. Lopez, J. M. Schwarz, and M. Lisa Manning. A density-independent rigidity transition in biological
+tissues. Nature Physics, 11:1074–1079, 12 2015.
+[27] Dapeng Bi, Jorge H Lopez, Jennifer M Schwarz, and M Lisa Manning. Energy barriers and cell migration in densely
+packed tissues. Soft matter, 10(12):1885–1890, 2014.
+[28] Lars Hufnagel, Aurelio A Teleman, Herv´e Rouault, Stephen M Cohen, and Boris I Shraiman. On the mechanism of wing
+size determination in fly development. Proceedings of the National Academy of Sciences, 104(10):3835–3840, 2007.
+[29] Xinzhi Li, Amit Das, and Dapeng Bi. Mechanical heterogeneity in tissues promotes rigidity and controls cellular invasion.
+Physical review letters, 123(5):058101, 2019.
+[30] Le Yan and Dapeng Bi.
+Multicellular rosettes drive fluid-solid transition in epithelial tissues.
+Physical Review X,
+9(1):011029, 2019.
+[31] Amit Das, Srikanth Sastry, and Dapeng Bi. Controlled neighbor exchanges drive glassy behavior, intermittency, and cell
+streaming in epithelial tissues. Physical Review X, 11, 12 2021.
+[32] Dapeng Bi, Xingbo Yang, M. Cristina Marchetti, and M. Lisa Manning. Motility-driven glass and jamming transitions in
+biological tissues. Physical Review X, 6, 2016.
+[33] Bo Li and Sean X Sun. Coherent motions in confluent cell monolayer sheets. Biophysical journal, 107(7):1532–1541, 2014.
+[34] Daniel L Barton, Silke Henkes, Cornelis J Weijer, and Rastko Sknepnek. Active vertex model for cell-resolution description
+of epithelial tissue mechanics. PLoS computational biology, 13(6):e1005569, 2017.
+[35] Arman Boromand, Alexandra Signoriello, Fangfu Ye, Corey S O’Hern, and Mark D Shattuck. Jamming of deformable
+polygons. Physical review letters, 121(24):248003, 2018.
+[36] Andr´as Szab´o, R ¨Unnep, Eld M´ehes, WO Twal, WS Argraves, Y Cao, and Andr´as Czir´ok.
+Collective cell motion in
+endothelial monolayers. Physical biology, 7(4):046007, 2010.
+[37] M. Chiang and D. Marenduzzo. Glass transitions in the cellular potts model. EPL, 116, 10 2016.
+[38] Souvik Sadhukhan and Saroj Kumar Nandi. Theory and simulation for equilibrium glassy dynamics in cellular potts model
+of confluent biological tissue. Physical Review E, 103(6):062403, 2021.
+[39] Benjamin Loewe, Michael Chiang, Davide Marenduzzo, and M Cristina Marchetti. Solid-liquid transition of deformable
+and overlapping active particles. Physical Review Letters, 125(3):038003, 2020.
+[40] David Choi, Zachary Gonzalez, Sum Yat Ho, Alexandra Bermudez, and Neil YC Lin. Cell-cell adhesion impacts epithelia
+response to substrate stiffness: Morphology and gene expression. Biophysical Journal, 121(2):336–346, 2022.
+[41] Olga Ilina, Pavlo G Gritsenko, Simon Syga, J¨urgen Lippoldt, Caterina AM La Porta, Oleksandr Chepizhko, Steffen Grosser,
+Manon Vullings, Gert-Jan Bakker, J¨orn Starruß, et al. Cell–cell adhesion and 3d matrix confinement determine jamming
+transitions in breast cancer invasion. Nature cell biology, 22(9):1103–1115, 2020.
+[42] M Lisa Manning. Essay: Collections of deformable particles present exciting challenges for soft matter and biological
+physics. Physical Review Letters, 130(13):130002, 2023.
+[43] J. A. ˚Astr¨om and M. Karttunen. Cell aggregation: Packing soft grains. Physical Review E - Statistical, Nonlinear, and
+Soft Matter Physics, 73, 2006.
+[44] Anna Mkrtchyan, Jan ˚Astr¨om, and Mikko Karttunen. A new model for cell division and migration with spontaneous
+topology changes. Soft Matter, 10:4332–4339, 6 2014.
+[45] Pranav Madhikar, Jan ˚Astr¨om, Bj¨orn Baumeier, and Mikko Karttunen.
+Jamming and force distribution in growing
+epithelial tissue. Physical Review Research, 3, 5 2021.
+[46] Charlie Duclut, Joris Paijmans, Mandar M Inamdar, Carl D Modes, and Frank J¨ulicher. Active t1 transitions in cellular
+networks. The European Physical Journal E, 45(3):29, 2022.
+[47] Jin-Ah Park, Lior Atia, Jennifer A Mitchel, Jeffrey J Fredberg, and James P Butler. Collective migration and cell jamming
+in asthma, cancer and development. Journal of cell science, 129(18):3375–3383, 2016.
+[48] Tia M Jones, Pragati C Marks, James M Cowan, Devneet K Kainth, and Ryan J Petrie. Cytoplasmic pressure maintains
+epithelial integrity and inhibits cell motility. Physical biology, 18(6):066003, 2021.
+[49] Carl-Philipp Heisenberg and Yohanns Bella¨ıche. Forces in tissue morphogenesis and patterning. Cell, 153(5):948–962,
+2013.
+[50] Tomaso Aste and Tiziana Di Matteo.
+Emergence of gamma distributions in granular materials and packing models.
+16
+Physical Review E, 77(2):021309, 2008.
+[51] Gijs Katgert and Martin van Hecke. Jamming and geometry of two-dimensional foams. Europhysics Letters, 92(3):34002,
+2010.
+[52] Souvik Sadhukhan and Saroj Kumar Nandi.
+On the origin of universal cell shape variability in confluent epithelial
+monolayers. Elife, 11:e76406, 2022.
+[53] Eric R Weeks and DA Weitz. Properties of cage rearrangements observed near the colloidal glass transition. Physical
+review letters, 89(9):095704, 2002.
+[54] Indrajit Tah, Anoop Mutneja, and Smarajit Karmakar. Understanding slow and heterogeneous dynamics in model super-
+cooled glass-forming liquids. ACS omega, 6(11):7229–7239, 2021.
+[55] Hisay Lama, Masahiro J Yamamoto, Yujiro Furuta, Takuro Shimaya, and Kazumasa A Takeuchi. Emergence of bacterial
+glass. PNAS Nexus, page pgae238, 2024.
+[56] Santidan Biswas, Martin Grant, Indradev Samajdar, Arunansu Haldar, and Anirban Sain. Micromechanics of emergent
+patterns in plastic flows. Scientific reports, 3(1):2728, 2013.
+[57] Eric R Weeks, John C Crocker, Andrew C Levitt, Andrew Schofield, and David A Weitz. Three-dimensional direct imaging
+of structural relaxation near the colloidal glass transition. Science, 287(5453):627–631, 2000.
+[58] K Hima Nagamanasa, Shreyas Gokhale, Rajesh Ganapathy, and AK Sood. Confined glassy dynamics at grain boundaries
+in colloidal crystals. Proceedings of the National Academy of Sciences, 108(28):11323–11326, 2011.
+[59] Tripti Bameta, Dipjyoti Das, Sumantra Sarkar, Dibyendu Das, and Mandar M Inamdar. Broad-tailed force distributions
+and velocity ordering in a heterogeneous membrane model for collective cell migration. Europhysics Letters, 99(1):18004,
+2012.
+[60] Rituparno Mandal, Pranab Jyoti Bhuyan, Pinaki Chaudhuri, Madan Rao, and Chandan Dasgupta. Glassy swirls of active
+dumbbells. Physical Review E, 96, 10 2017.
+[61] Laurence Petitjean, Myriam Reffay, Erwan Grasland-Mongrain, Mathieu Poujade, Benoıt Ladoux, Axel Buguin, and Pascal
+Silberzan. Velocity fields in a collectively migrating epithelium. Biophysical journal, 98(9):1790–1800, 2010.
+[62] Eva-Maria Schoetz, Marcos Lanio, Jared A Talbot, and M Lisa Manning. Glassy dynamics in three-dimensional embryonic
+tissues. Journal of The Royal Society Interface, 10(89):20130726, 2013.
+[63] Predrag Bursac, Guillaume Lenormand, Ben Fabry, Madavi Oliver, David A Weitz, Virgile Viasnoff, James P Butler, and
+Jeffrey J Fredberg. Cytoskeletal remodelling and slow dynamics in the living cell. Nature materials, 4(7):557–561, 2005.
+[64] Wei He, Hao Song, Yun Su, Ling Geng, Bruce J Ackerson, HB Peng, and Penger Tong.
+Dynamic heterogeneity and
+non-gaussian statistics for acetylcholine receptors on live cell membrane. Nature communications, 7(1):11701, 2016.
+[65] Bo Wang, James Kuo, Sung Chul Bae, and Steve Granick. When brownian diffusion is not gaussian. Nature materials,
+11(6):481–485, 2012.
+[66] Molly J Harding, Hillary F McGraw, and Alex Nechiporuk. The roles and regulation of multicellular rosette structures
+during morphogenesis. Development, 141(13):2549–2558, 2014.
+[67] Eial Teomy, David A Kessler, and Herbert Levine. Confluent and nonconfluent phases in a model of cell tissue. Physical
+Review E, 98(4):042418, 2018.
+[68] Haosheng Wen, Yu Zhu, Chenhui Peng, PB Sunil Kumar, and Mohamed Laradji. Collective motion of cells modeled as
+ring polymers. Soft Matter, 18(6):1228–1238, 2022.
+[69] Jiayi Xu, Xiangyu Xu, Xiaojun Li, Shijie He, Dechang Li, and Baohua Ji. Cellular mechanics of wound formation in single
+cell layer under cyclic stretching. Biophysical Journal, 121(2):288–299, 2022.
+[70] Antoine Vian, Marie Pochitaloff, Shuo-Ting Yen, Sangwoo Kim, Jennifer Pollock, Yucen Liu, Ellen M Sletten, and Otger
+Camp`as. In situ quantification of osmotic pressure within living embryonic tissues. Nature Communications, 14(1):7023,
+2023.
+[71] Roman Vetter, Steve VM Runser, and Dagmar Iber. Polyhoop: soft particle and tissue dynamics with topological transi-
+tions. Computer Physics Communications, 299:109128, 2024.
+[72] Elizabeth Lawson-Keister and M Lisa Manning. Jamming and arrest of cell motion in biological tissues. Current Opinion
+in Cell Biology, 72:146–155, 2021.
+[73] Shinuo Weng, Robert J Huebner, and John B Wallingford. Convergent extension requires adhesion-dependent biomechan-
+ical integration of cell crawling and junction contraction. Cell Reports, 39(4), 2022.
+[74] Seham Ebrahim, Tomoki Fujita, Bryan A Millis, Elliott Kozin, Xuefei Ma, Sachiyo Kawamoto, Michelle A Baird, Michael
+Davidson, Shigenobu Yonemura, Yasuo Hisa, et al. Nmii forms a contractile transcellular sarcomeric network to regulate
+apical cell junctions and tissue geometry. Current biology, 23(8):731–736, 2013.
+[75] Alexander Nestor-Bergmann, Guy B Blanchard, Nathan Hervieux, Alexander G Fletcher, Jocelyn ´Etienne, and B´en´edicte
+Sanson. Adhesion-regulated junction slippage controls cell intercalation dynamics in an apposed-cortex adhesion model.
+PLoS computational biology, 18(1):e1009812, 2022.
+[76] M. P. Allen and D. J. Tildesley. Computer Simulation of Liquids. Oxford University Press, Oxford, 1987.
+[77] Agata Nyga, Katarzyna Plak, Martin Kr¨ater, Marta Urbanska, Kyoohyun Kim, Jochen Guck, and Buzz Baum. Dynamics
+of cell rounding during detachment. Iscience, 26(5), 2023.
+[78] Jean-L´eon Maˆıtre, H´el`ene Berthoumieux, Simon Frederik Gabriel Krens, Guillaume Salbreux, Frank J¨ulicher, Ewa Paluch,
+and Carl-Philipp Heisenberg. Adhesion functions in cell sorting by mechanically coupling the cortices of adhering cells.
+science, 338(6104):253–256, 2012.
+[79] Nicoletta I Petridou, Bernat Corominas-Murtra, Carl-Philipp Heisenberg, and Edouard Hannezo. Rigidity percolation
+uncovers a structural basis for embryonic tissue phase transitions. Cell, 184(7):1914–1928, 2021.
+17
+[80] Nicholas Noll, Sebastian J Streichan, and Boris I Shraiman. Variational method for image-based inference of internal stress
+in epithelial tissues. Physical Review X, 10(1):011072, 2020.
+[81] Chlo´e Roffay, Chii J Chan, Boris Guirao, Takashi Hiiragi, and Fran¸cois Graner. Inferring cell junction tension and pressure
+from cell geometry. Development, 148(18):dev192773, 2021.
+[82] Yukitaka Ishimoto and Yoshihiro Morishita. Bubbly vertex dynamics: a dynamical and geometrical model for epithelial
+tissues with curved cell shapes. Physical Review E, 90(5):052711, 2014.
+[83] Jens Winkelmann, Friedrich F Dunne, Vicent J Langlois, Matthias E M¨obius, Denis Weaire, and Stefan Hutzler. 2d foams
+above the jamming transition: Deformation matters. Colloids and Surfaces A: Physicochemical and Engineering Aspects,
+534:52–57, 2017.
+[84] Arman Boromand, Alexandra Signoriello, Janna Lowensohn, Carlos S Orellana, Eric R Weeks, Fangfu Ye, Mark D Shattuck,
+and Corey S O’Hern. The role of deformability in determining the structural and mechanical properties of bubbles and
+emulsions. Soft matter, 15(29):5854–5865, 2019.
+[85] Elizabeth Lawson-Keister and M Lisa Manning. Jamming and arrest of cell motion in biological tissues. Current Opinion
+in Cell Biology, 72:146–155, 2021.

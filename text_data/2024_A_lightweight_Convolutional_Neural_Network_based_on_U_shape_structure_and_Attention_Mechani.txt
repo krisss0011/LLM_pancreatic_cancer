@@ -1,0 +1,781 @@
+A lightweight Convolutional Neural Network based
+on U shape structure and Attention Mechanism for
+Anterior Mediastinum Segmentation
+Sina Soleimani-Fard1, Won Gi Jeong2, Francis Ferri Ripalda1,
+Hasti Sasani3, Younhee Choi1, S Deiva4,Gong Yong Jin5, Seok-bum Ko1
+1Department of Electrical and Computer Engineering, University of Saskatchewan, 57 Campus Drive,
+Saskatoon, SK, Canada
+Email: {Vuy825, kzn518, younhee.choi, seokbum.ko}@usask.ca
+2Department of Radiology, Chonnam National University Hwasun Hospital, Hwasun, South Korea
+Email: wgjung86@naver.com
+3Department of Electrical Engineering, Tarbiat Modares University, Al Ahmad Street, Jalal No. 7, Tehran, Iran
+Email: Hastisasani@modares.ac.ir
+4Department of Electrical Engineering, National Institute of Technology, Trichy, India.
+Email: deiva@nitt.edu
+5Department of Radiology, Research Institute of Clinical Medicine of Jeonbuk National University,
+Biomedical Research Institute of Jeonbuk National University Hospital, Jeonbuk National University Medical School,
+20 Geonji-ro, Jeonju City, South Korea
+Email: gyjin@jbnu.ac.kr
+Abstract—To automatically detect Anterior Mediastinum Le-
+sions (AMLs) in the Anterior Mediastinum (AM), the primary
+requirement will be an automatic segmentation model specifically
+designed for the AM. The prevalence of AML is extremely low,
+making it challenging to conduct screening research similar to
+lung cancer screening. Retrospectively reviewing chest CT scans
+over a specific period to investigate the prevalence of AML
+requires substantial time. Therefore, developing an Artificial
+Intelligence (AI) model to find location of AM helps radiologist
+to enhance their ability to manage workloads and improve
+diagnostic accuracy for AMLs. In this paper, we introduce
+a U-shaped structure network to segment AM. Two attention
+mechanisms were used for maintaining long-range dependencies
+and localization. In order to have the potential of Multi-Head
+Self-Attention (MHSA) and a lightweight network, we designed
+a parallel MHSA named Wide-MHSA (W-MHSA). Maintaining
+long-range dependencies is crucial for segmentation when we
+upsample feature maps. Therefore, we designed a Dilated Depth-
+Wise Parallel Path connection (DDWPP) for this purpose. In
+order to design a lightweight architecture, we introduced an
+expanding convolution block and combine it with the proposed
+W-MHSA for feature extraction in the encoder part of the
+proposed U-shaped network. The proposed network was trained
+on 2775 AM cases, which obtained an average Dice Similarity
+Coefficient (DSC) of 87.83%, mean Intersection over Union (IoU)
+of 79.16%, and Sensitivity of 89.60%. Our proposed architecture
+exhibited superior segmentation performance compared to the
+most advanced segmentation networks, such as Trans Unet,
+Attention Unet, Res Unet, and Res Unet++.
+Index Terms—Anterior Mediastinum (AM), Self-Attention,
+Cross Correlation Attention, U shape structure.
+*Sina Soleimani-Fard is the first author. Won Gi Jeong is the co-first
+author. Seok-bum Ko is the corresponding author. Gong Yong Jin is a co-
+corresponding author.
+I. INTRODUCTION
+The global utilization of Computed Tomography (CT) scans
+is on the rise. The UNSCEAR 2022 report estimated that
+globally, from 2009 to 2018, the number of examinations
+nearly doubled compared to 2006. Chest CT scans accounted
+for 12.2% of the total, making them the second most frequently
+performed type of CT scan, following head CTs [1]. With the
+increase in chest CT examinations, the detection of Anterior
+Mediastinal Lesions (AMLs) may also rise. Although their
+frequency is reported to be less than 1% [2]–[4], identifying
+these lesions on CT is crucial for determining subsequent man-
+agement [5]. With the increase in radiological examinations,
+radiologist burnout has emerged as a significant issue in the
+medical field. One potential solution being explored is the
+use of Artificial Intelligence (AI) [6]. In the domain of chest
+radiology, the implementation of comprehensive lung cancer
+screening programs is anticipated to lead to an increase in
+the use of Low-dose Chest CT (LDCT) scans [7]. Detecting
+incidental AMLs on LDCT is important, as these findings
+may indicate the presence of tumors. This area represents a
+promising opportunity for radiologists to utilize AI assistance,
+enhancing their ability to manage workloads and improve
+diagnostic accuracy.
+An automated segmentation model particularly tailored for
+the AM is a crucial prerequisite for automatically identifying
+AMLs in the AM, akin to lung cancer screening, which
+poses a significant hurdle. Retrospectively reviewing chest
+CT scans over a specific period to investigate the prevalence
+of AML requires substantial time. Additionally, the lack of
+arXiv:2411.01019v1  [eess.IV]  1 Nov 2024
+commercially available AI models makes utilizing AI for
+such research difficult. Developing an AI model for AML
+is particularly challenging because the AM does not have
+clear boundaries on CT scans, unlike lung parenchyma. This
+study establishes a hypothetical boundary for the AM and
+subsequently develops an AM segmentation AI model to assist
+in investigating the prevalence of AML.
+Radiologists can now get assistance utilizing Computer-
+Aided Detection (CADe) techniques. By highlighting potential
+organ areas within CT images, CADe methods make screening
+more efficient and cost-effective [8] [9]. Adhering to seg-
+mentation methods is an effective strategy for successfully
+implementing a CADe system. Segmentation methods are
+useful in delineating the outlines of lesions and organs, which
+are essential factors for assessing the malignancy of the lesions
+[10]. These processes emphasize anomalies of CT imaging at
+the pixel level, which allows them to be distinguished from
+other procedures. Some methods in [11] and [12] were con-
+sidered for lesion and organ segmentation, but those methods
+depend on handwrought features that need several manual
+procedures.
+In recent years, Deep Neural Networks (DNN) have become
+a professional strategy to solve problems in many areas [13]–
+[15], and medical image segmentation is one of them [16],
+[17]. The main issues in medical image segmentation for
+training DNN are lack of dataset, diversity of shapes, domain
+shift, etc. Using pre-train models, designing lightweight and
+sophisticated models, and K-fold cross-validation are some
+methods that are used to solve issues in medical image
+segmentation. This work suggests a U shape architecture for
+segmenting the AM organ from chest CT images to aid radiol-
+ogists. The proposed model identifies location of AM without
+any pre-processing or fine-tuning. It employs two distinct
+attention processes to give a rich feature map. According to the
+results, the proposed architecture performed better than state-
+of-the-art (SOTA) segmentation networks involving Res Unet
+[18], Res Unet++ [19], Trans Unet [20], Attention Unet [21],
+and Unet. The main contributions of this paper are as follows:
+• This research introduced a U shape structure network
+for AM segmentation which uses expanded convolution
+and wide multi-head self-attention in the encoder. This
+attention effectively allows the model to learn different
+attention components inside separate subspaces and long
+range dependencies.
+• Specifically,
+we
+used
+Channel
+Depth-Wise
+Cross-
+Correlation Attention (CD-WCC) in the encoder to find
+similarities between the encoder and decoder to improve
+organ localization.
+• The proposed architecture is more lightweight than the
+SOTA network, with just 6.7 million parameters while
+it has achieved acceptable and higher performance in all
+metrics.
+• To show that our proposed architecture is not limited to
+our proposed encoder, we used Resnet18 [22] and the
+encoder part of the original Unet as the encoder part
+in the proposed network. These results illustrates the
+effectiveness of the proposed structure.
+The rest of the paper is organized as follows: Section II
+provides a summary of the related research on image seg-
+mentation using the Unet framework. In Section III, we
+elaborate each datails of the proposed Unet. Next, Section IV
+describes an overview of datasets and the methodologies used
+to analyze and validate the accuracy of AM segmentation and
+experimental results. In Section V, we show the advantage of
+the proposed network compared to SOTA networks. Finally,
+the conclusions can be found in Section VI.
+II. RELATED WORKS
+Unet [23] structure was one of the first DNN networks
+introduced for segmentation. Many researchers have proposed
+their segmentation network based on Unet. ViT was proposed
+for image recognition by Dosovitskiy et al. [24]. Inspired by
+ViT, Chen et al. [20] introduced Trans Unet, which combined
+transformer and CNN for the encoder part of their proposed
+Unet. Trans NUnet [25], by maintaining the structure of
+Trans Unet in the encoder and using the Convolutional Block
+Attention Module (CBAM) [26] in the decoder improved per-
+formance in Dice score. In [27], fine spatial information was
+recovered by utilizing Multi-Head Cross-Attention (MHCA)
+in the decoder. The transformer block is always used in the
+encoder part to find long-range dependencies, while Petit et al.
+[27] implemented the transformer in the decoder to introduce
+the U-Transformer.
+Xu et al. [28] utilized LeVit [29], which has four convo-
+lution blocks for the encoder part, to propose LeViT Unet.
+This was the first segmentation work in medical imaging to
+use transformer architecture to enhance speed. Additionally,
+they paid attention to potential information by adding attention
+bias to the attention MLP block. By replacing traditional
+convolution layer in Unet by transformer introduced UNETR
+[30]. In their work, transformer extracted features map. Shaker
+et al. introduced UNETR++ in [31] by focusing on channel
+and spatial attention. Their main idea was an Efficient Paired
+Attention (EPA) block. While drastically lowering network
+complexity, UNETR++ outperformed UNETR. Swin UNERT
+[32] used Swin transformer [33] for the feature extractor in
+the encoder part. Based on the Swin transformer’s shifting
+window, their model can learn multi-scale contextual and
+capture long-range dependencies, outperforming ViT.
+Res Unet [18] is a development of the Unet structure, which
+uses residual connections for the decoder and encoder. In addi-
+tion, to improve performance, they used an atrous convolution
+block, multi-tasking inference, and pyramid pooling. Deep
+residual networks in Resnet architecture and Unet structure
+were used to design Res Unet++ [19]. The residual block
+facilitates the transmission of information between layers,
+enabling the construction of a more profound neural net-
+work capable of addressing each encoder’s degradation issue.
+This enhances the interconnections between channels, thereby
+decreasing the computational expenditure. The Res Unet++
+design consists of a stem block, three encoder blocks, an
+Atrous Spatial Pyramid Pooling (ASPP) module, and three
+decoder blocks.
+Attention methods have been developed to enhance the
+performance of DNNs by enabling them to concentrate on
+the most significant aspects of the input. However, based on
+the input feature map, Multi-Head Self-Attention (MHSA)
+can be a heavyweight network. Traditional MHSAs in trans-
+formers are the main reason Trans Unet is heavyweight. U-
+Transformer used one MHSA, which has 5 million parameters.
+Our proposed network takes a more efficient approach to
+utilizing MHSAs. Instead of using one MHSA, we leverage the
+advantage of parallel MHSAs. By splitting the input feature
+map into smaller chunks and utilizing parallel MHSAs, we
+significantly reduce the number of parameter in the proposed
+network.
+III. PROPOSED NETWORK ARCHITECTURE
+The proposed architecture shown in Fig. 1 was designed
+in U shape structure which has three components: encoder,
+decoder, and parallel path connection between encoder and
+decoder. The encoder extracts feature maps and decreases
+input dimensions from 3×224×224 to 512×7×7. The decoder
+improves feature maps’ dimensions relative to the input dimen-
+sion size. Both the encoder and decoder are designed into five
+sequential stages. Moreover, we employ two highly effective
+attention methods to significantly bolster the restoration of
+organ segmentation in each decoder and encoder block, in-
+stilling confidence in the model’s capabilities. After improving
+height and width in decoder, channel attention applies to
+channels dimension. Instead of using average and maximum in
+height and width for channel attention, we utilize depth-wise
+cross correlation [34] in order to find similarity feature maps
+between each stage in encoder and decoder. In the next step,
+the effective of similarity multiply to feature maps. Parallel
+path connection is designed into five dilated convolutions
+with different filter size and dilation rate. Dilated convolutions
+provide advantages such as enhanced receptive field size and
+retrieving features at several scales.
+A. Expanding Convolution block
+Going wider into the feature extraction section, we expand
+the convolutional layer and build the proposed feature extrac-
+tion in five stages which is illustrated in Fig. 2. In addition, 1×1
+convolutions are employed as opposed to 3×3 convolutions as
+main part of extract features. The input channel for every step
+is separated into smaller chunks, and then a separate convolu-
+tion filter is applied independently for each smaller channel. In
+order to be ready for the next stage, the specific features from
+all channels are concatenated in channel dimension and then
+pass through one 3×3 convolutional layer. The input image
+size is 3×224×224.
+• In stage 0, according to the input channel, three different
+1×1 convolution layers are applied independently. After
+concatenation, one 3×3 convolution layer improves chan-
+nel to 64 while height and width decrease to 112.
+• In stage 1, 64 channels are divided into 2. Two
+32×112×112 passes through the 1×1 convolution layers
+simultaneously and are concatenated in the channel di-
+mension to return to 64 channels then resulting in a
+feature extractor size will be 128×56×56.
+• The exact structure, like stage 1, is considered for stage
+2. However, the output size’s channel, height, and width
+dimensions will be 128, 28, and 28, respectively.
+• Stage 3 is designed to be deeper and broader than
+other stages to capture more complicated features and
+patterns as the input data progresses through the network.
+Although it maintains the same structure as previous
+stages, it involves four 1×1 convolutions simultaneously,
+concatenation, and one additional 3×3 convolution. Fi-
+nally, the feature extraction from stage 3 results in a size
+of 256×14×14.
+• The strategy for designing stage 4 is the same as the
+previous stage. However, the input channel size is 256,
+divided by 2. Therefore, two 64×14×14 enter to two
+1×1 convolutions independently. The output size will
+be 512×7×7 after concatenation, passing from one 3×3
+convolution.
+B. Wide Multi-Head Self-Attention (W-MHSA)
+The attention mechanism can be heavy weight according
+to the input dimension because due to fully connected layer.
+In this study, height and width of feature maps is divided
+into small chunks to overcome the heavy weight of self-
+attention. Three different MHSA are utilized in encoder of the
+proposed network. Four parallel MHSAs shown in (Fig. 3(a)),
+two parallel MHSAs shown in (Fig. 3(b)), and one MHSA
+shown in (Fig. 3(c)) are used in stages 1 and 2, stage 3, and
+stage 4, respectively. Parallel MHSAs are named Wide-MHSA
+(W-MHSA) in this study.
+• After passing the input from stage 1, the output will be
+64×56×56. First, W-MHSA (rate of width = 4) is applied
+after stage 1. W-MHSA (rate of width = 4) is designed
+in four branches. Therefore, the input for W-MHSA (rate
+of width = 4) is divided into 4 in height and width. First,
+four 64×14×14 enter to four different MHSA. Second,
+four outputs from MHSAs are concatenated in height and
+width dimensions. These outputs from concatenations are
+again concatenated by height and weight, and then two
+concatenation phases multiply together. Finally, it passes
+from one convolution layer.
+• Furthermore, there is a comparable procedure for stage
+2. The input 128×28×28 is split by 4. Subsequently, four
+128×7×7 enter four separate MHSAs using a methodol-
+ogy similar to stage 1.
+• After stage 3 is completed, the input size is 256×14×14.
+The steps are the same as in the previous phases, with
+the exception that the width and height are split in two.
+2 × (256×7×7) is passed from each of the two parallel
+MHSAs employed (W-MHSA(rate of width = 2)). Height
+and width are concatenated from two MHSA outputs
+Fig. 1: Proposed network for anterior mediastinum segmentation. (i): Expanding convolution block introduced in Fig. 2, n
+refers to amount of 1×1 based on input feature map. (ii): Fig. 3 (a) is related to four parallel MHSAs used for the proposed
+network. (iii): W-MHSA with rate 2 is utilized two MHSA in the parallel way shown in Fig. 3 (b). (iv): Traditional MHSA
+shown in Fig. 3 (c). (v): Delited depth-wise parallel shown in Fig. 5.
+Fig. 2: Expanding convolution block (shown in Fig. 1). The
+feature map channel is divided into small chunks according to
+the number of n for each stage: stage 0 = 3, stage 1 = 2, stage
+2 = 2, stage 3 = 4, stage 4 = 2.
+in height and width dimension. Then, these two con-
+catenations are concatenated again regarding height and
+width dimensions. Finally, the last two concatenations are
+multiplied and passed to a convolution layer.
+• In addition, one MHSA is used for after stage 4 which
+the input dimension is 512×7×7. We provide more details
+of W-MHSA in Fig. 3, in which (a) divides input size to
+4, (b) divides to 2, and (c) is the original MHSA.
+C. Channel Depth Wise Cross Correlation Attention (CD-
+WCC)
+The cross-correlation module is a computational process
+that convolves two sets of feature maps. It is typically em-
+ployed for tracking purposes in techniques like SiamRPN++
+[34]. The mechanism of working in this module is similar
+to that of two distinctive feature maps. This study uses
+cross-correlation to find similarities between the encoder and
+decoder. The correlation procedure is performed channel by
+channel on the two different feature maps with an equal
+number of channels, height, and width. According to Fig.
+4, the decoders’ features map is input for CDWCC, while
+the encoders’ features map is a kernel for performing the
+correlation operation channel by channel to find similarity.
+Finally, the CDWCC feature map is multiplied element-wise
+with the decoder feature map.
+D. Dilated depth wise parallel path connection (DDWPP)
+In order to have high field of view, DDWPP is designed. As
+shown in Fig. 5, it has five parallel dilated convolutions with
+different kernel size and dilated rate which capture large re-
+ceptive fields without increasing the number of parameters. In
+the process of segmentation, down sampling feature maps can
+potentially discard crucial components. Therefore, preserving
+information from the initial stages of the encoder is imperative
+(a) W-MHSA, four parallel ways
+(b) W-MHSA, two parallel ways
+(c) MHSA
+Fig. 3: Attention with different parallel paths. (a): It is designed with four MHSA (rate of width = 4) (shown in (ii) in Fig.
+1), (b): It is designed with two MHSA (rate of width = 2) (shown in (iii) in Fig. 1), and (c): It is designed with one MHSA
+(shown in (iv) in Fig. 1).
+Fig. 4: Channel Depth Wise Cross Correlation Attention (shown in decoder part of Fig. 1)
+for the subsequent up sampling phase. Having feature maps
+of each stage effectively helps our proposed network avoid
+missing information. In addition, primary stages have low
+level information while the latest stages have valuable one. As
+seen in Fig. 5, the dilated convolution technique expands the
+receptive field while maintaining the spatial precision of the
+feature maps. We have used four parallel dilated convolutions
+in the DDWPP block to increase the detection sensitivity for
+small AMs. The four dilated convolutions follow dilated rates
+of 16, 8, 4, and 2, and filter sizes of 7×7, 5×5, 5×5, and 3×3,
+respectively.
+IV. MATERIALS AND EXPERIMENTS
+This study was approved by the Institutional Review Board
+of Chonnam National University Hwasun Hospital (CNUHH-
+2022-241). Informed consent was waived due to its retrospec-
+tive design.
+A. Dataset
+This study was conducted with 200 patients who underwent
+chest CT as part of a health check-up at CNUHH between
+September 2020 and December 2021, and who exhibited no
+AMLs in the anterior mediastinum. A thoracic radiologist
+with 5-years of experience in chest radiology (W.G.J.) visually
+reviewed all chest CT scans and selected those without AMLs.
+The mean age of the patients was 55.9 years (SD, 10.0 years),
+and the cohort comprised 120 males (60%) and 80 females
+(40%). We defined anterior mediastinum as following criteria:
+(i) superior border: thoracic inlet, (ii) Inferior border: base
+of pulmonary trunk, (iii) anterior border: posterior margin of
+sternum, (iv) posterior border: anterior aspect of pericardium,
+and (v) lateral border: parietal mediastinal pleura [2]. Detailed
+CT parameters are described in the Table ??.
+2776 slices from 200 patients were considered for training
+the Deep Learning (DL) model. Initially, we transformed
+Digital Imaging and Communications in Medicine (DICOM)
+into PNG format, a technological standard for digitally storing
+and transmitting medical images. We considered the traditional
+mediastinal window settings, which included a window level
+of 30 and a window width of 520 Houndsfield Units (HU). Fi-
+nally, the generated PNG images had resolutions of 512×512,
+and a radiologist manually drew masks for AM using the
+labelme [35] annotation tool. As shown in Fig. 6, an AM
+present in two slice images has distinct visual depictions with
+resolutions of 512×512, HU of 520, and window level of 30.
+B. Evaluation metrics
+Our study utilizes Dice Similarity Coefficient (DSC), mean
+Intersection over Union (IoU), sensitivity, and Accuracy (Acc),
+to comprehensively examine and evaluate the effectiveness
+of our SOTA research technique. The equations representing
+DCS, IoU, sensitivity, and Acc are expressed as equations (1),
+(2), (3), and (4) accordingly. The metrics are computed based
+on the values of True Positive (TP), False Positive (FP), True
+Negative (TN), and False Negative (FN). TP and TN represent
+the accuracy of positive and negative predictions, respectively.
+Fig. 5: Dilated depth wise parallel path connection (shown in (v) in Fig. 1). The input channels are convolved separately with
+their own sets of filters, each based on a distinct number of groups.
+TABLE I: Detailed CT parameters
+CT machine (Vendor)
+Parameters
+Section thickness: 2.5–5.0 mm
+Rotation time: 0.5 s
+Peak kilovoltage: 120 kVp
+Revolution HD (GE Healthcare, Waukesha, WI, USA)
+Tube current: 60–220 mAs, with an automatic
+exposure control
+Kernel: standard
+Reconstruction algorithm: iterative reconstruction
+Section thickness: 3.0–4.0 mm
+Rotation time: 0.5 s
+Peak kilovoltage: 100 kVp, 120 kVp
+Somatom Definition Flash (Siemens Healthineers, Erlangen, Germany)
+Tube current: 60–220 mAs, with an automatic
+exposure control
+Kernel: B31f
+Reconstruction algorithm: iterative reconstruction
+Fig. 6: Two distinct anterior mediastinal instances from one patient are shown inside the green border to illustrate diverse
+shape of AM.
+FP and FN indicate the ratio of positive predictions that
+were wrongly forecasted and negative predictions that were
+incorrectly predicted, respectively.
+Dice =
+2TP
+2TP + FP + FN
+(1)
+IoU =
+TP
+TP + FP + FN
+(2)
+Sensitivity =
+TP
+TP + FP
+(3)
+Accuracy =
+TN + TP
+TN + TP + FN + FP
+(4)
+C. Implementation details
+For both the training and validation phases, we used 4-
+fold cross-validation, with each model being trained using
+100 epochs per fold. The loss function used is dice loss [36],
+in which loss is optimized by utilizing Adam with an initial
+learning rate of 0.0003. The learning rate was decreased by
+10 times in epochs 25 and 180. In addition, 32 batch sizes
+were considered. Pytorch framework was used to implement
+the proposed and other networks on A40 GPU.
+Ground truth
+Unet
+Res Unet
+Res Unet++
+Attention Unet
+Trans Unet
+Proposed Unet
+Fig. 7: Visual comparison of distinct models.
+V. EVALUATION
+In this section, we first compared the proposed method to
+the SOTA network. Then, in the subsection on the proposed
+method’s effectiveness, we used different feature extractions,
+such as Resnet18 and the encoder part of the original Unet,
+to show the flexibility of our proposed architecture in using
+various feature extractions in the encoder part. These results
+showed that with almost the same structure in the encoder of
+Unet, Res Unet, and Res Unet++, the proposed method with
+different feature extraction performed better than those.
+A. Result
+Table
+II outlines the segmentation results of SOTA net-
+works and our proposed model. As shown, because of various
+shapes of AM, just complicated network achieved acceptable
+results. Res Unet++ and Res Unet are two networks demon-
+strated inferior performance for all metrics. DCS, IoU, sensi-
+tivity, and Acc were obtained at 55.95%, 39.93%, 39.97%, and
+98.83%, respectively, for Res Unet. Res Unet++ is the devel-
+opment of Res Unet, which performs better than Res Unet.
+All metrics were as follows: DSC = 59.80%, IoU = 43.83,
+sensitivity = 43.92%, and Acc 99.09%.
+Trans Unet is another SOTA network that was considered
+for comparison. Based on the transformer modules as encoder
+part of this network, all results were higher than Res Unet and
+Res Unet++. DCS, IoU, sensitivity, and ACC were achieved
+at 85.50%, 75.98%, 85.32%, and 99.80, respectively, for
+Trans Unet. Attention Unet obtained 86.99% in DSC, 78.28%
+in IoU, 87.36% in sensitivity, and 99.84% Acc. Compared to
+all network, our proposed network performed better in DSC
+(87.69%), IoU (78.81%), and sensitivity (87.69%) while it has
+significantly less parameters (6.7 M).
+Fig. 7 shows the comparative analysis of several networks
+on our AM dataset. When the AM structures of interest have
+a small visual form, Trans Unet and the proposed network
+performed better in AM segmentation (second row of Fig. 7).
+The findings demonstrate the MHSA enhances the network’s
+capacity to capture more contextual information, enabling it
+to distinguish the AM organ from the surrounding organs.
+The results demonstrate the effectiveness of the MHSA in
+AM segmentation. Networks such as Unet, Res Unet, and
+Res Unet++, which do not utilize MHSA, struggle to seg-
+ment AM. In contrast, attention Unet, Trans Unet, and the
+proposed, which incorporate attention, outperform the former.
+B. Effectiveness of proposed backbone
+In Table III, we illustrated the effectiveness of the proposed
+Unet backbone by using Resnet18 and the encoder part of the
+original Unet. Proposed Unet (encoder = Resnet18) showed
+approximately 30% higher performance in each metric while
+having higher parameters (15.2 M vs. 13.05 M and 14.48 M)
+than Res Unet and Res Unet++. The results of the proposed
+network illustrate that each metrics (DSC = 86.91%, IoU
+= 77.75%, sensitivity = 87.62%, and Acc = 99.83%) has
+competitive value compared to Attention Unet. In addition,
+a Consecutive Convolution Block (CCB)-based encoder of
+original Unet was designed. We used the same structure
+for the original Unet by adding normalization layers to be
+robust and efficient. As shown in Fig. 8 (a), this convolution
+layer involves one 3×3 convolution, normalization layer and
+activation function, which are repeated twice. As shown in
+Fig.
+8 (b), encoder of Unet was designed in five stages
+with 64, 64, 128, 256, and 512 channels. Results of the
+proposed network (encoder = consecutive convolution block)
+demonstrated that our proposed structure is not limited to our
+proposed encoder. It showed DSC = 87.70%, IoU = 78.83%,
+sensitivity = 87.85%, and Acc = 99.80%, which is the second-
+best value behind the initially proposed network as shown
+Table III.
+The results of this section demonstrates the effectiveness of
+the proposed DDWPP and CDWCC.
+VI. CONCLUSION
+To automatically detect Anterior Mediastinum (AM) in the
+Computed Comography (CT) scans, we proposed an archi-
+tecture based on the U-shaped structure. For our proposed
+network, an expanded convolution block and W-Multi-Head
+Self-Attention (W-MHSA) were utilized as feature extraction.
+Channel Depth Wise Cross Correlation Attention (CDWCC)
+was introduced in decoder of the proposed network to find sim-
+ilarities in feature maps from the encoder and decoder. In ad-
+dition, Dilated Depth-Wise Parallel Path connection (DDWPP)
+has been proposed as connection between encoder and decoder
+of the proposed U-shaped network in order to maintain long
+range dependencies. A dataset of 200 AM patients was used to
+justify the effectiveness of the proposed network. According
+to the results, the proposed network obtained 87.83% in DSC,
+79.16% in IoU, and 89.60% in Sensitivity, which are higher
+than those of SOTA networks, while it has significantly fewer
+parameters (6.7 M).
+(a) Consecutive Convolution Block
+(CCB)
+(b) Encoder of original Unet [23]
+Fig. 8: (a) : Consecutive Convolution Block (CCB). The
+original block used in Unet [23] was designed without nor-
+malization layers. However, in this study we added batchnorm
+in to CCB. (b): We used this structure in Fig.
+1 as feature
+extractor.
+For future work, we anticipate the following clinical utilities
+for the proposed model for the automatic segmentation of
+AM in this study: (i) automatic detection and classification of
+AML in chest CT, including LDCT; (ii) distribution analysis
+of anterior mediastinal volume according to clinical factors
+such as age and sex; and (iii) educational purposes for
+medical students, healthcare professionals, and the general
+public.
+TABLE II: Results of AM segmentation for different methods
+Model
+DCS (%)
+IoU (%)
+Sensitivity (%)
+Acc (%)
+Parameters (M)
+Trans Unet
+85.50
+75.98
+85.32
+99.80
+88
+Attention Unet
+86.99
+78.28
+87.36
+99.84
+34.87
+Unet
+63.04
+47.05
+47.11
+98.21
+31.03
+Res Unet
+55.95
+39.93
+39.97
+98.93
+13.05
+Res Unet++
+59.80
+43.83
+43.92
+99.09
+14.48
+Proposed network
+87.83
+79.16
+89.60
+99.83
+6.7
+TABLE III: Results of effectiveness the proposed backbone with different encoder.
+Model (Proposed Unet)
+DCS (%)
+IoU (%)
+Sensitivity (%)
+Acc (%)
+Parameters (M)
+Encoder: Expanding Convolution block
+87.83
+79.16
+89.60
+99.83
+6.7
+Encoder: Resnet18
+86.91
+77.75
+87.62
+99.83
+15.2
+Encoder: Consecutive convolution block
+87.70
+78.83
+87.85
+99.80
+8.8
+REFERENCES
+[1] U. N. S. C. on the Effects of Atomic Radiation, Sources, Effects, and
+Risks of Ionizing Radiation. Evaluation of Medical Exposure to Ionizing
+Radiation. Vol 1, Scientific Annex A. 2020/2021 Report to the General
+Assembly with Annexes.
+New York, NY: United Nations, 2022.
+[2] S. H. Yoon, S. H. Choi, C. H. Kang, and J. M. Goo, “Incidental anterior
+mediastinal nodular lesions on chest ct in asymptomatic subjects,”
+Journal of Thoracic Oncology, vol. 13, no. 3, pp. 359–366, 2018.
+[3] C. I. Henschke, I.-J. Lee, N. Wu, A. Farooqi, A. Khan, D. Yankelevitz,
+and N. K. Altorki, “Ct screening for lung cancer: prevalence and
+incidence of mediastinal masses,” Radiology, vol. 239, no. 2, pp. 586–
+590, 2006.
+[4] T. Araki, M. Nishino, W. Gao, J. Dupuis, G. R. Washko, G. M.
+Hunninghake, T. Murakami, G. T. O’Connor, and H. Hatabu, “Anterior
+mediastinal masses in the framingham heart study: prevalence and ct
+image characteristics,” European journal of radiology open, vol. 2, pp.
+26–31, 2015.
+[5] R. F. Munden, B. W. Carter, C. Chiles, H. MacMahon, W. C. Black,
+J. P. Ko, H. P. McAdams, S. E. Rossi, A. N. Leung, P. M. Boiselle
+et al., “Managing incidental findings on thoracic ct: mediastinal and
+cardiovascular findings. a white paper of the acr incidental findings
+committee,” Journal of the American College of Radiology, vol. 15,
+no. 8, pp. 1087–1096, 2018.
+[6] C. R. Bailey, A. M. Bailey, A. S. McKenney, and C. R. Weiss,
+“Understanding and appreciating burnout in radiologists,” pp. E137–
+E139, 2022.
+[7] A. Wolf, K. C. Oeffinger, T. Y.-C. Shih, L. C. Walter, T. R. Church, E. T.
+Fontham, E. B. Elkin, R. D. Etzioni, C. E. Guerra, R. B. Perkins et al.,
+“Screening for lung cancer: 2023 guideline update from the american
+cancer society,” CA: A Cancer Journal for Clinicians, 2023.
+[8] H. R. Roth, L. Lu, J. Liu, J. Yao, A. Seff, K. Cherry, L. Kim, and R. M.
+Summers, “Improving computer-aided detection using convolutional
+neural networks and random view aggregation,” IEEE transactions on
+medical imaging, vol. 35, no. 5, pp. 1170–1181, 2015.
+[9] R. Castro-Zunti, E. H. Park, Y. Choi, G. Y. Jin, and S.-b. Ko, “Early
+detection of ankylosing spondylitis using texture features and statistical
+machine learning, and deep learning, with some patient age analysis,”
+Computerized Medical Imaging and Graphics, vol. 82, p. 101718, 2020.
+[10] W. Jung, S. Cho, S. Yum, Y. K. Lee, K. Kim, and S. Jheon, “Differen-
+tiating thymoma from thymic cyst in anterior mediastinal abnormalities
+smaller than 3 cm,” Journal of Thoracic Disease, vol. 12, no. 4, p. 1357,
+2020.
+[11] T. Sandor, D. Metcalf, and Y.-J. Kim, “Segmentation of brain ct images
+using the concept of region growing,” International journal of bio-
+medical computing, vol. 29, no. 2, pp. 133–147, 1991.
+[12] X. Ye, G. Beddoe, and G. Slabaugh, “Automatic graph cut segmentation
+of lesions in ct using mean shift superpixels,” Journal of Biomedical
+Imaging, vol. 2010, pp. 1–14, 2010.
+[13] S. S. Fard, M. Kaveh, M. R. Mosavi, and S.-B. Ko, “An efficient
+modeling attack for breaking the security of xor-arbiter pufs by using
+the fully connected and long-short term memory,” Microprocessors and
+Microsystems, vol. 94, p. 104667, 2022.
+[14] J. Torres-Tello, A. V. Guaman, and S.-B. Ko, “Improving the detection
+of explosives in a mox chemical sensors array with lstm networks,”
+IEEE Sensors Journal, vol. 20, no. 23, pp. 14 302–14 309, 2020.
+[15] S. S. Fard, A. Amirkhani, and M. Mosavi, “Retinamhsa: Improving
+in single-stage detector with self-attention,” in 2021 7th International
+Conference on Signal Processing and Intelligent Systems (ICSPIS).
+IEEE, 2021, pp. 1–5.
+[16] Y. Wang, W. G. Jeong, H. Zhang, Y. Choi, G. Y. Jin, and S.-B. Ko,
+“Anterior mediastinal nodular lesion segmentation from chest computed
+tomography imaging using unet based neural network with attention
+mechanisms,” Multimedia Tools and Applications, pp. 1–19, 2023.
+[17] K. J. Chae, G. Y. Jin, S. B. Ko, Y. Wang, H. Zhang, E. J. Choi,
+and H. Choi, “Deep learning for the classification of small (2 cm)
+pulmonary nodules on ct imaging: a preliminary study,” Academic
+radiology, vol. 27, no. 4, pp. e55–e63, 2020.
+[18] F. I. Diakogiannis, F. Waldner, P. Caccetta, and C. Wu, “Resunet-a: A
+deep learning framework for semantic segmentation of remotely sensed
+data,” ISPRS Journal of Photogrammetry and Remote Sensing, vol. 162,
+pp. 94–114, 2020.
+[19] D. Jha, P. H. Smedsrud, M. A. Riegler, D. Johansen, T. De Lange,
+P. Halvorsen, and H. D. Johansen, “Resunet++: An advanced architecture
+for medical image segmentation,” in 2019 IEEE international symposium
+on multimedia (ISM).
+IEEE, 2019, pp. 225–2255.
+[20] J. Chen, Y. Lu, Q. Yu, X. Luo, E. Adeli, Y. Wang, L. Lu, A. L. Yuille, and
+Y. Zhou, “Transunet: Transformers make strong encoders for medical
+image segmentation,” arXiv preprint arXiv:2102.04306, 2021.
+[21] O. Oktay, J. Schlemper, L. L. Folgoc, M. Lee, M. Heinrich, K. Misawa,
+K. Mori, S. McDonagh, N. Y. Hammerla, B. Kainz et al., “Atten-
+tion u-net: Learning where to look for the pancreas,” arXiv preprint
+arXiv:1804.03999, 2018.
+[22] K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for image
+recognition,” in Proceedings of the IEEE conference on computer vision
+and pattern recognition, 2016, pp. 770–778.
+[23] O. Ronneberger, P. Fischer, and T. Brox, “U-net: Convolutional networks
+for biomedical image segmentation,” in Medical image computing and
+computer-assisted intervention–MICCAI 2015: 18th international con-
+ference, Munich, Germany, October 5-9, 2015, proceedings, part III 18.
+Springer, 2015, pp. 234–241.
+[24] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai,
+T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly et al.,
+“An image is worth 16x16 words: Transformers for image recognition
+at scale,” arXiv preprint arXiv:2010.11929, 2020.
+[25] X. Yang and X. Tian, “Transnunet: Using attention mechanism for whole
+heart segmentation,” in 2022 IEEE 2nd International Conference on
+Power, Electronics and Computer Applications (ICPECA). IEEE, 2022,
+pp. 553–556.
+[26] S. Woo, J. Park, J.-Y. Lee, and I. S. Kweon, “Cbam: Convolutional
+block attention module,” in Proceedings of the European conference on
+computer vision (ECCV), 2018, pp. 3–19.
+[27] O. Petit, N. Thome, C. Rambour, L. Themyr, T. Collins, and L. Soler,
+“U-net transformer: Self and cross attention for medical image segmen-
+tation,” in Machine Learning in Medical Imaging: 12th International
+Workshop, MLMI 2021, Held in Conjunction with MICCAI 2021,
+Strasbourg, France, September 27, 2021, Proceedings 12.
+Springer,
+2021, pp. 267–276.
+[28] G. Xu, X. Zhang, X. He, and X. Wu, “Levit-unet: Make faster encoders
+with transformer for medical image segmentation,” in Chinese Confer-
+ence on Pattern Recognition and Computer Vision (PRCV).
+Springer,
+2023, pp. 42–53.
+[29] B. Graham, A. El-Nouby, H. Touvron, P. Stock, A. Joulin, H. J´egou, and
+M. Douze, “Levit: a vision transformer in convnet’s clothing for faster
+inference,” in Proceedings of the IEEE/CVF international conference on
+computer vision, 2021, pp. 12 259–12 269.
+[30] A. Hatamizadeh, Y. Tang, V. Nath, D. Yang, A. Myronenko, B. Land-
+man, H. R. Roth, and D. Xu, “Unetr: Transformers for 3d medical image
+segmentation,” in Proceedings of the IEEE/CVF winter conference on
+applications of computer vision, 2022, pp. 574–584.
+[31] A. Shaker, M. Maaz, H. Rasheed, S. Khan, M.-H. Yang, and F. S.
+Khan, “Unetr++: delving into efficient and accurate 3d medical image
+segmentation,” arXiv preprint arXiv:2212.04497, 2022.
+[32] K. Wang, H. S. Tan, and R. Mcbeth, “Swin unetr++: Advancing
+transformer-based dense dose prediction towards fully automated radia-
+tion oncology treatments,” arXiv preprint arXiv:2311.06572, 2023.
+[33] Z. Liu, Y. Lin, Y. Cao, H. Hu, Y. Wei, Z. Zhang, S. Lin, and
+B. Guo, “Swin transformer: Hierarchical vision transformer using shifted
+windows,” in Proceedings of the IEEE/CVF international conference on
+computer vision, 2021, pp. 10 012–10 022.
+[34] B. Li, W. Wu, Q. Wang, F. Zhang, J. Xing, and J. Yan, “Siamrpn++:
+Evolution of siamese visual tracking with very deep networks,” in
+Proceedings of the IEEE/CVF conference on computer vision and
+pattern recognition, 2019, pp. 4282–4291.
+[35] L. Team, “Labelme.ai: The open source labeling tool,” 2024, accessed:
+2024-05-16. [Online]. Available: https://github.com/labelmeai
+[36] F. Milletari, N. Navab, and S.-A. Ahmadi, “V-net: Fully convolutional
+neural networks for volumetric medical image segmentation,” in 2016
+fourth international conference on 3D vision (3DV).
+Ieee, 2016, pp.
+565–571.

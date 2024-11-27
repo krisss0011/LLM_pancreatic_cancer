@@ -1,0 +1,475 @@
+Cancer-Answer: Empowering Cancer Care with
+Advanced Large Language Models
+Aniket Deroy1,*,†, Subhankar Maity1
+1IIT Kharagpur, Kharagpur, India
+Abstract
+Gastrointestinal (GI) tract cancers account for a substantial portion of the global cancer burden, where
+early diagnosis is critical for improved management and patient outcomes. The complex aetiologies and
+overlapping symptoms across GI cancers often delay diagnosis, leading to suboptimal treatment strategies.
+Cancer-related queries are crucial for timely diagnosis, treatment, and patient education, as access to
+accurate, comprehensive information can significantly influence outcomes. However, the complexity of
+cancer as a disease, combined with the vast amount of available data, makes it difficult for clinicians and
+patients to quickly find precise answers. To address these challenges, we leverage large language models
+(LLMs) such as GPT-3.5 Turbo to generate accurate, contextually relevant responses to cancer-related
+queries. Pre-trained with medical data, these models provide timely, actionable insights that support
+informed decision-making in cancer diagnosis and care, ultimately improving patient outcomes. We
+calculate two metrics: A1 (which represents the fraction of entities present in the model-generated answer
+compared to the gold standard) and A2 (which represents the linguistic correctness and meaningfulness
+of the model-generated answer with respect to the gold standard), achieving maximum values of 0.546
+and 0.881, respectively.
+Keywords
+GPT, Medical, Cancer, Question Answering, Prompt Engineering
+1. Introduction
+Gastrointestinal (GI) tract cancers [1, 2, 3], represent a significant portion of cancer-related
+morbidity and mortality worldwide, encompassing malignancies of the esophagus, stomach,
+liver, pancreas, and intestines. Early detection and accurate diagnosis are paramount for
+improving prognosis and patient survival. However, these cancers present a unique set of
+challenges due to their complex aetiologies and overlapping symptoms, which often result
+in delayed diagnosis and misclassification. Differentiating between various GI tract cancers
+remains a formidable task for clinicians, who must navigate a wide array of symptoms that
+can mimic benign conditions or other malignancies. In this context, cancer-related queries
+are crucial for timely diagnosis, treatment, and patient education, as access to accurate and
+comprehensive information can significantly impact outcomes [4]. The sheer volume of data
+and complexity of cancer as a disease make it difficult for clinicians and patients to quickly
+access precise answers.
+Forum for Information Retrieval Evaluation, December 12-15, 2024, India
+*Corresponding author.
+$ roydanik18@kgpian.iitkgp.ac.in (A. Deroy); subhankar.ai@kgpian.iitkgp.ac.in (S. Maity)
+ 0000-0001-7190-5040 (A. Deroy); 0009-0001-1358-9534 (S. Maity)
+© 2022 Copyright for this paper by its authors. Use permitted under Creative Commons License Attribution 4.0 International (CC BY 4.0).
+CEUR
+Workshop
+Proceedings
+http://ceur-ws.org
+ISSN 1613-0073
+CEUR Workshop Proceedings (CEUR-WS.org)
+arXiv:2411.06946v1  [cs.CL]  11 Nov 2024
+Traditional diagnostic methods [5, 6], including imaging, endoscopy, and histopathological
+examination, although valuable, sometimes fall short in providing rapid and precise differentia-
+tion of these cancer types. As a result, delays in diagnosis can compromise the effectiveness of
+treatment, leading to suboptimal patient outcomes. The need for more advanced, data-driven
+diagnostic tools has never been greater. In recent years, the advent of large language models
+(LLMs) [7, 8, 9] such as GPT-3.5 Turbo has opened new possibilities in medical diagnostics and
+decision support. These models, when prompted appropriately, have demonstrated remarkable
+potential in generating human-like text and answering complex queries. Leveraging LLMs for
+medical diagnostics offers a promising approach to addressing the diagnostic challenges posed
+by GI tract cancers. In this work, we explore the use of prompted LLMs to generate answers
+to medical queries, with a particular focus on their applicability to differentiating between
+GI tract cancers. By harnessing the power of these models, we aim to offer new insights into
+how artificial intelligence can assist clinicians in making more timely and accurate diagnoses,
+ultimately improving patient outcomes.
+We explore prompted large language models (LLMs), such as GPT-3.5 Turbo [10], by designing
+and using specific prompts to generate relevant and coherent answers for various medical queries.
+These prompts guide the model to focus on producing medically accurate, context-appropriate
+responses based on the input. By leveraging the capabilities of GPT-3.5 Turbo, we aim to harness
+its vast knowledge base and advanced natural language understanding to assist in addressing
+a range of medical-related questions effectively. The use of prompts ensures that the model
+responds in a structured manner, providing meaningful information that aligns with the specific
+medical context of the queries.
+Metrices A1 and A2 represent distinct components or processes within the evaluated system,
+and their performance metrics offer valuable information about the operational efficiency and
+potential areas for enhancement. By examining the results from multiple runs, we aim to
+identify trends, improvements, or inconsistencies that could impact the overall effectiveness of
+the system. This evaluation not only helps in understanding the current performance but also
+guides future adjustments and optimizations.
+2. Related Work
+The application of artificial intelligence (AI) in healthcare [11, 12, 13] has seen rapid growth
+in recent years, particularly in the areas of diagnostics and decision support. Several studies
+have explored the potential of machine learning (ML) and deep learning techniques to assist in
+the detection and classification of gastrointestinal (GI) cancers [14, 15, 16]. These approaches
+range from traditional supervised learning models to more advanced AI systems, including
+convolutional neural networks (CNNs) and natural language processing (NLP) models.
+Early work in AI-assisted GI cancer diagnostics primarily focused on image-based techniques.
+For instance, CNNs have been employed to analyze endoscopic and radiological images for
+detecting specific types of GI cancers such as esophageal and colorectal cancer [17, 18, 19].
+Studies like [20, 21, 22] demonstrated the ability of deep learning algorithms to match or even
+surpass human-level performance in identifying cancerous lesions. While these methods have
+made significant strides, they are primarily limited to image processing tasks, requiring large
+amounts of annotated data and sophisticated preprocessing techniques.
+NLP models, on the other hand, have recently been leveraged to analyze clinical reports and
+patient records. Various works, such as by [23, 24, 25] utilized deep learning models to extract
+relevant information from unstructured text data, aiming to support clinical decision-making.
+However, these approaches often rely on predefined rules or training with vast, labeled datasets,
+which limits their generalizability to diverse clinical scenarios, including GI cancers.
+The emergence of large language models (LLMs) like GPT-3 and GPT-3.5 has introduced
+a new frontier in NLP for healthcare [26, 27, 28]. These models are pre-trained on massive
+amounts of text data and can generate highly contextualized responses to medical queries with
+minimal fine-tuning. Studies such [29, 30, 31] have begun exploring the utility of LLMs in
+medical applications, showing promising results in generating accurate, coherent responses to
+clinical questions. However, most research to date has focused on general medical knowledge
+or specific diseases, with limited exploration into their potential for diagnosing GI tract cancers.
+The idea of using prompted LLMs to aid in GI cancer diagnostics [26, 32, 33] remains under-
+explored. While existing NLP systems provide valuable insights, they often lack the ability to
+dynamically respond to complex medical queries without extensive fine-tuning. In contrast,
+GPT-3.5 Turbo and similar models can be prompted to generate medically relevant text with
+minimal training, potentially addressing some of the limitations faced by previous systems.
+This work builds on the foundation of AI in healthcare by investigating the use of prompted
+LLMs to generate responses to GI cancer-related medical queries, contributing to the growing
+body of research on AI-powered diagnostics in oncology.
+3. Dataset
+There are 30 queries in the training set related to GI-Cancer. There are 50 queries in the testing
+set related to GI-Cancer.
+4. Task Definition
+We need to design a Question Answering based conversational system that can provide answers
+to queries related to GI Cancer, using an AI model.
+5. Methodology
+Prompting [34] is an emerging technique in the development of question-answering (QA)
+systems, particularly with the advent of large language models (LLMs) like GPT-3.5. Unlike
+traditional machine learning methods, which often require large amounts of labeled data and
+extensive fine-tuning, prompting involves crafting specific input instructions that guide LLMs
+to generate relevant answers to user queries. This approach has been tried for these key reasons:
+- Minimal Data and Fine-Tuning Requirements: One of the major advantages of
+prompting is that it minimizes the need for extensive training data and domain-specific
+fine-tuning [35, 36]. Traditional QA systems rely on massive datasets to train models for
+each specific task. With prompting, models like GPT-3.5 can leverage their pre-existing
+knowledge from vast amounts of pre-trained data, allowing them to generate accurate
+answers across different domains with minimal additional data. This is particularly useful
+in medical domains like gastrointestinal (GI) cancer diagnostics, where high-quality
+labeled data can be scarce and time-consuming to acquire.
+- Generalization Across Diverse Topics: LLMs pre-trained on large and diverse corpora
+are capable of handling a wide variety of questions without being confined to a narrow
+domain [37, 38, 39, 40, 41, 42, 43, 44]. In contrast, conventional QA systems typically
+require specialized models for specific areas. By using well-designed prompts, LLMs can
+provide answers to medical questions across different GI tract cancers without needing
+separate models for each type of cancer or medical condition. This flexibility allows the
+same model to respond to queries about symptoms, diagnostics, and treatment, improving
+efficiency.
+- Reduced Development Time: The prompt-based approach reduces the time and com-
+plexity involved in developing QA systems [45, 46, 47]. Traditional systems require careful
+preprocessing, feature extraction, and extensive model training [48, 49, 50, 51, 52]. By
+contrast, prompting requires only well-constructed input prompts that instruct the LLM
+to generate a response. This simplifies the development process and allows for rapid
+iteration, enabling QA systems to be deployed quickly in clinical environments.
+- Dynamic and Contextual Responses: LLMs are designed to understand the context
+of a question and generate dynamic, human-like responses [7, 53]. By using specific
+prompts, QA systems can better interpret the nuances of medical questions, which is
+critical in complex domains such as GI cancer. The models can adapt to variations in
+question phrasing, offering contextually relevant answers that align with the complexity
+of medical knowledge. For example, they can handle follow-up questions or clarify
+answers based on additional information provided by the user [47, 54, 55, 56].
+- Scalability and Adaptability: Prompt-based QA systems are highly scalable [57, 58, 53,
+41, 59, 60], as they do not require retraining or large-scale infrastructure changes when
+applied to new domains or updated with new information. This is particularly useful
+in rapidly evolving fields like medicine, where new research and findings continuously
+emerge. The adaptability of LLMs to new topics through updated prompts allows QA
+systems to stay current with the latest medical knowledge without the need for re-
+engineering the entire system.
+- Cost-Effective Solution: Developing and maintaining traditional QA systems can be
+resource-intensive due to the need for large datasets, computing power, and expertise
+in model training [61]. Prompting offers a cost-effective alternative, as it capitalizes on
+the power of pre-trained LLMs. This approach reduces the dependency on large-scale
+infrastructure and can be easily implemented without requiring extensive computational
+resources.
+In summary, prompting is an efficient, flexible, and scalable solution for building question-
+answering systems in specialized domains like medical diagnostics. By leveraging LLMs through
+well-designed prompts, QA systems can generate accurate, context-aware responses, signifi-
+cantly reducing development time, data requirements, and costs, while improving the overall
+quality and accessibility of information. For the field of GI cancer diagnostics, prompted LLMs
+offer a promising tool for clinicians, allowing them to access critical information and make
+informed decisions more effectively.
+5.1. Prompt Engineering-Based Approach
+We used the GPT-3.5 Turbo1 model via prompting to solve the question-answering task. We
+used GPT-3.5 Turbo in zero-Shot mode via prompting. After the prompt is provided to the LLM,
+the following steps happen internal to the LLM while generating the output. The following
+outlines the steps that occur internally within the LLM, summarizing the prompting approach
+using GPT-3.5 Turbo:
+Step 1: Tokenization
+• Prompt: 𝑋= [𝑥1, 𝑥2, . . . , 𝑥𝑛]
+• The input text (prompt) is first tokenized into smaller units called tokens. These tokens
+are often subwords or characters, depending on the model’s design.
+• Tokenized Input: 𝑇= [𝑡1, 𝑡2, . . . , 𝑡𝑚]
+Step 2: Embedding
+• Each token is converted into a high-dimensional vector (embedding) using an embedding
+matrix 𝐸.
+• Embedding Matrix: 𝐸∈R|𝑉|×𝑑, where |𝑉| is the size of the vocabulary and 𝑑is the
+embedding dimension.
+• Embedded Tokens: 𝑇emb = [𝐸(𝑡1), 𝐸(𝑡2), . . . , 𝐸(𝑡𝑚)]
+Step 3: Positional Encoding
+• Since the model processes sequences, it adds positional information to the embeddings to
+capture the order of tokens.
+• Positional Encoding: 𝑃(𝑡𝑖)
+• Input to the Model: 𝑍= 𝑇emb + 𝑃
+Step 4: Attention Mechanism (Transformer Architecture)
+• Attention Score Calculation: The model computes attention scores to determine the
+importance of each token relative to others in the sequence.
+• Attention Formula:
+Attention(𝑄, 𝐾, 𝑉) = softmax
+(︂𝑄𝐾𝑇
+√𝑑𝑘
+)︂
+𝑉
+(1)
+• where 𝑄(query), 𝐾(key), and 𝑉(value) are linear transformations of the input 𝑍.
+1https://platform.openai.com/docs/models/gpt-3-5-turbo
+• This attention mechanism is applied multiple times through multi-head attention, allowing
+the model to focus on different parts of the sequence simultaneously.
+Step 5: Feedforward Neural Networks
+• The output of the attention mechanism is passed through feedforward neural networks,
+which apply non-linear transformations.
+• Feedforward Layer:
+FFN(𝑥) = max(0, 𝑥𝑊1 + 𝑏1)𝑊2 + 𝑏2
+(2)
+• where 𝑊1, 𝑊2 are weight matrices and 𝑏1, 𝑏2 are biases.
+Step 6: Stacking Layers
+• Multiple layers of attention and feedforward networks are stacked, each with its own set
+of parameters. This forms the "deep" in deep learning.
+• Layer Output:
+𝐻(𝑙) = LayerNorm(𝑍(𝑙) + Attention(𝑄(𝑙), 𝐾(𝑙), 𝑉(𝑙)))
+(3)
+𝑍(𝑙+1) = LayerNorm(𝐻(𝑙) + FFN(𝐻(𝑙)))
+(4)
+Step 7: Output Generation
+• The final output of the stacked layers is a sequence of vectors.
+• These vectors are projected back into the token space using a softmax layer to predict the
+next token or word in the sequence.
+• Softmax Function:
+𝑃(𝑦𝑖|𝑋) =
+exp(𝑍𝑖)
+∑︀|𝑉|
+𝑗=1 exp(𝑍𝑗)
+(5)
+• where 𝑍𝑖is the logit corresponding to token 𝑖in the vocabulary.
+• The model generates the next token in the sequence based on the probability distribution,
+and the process repeats until the end of the output sequence is reached.
+Step 8: Decoding
+• The predicted tokens are then decoded back into text, forming the final output.
+• Output Text: 𝑌= [𝑦1, 𝑦2, . . . , 𝑦𝑘]
+A flow diagram depicting the interaction between a user and GPT-3.5 Turbo to answer cancer-
+related queries is shown in Figure 1. An overview of GPT-3.5 Turbo to answer cancer-related
+queries is shown in Figure 2.
+We use three different prompts to GPT-3.5 Turbo as follows:
+(i) We used GPT-3.5 Turbo in zero-shot mode at temperature 0.7 with the following prompt:
+"Generate an answer that includes the key ideas corresponding to the question <question>."
+(ii) We used GPT-3.5 Turbo in zero-shot mode at temperature 0.7 with a simpler prompt:
+"<query>" (The query was directly passed as the prompt without additional instructions.)
+(iii) We used GPT-3.5 Turbo in zero-shot mode at temperature 0.7 with the following prompt:
+"Please summarize the key ideas of the answer to the following cancer-related question in one
+paragraph: <question>".
+Figure 1: Flow diagram depicting the interaction between a user and GPT-3.5 Turbo for answering
+cancer-related queries. The diagram details the steps from user prompt submission to the generation of
+responses/answers by the LLM.
+Figure 2: An Overview of GPT-3.5 Turbo for Answering Cancer-Related Queries.
+6. Results
+We have defined two metrics namely:
+A1: A1 measures the fraction of entities present in the model-generated answers which are
+also present in the gold standard answers.
+A1 = |(Entities in Model Generated Answer) ∩(Entities in Gold Standard Answer)|
+|(Entities in Gold Standard Answer)|
+We manually calculate the entities for every model-generated answer and the gold standard
+answer to calculate the value of A1 for a particular (Query, Answer) pair. The values are added
+over the 50 samples in the test set and then averaged out of the 50 samples.
+A2: A2 measures the linguistic correctness and meaningfulness of the model-generated
+answers wrt to the gold standard data.
+We manually assign a value of [0,1] representing the linguistic correctness and meaningfulness
+of the generated answer to calculate the value of A2 for a particular (Query, Answer) pair. The
+values are added over the 50 samples in the test set and then averaged out of the 50 samples.
+Table 1 shows the values for three different runs for the two metrics, namely A1, and A2.
+For A1, A2, the upward trend is positive and suggests that the metric being measured is
+becoming more effective or efficient. It might be beneficial to investigate what changes were
+made between runs that led to these improvements.
+Run 1
+Run 2
+Run 3
+A1
+0.354
+0.452
+0.546
+A2
+0.622
+0.702
+0.881
+Table 1
+Values for A1 and A2 across three runs.
+7. Conclusion
+In this work, we explored the potential of large language models (LLMs), particularly GPT-3.5
+Turbo, as a question-answering (QA) tool to address the challenges associated with diagnosing
+gastrointestinal (GI) tract cancers. GI cancers pose unique difficulties due to overlapping
+symptoms and complex aetiologies, often leading to delayed diagnoses and suboptimal treatment
+strategies. By leveraging the power of prompted LLMs, we demonstrated the capability of these
+models to generate coherent, contextually relevant answers to medical queries, providing a
+flexible and efficient approach for assisting clinicians in differentiating between various GI
+cancers.
+The analysis of performance metrics for metrics A1 and A2 across three runs reveals important
+insights into their behavior and effectiveness. For metric A1, A2 the consistent improvement in
+performance across the runs indicates a successful enhancement of the underlying system or
+methodology. This positive trend suggests that the adjustments or optimizations implemented
+are yielding favorable results and warrants continued focus and refinement.
+Our findings highlight the advantages of using prompt-based systems in healthcare, including
+the ability to generalize across a wide range of medical topics, minimal data requirements, and
+the flexibility to dynamically adapt to new information. These characteristics make LLMs a
+promising tool for augmenting clinical decision-making, particularly in resource-constrained
+environments where access to specialized diagnostic expertise may be limited.
+However, it is important to recognize the limitations of current LLMs in handling highly
+specialized or nuanced medical cases, underscoring the need for ongoing research to improve
+model accuracy and reliability. Future work could focus on further fine-tuning LLMs with
+domain-specific data or incorporating additional knowledge sources to enhance their diagnostic
+capabilities.
+Overall, the integration of LLMs into clinical workflows has the potential to improve the
+accuracy and timeliness of cancer diagnoses, particularly in complex cases like GI tract cancers,
+ultimately contributing to better patient outcomes and more efficient healthcare delivery.
+References
+[1] C. Bernstein, H. Bernstein, C. M. Payne, K. Dvorak, H. Garewal, Field defects in progression
+to gastrointestinal tract cancers, Cancer letters 260 (2008) 1–10.
+[2] M. F. Bijlsma, A. Sadanandam, P. Tan, L. Vermeulen, Molecular subtypes in cancers of the
+gastrointestinal tract, Nature reviews Gastroenterology & hepatology 14 (2017) 333–342.
+[3] F. Islami, F. Kamangar, K. Aghcheli, S. Fahimi, S. Semnani, N. Taghavi, H. Marjani, S. Merat,
+S. Nasseri-Moghaddam, A. Pourshams, et al., Epidemiologic features of upper gastroin-
+testinal tract cancers in northeastern iran, British journal of cancer 90 (2004) 1402–1406.
+[4] A. Hyatt, A. Shelly, R. Cox, E. Humphries, G. Lock, M. Varlow, How can we improve
+information for people affected by cancer? a national survey exploring gaps in current
+information provision, and challenges with accessing cancer information online, Patient
+Education and Counseling 105 (2022) 2763–2770.
+[5] A. Rodríguez-Fernández, M. Gómez-Río, A. Medina-Benítez, J. V.-d. Moral, C. Ramos-
+Font, J. M. Ramia-Ángel, J. M. Llamas-Elvira, J. A. Ferrón-Orihuela, P. Lardelli-Claret,
+Application of modern imaging methods in diagnosis of gallbladder cancer, Journal of
+surgical oncology 93 (2006) 650–664.
+[6] S. Coda, A. V. Thillainayagam, State of the art in advanced endoscopic imaging for the
+detection and evaluation of dysplasia and early cancer of the gastrointestinal tract, Clinical
+and experimental gastroenterology (2014) 133–150.
+[7] S. K. Nigam, A. Deroy, S. Maity, A. Bhattacharya, Rethinking legal judgement prediction
+in a realistic scenario in the era of large language models, arXiv preprint arXiv:2410.10542
+(2024).
+[8] T. I. Wilhelm, J. Roos, R. Kaczmarczyk, Large language models for therapy recommenda-
+tions across 3 clinical specialties: comparative study, Journal of medical Internet research
+25 (2023) e49324.
+[9] Z. A. Nazi, W. Peng, Large language models in healthcare and medical domain: A review,
+in: Informatics, volume 11, MDPI, 2024, p. 57.
+[10] T. B. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A. Neelakantan,
+P. Shyam, G. Sastry, A. Askell, et al., Language models are few-shot learners, Advances in
+neural information processing systems 33 (2020) 1877–1901.
+[11] M. Y. Shaheen, Applications of artificial intelligence (ai) in healthcare: A review, Sci-
+enceOpen Preprints (2021).
+[12] A. Väänänen, K. Haataja, K. Vehviläinen-Julkunen, P. Toivanen, Ai in healthcare: A
+narrative review, F1000Research 10 (2021) 6.
+[13] A. Panesar, Machine learning and AI for healthcare, Springer, 2019.
+[14] C. Röcken, Molecular classification of gastric cancer, Expert review of molecular diagnostics
+17 (2017) 293–301.
+[15] S. Kuntz, E. Krieghoff-Henning, J. N. Kather, T. Jutzi, J. Höhn, L. Kiehl, A. Hekler, E. Alwers,
+C. von Kalle, S. Fröhling, et al., Gastrointestinal cancer classification and prognostication
+from histology using deep learning: Systematic review, European Journal of Cancer 155
+(2021) 200–215.
+[16] O. Serra, M. Galán, M. Ginesta, M. Calvo, N. Sala, R. Salazar, Comparison and applicability
+of molecular classifications for gastric cancer, Cancer treatment reviews 77 (2019) 29–34.
+[17] G. Liu, J. Hua, Z. Wu, T. Meng, M. Sun, P. Huang, X. He, W. Sun, X. Li, Y. Chen, Automatic
+classification of esophageal lesions in endoscopic images using a convolutional neural
+network, Annals of translational medicine 8 (2020).
+[18] F. Xie, K. Zhang, F. Li, G. Ma, Y. Ni, W. Zhang, J. Wang, Y. Li, Diagnostic accuracy of con-
+volutional neural network–based endoscopic image analysis in diagnosing gastric cancer
+and predicting its invasion depth: a systematic review and meta-analysis, Gastrointestinal
+Endoscopy 95 (2022) 599–609.
+[19] B. P. Mohan, S. R. Khan, L. L. Kassab, S. Ponnada, P. S. Dulai, G. S. Kochhar, Accuracy of
+convolutional neural network-based artificial intelligence in diagnosis of gastrointestinal
+lesions based on endoscopic images: A systematic review and meta-analysis, Endoscopy
+International Open 8 (2020) E1584–E1594.
+[20] A. Mitsala, C. Tsalikidis, M. Pitiakoudis, C. Simopoulos, A. K. Tsaroucha, Artificial in-
+telligence in colorectal cancer screening, diagnosis and treatment. a new era, Current
+Oncology 28 (2021) 1581–1607.
+[21] H. He, S. Yan, D. Lyu, M. Xu, R. Ye, P. Zheng, X. Lu, L. Wang, B. Ren, Deep learning for
+biospectroscopy and biospectral imaging: state-of-the-art and perspectives, 2021.
+[22] Z. Omar, Deep Learning Applications in Medical Bioinformatics, Master’s thesis, University
+of Windsor (Canada), 2021.
+[23] D. Zhang, C. Yin, J. Zeng, X. Yuan, P. Zhang, Combining structured and unstructured data
+for predictive models: a deep learning approach, BMC medical informatics and decision
+making 20 (2020) 1–11.
+[24] I. Spasic, G. Nenadic, et al., Clinical text data in machine learning: systematic review, JMIR
+medical informatics 8 (2020) e17984.
+[25] T. M. Seinen, E. A. Fridgeirsson, S. Ioannou, D. Jeannetot, L. H. John, J. A. Kors, A. F. Markus,
+V. Pera, A. Rekkas, R. D. Williams, et al., Use of unstructured text in prognostic clinical
+prediction models: a systematic review, Journal of the American Medical Informatics
+Association 29 (2022) 1292–1302.
+[26] Y. Liu, T. Han, S. Ma, J. Zhang, Y. Yang, J. Tian, H. He, A. Li, M. He, Z. Liu, et al., Summary
+of chatgpt-related research and perspective towards the future of large language models,
+Meta-Radiology (2023) 100017.
+[27] M. U. Hadi, R. Qureshi, A. Shah, M. Irfan, A. Zafar, M. B. Shaikh, N. Akhtar, J. Wu,
+S. Mirjalili, et al., A survey on large language models: Applications, challenges, limitations,
+and practical usage, Authorea Preprints (2023).
+[28] M. U. Hadi, R. Qureshi, A. Shah, M. Irfan, A. Zafar, M. B. Shaikh, N. Akhtar, J. Wu, S. Mirjalili,
+et al., Large language models: a comprehensive survey of its applications, challenges,
+limitations, and future prospects, Authorea Preprints (2023).
+[29] Z. Z. Chen, J. Ma, X. Zhang, N. Hao, A. Yan, A. Nourbakhsh, X. Yang, J. McAuley, L. Petzold,
+W. Y. Wang, A survey on large language models for critical societal domains: Finance,
+healthcare, and law, arXiv preprint arXiv:2405.01769 (2024).
+[30] W. Khan, S. Leem, K. B. See, J. K. Wong, S. Zhang, R. Fang, A comprehensive survey of
+foundation models in medicine, arXiv preprint arXiv:2406.10729 (2024).
+[31] M. S. Treder, S. Lee, K. A. Tsvetanov, Introduction to large language models (llms) for
+dementia care and research, Frontiers in Dementia 3 (2024) 1385303.
+[32] P. Hager, F. Jungmann, K. Bhagat, I. Hubrecht, M. Knauer, J. Vielhauer, R. Holland, R. Braren,
+M. Makowski, G. Kaisis, et al., Evaluating and mitigating limitations of large language
+models in clinical decision making, medRxiv (2024) 2024–01.
+[33] P. Hager, F. Jungmann, R. Holland, K. Bhagat, I. Hubrecht, M. Knauer, J. Vielhauer,
+M. Makowski, R. Braren, G. Kaissis, et al., Evaluation and mitigation of the limitations of
+large language models in clinical decision-making, Nature medicine (2024) 1–10.
+[34] S. Maity, A. Deroy, S. Sarkar, Exploring the capabilities of prompted large language models
+in educational and assessment applications, arXiv preprint arXiv:2405.11579 (2024).
+[35] C. Ge, R. Huang, M. Xie, Z. Lai, S. Song, S. Li, G. Huang, Domain adaptation via prompt
+learning, IEEE Transactions on Neural Networks and Learning Systems (2023).
+[36] A. Deroy, K. Ghosh, S. Ghosh, How ready are pre-trained abstractive models and llms for
+legal case judgement summarization?, arXiv preprint arXiv:2306.01248 (2023).
+[37] S. Maity, A. Deroy, S. Sarkar, How ready are generative pre-trained large language models
+for explaining bengali grammatical errors?, in: B. PaaÃŸen, C. D. Epp (Eds.), Proceedings of
+the 17th International Conference on Educational Data Mining, International Educational
+Data Mining Society, Atlanta, Georgia, USA, 2024, pp. 664–671. doi:10.5281/zenodo.
+12729912.
+[38] A. Deroy, S. Maity, Exploring the mathematical reasoning capabilities of gemini, Authorea
+Preprints (2024).
+[39] R. Patil, V. Gudivada, A review of current trends, techniques, and challenges in large
+language models (llms), Applied Sciences 14 (2024) 2074.
+[40] A. Deroy, S. Maity, A short case study on understanding the capabilities of gpt for temporal
+reasoning tasks, Authorea Preprints (2024).
+[41] S. Maity, A. Deroy, S. Sarkar, Exploring the capabilities of prompted large language models
+in educational and assessment applications, in: B. PaaÃŸen, C. D. Epp (Eds.), Proceedings of
+the 17th International Conference on Educational Data Mining, International Educational
+Data Mining Society, Atlanta, Georgia, USA, 2024, pp. 961–968. doi:10.5281/zenodo.
+12730013.
+[42] A. Deroy, S. Maity, Questioning biases in case judgment summaries: Legal datasets or
+large language models?, arXiv preprint arXiv:2312.00554 (2023).
+[43] A. Deroy, K. Ghosh, S. Ghosh, Applicability of large language models and generative
+models for legal case judgement summarization, Artificial Intelligence and Law (2024)
+1–44.
+[44] A. Deroy, S. Maity, S. Ghosh, Prompted zero-shot multi-label classification of factual
+incorrectness in machine-generated summaries., in: FIRE (Working Notes), 2023, pp.
+734–746.
+[45] Z. Gekhman, N. Oved, O. Keller, I. Szpektor, R. Reichart, On the robustness of dialogue
+history representation in conversational question answering: a comprehensive study and a
+new prompt-based method, Transactions of the Association for Computational Linguistics
+11 (2023) 351–366.
+[46] A. Deroy, S. Maity, S. Sarkar, Mirror: A novel approach for the automated evaluation of
+open-ended question generation, arXiv preprint arXiv:2410.12893 (2024).
+[47] S. Maity, A. Deroy, The future of learning in the age of generative ai: Automated question
+generation and assessment with large language models, arXiv preprint arXiv:2410.09576
+(2024).
+[48] A. Deroy, N. K. Bailung, K. Ghosh, S. Ghosh, A. Chakraborty, Artificial intelligence (ai) in
+legal data mining, arXiv preprint arXiv:2405.14707 (2024).
+[49] S. K. Nigam, A. Deroy, Fact-based court judgment prediction, in: Proceedings of the 15th
+Annual Meeting of the Forum for Information Retrieval Evaluation, 2023, pp. 78–82.
+[50] S. K. Nigam, A. Deroy, N. Shallum, A. K. Mishra, A. Roy, S. K. Mishra, A. Bhattacharya,
+S. Ghosh, K. Ghosh, Nonet at semeval-2023 task 6: Methodologies for legal evaluation,
+arXiv preprint arXiv:2310.11049 (2023).
+[51] A. Deroy, K. Ghosh, S. Ghosh, Ensemble methods for improving extractive summarization
+of legal case judgements, Artificial Intelligence and Law 32 (2024) 231–289.
+[52] A. Deroy, P. Bhattacharya, K. Ghosh, S. Ghosh, An analytical study of algorithmic and
+expert summaries of legal cases, in: Legal Knowledge and Information Systems, IOS Press,
+2021, pp. 90–99.
+[53] B. Alsafari, E. Atwell, A. Walker, M. Callaghan, Towards effective teaching assistants: From
+intent-based chatbots to llm-powered teaching assistants, Natural Language Processing
+Journal (2024) 100101.
+[54] S. Maity, A. Deroy, Generative ai and its impact on personalized intelligent tutoring
+systems, arXiv preprint arXiv:2410.10650 (2024).
+[55] A. Deroy, S. Maity, Code generation and algorithmic problem solving using llama 3.1 405b,
+arXiv preprint arXiv:2409.19027 (2024).
+[56] S. Maity, A. Deroy, Human-centric explainable ai in education, 2024. URL: https://arxiv.
+org/abs/2410.19822. arXiv:2410.19822.
+[57] S. Maity, A. Deroy, S. Sarkar, A novel multi-stage prompting approach for language
+agnostic mcq generation using gpt, in: European Conference on Information Retrieval,
+Springer, 2024, pp. 268–277.
+[58] S. Maity, A. Deroy, S. Sarkar, Harnessing the power of prompt-based techniques for
+generating school-level questions using large language models, in: Proceedings of the
+15th Annual Meeting of the Forum for Information Retrieval Evaluation, 2023, pp. 30–39.
+[59] S. Maity, A. Deroy, S. Sarkar, How effective is gpt-4 turbo in generating school-level
+questions from textbooks based on bloom’s revised taxonomy?, 2024. URL: https://arxiv.
+org/abs/2406.15211. arXiv:2406.15211.
+[60] A. Deroy, S. Maity, Multi-label classification of covid-tweets using large language models,
+arXiv preprint arXiv:2312.10748 (2023).
+[61] R. Y. Cohen, V. P. Kovacheva, A methodology for a scalable, collaborative, and resource-
+efficient platform to facilitate healthcare ai research, arXiv preprint arXiv:2112.06883
+(2021).

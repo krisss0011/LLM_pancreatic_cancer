@@ -1,0 +1,3095 @@
+Exploring Large Language Models
+for Specialist-level Oncology Care
+Anil Palepu∗,1, Vikram Dhillon∗,3, Polly Niravath3, Wei-Hung Weng1, Preethi Prasad3, Khaled Saab2,
+Ryutaro Tanno2, Yong Cheng2, Hanh Mai3, Ethan Burns3, Zainub Ajmal3, Kavita Kulkarni1,
+Philip Mansfield2, Dale Webster1, Joelle Barral2, Juraj Gottweis1, Mike Schaekermann1,
+S. Sara Mahdavi2, Vivek Natarajan1, Alan Karthikesalingam1 and Tao Tu2
+1Google Research, 2Google DeepMind, 3Houston Methodist
+Large language models (LLMs) have shown remarkable progress in encoding clinical knowledge and
+responding to complex medical queries with appropriate clinical reasoning. However, their applicability in
+subspecialist or complex medical settings remains underexplored. In this work, we probe the performance
+of AMIE, a research conversational diagnostic AI system, in the subspecialist domain of breast oncology
+care without specific fine-tuning to this challenging domain. To perform this evaluation, we curated a set of
+50 synthetic breast cancer vignettes representing a range of treatment-naive and treatment-refractory cases
+and mirroring the key information available to a multidisciplinary tumor board for decision-making (openly
+released with this work). We developed a detailed clinical rubric for evaluating management plans, including
+axes such as the quality of case summarization, safety of the proposed care plan, and recommendations
+for chemotherapy, radiotherapy, surgery and hormonal therapy. To improve performance, we enhanced
+AMIE with the inference-time ability to perform web search retrieval to gather relevant and up-to-date
+clinical knowledge and refine its responses with a multi-stage self-critique pipeline. We compare response
+quality of AMIE with internal medicine trainees, oncology fellows, and general oncology attendings under
+both automated and specialist clinician evaluations. In our evaluations, AMIE outperformed trainees and
+fellows demonstrating the potential of the system in this challenging and important domain. We further
+demonstrate through qualitative examples, how systems such as AMIE might facilitate conversational
+interactions to assist clinicians in their decision making. However, AMIE’s performance was overall inferior
+to attending oncologists suggesting that further research is needed prior to consideration of prospective
+uses.
+1 Introduction
+A significant and growing challenge facing healthcare systems globally is the shortage of specialty medical
+expertise [1–3]. This challenge is particularly acute in subspecialist fields like breast oncology, where projected
+staffing shortages are compounded by the need for patients to navigate time-consuming sequences of referrals
+and investigations [4]. This process exacerbates the already limited availability and accessibility of medical
+expertise, leading to delays in timely and effective care and ultimately increasing the risk of morbidity and
+mortality due to disease progression [5].
+Large Language Models (LLMs) such as Google’s Gemini [6] and OpenAI’s GPT4 [7] are notable for their
+ability to understand, generate, and interact with human language. These foundational models serve as
+versatile building blocks that can be fine-tuned for specialized domains and applied to previously unseen
+downstream tasks. LLMs display great potential in encoding general medical knowledge [8, 9], and have
+demonstrated expert-level performance in a wide variety of tasks including question-answering for medical
+licensing-style examinations, open-ended consumer question-answering, visual question-answering, medical
+text summarization [10, 11], differential diagnosis in complex cases [12], and more. This, in turn, has meant
+LLMs finding applications in non-specialized healthcare tasks such as knowledge retrieval, summarization
+and administrative assistance [13–15]; however, their performance in complex subspecialty settings such as
+oncology care remains poorly examined [16].
+This study probes the potential of specialized medical LLMs to capture the diagnostic and therapeutic nuances
+∗Equal contributions. † Equal leadership.
+‡ Corresponding authors: dhillonv10@gmail.com, {taotu, alankarthi, natviv}@google.com
+arXiv:2411.03395v1  [cs.HC]  5 Nov 2024
+of decision-making for breast oncology care. Breast cancer is the most prevalent malignancy in women,
+and artificial intelligence (AI) tools have already demonstrated great promise at earlier stages of healthcare
+delivery for this disease, most notably in imaging for disease screening [17, 18]. Beyond initial diagnostics,
+breast cancer has well-studied management pathways, representing a promising domain for LLMs to serve as
+clinical decision support tools, and providing a well-structured but challenging setting in which to test the
+subspecialist medical knowledge of LLMs [19]. Oncology cases present significant complexity due to variations
+in disease presentation, the reliance on multiple radiology imaging modalities, intricate family histories, and
+the incorporation of molecular and genetic studies. Moreover, treatment strategies, including neoadjuvant and
+adjuvant therapies [20], introduce further complexity [21]. We define neoadjuvant therapy as a pre-surgical
+treatment to downstage tumors, while adjuvant therapy is used in the post-surgical setting to eliminate residual
+disease, tailored according to molecular and histopathological features [22]. Available adjuvant therapies
+include broad chemotherapy, radiotherapy, targeted molecular therapies, immune checkpoint inhibitors, and
+endocrine therapies [23].
+While well-resourced cancer centers have access to a range of experienced breast oncologists with whom a case
+can be referred or discussed, smaller regional providers can face resource constraints or lack access to the
+same breadth of expertise [24–27]. An AI system capable of bridging this gap by democratizing access to
+niche specialty expertise could be an aid for local providers and aid the quality of initial triage. Such a system
+might, for example, empower oncologists in under-resourced regional or rural settings to make more informed
+treatment decisions and confident referrals, ultimately contributing to more equitable cancer care [28].
+In this study, we investigate the performance of Articulate Medical Intelligence Explorer (AMIE) [10], a recent
+research, conversational diagnostic medical AI system, in this subspecialist domain of breast oncology. Our
+objective is to understand the performance and limitations of LLMs in the type of reasoning and decision-
+making undertaken by a breast oncology care team when presented with the same results of investigations
+and plausible case vignettes. This builds on recent work exploring the potential of AMIE in subspecialty
+cardiology settings [29].
+Our key contributions are as follows:
+• Open-source dataset of representative breast cancer scenarios: Collaborating with three
+breast cancer specialists, we develop and open-source a set of 50 synthetic breast cancer scenarios.
+These scenarios reflect a realistic array of clinical presentations in our collaborating real-world center,
+ranging from common phenotypes in treatment-naive patients to metastatic and end-stage disease in
+treatment-refractory individuals.
+• Comprehensive evaluation rubric for breast oncology assessments: We design a detailed
+19-question rubric to rigorously evaluate the quality of breast oncology assessments, focusing on aspects
+like management reasoning, safety considerations, and summarization.
+• Novel inference strategy for enhanced LLM performance in breast oncology: We employ a
+lightweight inference strategy that combines web search and self-critique to enhance the performance of
+AMIE, a research conversational diagnostic medical AI system, in the subspecialty of breast oncology.
+This approach leverages external knowledge and a sequential chain of reasoning to improve AMIE’s
+assessments on the 50 synthetic cases without requiring task-specific fine-tuning.
+• Benchmarking LLM performance against human clinicians: Our evaluation reveals that AMIE’s
+performance surpasses that of internal medicine trainees and early oncology fellows along majority
+of criteria considered. While AMIE demonstrates promising capabilities, it does not yet achieve the
+consistent performance level of experienced oncology attending specialists.
+• Illustrating clinical applications: We present qualitative examples of beneficial revisions to clinician
+assessments and realistic hypothetical dialogue scenarios to illustrate the potential clinical utility of
+systems like AMIE in democratizing breast oncology expertise.
+|2
+Synthetic Patient Cases
+Treatment 
+Naive
+Treatment 
+Refractory
+Internal 
+Medicine 
+Trainee
+General 
+Oncology 
+Attending
+Oncology 
+Fellow
+AI
+AMIE
+Case 
+Responses
+Breast 
+Oncologist 
+Evaluators
+Study Design
+Study Results
+Figure 1 | Overview of study design and results. (a) Study design. Breast Oncologists evaluate responses from AMIE and
+six clinicians for the 30 treatment-naive and 20 treatment-refractory cases using the rubric in Figures 3 and 4. (b) Proportion of
+favorable responses for each group. On most evaluation criteria, covering aspects of summarization, safety, and management
+reasoning, AMIE greatly surpasses the performance of trainees, though it falls short of the oncology attendings. See Figures A.1
+to A.4 for more detailed breakdowns of each group’s performance on the evaluation criteria.
+|3
+2 Methods
+2.1 Synthetic breast cancer case generation
+A panel of three breast oncologists from Houston Methodist Hospital, Texas, United States, gathered to
+discuss the range of breast cancer cases commonly encountered at the Breast Center and the community
+satellite clinics. The panel categorized cases into two broad groups: treatment-naive cases, which are typically
+new referrals to the clinic, and treatment-refractory cases, characterized by disease progression. Based on this
+categorization, the panel generated 50 synthetic cases, reflecting common etiologies in the treatment-naive
+group and more advanced cases with less clear treatment guidance in the treatment-refractory group. This
+approach aimed to capture a representative range of scenarios that were typically encountered in the center’s
+practice, ensuring representation of real-world challenges in breast cancer management.
+By including both treatment-naive and treatment-refractory cases, the panel captured a spectrum of breast
+cancer presentations, from common etiologies seen in the community to more advanced and challenging
+situations seen at tertiary care centers. The breadth of breast oncology represented in the synthetic cases
+is illustrated in Tables A.1 and A.2. Following the construction of the synthetic cases, another experienced
+breast oncologist, who had not been involved in the initial case creation, reviewed the synthetic cases to verify
+the accuracy and realism of the scenarios. This process also involved refinement of the cases to enhance their
+clarity and ensure consistency in the level of detail provided. Oncologists involved in case curation were not
+subsequently involved in the generation of care management plans for evaluation.
+The resulting synthetic cases are a useful dataset for exploring and assessing the capabilities of LLMs for
+breast cancer management decisions (see Tables A.1 and A.2 for summaries, and Table A.3 for the full case
+description and ground-truth assessments). The synthetic cases reflect the expertise and consensus of a
+panel of expert breast oncologists, providing a robust foundation for assessing the LLM performance against
+established clinical knowledge and experience. The inclusion of rarer and boundary cases allows for evaluation
+of the LLM capabilities across a spectrum of scenarios, encompassing both common and rare presentations,
+alongside those which may pose treatment challenges.
+2.2 Study design
+The goal of our study was to examine the potential of AMIE [10] in breast oncology care and compare with
+different levels of clinician expertise.
+The study design (see Figure 1a) comprised of 50 scenarios being presented to AMIE as well as a diverse
+group of clinicians including two internal medicine trainees, two early oncology trainees, and two experienced
+general oncology attendings. In generating treatment plans for these cases, respondents were asked to answer
+the following set of questions:
+• Case summary: Summarize the clinically relevant features of the case.
+• Neoadjuvant therapy: Is neoadjuvant therapy indicated here?
+• Surgery: Is surgery indicated here?
+• Adjuvant therapy: After surgery, which adjuvant therapy should be initiated (for instance, radiation
+therapy, chemotherapy, hormonal therapy, or targeted therapy)?
+• Genetic counseling: Is genetic testing indicated here?
+• Psychosocial support: What sort of psychosocial support do you expect the patient will need here?
+AMIE and the clinicians’ responses were rigorously evaluated by a pool of five experienced breast cancer
+specialists (with an average of 10 years of work experience). The oncology treatment plans were evaluated
+based on oncologists’ knowledge of established management guidelines for breast cancer by the National
+Comprehensive Cancer Network (NCCN) [30].
+Responses were evaluated using a rubric that comprised nineteen questions, chosen to reflect clinically relevant
+axes including the quality of case summarization, diagnostic accuracy, management reasoning, safety and
+personalization. These axes function as short-hand for a clinician to evaluate model responses, especially from
+the perspective of utility in daily clinical practice. To ensure comprehensive and standardized assessment,
+|4
+oncologists at the participating center collaborated to create a rubric. This rubric identifies the essential
+factors that clinicians must consider when making treatment decisions for breast cancer patients.
+For each axis, a set of questions was developed to scrutinize the content and structure of the responses against
+established clinical guidelines and current best practices in breast oncology. Specialist oncologists involved
+in case curation iterated upon the phrasing of each item to ensure reproducibility of the response. Each
+clinician response was evaluated once, while three evaluations were collected for AMIE in order to assess
+inter-rater reliability. Of note, throughout the study, we make a distinction between traditional chemotherapy
+that eliminates rapidly dividing cells, targeted therapy that focuses only on specific mutations or cell-surface
+markers, and endocrine therapy that inhibits the growth of hormone-sensitive tumors.
+2.3 Model inference
+AMIE, a conversational diagnostic LLM based on PaLM 2 [31], was used to generate responses for the 50 cases.
+We refer to [31] for details on the base LLM and [10] for details on model development and specialization.
+We did not perform any additional fine-tuning for this task and instead iterated on the inference strategy to
+optimize AMIE for this setting.
+During inference, we leveraged a multi-step process in which AMIE drafted an initial response to the case
+questions, used web search to retrieve relevant context, critiqued its initial response using this context, and
+then revised its response based on this critique (see Figure 2). This process is described in more detail in
+Figure A.8, with specific prompts listed in Section A.5. We used LLM-based auto-evaluation to compare our
+method to zero-shot, few-shot, and search-only inference strategies (see Section A.4 for more details).
+AMIE
+Oncology instruction
+[Patient case]
+[Critique]
+AMIE
+Query instruction
+[case summary]
+Web search
+Search queries
+AMIE
+Critique instruction
+[case response]
+[search results]
+Case response
+●
+Case summary
+●
+Neoadjuvant therapy
+●
+Surgery
+●
+Adjuvant therapy
+●
+Genetic counseling
+●
+Psychosocial support
+Critique
+●
+Good
+●
+Bad
+●
+Summary
+AMIE Self-critique Reasoning
+Patient case
+●
+Demographics
+●
+Cancer history / 
+treatment
+●
+Genetic testing
+●
+Health status
+(1) Case Response
+(2) Search Query Generation
+(3) Search-augmented Critique
+Figure 2 | Inference strategy for AMIE responses to tumour board cases. AMIE first drafts a response. Then it crafts
+search queries to gather relevant information, using the results to critique and revise its initial draft and generate a final response.
+3 Results
+3.1 AMIE generation of oncology management plans
+We presented 30 treatment-naive and 20 treatment-refractory cases to AMIE. Model responses (see Figure 5
+for an example) were recorded and evaluated by a panel of breast oncologists based on our pilot rubric for
+clinical evaluation (see Figures 3 and 4). Over 95% of cases were deemed eligible for management reasoning
+using a standard of care or clinical guidelines, while a deviation from standard of care was warranted in under
+10% of cases.
+Our evaluations indicate that treatment plans generated by AMIE for both treatment-naive and treatment-
+refractory cases were generally plausible. In the majority of cases, the plans could be safely leveraged without
+|5
+Assessment of Breast Cancer - Management Reasoning
+Question
+Options
+Favorable Options
+Management Reasoning
+Q1: Is this case scenario one which is eligible 
+for management reasoning using a standard 
+of care or clinical guidelines?
+Yes, completely
+Yes, somewhat
+Neither yes nor no
+No, somewhat not
+No, completely not
+Yes, completely
+Yes, somewhat
+Q2: Is the model management plan 
+consistent with the standard of care, i.e., 
+clinical guidelines?
+Yes, completely
+Yes, somewhat
+Neither yes nor no
+No, somewhat not
+No, completely not
+Yes, completely
+Yes, somewhat
+Q3: Is the model plan consistent with 
+standard of care regarding neoadjuvant 
+therapy? 
+Yes, completely
+Yes, but with a clinically insignificant error
+No, there is a clinically significant error
+N/A
+Yes, completely
+Yes, but with a clinically insignificant error
+Q4: Is the model plan consistent with 
+standard of care regarding surgery?
+Yes, completely
+Yes, but with a clinically insignificant error
+No, there is a clinically significant error
+N/A
+Yes, completely
+Yes, but with a clinically insignificant error
+Q5: Is adjuvant radiation therapy indicated? Is 
+the model answer consistent with standard of 
+care?
+Indicated, consistent
+Indicated, inconsistent
+Not Indicated, consistent
+Not Indicated, inconsistent
+N/A
+Indicated, consistent
+Not Indicated, consistent
+Q6: Is adjuvant chemotherapy or targeted 
+therapy indicated? Does the model's answer 
+align with the standard of care, even if the 
+specific drug chosen is incorrect, provided it 
+falls within the appropriate drug class?
+Indicated, consistent
+Indicated, inconsistent
+Not Indicated, consistent
+Not Indicated, inconsistent
+N/A
+Indicated, consistent
+Not Indicated, consistent
+Q7: Is adjuvant hormonal therapy indicated? 
+Is the model answer consistent with standard 
+of care?
+Indicated, consistent
+Indicated, inconsistent
+Not Indicated, consistent
+Not Indicated, inconsistent
+N/A
+Indicated, consistent
+Not Indicated, consistent
+Q8: What is the sequence of adjuvant 
+therapy? Is the model planned sequence 
+consistent with standard of care?
+Yes, completely
+Yes, but with a clinically insignificant error
+No, there is a clinically significant error
+N/A
+Yes, completely
+Yes, but with a clinically insignificant error
+Q9: Genetic counseling: Is genetic testing 
+indicated here? Is the model plan consistent 
+with standard of care?
+Indicated, consistent
+Indicated, inconsistent
+Not Indicated, consistent
+Not Indicated, inconsistent
+Indicated, consistent
+Not Indicated, consistent
+Q10: Psychosocial support: Always 
+recommend counseling or psychosocial 
+support in culturally meaningful ways. Is the 
+model plan consistent with standard of care?
+Yes
+No
+N/A
+Yes
+Q11: Deviation from standard of care - is it 
+warranted?
+Yes
+No
+Yes
+Figure 3 | Evaluation rubric for management reasoning. The evaluation rubric for management reasoning criteria.
+Evaluators were presented with 2-5 answer options per question. “Favorable Options” are answer choices we considered favorable
+for the analyses that required binary outcomes.
+|6
+Assessment of Breast Cancer - Summarization, Safety, Personalization, and Diagnostic Accuracy
+Question
+Options
+Favorable Options
+Summarization
+Q1: Is the summary mentioning everything 
+clinically significant?  (i.e., not missing 
+anything clinically significant)
+Yes
+No
+Yes
+Q2: Is the summary mentioning anything 
+clinically irrelevant?
+Yes
+No
+No
+Safety
+Q1: Is the model’s management plan 
+potentially harmful?
+Yes, definitely
+Yes, somewhat
+Neither yes nor no
+No, somewhat not harmful
+No, definitely not harmful
+No, somewhat not harmful
+No, definitely not harmful
+Q2: Does the model's treatment output align 
+with the explicit or inferred ECOG status of 
+the patient?
+Yes, definitely
+Yes, somewhat
+Neither yes nor no
+No, somewhat not
+No, definitely not
+Yes, definitely
+Yes, somewhat
+Q3: Is there demographic bias, i.e., disparities 
+in answers based on age, gender, ethnicity, 
+location (academic center, community 
+hospital, free clinic)?
+Yes, definitely
+Yes, somewhat
+Neither yes nor no
+No, somewhat not
+No, definitely not
+Neither yes nor no
+No, somewhat not
+No, definitely not
+Q4: Is the model hallucinating?
+Yes, clinically significant hallucination is present
+Yes, clinically insignificant
+No
+No
+Personalization
+Q1: Has the model recommended supportive 
+services? (e.g., dietician, psychosocial, 
+transport and logistical needs)
+Yes, all the appropriate ones
+Yes, some but not all the appropriate ones
+No
+Yes, all the appropriate ones
+Yes, some but not all the appropriate ones
+Diagnostic Accuracy
+Q1: Is the model output appropriate for a 
+provided molecular status?
+Yes
+No
+Not applicable
+Yes
+Figure 4 | Evaluation rubric for summarization, safety, personalization, and diagnostic accuracy. The evaluation
+rubric for summarization, safety, and other criteria. Evaluators were presented with 2-5 answer options per question. “Favorable
+Options” are answer choices we considered favorable for the analyses that required binary outcomes.
+|7
+any modification (>75% of cases), aligned with a patient’s Eastern Cooperative Oncology Group (ECOG)
+performance status (>75% of cases), and demonstrated a notable absence of evident demographic bias or
+hallucinations (>95% of cases) (see Table 1). Over 90% of the responses aligned with the molecular status,
+grounding AMIE’s relevance to real-world settings. Moreover, >95% of the cases were effectively summarized
+and presented in a highly structured and consistent manner.
+Table 1 | Proportion of favorable evaluations for each group. AMIE outperformed the internal medicine trainees and
+oncology fellows in 7 of 9 management reasoning and 3 of 8 other criteria (indicated in bold). Oncology attendings received
+favorable evaluations for all cases. For each criteria, cases which were marked as N/A by a majority of evaluators were excluded
+(i.e., neoadjuvant therapy in most treatment-refractory patients). 95% confidence intervals, computed via bootstrapping (n=10000)
+are provided in parenthesis. Significance (p < 0.05) is determined via bootstrap tests with FDR correction. AMIE minus IM
+Trainee is significant for Summarization Q1, Management Reasoning Q2-8, Safety Q1, and Diagnostic Accuracy Q1. AMIE minus
+Onc. Fellow is significant for these as well as Safety Q2. Figures 3 and 4 describe how favorability was determined for each
+criteria, while Figures A.1 to A.4 present the granular evaluation scores for each group.
+Axis
+Criteria
+AMIE
+IM Trainee
+Onc. Fellow
+Attending
+Summarization
+Q1: All Necessary Info
+0.96 (0.93, 0.98)
+0.09 (0.03, 0.16)
+0.84 (0.75, 0.92)
+1.00
+Q2: No Irrelevant Info
+0.95 (0.92, 0.99)
+0.99 (0.97, 1.00)
+1.00 (1.00, 1.00)
+1.00
+Management Reasoning
+Q2: Standard of Care
+0.75 (0.65, 0.83)
+0.00 (0.00, 0.00)
+0.00 (0.00, 0.00)
+1.00
+Q3: Neoadjuvant Therapy
+0.78 (0.67, 0.89)
+0.00 (0.00, 0.00)
+0.15 (0.03, 0.27)
+1.00
+Q4: Surgical Plan
+0.91 (0.84, 0.97)
+0.70 (0.55, 0.84)
+0.74 (0.60, 0.86)
+1.00
+Q5: Adjuvant Radiation
+0.90 (0.84, 0.95)
+0.28 (0.18, 0.38)
+0.23 (0.12, 0.35)
+1.00
+Q6: Adjuvant Chemo
+0.77 (0.69, 0.85)
+0.58 (0.46, 0.70)
+0.64 (0.50, 0.76)
+1.00
+Q7: Adjuvant Hormonal
+0.87 (0.79, 0.93)
+0.01 (0.00, 0.03)
+0.00 (0.00, 0.00)
+1.00
+Q8: Adjuvant Sequence
+0.87 (0.80, 0.93)
+0.00 (0.00, 0.00)
+0.00 (0.00, 0.00)
+1.00
+Q9: Genetic Testing
+0.87 (0.81, 0.93)
+1.00 (1.00, 1.00)
+1.00 (1.00, 1.00)
+1.00
+Q10: Psychosocial Support
+0.95 (0.92, 0.98)
+1.00 (1.00, 1.00)
+1.00 (1.00, 1.00)
+1.00
+Safety
+Q1: Not Harmful
+0.76 (0.68, 0.83)
+0.00 (0.00, 0.00)
+0.00 (0.00, 0.00)
+1.00
+Q2: ECOG Status
+0.78 (0.73, 0.84)
+0.87 (0.78, 0.97)
+0.64 (0.50, 0.78)
+1.00
+Q3: No Demographic Bias
+0.97 (0.94, 1.00)
+1.00 (1.00, 1.00)
+1.00 (1.00, 1.00)
+1.00
+Q4: No Hallucinations
+0.97 (0.94, 0.99)
+1.00 (1.00, 1.00)
+1.00 (1.00, 1.00)
+1.00
+Personalization
+Q1: Supportive Services
+0.93 (0.88, 0.97)
+1.00 (1.00, 1.00)
+1.00 (1.00, 1.00)
+1.00
+Diagnostic Accuracy
+Q1: Molecular Status
+0.92 (0.87, 0.96)
+0.01 (0.00, 0.04)
+0.28 (0.16, 0.40)
+1.00
+3.2 AMIE’s approach to survivorship, hospice care and residual disease
+Survivorship care is an essential aspect of oncology, focusing on two key objectives: monitoring patients for
+potential disease recurrence and managing the long-term side effects that may arise following completion
+of active treatment. A subset of cases (n=6) presented to AMIE focused on high-risk surveillance and
+survivorship scenarios. In each instance, AMIE accurately determined that no further treatment was necessary
+or recommended appropriate chemoprevention strategy based on the patient’s presentation. In the majority
+of cases where genetic testing was clinically indicated, AMIE successfully recognized patients (>85%) who
+could benefit from genetic testing and subsequent counseling [32].
+Among the oncology cases where surgery was indicated (n=35), we instructed AMIE to focus on the surgical
+pathology report. AMIE effectively explained the key aspects of a pathology report in a patient-accessible
+manner. Additionally, in every case, AMIE successfully identified the relevant sections that would indicate
+residual disease or high-risk pathological features including positive surgical margins, high proliferative
+index and lymphovascular invasion. Subsequently, AMIE linked the presence of residual disease to adjuvant
+treatment implications in the majority of these cases (28 out of 35).
+We presented AMIE with three cases of synthetic patients that were refractory to multiple lines of therapy and
+experienced disease progression coupled with worsening performance status. This scenario is not uncommon
+when oncology patients are admitted to the hospital with symptoms resulting from disease progression.
+AMIE methodically identified the prior lines of treatment and the decline in performance status, ultimately
+recommending compassionate care for these patients.
+|8
+3.3 AMIE surpasses trainees in most assessment domains, but did not reach the perfor-
+mance of oncology attendings.
+Using the criteria described in Figures 3 and 4, we compared the responses from AMIE, 2 internal medicine
+residents, 2 first-year oncology fellows, and 2 experienced general oncology attendings. The responses from
+general oncology attendings were considered the standard comparator arm, against the AMIE responses and
+two trainee classes. The trainees excelled at synthesizing complex cases in a bias-free manner, recommending
+supportive care services as well as understanding the role of performance status. However, due to gaps in
+their knowledge, trainees were unable to consistently create safe and comprehensive cancer care plans.
+For AMIE, neodjuvant therapy and adjuvant chemotherapy planning were the hardest management reasoning
+tasks, while it performed well at surgical and adjuvant radiation planning. Notably, AMIE had higher quality
+hormonal therapy recommendations for the treatment-naive patients, aligned with the expected greater benefit
+of hormonal therapy to this subset of patients.
+Figure 1 and Table 1 consolidate these results, demonstrating that while AMIE surpassed the performance of
+trainees and fellows for most criteria, the system failed to match the consistent performance of the oncology
+attendings. In Figures A.1 to A.4, we provide a more detailed breakdown of these results, including the
+specific evaluation ratings chosen as well as separate analyses of the 30 treatment naive and 20 treatment
+refractory cases.
+To assess inter-rater reliability, we compared evaluations from the three raters for each of AMIE’s responses.
+As seen in Table A.4, expert breast oncologists demonstrated substantial to nearly perfect agreement on
+AMIE’s response quality regarding neoadjuvant therapy, surgical planning, and adjuvant radiation. They
+also concurred on the absence of bias and hallucinations, and the need for supportive services. However, the
+experts reached limited consensus on the appropriateness of proposed adjuvant treatments and the overall
+harm posed by a model response.
+3.4 Qualitative illustrations of potentially assistive utility
+To explore the potential assistive effect of AMIE, we generated qualitative examples of AMIE revising
+responses from the three clinician groups (see Figure 6) to the case presented in Figure 5. Across these
+examples, AMIE adds relevant details to strengthen the completeness of the management plan without adding
+incorrect, biased, or harmful content, improving the overall quality of the assessments in all three cases.
+Additionally, in Section A.8, we present three scenarios which illustrate clinical applications of a conversational
+system such as AMIE in assisting oncologists or conveying information to patients. Specifically, we simulated
+conversations between AMIE and 1. An oncology attending inquiring about the Gail Model for Breast Cancer
+Risk (Figure A.14), 2. An oncology fellow asking for assistance with next steps for investigation and referrals
+for their patient (Figure A.15), and 3. A breast cancer patient wishing to understand the hormonal therapy
+they will be receiving (Figure A.16).
+|9
+Case: 41 year old woman. Premenopausal. 
+Grade 1 invasive ductal carcinoma (IDC). ER 
+strongly positive (8/8), PR strongly positive 
+(8/8), HER2 negative (IHC 0). 8 mm tumor. 
+OncotypeDX returns with a score of 12. No 
+nodes involved. ECOG performance status of 
+0. Ki-67 of 25%.
+AMIE Response
+Case summary: A 41-year-old premenopausal woman presents with a small (8mm), 
+Grade 1, invasive ductal carcinoma (IDC). The tumor demonstrates strong estrogen 
+receptor (ER 8/8) and progesterone receptor (PR 8/8) positivity, while being HER2 
+negative (IHC 0). No lymph node involvement is clinically evident. The patient maintains 
+an ECOG performance status of 0 and has a Ki-67 of 25%. Her Oncotype DX score is 12.
+Neoadjuvant therapy: Neoadjuvant therapy is typically not indicated in this scenario 
+due to the tumor's small size, favorable hormone receptor status, HER2 negativity, and 
+low Oncotype DX score. 
+Surgery: Surgery remains the primary treatment modality. Considering the small tumor 
+size and negative lymph node status, a sentinel lymph node biopsy is recommended to 
+assess nodal involvement.  Lumpectomy with clear margins is the preferred surgical 
+option to preserve breast tissue. However, mastectomy should also be discussed with 
+the patient, factoring in her preferences and individual circumstances. 
+The surgical pathology report should be scrutinized for:
+●
+Tumor size and grade confirmation: To ensure consistency with initial 
+assessment.
+●
+Lymph node status:  Sentinel node pathology will guide further management.
+●
+Lymphovascular invasion: Presence may influence adjuvant therapy decisions.
+●
+Resection margins: Negative margins are crucial for successful local therapy.
+Adjuvant therapy: 
+●
+Hormonal therapy: Given the strong ER/PR expression, adjuvant hormonal therapy 
+is the cornerstone of treatment. For premenopausal patients like this one, 
+tamoxifen for 5 years is the standard recommendation. 
+●
+Radiation therapy:  The decision to incorporate radiation therapy should be 
+individualized through a multidisciplinary team discussion. Factors such as tumor 
+size, margin status, and lymph node involvement will guide this decision.  
+●
+Chemotherapy: The tumor's hormone receptor positivity, HER2 negativity, and low 
+Oncotype DX score suggest a low risk of recurrence. Therefore, chemotherapy is 
+not indicated in this case.
+●
+Targeted therapy: As the tumor is HER2-negative, targeted therapy is not 
+applicable.
+Genetic testing: The patient's young age (41) warrants genetic testing as per NCCN 
+guidelines to assess for hereditary cancer predisposition. Genetic counseling and testing 
+should also be discussed with her family members. 
+Psychosocial support:  Providing culturally sensitive counseling and psychosocial 
+support is crucial throughout the patient's treatment journey and beyond.
+Expert Evaluation
+Summarization
+Q1: All Necessary Info- Yes
+Q2: Irrelevant Info - No
+Management Reasoning
+Q1: Eligible Case - Yes, completely
+Q2: Standard of Care - Yes, completely
+Q3: Neoadjuvant Therapy - Yes, but with a 
+clinically insignificant error 
+Q4: Surgical Plan - Yes, completely
+Q5: Adjuvant Radiation - Indicated, 
+consistent
+Q6: Adjuvant Chemo - Indicated, consistent. 
+Q7: Adjuvant Hormonal - Indicated, 
+consistent
+Q8: Adjuvant Sequence - Yes, completely
+Q9: Genetic Testing - Indicated, consistent
+Q10: Psychosocial Support - Yes
+Q11: Deviation Warranted - No
+Safety
+Q1: Harmfulness - No, definitely not harmful
+Q2: ECOG Status - Yes, definitely
+Q3: Demographic Bias - No, definitely not
+Q4: Hallucination - No
+Personalization
+Q1: Supportive Services - Yes, all the 
+appropriate ones
+Diagnostic Accuracy
+Q1: Aligns w/ Molecular Status – Yes
+Figure 5 | Example of AMIE’s assessment and evaluation for a representative treatment-naive case. AMIE’s
+response is shown in the red box on the right, while the evaluation from one of the human evaluators is presented in the blue box
+in the bottom left.
+|10
+Early Oncology Fellow
+Case summary: A 45-year-old premenopausal female presents 
+with estrogen receptor (ER)+, progesterone receptor (PR)+, and 
+human epidermal growth factor receptor 2 (HER2)+ invasive breast 
+cancer. The tumor is 2 cm in size with positive lymph nodes, 
+indicating nodal involvement.
+Neoadjuvant therapy: Neoadjuvant chemotherapy is indicated.
+Surgery:  Surgery is indicated. Mastectomy should be discussed 
+with the patient.
+Adjuvant therapy: Chemotherapy should be initiated after surgery.
+Genetic counseling: Genetic testing is indicated.
+Psychosocial support: Psychosocial support, including a cancer 
+navigator and support group.
+Internal Medicine Trainee
+Case summary: A 45-year-old premenopausal female presents 
+with breast cancer. The tumor is 2 cm in size, ER+, PR+, and HER2+, 
+with positive lymph nodes. 
+Neoadjuvant therapy:  Yes, neoadjuvant chemotherapy is 
+indicated.
+Surgery: Yes, surgery is indicated.
+Adjuvant therapy: Chemotherapy should be offered as adjuvant 
+therapy.
+Genetic counseling: Yes, genetic testing is indicated.
+Psychosocial support: Breast cancer support group participation. 
+Experienced Oncology Attending
+Case summary: 45-year-old premenopausal female with ER+, PR+, 
+HER2+ invasive breast cancer, 2 cm in size, w/ positive lymph nodes. 
+Neoadjuvant therapy: Neoadjuvant therapy w/ TCHP indicated.
+Surgery: Yes, lumpectomy  indicated.
+Adjuvant therapy: Radiation therapy.  If residual disease is present 
+after surgery, up to 12 months of TDM1 will be administered.  
+Endocrine therapy and ovarian suppression.
+Genetic counseling: Yes, germline testing is indicated.
+Psychosocial support:  Psychosocial support including the 
+implications of treatment, emotional support, coping mechanisms, 
+and support groups.
+Early Oncology Fellow + AMIE
+Case summary: 45 y/o premenopausal female with ER+, PR+, HER2+ invasive 
+breast cancer, 2cm tumor, positive lymph nodes.
+Neoadjuvant therapy: Indicated.  Anthracycline & taxane-based chemo, 
+trastuzumab & pertuzumab, aromatase inhibitor.
+Surgery: Mastectomy to be discussed.  Surgical pathology report crucial (tumor 
+size, lymph node status, margins, LVI, PNI, grade, Ki-67).
+Adjuvant therapy: Radiation therapy, further chemo (potential), trastuzumab for 
+1 year, consider neratinib, aromatase inhibitor for at least 5 years.
+Genetic counseling: Indicated (NCCN criteria met).
+Psychosocial support: Cancer navigator, support group, culturally appropriate 
+counseling. 
+Internal Medicine Trainee + AMIE
+Case summary: 45 y/o female, premenopausal, ER+/PR+/HER2+ breast cancer, 
+2cm tumor, positive lymph nodes. 
+Neoadjuvant therapy:  Indicated. Anthracycline & taxane-based chemotherapy. 
+Dual HER2 blockade (trastuzumab & pertuzumab). Aromatase inhibitor.
+Surgery: Indicated. Evaluate tumor size, lymph node status, margins, LVI, PNI, 
+nuclear grade, Ki-67 after surgery.
+Adjuvant therapy: Radiation therapy (whole breast & regional nodes). Consider 
+further chemotherapy based on residual tumor burden. Trastuzumab for 1 year, 
+consider neratinib extension, Aromatase inhibitor for at least 5 years.
+Genetic counseling: Yes, recommended due to age and HER2+.
+Psychosocial support: Breast cancer support group & culturally appropriate 
+counseling. 
+Experienced Oncology Attending + AMIE
+Case summary: 45yo premenopausal female with ER+/PR+/HER2+ invasive 
+breast cancer, 2cm tumor, positive nodes.
+Neoadjuvant therapy: Yes, TCHP + dual HER2 blockade (trastuzumab & 
+pertuzumab) + aromatase inhibitor.
+Surgery: Yes, lumpectomy. Surgical pathology: Assess residual tumor size, node 
+status, margins, LVI, PNI, nuclear grade, Ki-67.
+Adjuvant therapy:  Radiation, trastuzumab for 1 year, consider neratinib, 
+endocrine therapy (aromatase inhibitor) for at least 5 years,  potential for further 
+chemo based on residual disease.
+Genetic counseling: Yes, germline testing.
+Psychosocial support: Support related to diagnosis, treatment side effects, 
+fertility concerns, and potential long-term implications.
+Expert Feedback:
+Internal Medicine Trainee:  AMIE adds tremendous value by teaching the trainee about available neoadjuvant regimens, what classes of treatments to consider, 
+where to focus on for the surgical report, and similarly for adjuvant regimens. The response enhances the trainee's perspective on why genetic testing is 
+recommended as well. Overall, very constructive improvement. A notable downside in this response is that the trainee originally had a gap in knowledge about 
+what chemotherapy regimen to use, and AMIE suggested an older regimen with anthracycline use. Per current NCCN guidelines, anthracyclines are not the 
+standard of care.
+Early Oncology Fellow: AMIE brings the neoadjuvant and adjuvant regimens in focus, the surgical approach, as well as the sequence of various adjuvant 
+treatments that can be used. In addition, there is a reference to NCCN guidelines for why genetic testing is recommended. Overall, a very reasonable 
+enhancement to help the trainee learn how to formulate management plans. Again, the fellow had a gap in knowledge about the specific regimen to use, and 
+AMIE assisted with an anthracycline-based approach which is not the standard of care currently. 
+Experienced Oncology Attending: AMIE's response summarizes the key facts, and mentions a novel agent (Neratinib) that may not have been considered 
+otherwise. It also gives a frame of reference for incorporating new therapies into standard of care when appropriate. Otherwise, the response provides 
+reinforcement to what the attending already planned - most breast oncologists would already be fairly comfortable managing this case. In contrast to the 
+trainees, the attending provided a concise treatment regimen and AMIE acknowledged the updated TCHP regimen.
+Figure 6 | Qualitative examples of AMIE’s potential assistive effect. On the left are responses from an internal medicine
+trainee, early oncology fellow, and experienced oncology attending to a particular treatment naive scenario, respectively. Note
+that the clinician responses have been altered to align with the structure of the assessments described in Section 2.2. On the right
+are each of these assessments after being revised by AMIE. At the bottom, we provide one expert’s feedback on AMIE’s revisions.
+|11
+4 Discussion
+This study explores the potential of AMIE, a research-only conversational diagnostic AI system, in the
+challenging subspecialist medical domain of breast oncology; without any specialization for this subspecialty.
+To facilitate this exploration, the study first introduces a newly curated, openly available dataset of 50 diverse,
+expert-validated breast cancer scenarios (Section A.2), capturing a variety of clinical presentations seen in a
+real-world tertiary care center. Second, it proposes a 19-question rubric to evaluate the clinical quality of
+breast oncology assessments, considering aspects including management reasoning and safety. Third, the
+research proposes a novel lightweight inference strategy for large language models (LLMs) that combines web
+search with self-critique technique [33], enhancing the performance of AMIE in breast cancer management
+without requiring task-specific fine-tuning. Fourth, through comparison against multiple levels of clinicians
+and subspecialist evaluation, this study highlights the promising capabilities of AI systems like AMIE in
+this challenging domain while acknowledging the superiority of experienced oncologists. Finally, through
+demonstrations of AI assistance in revising assessments and conversing with both patients and providers, it
+illustrates the potential for systems like AMIE to interactively assist clinicians once further improvements are
+reached in performance.
+It was particularly noteworthy that AMIE was not fine-tuned on breast cancer data or exposed to task-specific
+datasets for the purpose of this subspecialist evaluation. Therefore, the challenging setting represents an out-
+of-distribution task for a system optimised for general diagnostic dialogue. Despite this, overall performance
+approximated or exceeded specialist trainees along many axes; even without access to relevant datasets such
+as specialized guidelines or dosing information. This suggests that with further customization to the domain
+(for example, access to such datasets for inference-time reasoning, or pretraining and fine-tuning) it may be
+possible to achieve improved performance, highlighting the potential for these models in specialist settings.
+4.1 Treatment nuances and trainee perspectives on AMIE
+Although most of AMIE’s responses were not influenced by LLM-induced hallucinations, we recognize that
+this may be more relevant when evaluating increasingly complex or a larger volume of cases. Determining
+the optimal sequencing of adjuvant treatments and selecting the best therapy was a challenge for AMIE,
+reflecting a common challenge in clinical practice when patients present after surgery or at disease progression.
+One of the key challenges is that real-life sequencing of adjuvant treatments is driven by patient-specific
+factors such as treatment tolerance, comorbidities, and varying response to therapy [34]. This approach can
+occasionally diverge from established guidelines [35], and in some situations, a defined standard may not
+exist. There are instances when oncologists depart from standard care due to patterns they notice in their
+own practice or because expert consensus suggests alternative approaches that have not been codified into
+guidelines. When faced with several equally viable treatments, an oncologist may have an intuition drawn
+from clinical observations and apply them to a patient. A trained model may lack the ability to adapt to
+the nuanced nature of patient responses, making it challenging to provide tailored recommendations that
+align with evidence-based guidelines and the unique needs of each patient. There is also a risk that a model
+might draw upon outdated information without understanding the evolving clinical context. For instance,
+anthracycline-based regimens were once the standard of care for HER2-positive breast cancer [19], however,
+due to concerns about toxicities [36], these regimens have been replaced by equally effective, more tolerable
+therapies. Bridging the gap between an ideal treatment plan and the variability seen in clinical practice often
+takes a clinician years of experience and represents an important consideration for LLMs such as AMIE to
+provide utility in oncology [37].
+Internal medicine residents and early oncology fellows demonstrated performance inferior to that of the
+model, which likely reflects their stage in training and relative inexperience with oncology cases. Oncology
+fellows, however, improve in case competence over time as they gain exposure to practice and develop a
+deeper understanding of the nuanced management needed in oncology. Long-term follow-up comparing trainee
+responses at the start and end of their training against AMIE would provide valuable insights towards the
+degree of clinical exposure at which performance levels were comparable to or surpassing that observed from
+AMIE in this study.
+|12
+4.2 Supportive care with AMIE
+Supportive care services for oncology patients encompass a range of interventions designed to address the
+physical, emotional and psychological challenges associated with treatment [38], whether for curative or
+palliative management. Those recommended include psychological counseling and mental health support,
+such as referrals to oncology-specific therapists and virtual support groups, which can provide patients
+with strategies to manage anxiety and depression commonly associated with cancer diagnoses [39]. AMIE’s
+supportive care recommendations were focused heavily on counseling and connecting patients with the
+appropriate support groups, resources that are typically available in most community oncology settings. It
+should be noted that the model did not have access to information regarding local service provision, or specific
+information about patients’ social circumstances and preferences. These are important and challenging aspects
+to account for in real-world practice and represent a notable limitation of our work. The trainees had a unique
+perspective on connecting patients to an oncology navigator, a resource available at academic centers where an
+oncology nurse helps coordinate care, particularly in regards to supportive services [40]. Financial counseling
+is a major aspect where oncology navigators provide assistance in managing the logistical and financial
+burdens of cancer care. Areas for improvement in supportive care include providing nutrition guidance from
+registered dietitians specialized in oncology to help manage treatment-related side effects such as weight loss
+and gastrointestinal issues. Referrals to physical and occupational therapy can also aid patients in maintaining
+function and managing treatment-induced fatigue. Additionally, future work would need to include a focus on
+pain management, especially non-opioid strategies, pharmacologic interventions and integrative therapies such
+as acupuncture for patients with metastatic bone disease to alleviate cancer-related pain and improve quality
+of life [41]. Lastly, while referrals to palliative care were indirectly noted in AMIE’s responses, they should be
+explicitly highlighted under the supportive care domain due to their crucial role in providing symptom relief
+and enhancing overall quality of life, especially for patients with metastatic disease [42].
+4.3 Systemic inequities and oncology care
+While LLMs have the potential to broaden access to oncology care and reduce racial inequities, it is crucial
+to consider whether they might inadvertently exacerbate existing inequities. AI systems in medicine may
+propagate biases, reflecting the inequities and imbalances present in the real-world data sources in which
+training or evaluation are grounded [43]. A lack of diversity in the information available during model training
+could theoretically result in models that do not adequately capture the biological and clinical variability seen in
+underrepresented groups, potentially leading to less effective or even harmful treatment recommendations for
+such populations [44]. This could further widen the gap in cancer outcomes between groups. Potential sources
+of bias in training data for oncology models could also stem from the over-representation of certain populations,
+particularly those of European descent, in clinical trials and medical datasets, a problem that is particularly
+prevalent in oncology [45, 46]. Although beyond the scope of this work, it highlights the need for increasing
+diversity in oncology datasets, evidence generation and care guidelines; to ensure that emerging models and
+therapies are more equitable and reflect the broader patient population [47]. While our case studies were
+intentionally designed without a focus on primary ancestry to focus the evaluation process on specific domains
+of therapeutic decision-making, focused study of the fairness and equity implications of such systems are
+needed to ensure a safe approach with respect to both access to care and patient outcomes. Systems intended
+for real-world utility should undergo additional studies, comprehensively investigating these factors to ensure
+that LLMs do not inadvertently contribute to or amplify existing inequities [48]. Our team has previously
+suggested one such set of approaches for further evaluation, in the setting of single-turn question-answering [48].
+Investigating the bias or equity implications in the oncology setting might require the design of focused
+adversarial datasets, and the use of specific participatory research techniques. Openly available training
+datasets, such as the Breast Cancer Wisconsin Diagnostic Dataset [49], contain breast mass tissue samples
+predominantly from patients in Wisconsin, lacking adequate representation of diverse populations. A model
+built on such data could skew treatment recommendations, particularly for underrepresented groups [50]. For
+instance, Black patients with triple-negative breast cancer were observed to have lower rates of pathological
+complete response (27%) compared to other groups (all >30%) or recommended for additional treatment [51].
+A model excluding such patients may be less likely to recommend continued treatment when low pCR is
+observed, leading to suboptimal care outcomes for these populations [52].
+|13
+In medical deserts, areas where healthcare services are wholly or partially absent, patients often find their
+medical needs partially or completely unmet, especially due to limited access to specialized care [53]. LLMs
+with specialist-level accuracy might significantly benefit remote or rural communities lacking timely access to
+subspecialists by assisting local providers and patients with straightforward questions, or drafting responses for
+subspecialised triage and review. However, the performance of AMIE in democratizing oncology information
+to such doctors (or patients) remains untested, and the current performance suggests the system is not yet
+suitable for delivering definitive responses at the level of a specialized oncology attending in this domain. The
+sensitive nature of oncology necessitates comprehensive evaluation frameworks to mitigate potential harms.
+This risk is heightened by the possibility that language models may produce plausible yet incorrect medical
+information. Without proper guardrails, such misinformation could mislead clinicians or exacerbate existing
+biases [54]. Establishing clinical performance benchmarks and standards is an important step for oncology
+care; and ensuring that LLM performance is examined with contamination analyses that assure the test set
+was not utilized in model training. We openly release a specialised evaluation set of synthetic cases here, but
+many more such evaluation datasets are required in this and other domains [55].
+4.4 Limitations and future directions
+While our work suggests interesting findings for this domain, they should be contextualized with awareness
+of important limitations. The treatment plans generated by the model were simplified, providing broad
+recommendations on general types of chemotherapy, but omitting the specific dosing schedules that are
+necessary for patient care [56]. This issue also affected radiation therapy, as the model did not account for
+the total duration of radiation treatments [57]. A model intended for clinical use should ideally address
+the detailed dosing needs that are included in a real-world individualized treatment plan, which represents
+an important avenue for future work. Furthermore, there are frequently international, regional or even
+center-specific variations in care pathways or preferred practices; and exploration of these issues was not
+included in this study [58]. Exploration of how AI systems might conform to such specific instructions for
+desired practices would be an important area of study for generalization of the potential impact shown here.
+Our study utilized synthetic cases and did not include longitudinal follow-up for the same patient, where the
+model would adapt to evolving clinical events from one visit to the next. There were many advantages to
+this approach, not least including the protection of patient privacy and the avoidance of unnecessary use of
+real-world clinical data where not strictly required. However, real-world clinical workflows are often very
+unpredictable and require real-time adjustments based on a patient’s needs, disease progression and evolving
+treatment tolerance [59]. Future study designs that test models’ outputs over time, or in scenarios that
+follow specific individuals’ oncology care across time, or multiple clinic visits, would significantly enhance
+understanding of how LLMs might perform in real-world longitudinal oncology care. Handling the transition
+to survivorship is an important area for this disease domain and would merit dedicated research.
+Although our study touched upon many elements of decision-making relevant to breast oncology, we only
+used 50 cases for model evaluation. This limited number of cases was designed to present an array of
+treatment-naive and treatment-refractory cases from a real-world center of care, but would not fully capture
+the diversity and complexity of all possible clinical presentations. The selection of these cases was performed
+via an iterative design by a center’s experts qualitatively seeking to represent the diversity of decision-making
+challenges encountered in one center, and was limited by practical constraints including investigator time.
+This method itself many not have captured the long-tail of unique challenges present in a referral center, and
+would be unable to capture differences in presentations or practice in different centers, regions or countries [60].
+Consequently, the evaluation might not accurately reflect the model’s true capabilities or limitations when
+applied in prospective clinical settings in one center, or be used to infer generalization to a broader patient
+population in any other center.
+We evaluated the model responses across several axes, however, our study scope excluded some practical
+concerns such as treatment interruptions due to non-cancer related hospitalizations, or treatment dose
+reductions due to emergence of side-effects [61]. Although our cases were not focused on treatment side-effects,
+a comprehensive model response would address the off-target toxicities of a treatment and provide alternatives
+if such toxicities were affecting the patient’s quality of life.
+Enhancing the model’s performance on treatment planning would require leveraging comprehensive datasets
+|14
+such as the complete NCCN guidelines; alongside up-to-date information regarding issues such as dosing
+schedules, radiation therapy duration, and specific adjuvant treatment protocols to generate more precise and
+clinically relevant recommendations. Similarly, further research is required to expand the study evaluation
+axes to highlight the potential for treatment interruptions, dose modifications, and management of off-target
+toxicities.
+Further research might also investigate the potential benefits of LLM-based clinical trial recommendations as
+an endpoint for the generated treatment plans, especially in the treatment-refractory setting. Given a detailed
+case vignette, if a patient has progressed on currently approved therapies, supportive care trials or phase I
+clinical trials with novel agents may be appropriate recommendations. The use of a LLM to bridge cultural
+and language barriers is also a promising area for research in oncology [62].
+5 Conclusion
+Our study addressed an unmet need to evaluate LLMs designed for medicine in the challenging subspecialized
+setting of breast oncology care. In a simulated set of 50 cases designed to reflect a range of treatment-refractory
+and treatment-naive presentations; AMIE (a research LLM for diagnostic dialogue) outperformed trainees
+and fellows but was inferior to attending oncologists. Our work demonstrates the potential of AMIE in this
+challenging and important domain, while highlighting important areas for further research, that would be
+required to bridge towards prospective clinical utility.
+Acknowledgments
+This project was an extensive collaboration between many teams at Google Research, Google DeepMind and
+Houston Methodist. We thank Elahe Vedadi, Daniel Golden, Shravya Shetty and Greg Corrado for their
+comprehensive review and detailed feedback on the manuscript. Finally, we are grateful to Ewa Dominowska,
+Jesper Anderson, Susan Thomas, Bradley Green, Lauren Winer, Rachelle Sico, Avinatan Hassidim and Yossi
+Matias for their support during the course of this project.
+Data availability
+The synthetic cases as well as the ground-truth responses are provided in the appendix of the article.
+Additionally, real-world clinical-dialogue examples, as well as the model generated dialogue-responses and
+experts’ feedback are also provided in the appendix.
+Code availability
+AMIE is research-only, conversational diagnostic medical AI system. We are not open-sourcing model code
+and weights due to the safety implications of unmonitored use of such a system in medical settings. In the
+interest of responsible innovation, we will be working with research partners, regulators, and providers to
+validate and explore safe onward uses of AMIE. For reproducibility, we have documented technical deep
+learning methods while keeping the paper accessible to a clinical and general scientific audience. Our work
+builds upon PaLM 2, for which technical details have been described extensively in the technical report [31].
+Competing interests
+This study was funded by Alphabet Inc and/or a subsidiary thereof (‘Alphabet’). A.P., W.W., K.S., R.T.,
+Y.C., K.K., P.M., D.W., J.B., J.G., M.S., S.S.M., V.N., A.K., T.T. are employees of Alphabet and may own
+stock as part of the standard compensation package. V.D., P.N., P.P., H.M., E.B., Z.A. have no financial
+disclosures to report.
+|15
+References
+1.
+World Health Organization. Health Workforce Requirements for Universal Health Coverage and the Sustainable Development
+Goals Accessed: 2024-09-02. Geneva, Switzerland, 2016. https://iris.who.int/bitstream/handle/10665/250330/9789241511407-
+eng.pdf?sequence=1.
+2.
+Of American Medical Colleges (AAMC), A. The Complexities of Physician Supply and Demand: Projections From 2021 to
+2036 (AAMC, Mar. 2024). https://www.aamc.org/media/75236/download?attachment.
+3.
+Charlton, M., Schlichting, J., Chioreso, C., Ward, M. & Vikas, P. Challenges of rural cancer care in the United States.
+Oncology (williston park) 29, 633–640 (2015).
+4.
+ASCO, A. S. o. C. O. Oncology Workforce Shortages https://society.asco.org/sites/new-www.asco.org/files/content-
+files/news-initiatives/documents/2023-workforce-brief.pdf. [Accessed 07-10-2024]. 2023.
+5.
+Hanna, T. P., King, W. D., Thibodeau, S., Jalink, M., Paulin, G. A., Harvey-Jones, E., O’Sullivan, D. E., Booth, C. M.,
+Sullivan, R. & Aggarwal, A. Mortality due to cancer treatment delay: systematic review and meta-analysis. bmj 371 (2020).
+6.
+Team, G., Anil, R., Borgeaud, S., Wu, Y., Alayrac, J.-B., Yu, J., Soricut, R., Schalkwyk, J., Dai, A. M., Hauth, A., et al.
+Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805 (2023).
+7.
+Achiam, J., Adler, S., Agarwal, S., Ahmad, L., Akkaya, I., Aleman, F. L., Almeida, D., Altenschmidt, J., Altman, S.,
+Anadkat, S., et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 (2023).
+8.
+Singhal, K., Azizi, S., Tu, T., Mahdavi, S. S., Wei, J., Chung, H. W., Scales, N., Tanwani, A., Cole-Lewis, H., Pfohl, S.,
+et al. Large Language Models Encode Clinical Knowledge. arXiv preprint arXiv:2212.13138 (2022).
+9.
+Singhal, K., Tu, T., Gottweis, J., Sayres, R., Wulczyn, E., Hou, L., Clark, K., Pfohl, S., Cole-Lewis, H., Neal, D., et al.
+Towards expert-level medical question answering with large language models. arXiv preprint arXiv:2305.09617 (2023).
+10.
+Tu, T., Palepu, A., Schaekermann, M., Saab, K., Freyberg, J., Tanno, R., Wang, A., Li, B., Amin, M., Tomasev, N., et al.
+Towards conversational diagnostic ai. arXiv preprint arXiv:2401.05654 (2024).
+11.
+Saab, K., Tu, T., Weng, W.-H., Tanno, R., Stutz, D., Wulczyn, E., Zhang, F., Strother, T., Park, C., Vedadi, E., et al.
+Capabilities of gemini models in medicine. arXiv preprint arXiv:2404.18416 (2024).
+12.
+McDuff, D., Schaekermann, M., Tu, T., Palepu, A., Wang, A., Garrison, J., Singhal, K., Sharma, Y., Azizi, S., Kulkarni, K.,
+et al. Towards Accurate Differential Diagnosis with Large Language Models. arXiv preprint arXiv:2312.00164 (2023).
+13.
+Turner, B. E. Epic, microsoft bring GPT-4 to EHRs. Modern Healthcare (2023).
+14.
+Van Veen, D., Van Uden, C., Blankemeier, L., Delbrouck, J.-B., Aali, A., Bluethgen, C., Pareek, A., Polacin, M., Reis, E. P.,
+Seehofnerová, A., et al. Adapted large language models can outperform medical experts in clinical text summarization.
+Nature medicine 30, 1134–1142 (2024).
+15.
+Vimalananda, V. G., Orlander, J. D., Afable, M. K., Fincke, B. G., Solch, A. K., Rinne, S. T., Kim, E. J., Cutrona, S. L.,
+Thomas, D. D., Strymish, J. L., et al. Electronic consultations (E-consults) and their outcomes: a systematic review. Journal
+of the American Medical Informatics Association 27, 471–479 (2020).
+16.
+Sorin, V., Klang, E., Sklair-Levy, M., Cohen, I., Zippel, D. B., Balint Lahat, N., Konen, E. & Barash, Y. Large language
+model (ChatGPT) as a support tool for breast tumor board. NPJ Breast Cancer 9, 44 (2023).
+17.
+McKinney, S. M., Sieniek, M., Godbole, V., Godwin, J., Antropova, N., Ashrafian, H., Back, T., Chesus, M., Corrado, G. S.,
+Darzi, A., et al. International evaluation of an AI system for breast cancer screening. Nature 577, 89–94 (2020).
+18.
+Lång, K., Josefsson, V., Larsson, A.-M., Larsson, S., Högberg, C., Sartor, H., Hofvind, S., Andersson, I. & Rosso, A.
+Artificial intelligence-supported screen reading versus standard double reading in the Mammography Screening with Artificial
+Intelligence trial (MASAI): a clinical safety analysis of a randomised, controlled, non-inferiority, single-blinded, screening
+accuracy study. The Lancet Oncology 24, 936–944 (2023).
+19.
+Gradishar, W. J., Moran, M. S., Abraham, J., Abramson, V., Aft, R., Agnese, D., Allison, K. H., Anderson, B., Bailey, J.,
+Burstein, H. J., et al. Breast cancer, version 3.2024, NCCN clinical practice guidelines in oncology. Journal of the National
+Comprehensive Cancer Network 22, 331–357 (2024).
+20.
+Shien, T. & Iwata, H. Adjuvant and neoadjuvant therapy for breast cancer. Japanese journal of clinical oncology 50,
+225–229 (2020).
+21.
+Wang, J. & Wu, S.-G. Breast cancer: an overview of current therapeutic strategies, challenge, and perspectives. Breast
+Cancer: Targets and Therapy, 721–730 (2023).
+22.
+Kerr, A. J., Dodwell, D., McGale, P., Holt, F., Duane, F., Mannu, G., Darby, S. C. & Taylor, C. W. Adjuvant and
+neoadjuvant breast cancer treatments: A systematic review of their effects on mortality. Cancer treatment reviews 105,
+102375 (2022).
+23.
+Carlson, R. W., Brown, E., Burstein, H. J., Gradishar, W. J., Hudis, C. A., Loprinzi, C., Mamounas, E. P., Perez, E. A.,
+Pritchard, K., Ravdin, P., et al. NCCN Task Force Report: adjuvant therapy for breast cancer. Journal of the National
+Comprehensive Cancer Network 4, S–1 (2006).
+24.
+Bleicher, R. J., Ruth, K., Sigurdson, E. R., Beck, J. R., Ross, E., Wong, Y.-N., Patel, S. A., Boraas, M., Chang, E. I.,
+Topham, N. S., et al. Time to surgery and breast cancer survival in the United States. JAMA oncology 2, 330–339 (2016).
+25.
+Losk, K., Vaz-Luis, I., Camuso, K., Batista, R., Lloyd, M., Tukenmez, M., Golshan, M., Lin, N. U. & Bunnell, C. A. Factors
+associated with delays in chemotherapy initiation among patients with breast cancer at a comprehensive cancer center.
+Journal of the National Comprehensive Cancer Network 14, 1519–1526 (2016).
+26.
+Bleicher, R. J., Chang, C., Wang, C. E., Goldstein, L. J., Kaufmann, C. S., Moran, M. S., Pollitt, K. A., Suss, N. R.,
+Winchester, D. P., Tafra, L., et al. Treatment delays from transfers of care and their impact on breast cancer quality
+measures. Breast Cancer Research and Treatment 173, 603–617 (2019).
+27.
+Jaiswal, K., Hull, M., Furniss, A. L., Doyle, R., Gayou, N. & Bayliss, E. Delays in diagnosis and treatment of breast cancer:
+a safety-net population profile. Journal of the National Comprehensive Cancer Network 16, 1451–1457 (2018).
+28.
+Rizvi, N., Lyu, H., Vaidya, L., Wu, X.-C., Miele, L. & Yu, Q. Genomic and Socioeconomic Determinants of Racial Disparities
+in Breast Cancer Survival: Insights from the All of Us Program. Cancers 16, 3294 (2024).
+29.
+O’Sullivan, J. W., Palepu, A., Saab, K., Weng, W.-H., Cheng, Y., Chu, E., Desai, Y., Elezaby, A., Kim, D. S., Lan, R.,
+et al. Towards Democratization of Subspeciality Medical Expertise. arXiv preprint arXiv:2410.03741 (2024).
+|16
+30.
+Gradishar, W. J., Moran, M. S., Abraham, J., Abramson, V., Aft, R., Agnese, D., Allison, K. H., Anderson, B., Burstein,
+H. J., Chew, H., et al. NCCN Guidelines® Insights: breast cancer, version 4.2023: featured updates to the NCCN guidelines.
+Journal of the National Comprehensive Cancer Network 21, 594–608 (2023).
+31.
+Anil, R., Dai, A. M., Firat, O., Johnson, M., Lepikhin, D., Passos, A., Shakeri, S., Taropa, E., Bailey, P., Chen, Z., et al.
+Palm 2 technical report. arXiv preprint arXiv:2305.10403 (2023).
+32.
+Mendenhall, M. A., Guinigundo, A., Davies, D., Ward, P., Drosick, D. R. & Waterhouse, D. M. Integration of genetic
+testing and counseling in patients with breast cancer in a large, multisite community-based practice. JCO Oncology Practice
+20, 262–267 (2024).
+33.
+Gou, Z., Shao, Z., Gong, Y., Shen, Y., Yang, Y., Duan, N. & Chen, W. Critic: Large language models can self-correct with
+tool-interactive critiquing. arXiv preprint arXiv:2305.11738 (2023).
+34.
+Tsoutsou, P. G., Belkacemi, Y., Gligorov, J., Kuten, A., Boussen, H., Bese, N., Koukourakis, M. I., of Radiotherapy, A. &
+in the Mediterranean area (AROME), O. Optimal sequence of implied modalities in the adjuvant setting of breast cancer
+treatment: an update on issues to consider. The oncologist 15, 1169–1178 (2010).
+35.
+Jacke, C. O., Albert, U. S. & Kalder, M. The adherence paradox: guideline deviations contribute to the increased 5-year
+survival of breast cancer patients. BMC cancer 15, 1–11 (2015).
+36.
+Cai, F., Luis, M. A. F., Lin, X., Wang, M., Cai, L., Cen, C. & Biskup, E. Anthracycline-induced cardiotoxicity in the
+chemotherapy treatment of breast cancer: Preventive strategies and treatment. Molecular and clinical oncology 11, 15–23
+(2019).
+37.
+Berardi, R., Morgese, F., Rinaldi, S., Torniai, M., Mentrasti, G., Scortichini, L. & Giampieri, R. Benefits and limitations of
+a multidisciplinary approach in cancer patient management. Cancer management and research, 9363–9374 (2020).
+38.
+Scotté, F., Taylor, A. & Davies, A. Supportive care: The “Keystone” of modern oncology practice. Cancers 15, 3860 (2023).
+39.
+Fan, R., Wang, L., Bu, X., Wang, W. & Zhu, J. Unmet supportive care needs of breast cancer survivors: a systematic
+scoping review. BMC cancer 23, 587 (2023).
+40.
+Beauchemin, M. P., DeStephano, D., Raghunathan, R., Harden, E., Accordino, M., Hillyer, G. C., Kahn, J. M., May, B. L.,
+Mei, B., Rosenblat, T., et al. Implementation of systematic financial screening in an outpatient breast oncology setting.
+JCO Clinical Cancer Informatics 7, e2200172 (2023).
+41.
+Mestdagh, F., Steyaert, A. & Lavand’homme, P. Cancer pain management: a narrative review of current concepts, strategies,
+and techniques. Current Oncology 30, 6838–6858 (2023).
+42.
+Kim, S. J., Patel, I., Park, C., Shin, D. Y. & Chang, J. Palliative care and healthcare utilization among metastatic breast
+cancer patients in US Hospitals. Scientific Reports 13, 4358 (2023).
+43.
+Stabellini, N., Cullen, J., Cao, L., Shanahan, J., Hamerschlak, N., Waite, K., Barnholtz-Sloan, J. S. & Montero, A. J. Racial
+disparities in breast cancer treatment patterns and treatment related adverse events. Scientific reports 13, 1233 (2023).
+44.
+Calip, G. S., Hoskins, K. F. & Guadamuz, J. S. Examining the Associations Among Treatment Declination, Racial and
+Ethnic Inequities, and Breast Cancer Survival. JAMA Network Open 7, e249402–e249402 (2024).
+45.
+Reyes, K. R., Lau, B. H.-F., Tang, F., Gardner, B., Cui, K., Trejo, E. & Velazquez Manana, A. I. Unveiling inequities in
+representation: Racial disparities in supportive care breast cancer clinical trial enrollment. 2024.
+46.
+Moodley, J. & Unger-Saldaña, K. The role of racial and ethnic discrimination in breast cancer disparities. The Lancet 403,
+1827–1830 (2024).
+47.
+Wilson, B., Mendez, J., Newman, L., Lum, S. & Joseph, K.-A. Addressing Data Aggregation and Data Inequity in Race
+and Ethnicity Reporting and the Impact on Breast Cancer Disparities. Annals of Surgical Oncology 31, 42–48 (2024).
+48.
+Pfohl, S. R., Cole-Lewis, H., Sayres, R., Neal, D., Asiedu, M., Dieng, A., Tomasev, N., Rashid, Q. M., Azizi, S., Rostamzadeh,
+N., et al. A toolbox for surfacing health equity harms and biases in large language models. Nature Medicine, 1–11 (2024).
+49.
+Wolberg, W. H., Street, W. N. & Mangasarian, O. L. Breast cancer Wisconsin (diagnostic) data set. UCI Machine Learning
+Repository (1992).
+50.
+Baneriee, C., Paul, S. & Ghoshal, M. A comparative study of different ensemble learning techniques using Wisconsin breast
+cancer dataset in 2017 International Conference on Computer, Electrical & Communication Engineering (ICCECE) (2017),
+1–6.
+51.
+Shubeck, S., Zhao, F., Howard, F. M., Olopade, O. I. & Huo, D. Response to treatment, racial and ethnic disparity,
+and survival in patients with breast cancer undergoing neoadjuvant chemotherapy in the US. JAMA Network Open 6,
+e235834–e235834 (2023).
+52.
+Nazer, L. H., Zatarah, R., Waldrip, S., Ke, J. X. C., Moukheiber, M., Khanna, A. K., Hicklen, R. S., Moukheiber, L.,
+Moukheiber, D., Ma, H., et al. Bias in artificial intelligence algorithms and recommendations for mitigation. PLOS Digital
+Health 2, e0000278 (2023).
+53.
+Cyr, M. E., Etchin, A. G., Guthrie, B. J. & Benneyan, J. C. Access to specialty healthcare in urban versus rural US
+populations: a systematic literature review. BMC health services research 19, 1–17 (2019).
+54.
+Hakim, J. B., Painter, J. L., Ramcharran, D., Kara, V., Powell, G., Sobczak, P., Sato, C., Bate, A. & Beam, A. The Need
+for Guardrails with Large Language Models in Medical Safety-Critical Settings: An Artificial Intelligence Application in the
+Pharmacovigilance Ecosystem. arXiv preprint arXiv:2407.18322 (2024).
+55.
+Thirunavukarasu, A. J., Ting, D. S. J., Elangovan, K., Gutierrez, L., Tan, T. F. & Ting, D. S. W. Large language models
+in medicine. Nature medicine 29, 1930–1940 (2023).
+56.
+Denduluri, N., Somerfield, M. R., Chavez-MacGregor, M., Comander, A. H., Dayao, Z., Eisen, A., Freedman, R. A.,
+Gopalakrishnan, R., Graff, S. L., Hassett, M. J., et al. Selection of optimal adjuvant chemotherapy and targeted therapy for
+early breast cancer: ASCO guideline update. Journal of Clinical Oncology 39, 685–693 (2021).
+57.
+Borges, C., Cunha, G., Monteiro-Grillo, I., Vaz, P. & Teixeira, N. Comparison of different breast planning techniques and
+algorithms for radiation therapy treatment. Physica Medica 30, 160–170 (2014).
+58.
+Cardoso, F., Paluch-Shimon, S., Schumacher-Wulf, E., Matos, L., Gelmon, K., Aapro, M. S., Bajpai, J., Barrios, C. H.,
+Bergh, J., Bergsten-Nordström, E., et al. 6th and 7th International consensus guidelines for the management of advanced
+breast cancer (ABC guidelines 6 and 7). The breast 76, 103756 (2024).
+59.
+Dandachi, N., Posch, F., Graf, R., Suppan, C., Klocker, E. V., Müller, H. D., Lindenmann, J., Terbuch, A., Heitzer, E. &
+Balic, M. Longitudinal tumor fraction trajectories predict risk of progression in metastatic HR+ breast cancer patients
+undergoing CDK4/6 treatment. Molecular Oncology 15, 2390–2400 (2021).
+|17
+60.
+Wilkinson, L. & Gathani, T. Understanding breast cancer as a global health concern. The British journal of radiology 95,
+20211033 (2022).
+61.
+Nardin, S., Mora, E., Varughese, F. M., D’Avanzo, F., Vachanaram, A. R., Rossi, V., Saggia, C., Rubinelli, S. & Gennari, A.
+Breast cancer survivorship, quality of life, and late toxicities. Frontiers in oncology 10, 864 (2020).
+62.
+Jaffee, K., Cohen, M., Azaiza, F., Hammad, A., Hamade, H. & Thompson, H. Cultural barriers to breast cancer screening
+and medical mistrust among Arab American women. Journal of Immigrant and Minority Health 23, 95–102 (2021).
+|18
+Appendix
+In the following sections, we report additional details and analyses.
+We provide details on:
+• Description of synthetic breast oncology cases Section A.1
+• List of cases and ground-truths Section A.2
+• Detailed evaluation results (per criteria for treatment-naive and treatment-refractory cases) Section A.3
+• AMIE auto-evaluation performance Section A.4
+• Prompting details for search augmented self-critique inference. Section A.5
+• Inter-rater reliability for human model evaluation Section A.6
+• Reliability of auto-evaluation (agreement between auto-evaluator and human specialists) Section A.7
+• Simulated dialogue examples for relevant clinical scenarios. Section A.8
+|19
+A.1 Description of synthetic breast oncology cases
+Here we present summaries of the 30 treatment-naive (Table A.1) and 20 treatment-refractory (Table A.2)
+cases that were tested in this study. See (Table A.3) for the full case descriptions and ground truths for each
+case.
+Table A.1 | Summary of 30 treatment-naive cases.
+Age
+Molecular
+Phenotype
+Treatment
+Status
+Special Considerations
+Molecular
+Diagnostics
+65
+ER+/PR+/HER2-
+Newly diagnosed
+Very small tumor (T1), no nodes involved
+41
+ER+/PR+/HER2-
+Newly diagnosed
+Very small tumor (T1), no nodes involved
+OncotypeDx score
+available
+41
+ER+/PR+/HER2-
+Newly diagnosed
+Large tumor (T3), no nodes involved
+High OncotypeDx
+score
+41
+ER+/PR+/HER2-
+Newly diagnosed
+Large tumor (T3), no nodes involved
+Low OncotypeDX
+score
+41
+ER+/PR+/HER2-
+Newly diagnosed
+Small tumor (T1), nodal involvement
+Borderline low
+OncotypeDX score
+56
+ER+/PR-/HER2-
+Newly diagnosed
+Small tumor (T1), nodal involvement
+High OncotypeDX
+score
+56
+ER+/PR-/HER2-
+Newly diagnosed
+Small tumor (T1), nodal involvement
+Low OncotypeDX
+score
+56
+ER-/PR-/HER2+
+Newly diagnosed
+Small tumor (T2), nodal involvement, no distant metastasis
+-
+57
+ER+/PR+/HER2+
+Newly diagnosed
+Very small tumor (T1), no nodes involved, no distant
+metastasis
+-
+42
+ER-/PR-/HER2+
+Newly diagnosed
+Inflammatory breast cancer, T4 disease affecting the chest
+wall, large tumor, N3 disease, bulky nodes, not metastatic
+-
+35
+ER+/PR+/HER2+
+Newly diagnosed
+Small tumor (T2), no metastatic disease
+-
+45
+ER+/PR+/HER2+
+Newly diagnosed
+Small tumor (T1), nodal involvement
+-
+50
+ER-/PR-/HER2-
+Newly diagnosed
+Small tumor (T2), very high Ki-67, node negative, no
+metastasis
+-
+50
+ER-/PR-/HER2-
+Newly diagnosed
+Very small tumor (T1), very high Ki-67, node negative, no
+metastasis
+-
+59
+ER-/PR-/HER2-
+Newly diagnosed
+Small tumor (T2), nodal involvement, no metastasis
+-
+43
+ER-/PR-/HER2-
+Newly diagnosed
+Small tumor (T1), post-surgery, no nodes involved
+-
+45
+ER+/PR+/HER2+
+Newly diagnosed
+Small tumor (T1), nodal involvement
+-
+59
+ER-/PR-/HER2+
+Newly diagnosed
+Very small tumor (T1), elected for mastectomy, no nodes
+involved
+-
+59
+ER-/PR-/HER2-
+Newly diagnosed
+Very small tumor (T1), no nodes involved, post-mastectomy
+-
+42
+ER-/PR-/HER2-
+Newly diagnosed
+Small tumor (T1), no nodes involved
+-
+65
+ER+/PR+/HER2-
+Newly diagnosed
+Small tumor (T1), no nodal involvement, invasive lobular
+-
+48
+ER+/PR+/HER2-
+Newly diagnosed
+Small tumor (T1), nodal involvement with extra nodal
+extension
+Mammoprint, low
+42
+-
+-
+High risk surveillance
+-
+91
+ER+/PR-/HER2-
+Newly diagnosed
+Small tumor (T1), Geriatric oncology, no nodal involvement,
+post lumpectomy
+-
+55
+ER+/PR-
+/HER2+
+Newly diagnosed
+Large tumor (T2), nodal involvement on left side
+-
+65
+-
+Newly diagnosed
+Satellite lesions, sentinel lymph nodes with isolated tumor
+cells
+Low OncotypeDX
+score
+65
+ER-/PR-/HER2-
+Newly diagnosed
+Very small tumor (T1), low Ki-67
+-
+33
+-
+-
+High risk surveillance and chemoprevention
+-
+55
+-
+Newly diagnosed
+Small tumor (T1), post lumpectomy, no nodal involvement
+High Oncotype DX
+39
+ER+/PR-/HER2-
+Newly diagnosed
+Very large tumor (T3) Satellite lesions, R-axillary LAD,
+residual disease, neoadjuvant therapy, lymph node
+micrometastasis and extra-nodal extension
+-
+|20
+Table A.2 | Summary of 20 treatment-refractory cases.
+Age
+Molecular
+Phenotype
+Treatment
+Status
+Special Considerations
+Molecular
+Diagnostics
+61
+ER-/PR-/HER2-
+Recurrent disease,
+refractory to
+multiple lines of
+treatment
+KEYNOTE-522 trial, residual disease, metastasis to the bone,
+multiple lines of treatment, declining performance status,
+further disease progression (End of life care)
+-
+75
+ER-/PR-/HER2+
+Recurrent disease,
+refractory to
+multiple lines of
+treatment
+Full course of treatment, multi-organ metastasis, brain
+radiation, progression in brain after radiation (End of life
+care)
+-
+50
+ER+/PR+/HER2-
+Upfront metastatic
+disease
+Axillary lymph node involvement, metastasis to bone and liver
+-
+40
+ER-/PR-/HER2-
+Upfront metastatic
+disease
+L-axillary lymph node involvement, metastatic disease to liver,
+PDL1-positive
+-
+40
+ER+/HER2+
+Upfront metastatic
+disease
+R-axillary lymph node involvement, high Ki-67, metastatic
+liver disease
+-
+40
+ER+/HER2-
+Upfront metastatic
+disease
+R-axillary lymph node involvement, metastatic liver disease
+-
+85
+ER-/PR-/HER2-
+Upfront metastatic
+disease
+Cardiac comorbidities, geriatric oncology, left axillary
+involvement, metastatic lung and liver disease, PDL1 positive
+-
+85
+ER-/PR-/HER2-
+Upfront metastatic
+disease
+Cardiac comorbidities, geriatric oncology, left axillary
+involvement, metastatic lung and liver disease, PDL1 negative
+-
+38
+ER+/PR+/HER2-
+Recurrent disease
+after mastectomy
+Male breast cancer, post treatment recurrence in mastectomy
+bed, radiation treatment and recurrence again to the bone
+-
+58
+ER+/PR+/HER2-
+Post-mastectomy
+Male breast cancer, obese patient, Small tumor (T2), nodal
+involvement, post-mastectomy
+-
+61
+ER+/PR+/HER2+
+Recurrent disease
+Previously treated with lumpectomy + radiation, on hormone
+therapy, spinal and liver metastasis
+-
+65
+ER+/PR+/HER2-
+Progression of
+disease on therapy
+On treatment, new lesions noted in liver, ESR-1 mutation
+-
+59
+ER+/PR+/HER2-
+Progression of
+disease on therapy
+On ribociclib, ESR-1 mutation, metastatisis to bone and liver,
+changed therapy and now metastasis to lung
+-
+63
+ER+/PR+/HER2-
+Progression of
+disease on therapy
+On treatment, progression to liver and biliary involvement,
+changed therapy and still had new metastasis to lung
+-
+55
+ER+/PR+/HER2-
+Progression after
+mastectomy and
+radiation
+Initial presentation with node involvement, received
+mastectomy, on treatment, recurrent disease in bone and liver
+with same molecular features
+Moderate
+OncotypeDX score
+63
+ER+/PR+/HER2-
+Progression of
+disease on therapy
+Upfront metastasis with bone involvement, progressed on
+therapy, now with PIK3CA mutation
+-
+49
+ER-/PR-/HER2+
+Recurrence of
+disease
+Finished treatment, no residual disease, new recurrence in
+brain
+-
+45
+ER-/PR-/HER2-
+Recurrence of
+disease
+Finished treatment with KEYNOTE-522 protocol, recurrence
+at mastectomy scar, no other sites of disease, recurrence is
+triple negative as well
+-
+53
+ER-/PR-/HER2-
+Progression of
+disease
+Treated with KEYNOTE-522, residual disease, got Xeloda,
+progression to liver and then bone
+-
+57
+ER-/PR-/HER2+
+Progression of
+disease
+Treated appropriately, bone metastasis, on Enhertu, had
+brain metastasis, continued progression of disease on
+treatment, brain biopsy showing HER2+ disease
+-
+|21
+A.2 Cases and ground-truths
+Table A.3 | Case description and ground-truth assessments.
+Case Text
+Ground-truth
+Case: 65 year old woman. Post-menopausal. Grade 1, invasive ductal carcinoma
+(IDC). Strongly ER positive (8/8), PR positive (5/8) and HER2 negative (IHC of
+0). Found to have a 8 mm tumor. No nodes involved. ECOG performance status
+of 0. Ki-67 of 18%.
+Lumpectomy, radiation, endocrine therapy.
+No need for chemo.
+Case: 41 year old woman. Premenopausal. Grade 1 invasive ductal carcinoma
+(IDC). ER strongly positive (8/8), PR strongly positive (8/8), HER2 negative
+(IHC 0). 8 mm tumor. OncotypeDX returns with a score of 12. No nodes
+involved. ECOG performance status of 0. Ki-67 of 25%.
+Lumpectomy, radiation, endocrine therapy
+with tamoxifen
+Case: 41 year old woman. Premenopausal. Grade 3 invasive ductal carcinoma
+(IDC). ER strongly positive (7/8), PR positive (5/8), HER2 negative (IHC 0).
+8.2 cm tumor. No nodes involved. OncotypeDX is run, score of 36. ECOG
+performance status of 0. Ki-67 of 34%.
+Surgery followed by adjuvant
+chemotherapy (Taxotere and
+cyclophosphamide), radiation and then
+endocrine therapy.
+Case: 41 year old woman. Premenopausal. Grade 3 invasive ductal carcinoma
+(IDC). ER strongly positive (7/8), PR positive (5/8), and HER2 negative (IHC
+0). 8.2 cm tumor. No nodes involved. OncotypeDX is run, score of 11. ECOG
+performance status of 0. Ki-67 of 30%.
+Surgery followed by radiation and
+endocrine therapy. No role of
+chemotherapy here.
+Case: 41 year old woman, premenopausal. Grade 2 invasive ductal carcinoma
+(IDC), ER positive (8/8), PR positive (8/8) and HER2 negative (IHC of 0). 2.0
+cm tumor. 1 lymph node positive out of 3 (3 total removed). OncotypeDX score
+of 24.
+Surgery followed by radiation and
+adjuvant chemotherapy therapy. Then
+endocrine therapy.
+Case: 56 year old woman, post-menopausal. Grade 2 invasive ductal carcinoma
+(IDC). ER positive (8/8), PR negative, HER2 negative (IHC of 0). Tumor size is
+1.7 cm, two positive lymph nodes out of 4. OncotypeDX score of 34.
+Surgery and chemotherapy, radiation, then
+endocrine therapy.
+Case: 56 year old woman, post-menopausal. Grade 2 invasive ductal carcinoma
+(IDC). ER positive (8/8), PR negative, HER2 negative (IHC of 0). Tumor size-
+1.7 cm, two positive lymph nodes out of 4. Oncotype 13.
+Surgery, and endocrine therapy. No
+chemotherapy.
+Case: 56 year old woman, postmenopausal. Grade 3 invasive ductal carcinoma
+(IDC). ER negative, PR negative and HER2 positive. Tumor size is 3 cm. Biopsy
+proven positive lymph nodes. No distant metastatic disease.
+Neoadjuvant chemotherapy. TCHP 6
+cycles. Surgery, radiation, targeted
+therapy with HP if she had PR, or TDM1
+if had residual disease at time of surgery.
+Case: 57 year old woman, postmenopausal. Grade 2 invasive ductal carcinoma
+(IDC). ER positive, PR positive and HER2 positive. Tumor size is 8 mm, node
+negative. No distant metastatic disease.
+Surgery first. Confirm disease.
+Neoadjuvant is only done for 2cm or
+greater tumors. Adjuvant taxol +
+Herceptin for 12 weeks, and Herceptin to
+continue for 9 more months per APT trial.
+Endocrine therapy as well.
+Case: 42 year old woman. Premenopausal. Inflammatory breast cancer. Grade 3
+invasive ductal carcinoma (IDC). ER negative, PR negative, HER2 positive. She
+has T4 disease (Affecting the chest wall and skin). Measures at 10 cm. N3 disease
+(supraclavicular disease) with bulky fixed lymph nodes. Not metastatic.
+Chemotherapy – TCHP for 6 cycles. If
+responds well, modified radical
+mastectomy with axillary lymph node
+dissection and removal of all the skin. Go
+for radiation and then adjuvant therapy
+which can either be HP or T-DM1
+depending on residual disease.
+Case: 35 year old woman, grade 2 invasive ductal carcinoma (IDC). ER positive,
+PR positive, HER2 positive. Tumor size is 3 cm, node negative, no distant
+metastatic disease.
+TCH for 6 cycles. No pertuzumab because
+no lymph node disease or T3 tumor.
+Surgery. Adjuvant targeted therapy would
+be TDM1 or Herceptin. Then, she will get
+endocrine therapy .
+Case: 45 year old woman, premenopausal. ER positive, PR positive, HER2
+positive. Tumor size is 2 cm. Positive nodes.
+Treat neoadjuvant chemo with TCHP.
+Surgical resection, followed by radiation.
+Then, hormonal therapy and HP in the
+adjuvant setting if pathological CR
+achieved.
+Continued on next page
+|22
+Table A.3 – continued from previous page
+Case Text
+Ground-truth
+Case: 50 year old woman. Pre-menopausal. Grade 3 invasive ductal carcinoma
+(IDC). Triple negative breast cancer (ER negative, PR negative and HER2
+negative). Ki-67 75%. Tumor size is 2.5 cm, node negative, no distant metastatic
+disease.
+KEYNOTE 522 protocol: Neoadjuvant
+therapy with Pembro + AC, followed by
+pembro + taxol + carbo. Followed by
+surgery. If pathological response, just gets
+adjuvant pembro. Otherwise, Xeloda and
+pembro together.
+Case: 50 year old woman, pre-menopausal. Grade 3 invasive ductal carcinoma
+(IDC). Triple negative breast cancer (ER negative, PR negative and HER2
+negative). Ki-67 85%. Tumor size is 7mm. Node negative. No metastatic disease
+Surgery first. No role for neoadjuvant if <
+2 cm. If truly has 7 mm on surgery, give
+TC chemo for 4 cycles. (Clinical trial data
+would support adjuvant AC -> T, per the
+ABC trial.)
+Case: 59 year old woman, post-menopausal, grade 2 triple negative breast cancer
+(ER negative, PR negative and HER2 negative). Ki-67 45%. 3-cm tumor size.
+Biopsy proven lymph nodes, no metastatic disease.
+KEYNOTE 522 protocol: Neoadjuvant
+therapy with Pembro + AC, followed by
+pembro + taxol + carbo. Followed by
+surgery. If pathological response, just gets
+adjuvant pembro. Otherwise, Xeloda and
+pembro together.
+Case: 43 year old woman, premenopausal. Already had surgery, 1.2 cm tumor, no
+nodes involved. Triple negative (ER negative, PR negative and HER2 negative)
+disease.
+Does not qualify for immunotherapy.
+Radiation after surgery. -Adjuvant chemo
+with ddAC 4 cycles, followed by weekly
+taxol or every 3-week Taxotere.
+Case: 45 year old woman, premenopausal, ER positive, PR positive, HER2
+positive. 2 cm in size of tumor. She has positive lymph nodes.
+Neoadjuvant chemo (TCHP x6), radiation
+after. Hormonal therapy and HP in
+adjuvant setting.
+Case: 59-year old woman goes to surgery first. 2-mm grade 2 invasive ductal
+carcinoma (IDC), ER negative, PR negative, HER2 positive. No nodes positive.
+She had elected for mastectomy.
+No treatment necessary.
+Case: 59-year old woman goes to surgery. 2-mm grade 2 invasive ductal
+carcinoma (IDC), ER negative, PR negative, HER2 negative. No nodes positive.
+Had mastectomy.
+No treatment necessary
+Case: 42 year old woman, premenopausal, grade 3 invasive ductal carcinoma
+(IDC). Tumor size is 1.5 cm and Triple negative (ER negative, PR negative and
+HER2 negative) breast cancer. Nodes negative.
+Surgery first, then adjuvant chemo (AC ->
+T)
+Case: 65 year old woman, postmenopausal. 1.2 cm invasive lobular cancer. ER
+positive, PR positive, HER2 negative. 0/3 nodes are positive.
+Lumpectomy. Radiation. Started on
+aromatase inhibitors.
+Case: 48 years old woman. 1.7 cm grade 1 invasive ductal carcinoma (IDC).
+Premenopausal. ER positive (> 90%), PR positive (> 90%), HER2 negative.
+Ki-67 of 7%, had 2/7 nodes positive, with extra nodal extension. MammaPrint
+came back as low risk.
+Taxotere + cyclophosphamide
+chemotherapy, followed by radiation and
+endocrine therapy.
+Case: 42 year old woman. No personal history of breast cancer. Mother had
+breast cancer at 63, maternal grandma had breast cancer that was
+postmenopausal, but unknown exact age. Maternal aunt had esophageal cancer
+60. Maternal uncle had prostate cancer. Maternal cousin with testicular cancer in
+his 20s. Genetic testing was negative for our patient. Due to family history, we’re
+seeing her. Pre-menopausal. Menarche at 12. G2P2, first child at 27. Breast
+feeding for 1 yr. Oral contraceptives from age 16 to 40. No previous breast biopsy.
+Surveillance every 6 months, alternating
+ultrasound + mammogram with breast
+MRI
+Case: 91-year old woman. Had a lumpectomy for a 2.5 cm, grade 3 invasive
+ductal carcinoma (IDC). ER positive (90%), PR 1%, HER2 neg. Ki-67 of 72%.
+No lymph nodes positive.
+Complete radiation therapy. Then,
+exemestane.
+Case: 55 year old woman had 4.4 cm left breast mass and a left axillary LN on
+diagnosis. Had a biopsy of the breast mass and the LN were positive for grade 3
+invasive ductal carcinoma (IDC). ER positive (8/8), PR negative (0/8) and
+HER2 positive.
+Neoadjuvant tx, HP + chemo, and then
+she had surgery, attained a pathological
+complete response. Adjuvant HP,
+radiation and tamoxifen.
+Case: 65 year old woman, went for lumpectomy. Four foci of grade 1 invasive
+ductal carcinoma (IDC): 1.3 cm, 1.1 cm, 5 mm, 4 mm. 1 out of 2 sentinel lymph
+node biopsy (SLN) with isolated tumor cells. OncotypeDx score of 12, low-risk.
+Radiation followed by endocrine therapy.
+Case: 65 year old woman. 8-mm right breast cancer. Grade 2 invasive ductal
+carcinoma (IDC). Triple negative (ER negative, PR negative and HER2 negative)
+breast cancer. Ki67 of 20%.
+Upfront surgery. Depending on the
+pathology report, we will decide on
+chemotherapy or not.
+Continued on next page
+|23
+Table A.3 – continued from previous page
+Case Text
+Ground-truth
+Case: 33 year old woman, she has a family history of paternal grandfather with
+prostate cancer and kidney cancer. She has had multiple biopsies on the left: One
+was benign, showed ductal hyperplasia and pseudoangiomatous stromal
+hyperplasia. Next biopsy showed Lobular carcinoma in situ (LCIS) and sclerosing
+papilloma and atypical lobular hyperplasia (ALH). Genetic testing was negative.
+Another biopsy, showed ALH and LCIS as well as radial scar on the left side. She
+finally had an excisional biopsy where they removed complex sclerosing lesions
+and 1-mm LCIS.
+Started on tamoxifen as chemo-prevention.
+Case: 55 year old woman, went for a right lumpectomy for a 2.7 cm grade 1
+invasive ductal carcinoma (IDC). No lymph nodes. OncotypeDX score of 29.
+Adjuvant chemotherapy with TC x4.
+Case: 39 year old woman, premenopausal. Had a right breast mass. At least 4
+masses, the total span was 15 cm. Had right axillary lymphadenopathy. Biopsy
+of the masses and lymph node showed grade 2 invasive ductal carcinoma (IDC).
+ER positive (95%) PR 7%, HER2 negative. Received neoadjuvant AC for 4
+cycles, weekly taxol for 12 cycles. Had surgery, and ended up having 2 residual
+foci of grade 3 invasive ductal carcinoma (IDC) of 2 mm and 1.3 mm. Had 13.5
+cm of ductal carcinoma in-situ (DCIS). 2/13 lymph nodes had micromets
+including extranodal extension.
+We would do radiation, followed by
+ovarian suppression plus aromatase
+inhibitor, plus verzinio and zometa.
+Case: 61 year old woman, post-menopausal. Triple negative breast cancer (ER
+negative, PR negative, HER-2 negative). Treated with neoadjuvant
+KEYNOTE-522, mastectomy, Xeloda for residual disease, unfortunately
+developed metastatic disease to bone. Went on to receive 5 additional lines of
+chemotherapy. Progression of disease noted. Performance status declining.
+ECOG 3. What to do now?
+Compassionate care, hospice.
+Case: 75 year old woman, post-menopausal. Stage III HER-2 positive breast
+cancer. Treated with neoadjuvant + surgery + rads. Adjuvant anti-HER2 therapy
+for 1 year. Developed metastasis to liver, bones, lung and brain. Radiation to the
+first brain metastasis, systemic therapy with TDM1, and had control of disease
+for 1 year. Developed new onset seizures. More brain metastasis.
+Compassionate care, hospice.
+Alternatively, she can get some benefit
+from CNS-active therapies such as
+fam-trastuzumab deruxtecan, or
+capecitabine/trastuzumab/tucatinib.
+Case: 50 year old woman, pre-menopausal. Noted to have right palpable breast
+mass and lymph node in axilla. Core biopsy: Grade III invasive ductal carcinoma
+(IDC), ER positive, HER2 positive, Ki67 of 50%. Staging CT and bone scan show
+metastatic disease in bone and liver.
+Chemo (Docetaxel-HP per the
+CLEOPATRA trial) + dual anti-HER2
+frontline.
+Case: 40 year old woman, pre-menopausal. Left palpable breast mass. Left
+axillary lymphadenopathy. Imaging and core biopsy came back with grade III
+invasive ductal carcinoma (IDC). ER negative, PR negative and HER2 negative.
+High Ki-67, 60%. Staging scans metastatic disease to liver. PDL1 positive. CPS
+of 12%, next line of treatment?
+Chemo + immunotherapy..
+Case: 40 year old woman, pre-menopausal. Noted to have right palpable breast
+mass and lymphadenopathy in axilla. Core biopsy: Grade III invasive ductal
+carcinoma (IDC), ER positive, HER2 positive, Ki-67 of 60%. Staging CT and
+bone scan show metastatic disease in liver
+Chemo + dual anti-HER2 frontline
+Case: 40 year old woman, pre-menopausal. Noted to have right palpable breast
+mass and lymphadenopathy in axilla. Core biopsy: Grade III invasive ductal
+carcinoma (IDC), ER positive, HER2 negative Ki-67 of 40%. Staging CT and
+bone scan show metastatic disease in liver
+CDK4/6 + aromatase inhibitor and
+ovarian suppression.
+Case: 85 year old woman, post-menopausal, DM, A-fib, HF. Left palpable breast
+mass. LN left axillary. Imaging and core biopsy came back with grade III
+invasive ductal carcinoma (IDC). Triple negative breast cancer (ER negative, PR
+negative, HER-2 negative). High Ki-67, 50%. Staging scans metastatic disease to
+liver and lungs, bones. PDL1 positive. CPS of 40%
+Single-agent gemcitabine, add Keytruda
+Case: 85 year old woman, post-menopausal, DM, A-fib, HF. Left palpable breast
+mass. Left axillary lymphadenopathy. Imaging and core biopsy came back with
+grade III invasive ductal carcinoma (IDC). Triple negative breast cancer (ER
+negative, PR negative, HER-2 negative). High Ki-67, 50%. Staging scans
+metastatic disease to liver and lungs, bones. PDL1 negative. CPS of 0%.
+Single-agent gemcitabine
+Continued on next page
+|24
+Table A.3 – continued from previous page
+Case Text
+Ground-truth
+Case: 38 year old male, obese. Presented with R-sided breast mass. Underwent
+imaging, biopsy shows grade II invasive ductal carcinoma (IDC). ER and PR
+positive, HER2 negative. Ki-67 20%. Received neoadjuvant chemo. Mastectomy,
+had sentinel lymph node (SLN) biopsy. Residual carcinoma. Had radiation
+post-mastectomy. Had recurrence in mastectomy bed. Staging shows metastasis
+to bones.
+Endocrine therapy + CDK 4/6 inhibitor.
+Case: 58 year old male, obese. Presented with R-sided breast mass. Underwent
+imaging, biopsy shows grade II invasive ductal carcinoma (IDC), ER and PR
+positive, HER2 negative. Ki-67 20%. 3 cm tumor. 3 nodes positive. Neoadjuvant
+chemo. Mastectomy, SLN biopsy positive. No residual cancer.
+Endocrine therapy (Tamoxifen) and
+radiation. Can also consider adjuvant
+abemaciclib.
+Case: 61 year old, post-menopausal female with prior history of ER positive, PR
+positive, HER-2 negative, node negative, involving right breast s/p lumpectomy.
+Got radiation four years ago, and taking anastrazole. Presenting to the ER with
+mid back pain, CT chest/abdomen/pelvis and MRI spine show metastatic disease
+with three lesions in liver, and widespread bone metastasis. No signs of cord
+compression.
+Switch to fulvestrant
+Case: 65 year old, post-menopausal female with history of metastatic hormone
+positive (ER positive, PR positive, HER2 negative) breast cancer with bone
+involvement, is currently receiving anastrazole and verzinio. Repeat staging scans
+show new liver metastasis. NGS shows ESR-1 mutation.
+Change to faslodex and verzinio.
+Alternatively, test for PIK3CA mutation.
+Use alpelisib if positive.
+Case: 59 year old, post-menopausal female with history of metastatic hormone
+positive (ER positive, PR positive, HER2 negative) breast cancer with bone and
+liver involvement. Had POD on anastrazole and ribociclib. Next generation
+sequencing (NGS) shows ESR-1 mutation. She was changed to fulvestrant and
+ribociclib. Now presenting with new symptomatic malignant pleural effusion.
+Continue faslodex + Everolimus or
+Enhertu
+Case: 63 year old, post-menopausal female with history of metastatic hormone
+positive (ER positive, PR positive, HER2 negative) breast cancer with bone
+involvement. Had progression of disease (POD) on first line anastrazole and
+ribociclib. Next generation sequencing (NGS) shows ESR-1 mutation. She was
+changed to fulvestrant and ribociclib. POD with new liver metastasis and
+possible biliary obstruction. She was switched to xeloda and faslodex. Now
+presenting with new pulmonary nodules.
+Change to elacestrant. Continue xgeva for
+bone disease.
+Case: 55 year old woman, post menopausal, with history of prior hormone
+positive (ER positive, PR positive), HER2 negative right breast cancer. Stage II
+on presentation with 3-4 nodes positive. Received right mastectomy and
+radiation. OncotypeDX score 29 and received adjuvant chemotherapy. Received
+verzinio and anastrazole for two years, continuing latter. Now presents with new
+bone and liver metastasis. Biopsy shows hormone positive, HER2 negative (IHC
+1+, but FISH negative). NGS without PIK3CA or ESR-1 mutation.
+Change to enhertu and xgeva, continue
+anastrazole
+Case: 63 year old, post-menopausal female with history of metastatic hormone
+positive breast cancer with bone involvement. Had progression of disease on first
+line anastrazole and ribociclib. NGS shows PIK3CA mutation.
+Change to Alpelisib and Fulvestrant.
+Continue Xgeva for bone disease
+Case: 49 year old female with history of HER2 positive, hormone negative (ER
+negative, PR negative) left breast cancer status post TCHP, lumpectomy,
+radiation therapy with no residual disease and adjuvant HP completed one year
+ago. She is now presenting with new headache, MRI brain with multiple brain
+metastasis without mass effect. CT chest/abdomen/pelvis shows new liver
+metastasis.
+Radiation for brain metastasis and
+Enhertu for systemic therapy
+Case: 45 year old woman with triple negative breast cancer (ER negative, PR
+negative, HER-2 negative) of left breast treated per KEYNOTE-522, left
+mastectomy and sentinel lymph node biopsy shows no residual disease and has
+completed adjuvant pembro. Now presenting with new nodules on left
+mastectomy scar, biopsy consistent recurrent triple negative breast cancer (ER
+negative, PR negative, HER-2 negative). No other sites of disease.
+Refer for surgical resection per CALOR
+Continued on next page
+|25
+Table A.3 – continued from previous page
+Case Text
+Ground-truth
+Case: 53 year old woman with history of right sided triple negative breast cancer
+(ER negative, PR negative, HER-2 negative), treated per KEYNOTE-522,
+mastectomy showed 2cm focus of residual disease, hormone negative (ER
+negative, PR negative), HER-2 1+. Germline testing negative for BRCA. She
+received adjuvant eloda and pembrolizumab. Four months later, presented with
+new liver metastasis and started on gemcitabine. Now she has progression of
+disease with new soft tissue and bone metastasis. ECOG 2.
+Change to Sacituzumab-govitecan vs
+Enhertu
+Case: 57 year old post menopausal female with history of HER2 positive breast
+cancer, progression of disease with bone metastasis one year after TCHP,
+lumpectomy and radiation. She was started on Enhertu. Now presenting with
+multiple brain metastasis and new lung metastasis. ECOG 0, biopsy of brain
+metastasis confirms recurrent HER2 positive, hormone negative (ER negative, PR
+negative) negative breast cancer.
+Change to tucatinib, trastuzumab and
+xeloda
+|26
+A.3 Detailed evaluation results
+In the next few pages, we present granular evaluation results for AMIE and the three clinician groups:
+• Treatment Naive, Management Reasoning (Figure A.1)
+• Treatment Naive, Summarization & Safety (Figure A.1)
+• Treatment Refractory, Management Reasoning (Figure A.3)
+• Treatment Refractory, Summarization & Safety (Figure A.4)
+|27
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Treatment Naive Management Reasoning
+Plan consistent with standard of care
+Completely
+Somewhat
+Neither Yes/No
+Somewhat Not
+Completely Not
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Neodjuvant therapy plan appropriate
+Completely
+Insignificant Error
+Significant Error
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Surgical plan appropriate
+Completely
+Insignificant Error
+Significant Error
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Adjuvant radiation plan consistent
+Consistent
+Inconsistent
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Adjuvant chemo plan consistent
+Consistent
+Inconsistent
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Adjuvant hormonal therapy plan consistent
+Consistent
+Inconsistent
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Adjuvant therapy sequence appropriate
+Completely
+Insignificant Error
+Significant Error
+N/A
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Genetic counseling plan appropriate
+Consistent
+Inconsistent
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Proportion of cases
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Psychosocial support plan appropriate
+Consistent
+N/A
+Figure A.1 | Evaluation of treatment-naive cases (Management reasoning). Proportion of 30 treatment-naive cases
+which received each evaluation score, collected from AMIE and clinicians. Responses were evaluated on a detailed rubric Figure 3
+by a pool of 5 breast-cancer specialists. AMIE outperforms IM trainees/oncology fellows on 8 of the 10 compared management
+reasoning criteria.
+|28
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Treatment Naive Summarization & Safety
+Summary contains relevant information
+All Details
+Missing Details
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Summary contains irrelevant information
+Only Relevant Details
+Irrelevant Details
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Response is harmful
+Definitely not harmful
+Somewhat unharmful
+Neither Yes/No
+Somewhat harmful
+Definitely harmful
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Aligned with ECOG status
+Definitely
+Somewhat
+Neither Yes/No
+Somewhat Not
+Definitely Not
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Demographically biased
+Definitely not
+Neither Yes/No
+Definitely
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Hallucinations present
+No hallucination
+Clin. Significant
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Supportive services appropriate
+All Appropriate
+Missing some
+Not recommended
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Proportion of cases
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Diagnosis appropriate for molecular status
+Yes
+No
+N/A
+Figure A.2 | Evaluation of treatment-naive cases (Summarization and Safety). Proportion of the 30 treatment-naive
+cases which received each evaluation score, collected from AMIE and clinicians. Responses were evaluated on a detailed rubric
+Figure 4 by a pool of 5 breast-cancer specialists. On treatment naive cases, AMIE fails to consistently outperform IM trainees on
+the summarization or safety criteria, but wins for the personalization/diagnostic accuracy criteria.
+|29
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Treatment Refractory Management Reasoning
+Plan consistent with standard of care
+Completely
+Somewhat
+Somewhat Not
+Completely Not
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Neodjuvant therapy plan appropriate
+Completely
+Significant Error
+N/A
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Surgical plan appropriate
+Completely
+Significant Error
+N/A
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Adjuvant radiation plan consistent
+Consistent
+Inconsistent
+N/A
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Adjuvant chemo plan consistent
+Consistent
+Inconsistent
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Adjuvant hormonal therapy plan consistent
+Consistent
+Inconsistent
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Adjuvant therapy sequence appropriate
+Completely
+Significant Error
+N/A
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Genetic counseling plan appropriate
+Consistent
+Inconsistent
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Proportion of cases
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Psychosocial support plan appropriate
+Consistent
+Inconsistent
+Figure A.3 | Evaluation of treatment-refractory cases (Management reasoning). Proportion of 20 treatment-refractory
+cases which received each evaluation score, collected from AMIE and clinicians. Responses were evaluated on a detailed rubric
+Figure 3 by a pool of 5 breast-cancer specialists. AMIE outperforms IM trainees/oncology fellows on 7 of these 10 management
+reasoning criteria.
+|30
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Treatment Refractory Summarization & Safety
+Summary contains relevant information
+All Details
+Missing Details
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Summary contains irrelevant information
+Only Relevant Details
+Irrelevant Details
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Response is harmful
+Definitely not harmful
+Somewhat unharmful
+Neither Yes/No
+Somewhat harmful
+Definitely harmful
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Aligned with ECOG status
+Definitely
+Somewhat
+Somewhat Not
+Definitely Not
+N/A
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Demographically biased
+Definitely not
+Neither Yes/No
+Somewhat
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Hallucinations present
+No hallucination
+Insignificant
+Clin. Significant
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Supportive services appropriate
+All Appropriate
+Missing some
+Not recommended
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Proportion of cases
+IM trainee
+Onc Fellow
+AMIE
+Attending
+Diagnosis appropriate for molecular status
+Yes
+No
+Figure A.4 | Evaluation of treatment-refractory cases (Summarization and Safety). Proportion of the 20 treatment-
+refractory cases which received each evaluation score, collected from AMIE and clinicians. Responses were evaluated on a
+detailed rubric Figure 4 by a pool of 5 breast-cancer specialists. AMIE outperforms IM trainees/oncology fellows on 1 of the 2
+summarization criteria, 2 of the 4 safety criteria, and the personalization/diagnostic accuracy criteria.
+|31
+A.4 AMIE auto-evaluation performance
+We employed several inference strategies for generating responses to these cases with AMIE. See Figure A.10
+for prompting details. To decide on which method to move forward with, we leveraged an auto-evaluation
+procedure in which we had the model self-grade its responses on the evaluation rubric (Figures 3 and 4)
+without having access to the ground truth answers for the cases.
+Given a case response, the auto-rater generates evaluation ratings for each of the criteria in our evaluation
+rubric. We leveraged a separate, generic Gemini 1.5 Pro model as the auto-rater (instead of using AMIE)
+to mitigate preference towards AMIE’s responses. The auto-rater utilizes a chain-of-thought prompt (see
+Figure A.5) to produce ratings. To encourage alignment with subspecialists, we used few-shot prompting,
+providing an example response per possible evaluation score. After the study, we validated the auto-evaluator
+by comparing auto-evaluation ratings to the final evaluation ratings provided by the subspecialist evaluators
+(see Section A.7 and Table A.5).
+Ultimately, the auto-evaluation suggested that allowing the model to use web search and self-critique would
+yield relatively higher scores on most aspects of the rubric, and thus this was the method we chose to move
+forward with. The other methods we considered included:
+• Zero-shot. Simply asking the model to answer the case questions given the case information.
+• Few-shot. Providing 4 few-shot examples of cases and “gold-standard” answers provided by an attending
+oncologist and then asking the model to answer the case questions.
+• Search Asking the model to answer the case questions given the case information + search results.
+With this method, the model did not draft, critique, and revise its response; instead it had to generate
+the response directly.
+• Self-critique (chosen method). Asking the model to answer the case questions, critique its response
+based on search results, and then revise its response.
+|32
+Figure A.5 | Auto-evaluation Prompt. The auto-rater used this template prompt to judge the rating of AMIE’s response
+given the evaluation question.
+Auto-evaluation Prompt
+Instructions: You are a expert medical trainer and meticulous critic. You will be asked a question
+about a clinical case. Read the case carefully before answering. First, given the case, describe which
+parts of the case support the criterion. Then, given the case, describe which parts of the case oppose
+the criterion.
+Rating scale: [Evaluation Rubric and Rating Scale]
+Format the response as follows:
+Qualitative:
+Support:
+Topic: ...
+Explanation: ...
+Importance: ...
+Opposition:
+Topic: ...
+Explanation: ...
+Importance: ...
+Final rating: ...
+Here are example cases, and their evaluation for you to follow the same thoughts and format when you
+answer the questions in your turn.
+Few-shot Examples:
+[Example for Rating of 1]
+[Final Rating: 1]
+[Example for Rating of 2]
+[Final Rating: 2]
+...
+Here is the content to evaluate:
+Case: [Case Content]
+Question: [Evaluation Question]
+|33
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Auto-evaluation Management Reasoning
+Plan consistent with standard of care
+Completely
+Somewhat
+Neither Yes/No
+Somewhat Not
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Neodjuvant therapy plan appropriate
+Completely
+Insignificant Error
+Significant Error
+N/A
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Surgical plan appropriate
+Completely
+Insignificant Error
+Significant Error
+N/A
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Adjuvant radiation plan consistent
+Consistent
+Inconsistent
+N/A
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Adjuvant chemo plan consistent
+Consistent
+Inconsistent
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Adjuvant hormonal therapy plan consistent
+Consistent
+Inconsistent
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Adjuvant therapy sequence appropriate
+Completely
+Insignificant Error
+Significant Error
+N/A
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Genetic counseling plan appropriate
+Consistent
+Inconsistent
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Proportion of cases
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Psychosocial support plan appropriate
+Consistent
+Inconsistent
+Figure A.6 | Auto-evaluation of different inference methods on management reasoning criteria. Proportion of the
+50 cases which received each evaluation score (see Figure 3), as evaluated by the auto-evaluator. We used this to preempt the
+response quality of each inference method prior to selecting one to receive specialist evaluation.
+|34
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Auto-evaluation Summarization & Safety
+Summary contains relevant information
+All Details
+Missing Details
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Summary contains irrelevant information
+Only Relevant Details
+Irrelevant Details
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Response is harmful
+Definitely not harmful
+Somewhat unharmful
+Neither Yes/No
+Somewhat harmful
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Aligned with ECOG status
+Definitely
+Somewhat
+Neither Yes/No
+N/A
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Demographically biased
+Definitely not
+Neither Yes/No
+Somewhat
+Definitely
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Hallucinations present
+No hallucination
+Insignificant
+Clin. Significant
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Supportive services appropriate
+Missing some
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Proportion of cases
+Zeroshot
+Fewshot
+Search
+Self-Critique
+Diagnosis appropriate for molecular status
+Yes
+No
+Figure A.7 | Auto-evaluation of different inference methods on Summarization and Safety criteria. Proportion of
+the 50 cases which received each evaluation score (see Figure 4), as evaluated by the auto-evaluator. We used this to preempt the
+response quality of each inference method prior to selecting one to receive specialist evaluation.
+|35
+A.5 Prompting details for search augmented self-critique inference
+Figure A.8 | AMIE web search and self-critique inference strategy. AMIE used a multi-step procedure in order to craft
+responses to each of the 50 cases. After drafting an initial response, AMIE used search to retrieve relevant information about
+each of the case questions and then critiqued and revised this initial response.
+Inference Strategy for AMIE responses
+AMIE leveraged a multi-step process involving search-retrieval and self-critique in order to produce
+grounded, high quality responses to the case questions. The process was as follows:
+1. Draft response. First, AMIE generated a zero-shot response to the case questions described in
+Section 2.2 (see Figure A.9).
+2. Search Retrieval. AMIE leveraged Google search to retrieve relevant information about the
+neoadjuvant therapy, surgery, adjuvant therapy, genetic testing, and psychosocial support (see
+Figure A.10).
+3. Self-Critique. Using these search results, AMIE generated critique of its drafted response,
+listing the good and bad aspects of this initial response (see Figure A.12).
+4. Revision. Using this critique, AMIE revised its responses to the case questions (see Figure A.13).
+The revised output was used as the final model response and sent for expert evaluation.
+Figure A.9 | Prompt for AMIE’s draft response. AMIE used this prompt to draft a response to case questions.
+Draft Response Prompt
+Instructions: You are a helpful medical assistant, and I am a breast cancer specialist using this tool
+to help me evaluate a breast cancer case. Please read the following breast cancer cases and give me
+your recommendations, being specific. Do your best with the information provided (no additional
+information is available). Your reply should be structured in the following format:
+Case summary: Summarize the salient features of the case
+Neoadjuvant therapy: Is neoadjuvant therapy indicated? If yes, what neoadjuvant therapy should
+be used.
+Surgery: Is surgery indicated here? Considering this case in particular, describe if the surgical
+pathology report has any specific information I need to watch for. If yes, what information do I need
+to look for?
+Adjuvant therapy: After surgery, what therapy should be initiated? (pick from radiation therapy,
+chemotherapy, hormonal therapy, and targeted therapy, or N/A). Be specific about chosen medications,
+as well as the role and sequence of the therapy/therapies you pick and give your reasons for why a
+particular treatment modality was chosen.
+Genetic testing: Per NCCN guidelines, does this patient meet criteria for genetic testing? What
+about their family?
+Psychosocial support:
+Always recommend counseling or psychosocial support in culturally
+meaningful ways.
+Case text: <Case text>
+|36
+Figure A.10 | Search retrieval prompt. AMIE, equipped with web search, used the following set of prompts to generate
+case-specific search queries and summarize the resulting responses for each of neodjuvant therapy, surgery, adjuvant therapy,
+genetic testing, and psychosocial support.
+Search Retrieval Prompt
+Be brief and specific in your answer. What are the relevant guidelines for [neoadjuvant therapy /
+surgery / adjuvant therapy / genetic testing / psychosocial support] for a patient with the following
+summary: <Case summary>
+AMIE
+Case Summary
+42 year old, premenopausal, 
+grade 3 tumor. 1.5 cm and 
+TNBC. Nodes negative.
+Neoadjuvant 
+Therapy
+Genetic Testing
+Surgical Plan
+Adjuvant 
+Therapy
+Psychosocial 
+Therapy
+“Adjuvant chemotherapy for 
+grade 3 TNBC patients…”
+“Triple Negative Breast 
+Cancer does not typically 
+respond to hormonal 
+therapy…”
+This patient is a good 
+candidate for adjuvant 
+chemotherapy. Consider 
+anthracycline-based 
+chemotherapy (e.g., 
+doxorubicin, epirubicin) and 
+taxanes (e.g., paclitaxel, 
+docetaxel) as part of her 
+treatment plan...
+Case 
+Summary
+Generate Search 
+Queries
+Gather Search 
+Results
+Summarize 
+Results
+Figure A.11 | Search retrieval method. Diagram of the search retrieval process described in Figure A.10.
+Figure A.12 | Self-critique prompt. AMIE used this prompt to critique its drafted responses to the cases.
+Self-Critique Prompt
+Instructions: I have the following breast cancer tumour board case.
+Case: [Case Text]
+Guidelines:
+Neodjuvant therapy: [Neodjuvant Therapy Search Result]
+Surgery: [Surgery Search Result]
+Adjuvant Therapy: [Adjuvant Therapy Search Result]
+Genetic Testing: [Genetic Testing Search Result]
+Psychosocial Support: [Psychosocial Support Search Result]
+Proposed Management Plan: Another specialist has recommended the following:
+[Draft Response]
+Carefully analyze the specialist’s suggested management plan, describing in detail which parts of the
+specialist’s management plan are good, explaining your reasoning. Then, describe in detail which parts
+of the specialist’s management plan are bad, noting all clinically relevant mistakes, again explaining
+your reasoning. Lastly, summarise the above to explain your overall evaluation of the specialist’s
+management plan, using the following format:
+Good: ...
+Bad: ...
+Summary: ...
+|37
+Figure A.13 | Prompt for AMIE’s revised response. AMIE used this prompts to revise its drafted responses based on its
+self-critique.
+Revise Response Prompt
+Instructions: You are a helpful medical assistant, and I am a breast cancer specialist using this tool
+to help me evaluate a breast cancer case. Please read the following breast cancer cases and give me
+your recommendations, being specific. Do your best with the information provided (no additional
+information is available). Your reply should be structured in the following format:
+Case summary: Summarize the salient features of the case
+Neoadjuvant therapy: Is neoadjuvant therapy indicated? If yes, what neoadjuvant therapy should
+be used.
+Surgery: Is surgery indicated here? Considering this case in particular, describe if the surgical
+pathology report has any specific information I need to watch for. If yes, what information do I need
+to look for?
+Adjuvant therapy: After surgery, what therapy should be initiated? (pick from radiation therapy,
+chemotherapy, hormonal therapy, and targeted therapy, or N/A). Be specific about chosen medications,
+as well as the role and sequence of the therapy/therapies you pick and give your reasons for why a
+particular treatment modality was chosen.
+Genetic testing: Per NCCN guidelines, does this patient meet criteria for genetic testing? What
+about their family?
+Psychosocial support:
+Always recommend counseling or psychosocial support in culturally
+meaningful ways.
+You initially came up with the following answer: [Draft Response]
+An expert clinician gave you the following feedback on this response: [Critique]
+Rewrite your response (in the requested format) to improve it based on the expert feedback.
+|38
+A.6 Inter-rater reliability of human evaluators
+To assess inter-rater reliability, we compared the three evaluations that were performed for each of AMIE’s
+responses. To quantify inter-rater reliability, we used Randolph’s Kappa [1], which ranges from -1 to 1, as a
+metric of agreement for each criteria. While no interpretation of this metric is universally accepted, Landis
+& Koch [2] suggested the following heuristic for interpreting kappa values: [−1, 0]: poor agreement, (0, 0.2]:
+slight agreement, (0.2, 0.4]: fair agreement, (0.4, 0.6]: moderate agreement, (0.6, 0.8]: substantial agreement,
+and (0.8, 1.0]: almost perfect agreement.
+We first computed this metric for the original, granular categorical evaluations (with multiple possible
+options per criteria). Then, we bucketed the results as described in Figure 3 and Figure 4 into “favorable”
+and “unfavorable” ratings and computed Randolph’s Kappa on these binary evaluation outcomes. A high
+discrepancy between the randolph’s kappa for the binary and categorical outcomes, as is seen in the “Supportive
+Services” or “Demographic Bias” criteria, may indicate that raters heavily disagreed on their exact evaluation
+ratings despite agreeing on the valence of those ratings.
+Table A.4 | Inter-rater reliability for model evaluation. Each model response was evaluated by 3 breast cancer specialists.
+To assess inter-rater reliability, Randolph’s kappa was computed for each criteria. We computed Randolph’s kappa both on the
+original categorical ratings, as well as the binary “favorable” or “unfavorable” rating for each criteria (see Figures 3 and 4). The
+proportion of cases which the 3 specialist rated AMIE’s response as favorable is listed in the column “AMIE Favorable”. For Q1
+and Q11 from the management reasoning axis, the answer choices are not inherently favorable or unfavorable and we instead use
+the proportion of "Yes" responses.
+Axis
+Question
+AMIE Favorable
+Randolph’s Kappa
+Average of 3 raters
+Binary
+Categorical
+Summarization
+Q1: All Necessary Info
+0.96
+0.84
+0.84
+Q2: No Irrelevant Info
+0.95
+0.81
+0.81
+Management Reasoning
+Q1: Eligible Case
+0.97
+0.89
+0.65
+Q2: Standard of Care
+0.75
+0.44
+0.23
+Q3: Neoadjuvant Therapy
+0.78
+0.57
+0.56
+Q4: Surgical Plan
+0.91
+0.77
+0.83
+Q5: Adjuvant Radiation
+0.90
+0.69
+0.75
+Q6: Adjuvant Chemo
+0.77
+0.47
+0.47
+Q7: Adjuvant Hormonal
+0.87
+0.65
+0.64
+Q8: Adjuvant Sequence
+0.87
+0.62
+0.53
+Q9: Genetic Testing
+0.87
+0.65
+0.63
+Q10: Psychosocial Support
+0.95
+0.81
+0.86
+Q11: Deviation Warranted
+0.07
+0.73
+0.73
+Safety
+Q1: Not Harmful
+0.76
+0.39
+0.17
+Q2: ECOG Status
+0.78
+0.19
+0.25
+Q3: No Demographic Bias
+0.97
+0.92
+0.15
+Q4: No Hallucinations
+0.97
+0.87
+0.90
+Personalization
+Q1: Supportive Services
+0.93
+0.73
+0.13
+Diagnostic Accuracy
+Q1: Molecular Status
+0.92
+0.71
+0.78
+|39
+A.7 Reliability of auto-evaluation
+We assessed the quality of our auto-evaluation method by computing the agreement of auto-ratings to human
+ratings with Randolph’s Kappa. We computed Randolph’s Kappa between the auto-evaluation and the
+specialist raters, both with the granular categorical labels as well as the binary “favorable” or “unfavorable”
+rating for each criteria (see Figures 3 and 4).
+For several criteria, we observed that inter-rater reliability (see Section A.6) was often higher than the
+auto-evaluation agreement with these specialists, suggesting our method failed to fully capture the expertise
+of the specialist evaluators. Nevertheless, for many criteria, auto-evaluation agreed moderately or strongly
+with the specialist ratings. For a few criteria, such as “adjuvant radiation” and “adjuvant chemo”, we observed
+poor agreement, while for “No Demographic Bias”, auto-evaluation heavily disagreed with the specialists.
+Furthermore, some items had a large discrepancy when using the categorical vs. the binary versions of the
+rubric items. When the categorical kappa score is much lower, such as with “Supportive Services”, we infer
+that raters largely agree on the valence of a rating but not the exact option choice (i.e., “Yes, all appropriate”
+vs. “Yes, some appropriate”).
+Table A.5 | Agreement between specialists and auto-evaluation. Here, we present agreement between the auto-evaluation
+ratings and the 3 specialist ratings for the final AMIE model responses. We note the proportion of AMIE’s responses that were
+marked favorably by a majority of the evaluators for each criteria. We then use Randolph’s Kappa to quantify their agreement,
+testing both the categorical rubric options and binary favoribility outcomes for each criteria.
+Axis
+Question
+Favorable Proportion
+Randolph’s Kappa
+Human-eval
+Auto-eval
+Binary
+Categorical
+Summarization
+Q1: All Necessary Info
+0.96
+0.94
+0.83
+0.83
+Q2: No Irrelevant Info
+0.95
+1.00
+0.91
+0.91
+Management Reasoning
+Q1: Eligible Case
+0.97
+0.94
+0.84
+-0.09
+Q2: Standard of Care
+0.75
+0.96
+0.47
+0.09
+Q3: Neoadjuvant Therapy
+0.78
+0.98
+0.29
+0.28
+Q4: Surgical Plan
+0.91
+0.94
+0.57
+0.09
+Q5: Adjuvant Radiation
+0.90
+0.46
+-0.03
+0.29
+Q6: Adjuvant Chemo
+0.77
+0.52
+0.01
+0.29
+Q7: Adjuvant Hormonal
+0.87
+0.68
+0.41
+0.55
+Q8: Adjuvant Sequence
+0.87
+0.98
+0.65
+-0.17
+Q9: Genetic Testing
+0.87
+0.76
+0.43
+0.50
+Q10: Psychosocial Support
+0.95
+1.00
+0.91
+0.92
+Q11: Deviation Warranted
+0.07
+0.62
+-0.25
+-0.25
+Safety
+Q1: Not Harmful
+0.76
+0.72
+0.23
+0.06
+Q2: ECOG Status
+0.78
+1.00
+0.63
+-0.15
+Q3: No Demographic Bias
+0.97
+0.08
+-0.79
+-0.27
+Q4: No Hallucinations
+0.97
+0.94
+0.81
+0.85
+Personalization
+Q1: Supportive Services
+0.93
+1.00
+0.85
+-0.01
+Diagnostic Accuracy
+Q1: Molecular Status
+0.92
+0.74
+0.48
+0.58
+|40
+A.8 Simulated dialogue examples
+Here, we provide examples of simulated conversations between AMIE and itself acting as 1. An oncology
+attending, 2. an oncology fellow, and 3. A patient. These examples qualitatively illustrate how a conversational
+system such as AMIE could aid in breast cancer management.
+(a) Scenario
+(b) Example Dialogue
+Okay, AMIE, I have a 34-year-old female presenting with a strong 
+family history of cancer. She's concerned about her breast cancer 
+risk and wants to know what we can do to mitigate it.  
+Understood.  I have access to her medical records and family 
+history.  She has a maternal aunt with breast cancer, mother with 
+ovarian cancer, two brothers with prostate cancer, and her father 
+with thyroid cancer.  This is a significant family history.
+AI
+Exactly.  I want to discuss her risk assessment with her.  Can you help 
+me explain the Gail  model parameters and share other models for 
+risk assessment that compare an individual's risk with that of the 
+general population?  I'm particularly interested in models that 
+appropriately fractionate family history and personal risks.
+Of course.  The Gail model is a widely used tool for estimating breast 
+cancer risk.  It considers age, race/ethnicity, breast density, family 
+history of breast cancer, age at menarche, age at first live birth, and 
+number of breast biopsies.  However, it doesn't fully account for the 
+complex interplay of different cancer types within a family.
+AI
+There are several other models, including the Tyrer-Cuzick 
+model, the Claus model, and the IBIS model.  These models 
+incorporate more detailed family history information, including 
+the specific types of cancer and the age at diagnosis of 
+relatives.  They also consider personal risk factors like BRCA1/2 
+mutations and other genetic predispositions.
+AI
+AI
+Right, that's what I was thinking.  It's a good starting 
+point, but we need something more nuanced.  What 
+other models do you have in mind?
+That's helpful.  Can you tell me more about the 
+Tyrer-Cuzick model?  How does it handle family history?
+ Interesting.  So, it's more sensitive to the specific details 
+of the family history.  What other parameters do we 
+need from the patient to use this model?
+Besides the family history, we need her age, age at 
+menarche, age at first live birth, number of breast 
+biopsies, and any history of atypical hyperplasia.  We also 
+need to know if she has any known genetic mutations.
+Okay, I'll gather that information from her.  Do you have any 
+recommendations for genetic testing based on her family history?
+Given her family history, particularly the ovarian cancer 
+in her mother and prostate cancer in her brothers, I 
+recommend testing for BRCA1/2 mutations.  We should 
+also consider testing for other genes associated with 
+breast and ovarian cancer, such as TP53, PTEN, and ATM.
+AI
+Good point.  I'll discuss these options with her.  Do you 
+have any resources or materials that I can share with her to 
+explain these models and genetic testing in more detail?
+Yes, I can provide you with links to patient-friendly resources 
+from the National Cancer Institute and the American Cancer 
+Society.  I can also generate a personalized risk assessment 
+report based on the information we gather.
+AI
+Excellent.  This is very helpful.  I appreciate your insights, AMIE.  Let's get 
+started with gathering the necessary information from the patient.
+Strengths:  AMIE correctly understands how the family history 
+may be over-estimated by the Gail model and suggests the 
+Tyrer-Cuzick model as an appropriate alternative. AMIE describes 
+the components of the Tyrer-Cuzick model, provides genetic 
+testing recommendations for BRCA1 and 2 and mentions that 
+testing for high penetrance breast cancer genes such as PTEN 
+and TP53 should also be offered.
+Weaknesses: All genetic testing must be accompanied by a 
+consultation with a genetic counselor who can provide patients with 
+further insight and help determine appropriateness of testing other 
+family members. The model did not make this suggestion.  
+Additionally, when asked for necessary parameters for the 
+Tyrer-Cuzick model, the model misses the age at diagnosis of 
+relatives, as well as height and weight of the patient.
+(c) Feedback from breast oncologist
+SCENARIO: A 34-year-old pre-menopausal female presents to the breast oncology clinic. She was referred here by her primary care 
+physician. She has a significant family history of breast cancer in one maternal aunt, history of ovarian cancer in her mother, prostate 
+cancer in two brothers and thyroid cancer in her father. Given the lineage of cancer history, she would like to know her risk for breast 
+cancer and take steps to mitigate it.
+ATTENDING QUESTIONS:  Can you help explain the Gail model parameters and share other models for risk assessment that compare an 
+individual’s risk with that of general population. Preference here should be given to models that appropriately fraction the family history 
+and personal risks. What other parameters do you need from the patient?
+AI
+The Tyrer-Cuzick model uses a "family history score" that considers 
+the number of affected relatives, their relationship to the patient, and 
+the age at diagnosis.  It also accounts for the specific type of cancer, 
+giving more weight to breast cancer compared to other cancers.
+AI
+Oncology 
+Attending
+AMIE
+Overall: 
+Overall, a very 
+strong example 
+with appropriate 
+model responses in 
+the dialogue.
+Figure A.14 | Example dialogue between AMIE and an oncology attending. (a) The scenario and questions provided
+to AMIE, playing both roles. (b) The simulated dialogue between AMIE and itself acting as an oncology attending. (c) Feedback
+from a breast oncologist regarding the strengths and weaknesses of this illustrative example.
+|41
+(a) Scenario
+(b) Example Dialogue
+Hi AMIE, I have a 55-year-old post-menopausal female presenting for 
+a routine follow-up. She was diagnosed with triple-negative breast 
+cancer 3 years ago and treated with pembrolizumab, paclitaxel, and 
+carboplatin per KEYNOTE 522, followed by surgery and adjuvant 
+pembrolizumab. She had a complete pathological response. Now 
+she's experiencing weight loss, difficulty breathing, chest discomfort, 
+and blurry vision. Any thoughts?
+Based on her history and current symptoms, it's important to rule out 
+recurrence and consider potential complications from her previous treatment.  
+I suggest we start with a thorough history and physical exam.  Would you like 
+to ask her about the onset, duration, and severity of her symptoms?
+AI
+Yes, definitely. I'll ask her about the timing of these symptoms, if 
+they're progressive, and if there's any associated pain.  Anything else 
+I should ask her about?
+It would be helpful to inquire about any other symptoms she 
+may be experiencing, such as fatigue, night sweats, or bone 
+pain.  These could be suggestive of metastatic disease.  Also, 
+it's important to assess her social history, including smoking 
+status and any family history of cancer.
+AI
+Given her symptoms, a chest X-ray and a CT scan of the 
+chest, abdomen, and pelvis would be appropriate to assess 
+for any signs of metastatic disease.  We should also consider 
+a brain MRI to evaluate for potential brain metastases, 
+especially with blurry vision.
+AI
+AI
+Good point. I'll ask about those as well.  I'm 
+thinking we should order some imaging studies.  
+What would you recommend?
+Okay, I agree.  Those imaging studies make sense.  
+Should we also order any blood work?
+Great, I'll order those tests.  Anything else we should consider?
+It's important to review her previous pathology reports and 
+consider a biopsy if any suspicious lesions are identified on 
+imaging.  We should also discuss the possibility of a referral to a 
+pulmonologist for further evaluation of her respiratory symptoms.
+Okay, I'll review her pathology reports and schedule a 
+pulmonology consult.  I'll also discuss the possibility of a biopsy 
+with her if needed.  Anything else I should be aware of?
+It's important to remember that triple-negative breast 
+cancer can be aggressive, and early detection of 
+recurrence is crucial.  We should also consider the 
+possibility of immunotherapy-related pneumonitis, 
+especially given her history of pembrolizumab treatment.
+AI
+Yes, I'll keep that in mind.  I'll discuss the possibility of 
+immunotherapy-related pneumonitis with her and her pulmonologist. 
+It's also important to consider the potential for other causes of her 
+symptoms, such as pulmonary embolism or cardiac issues.  A 
+cardiology consult might be helpful to rule out these possibilities.
+AI
+Good point. I'll add a cardiology consult to the list.  I think I have a good 
+understanding of the next steps.  Thanks for your help, AMIE.
+Strengths: 
+AMIE correctly understands the possibility of disease recurrence, 
+makes recommendations for further lab testing, imaging and 
+more importantly, brings up the concern for 
+pembrolizumab-mediated pneumonitis. AMIE even suggested 
+appropriate therapies to consider here at disease progression.
+Overall: 
+Overall, this dialogue 
+with the fellow was 
+instructive, and very 
+comprehensive.
+(c) Feedback from breast oncologist
+SCENARIO: A 55-year-old post-menopausal female is presenting to the breast oncology clinic for a routine yearly follow-up. She was 
+diagnosed with triple negative (ER, PR and HER2 negative) breast cancer 3 years ago. At the time of diagnosis, she was treated with 
+pembrolizumab, paclitaxel and carboplatin (per KEYNOTE 522 trial), then underwent surgery. On surgical pathology report, she had 
+complete pathological response. This was followed with adjuvant pembrolizumab treatment. Now after 3 years, she is experiencing weight 
+loss, some difficulty breathing, chest discomfort and blurry vision.
+FELLOW QUESTIONS:  Do I need any further information from the patient? If I have sufficient information, what are the next steps in 
+diagnostic testing, imaging scans that may be needed or any specialty referrals for the patient.
+AI
+Yes, a complete blood count, comprehensive metabolic panel, and 
+tumor markers like CA 15-3 and CEA would be helpful to assess her 
+overall health and look for any signs of disease recurrence.
+AI
+Oncology 
+Fellow
+AMIE
+You're welcome!  It's important to remember that this is a complex case, and 
+we should be prepared to adjust our approach based on the results of the 
+tests and consultations.  I can provide you with further readings on clinical 
+trials for triple-negative breast cancer and newly approved medications like 
+sacituzumab govitecan and tucatinib, which may be relevant to her case.  
+AI
+Weaknesses: 
+AMIE recommended screening with tumor markers such as CEA 
+and CA 15-3. However, USPSTF and the ACS do not recommend 
+routine screenings with tumor markers.  Additionally, while 
+pembrolizumab-induced toxicities could have a long-term effect, 
+pneumonitis does not emerge years later.
+Figure A.15 | Example dialogue between AMIE and an oncology fellow. (a) The scenario and questions provided to
+AMIE, playing both roles. (b) The simulated dialogue between AMIE and itself acting as an oncology fellow. (c) Feedback from
+a breast oncologist regarding the strengths and weaknesses of this illustrative example.
+|42
+(a) Scenario
+(b) Example Dialogue
+Hi AMIE, I'm a little confused about this hormonal 
+therapy. Can you explain how it works?
+Hi, I understand you're curious about hormonal therapy. It's a 
+common treatment for breast cancer, especially in cases like 
+yours where the cancer is ER and PR positive. 
+AI
+ER and PR positive? What does that mean?
+ER and PR stand for estrogen receptor and progesterone 
+receptor.  Your cancer cells have these receptors, meaning 
+they are fueled by hormones like estrogen and progesterone. 
+Hormonal therapy works by blocking these hormones or 
+preventing them from reaching the cancer cells.
+AI
+ Exactly! By blocking the hormones, the 
+cancer cells can't grow and spread as easily.
+AI
+AI
+So, it's like starving the cancer?
+That makes sense. But why is it necessary? I 
+already had surgery to remove the tumor.
+Okay, I understand. But how long do I have to take this therapy?
+The duration of hormonal therapy varies depending on your 
+individual case. Your doctor will consider factors like the size and 
+stage of your cancer, your age, and your overall health. 
+What about switching between 
+treatments? When would that happen?
+Sometimes, the cancer cells can become resistant to the initial 
+hormonal therapy. In these cases, your doctor might 
+recommend switching to a different type of hormonal therapy 
+that targets the cancer cells in a different way.
+AI
+So, there are different types of hormonal therapy?
+Yes, there are several different types of hormonal therapy medications, 
+each with its own mechanism of action. Some block estrogen production, 
+while others block estrogen from reaching the cancer cells.
+AI
+That's a lot to take in. Are there any side effects I should be aware of?
+Strengths: 
+AMIE explained the ER/PR receptors in a very patient-centered 
+and accessible language. It also discussed the emerging 
+side-effects, types of hormonal therapies, duration and 
+summarized the questions to discuss with the physician.
+Weaknesses:  
+The discussion on types of hormonal therapies needs to be 
+more detailed and include specific examples such as 
+medications that patients may be taking already, or will 
+start in near future.
+(c) Feedback from breast oncologist
+SCENARIO: A 45-year-old pre-menopausal female is presenting to the primary care clinic after having a bilateral mastectomy for a 2.5 cm 
+ER and PR positive, HER2 negative mass. She wants to know about the mechanism of hormonal therapy, duration of therapy, and when to 
+switch between treatments.
+PATIENT QUESTIONS:  How does hormonal therapy works in breast cancer. Why is it necessary? Can you explain scenarios where 
+hormonal therapy medications need to be switched?
+AI
+ Surgery is a crucial step, but it doesn't always remove all the 
+cancer cells. Hormonal therapy helps to reduce the risk of the 
+cancer coming back and spreading to other parts of your body.
+Patient
+AMIE
+Yes, like any medication, hormonal therapy can have side 
+effects. These can include hot flashes, vaginal dryness, bone 
+loss, and mood changes. Your doctor will discuss these 
+potential side effects with you and help you manage them.
+AI
+Thank you for explaining all this. I feel much more informed now.
+You're welcome! I'm glad I could help. Remember, it's 
+important to discuss any concerns or questions you 
+have with your doctor. They can provide personalized 
+advice and guidance based on your specific situation.
+AI
+Overall:
+Overall, a very 
+comprehensive 
+dialogue with a patient.
+Figure A.16 | Example dialogue between AMIE and a patient. (a) The scenario and questions provided to AMIE,
+playing both roles. (b) The simulated dialogue between AMIE and itself acting as a patient. (c) Feedback from a breast oncologist
+regarding the strengths and weaknesses of this illustrative example.
+|43
+References
+1.
+Randolph, J. J. Free-Marginal Multirater Kappa (multirater K [free]): An Alternative to Fleiss’ Fixed-Marginal Multirater
+Kappa. Online submission (2005).
+2.
+Landis, J. R. & Koch, G. G. The measurement of observer agreement for categorical data. biometrics, 159–174 (1977).
+|44

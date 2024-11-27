@@ -1,0 +1,2369 @@
+Intrinsic cell-to-cell variance from experimental single-cell motility data
+Anton Klimek,1 Johannes C. J. Heyn,2 Debasmita Mondal,3, 4 Sophia Schwartz,5
+Joachim O. Rädler,2 Prerna Sharma,3, 6 Stephan Block,5 and Roland R. Netz1
+1Fachbereich Physik, Freie Universität Berlin, 14195 Berlin, Germany
+2Physics Faculty and Center for NanoScience, Ludwig Maximilians Universität, 80539 München, Germany
+3Department of Physics, Indian Institute of Science, 560012 Bangalore, India
+4James Franck Intitute, University of Chicago, 60637 Chicago, USA
+5Fachbereich Chemie und Biochemie, Freie Universität Berlin, 14195 Berlin, Germany
+6Department of Bioengineering, Indian Institute of Science, 560012 Bangalore, India
+When analyzing the individual positional dynamics of an ensemble of moving objects, the ex-
+tracted parameters that characterize the motion of individual objects, such as the mean-squared
+instantaneous velocity or the diffusivity, exhibit a spread that is due to the convolution of three
+different effects: i) Motion stochasticity, caused by the fluctuating environment and enhanced by
+limited observation time, ii) measurement errors that depend on details of the detection technique,
+and iii) the intrinsic parameter variance that characterizes differences between individual objects, the
+quantity of ultimate interest. We develop the theoretical framework to separate these effects using
+the generalized Langevin equation (GLE), which constitutes the most general description of active
+and passive dynamics, as it derives from the general underlying many-body Hamiltonian for the
+studied system without approximations. We apply our methodology to determine intrinsic cell-to-
+cell differences of living human breast-cancer cells, algae cells and, as a benchmark, size differences of
+passively moving polystyrene beads in water. We find algae and human breast-cancer cells to exhibit
+significant individual differences, reflected by the spreading of the intrinsic mean-squared instanta-
+neous velocity over two orders of magnitude, which is remarkable in light of the genetic homogeneity
+of the investigated breast-cancer cells and highlights their phenotypical diversity. Quantification of
+the intrinsic variance of single-cell properties is relevant for infection biology, ecology and medicine
+and opens up new possibilities to estimate population heterogeneity on the single-organism level in
+a non-destructive manner. Our framework is not limited to motility properties but can be readily
+applied to general experimental time-series data.
+I.
+INTRODUCTION
+Cells of a population typically exhibit largely differ-
+ent genotypes and phenotypes, which creates optimized
+fitness in reaction to external stimuli. Oftentimes, it is
+important to know how heterogeneous cells or organisms
+are, e.g.
+in order to estimate survival probabilities in
+reaction to environmental changes [1–3] or in order to
+determine the likelihood of an infection by pathogens
+[4, 5]. The heterogeneity of a population of organisms
+is typically quantified by hand-picked parameters, for in-
+stance the cell size [6], specific binding coefficients [7, 8],
+positional speed of the organism [9–11] etc. One exper-
+imentally relatively easily obtainable observable is the
+position of an organism measured over time, i.e.
+its
+positional trajectory, which requires minimal perturba-
+tion of the organism during the measurement and can be
+used to distinguish different organisms from each other
+[12]. To quantify and compare trajectories one usually
+assumes a model. The most general equation of motion
+for a general observable that can be derived exactly from
+the underlying Hamiltonian dynamics is the generalized
+Langevin equation (GLE), which was successfully used
+to model binary reaction dynamics in water [13], water
+vibrational IR line shapes [14], butane dihedral dynam-
+ics [15], single cell motion [12, 16] and protein folding
+[17, 18]. The GLE includes non-Markovian effects, i.e.,
+the memory of the trajectory of its past, and is valid
+even for non-equilibrium processes, such as cell motion
+[12, 19].
+Important limiting cases of the GLE are the
+persistent random walk (PRW) and Brownian diffusion
+models as well as active walk models such as the active
+Ornstein-Uhlenbeck model [20, 21], which are explained
+in more detail further below. The motion of any organ-
+ism and of any microscopic object, be it active or passive,
+contains intrinsic stochasticity due to the fluctuating en-
+vironment [22], which is fully captured by the description
+with the GLE.
+Every trajectory that is observed over a finite time
+span inevitably leads to some uncertainty in the ex-
+tracted parameters. Therefore, every experimental de-
+termination of model parameters contains a spread that
+originates from the stochasticity of the motion, entan-
+gled with experimental measurement errors and with the
+actual spread due to differences between the individual
+moving objects. There are many methods available to
+estimate parameters of stochastic processes [16, 23] and
+to estimate the inevitable variance of such parameters
+[24, 25]. One standard way to asses parameter uncertain-
+ties for stochastic processes is to simulate the stochastic
+model and to compare with experimental data [24, 26].
+However, the field of motility analysis yet lacks methods
+to disentangle the spread of intrinsic properties between
+individual objects from the noise of the environment and
+other experimental uncertainties.
+In this paper we introduce an approach to tackle this
+problem: By simulating the stochastic process of motion
+arXiv:2410.14561v1  [physics.bio-ph]  18 Oct 2024
+2
+for the experimental finite observation time with the uni-
+versally applicable GLE model of motion and using a sta-
+tistical variance analysis, we estimate the intrinsic spread
+of the parameters characterizing the individual moving
+objects. We show that the active and passive movements
+of individual objects of three very different types, chosen
+to cover a wide range of different patterns of motion, are
+all perfectly described by the GLE. Specifically, we con-
+sider the passive diffusion of polystyrene beads in water,
+the active motion of human breast-cancer cells on a sub-
+strate and the flagella-propelled motion of algae cells in
+two-dimensional confinement. The polystyrene-bead sys-
+tem constitutes a benchmark with known bead-to-bead
+differences, for which we confirm that our model esti-
+mates the correct intrinsic parameter variance. The al-
+gae and the human breast-cancer cell data reveal a sim-
+ilar large variance over two orders of magnitude in the
+intrinsic motion parameters, which is noteworthy as the
+cancer cells derive from a single cell line and thus share
+very similar genetic code, while the algae cells stem from
+multiple colonies and presumably are genetically rather
+heterogeneous. This showcases a significant phenotypic
+cell variance, manifested in the differences of the motion
+of individual cells, that is largely independent of the ge-
+netic diversity.
+Our framework is generally applicable
+to ensembles of time-series data and allows to separate
+stochastic environmental influences from intrinsic varia-
+tions between individual ensemble members.
+II.
+RESULTS
+A.
+Trajectory model
+We analyze trajectories of three different moving ob-
+jects, firstly the purely passive motion of polystyrene
+beads in water with a known size distribution, secondly
+the motion of human breast-cancer cells of line MDA-
+MB-231 on a one-dimensional micro lane [16, 27, 28] and
+finally the motion of micro algae cells Chlamydomonas
+reinhardtii confined between two glass plates [12, 29],
+which resembles their natural environment in soil. Ex-
+emplary microscopy images of the three different mov-
+ing objects considered in the experiments are shown in
+Figs. 1a-c. We choose these three systems as they cover
+important limiting scenarios, namely, passive Brownian
+diffusion (polystyrene beads), active persistent random
+motion (cancer cells) and strongly non-Markovian active
+motion (algae cells). Thus, our data sets include Marko-
+vian motion and non-Markovian motion in equilibrium
+as well as out of equilibrium. The experiments yield two-
+dimensional trajectories x(t), y(t) for the center position
+of the polystyrene beads and the algae cells, examples
+of which are shown in Figs. 1d,f, respectively, and one-
+dimensional trajectories x(t) for the breast-cancer cells,
+an example of which is shown in Fig. 1e. We describe all
+trajectories by the GLE
+¨x(t) = −
+Z t
+t0
+Γv(t −t′) ˙x(t′)dt′ + FR(t)
+(1)
+with an identical equation for y(t) in the case of two-
+dimensional motion. The range of different types of mo-
+tion in the experiments illustrates the universal applica-
+bility of the GLE. For Gaussian motion processes, which
+perfectly describe the experiments as explained further
+below, the equation of motion is linear and there is no
+coupling between the motion in x and y direction, there-
+fore, we average all two-dimensional trajectory data over
+the two directions. In the GLE eq. (1), ¨x(t) = ˙v(t) de-
+notes the acceleration of the position, Γv(t) is a memory
+kernel that describes how the acceleration at time t de-
+pends on the velocity ˙x(t′) = v(t′) at previous times and
+therefore accounts for non-Markovian friction effects, and
+FR(t) is a random force that describes interactions with
+the surrounding and the interior of the moving object.
+We show further below that all different types of active
+and passive motion we consider are perfectly described
+by the GLE eq.
+(1).
+Since the experimental systems
+are isotropic and homogeneous in the observed space, no
+deterministic force term appears in the GLE. In fact,
+the GLE in eq. (1) is the most general equation of mo-
+tion for Gaussian unconfined motion processes and can
+be derived by projection from the underlying many-body
+Hamiltonian, even in the presence of non-equilibrium ef-
+fects, which obviously are present for living organisms
+[19, 30–32]. An important special case of the GLE eq.
+(1) is the Markovian limit with Γ(t) = 2δ(t)/τm, which
+leads to the well known Langevin equation and describes
+persistent motion. In the so-called overdamped limit, in
+which case the persistence time τm goes to zero, one re-
+covers the even simpler Brownian diffusion model.
+If the motion can be described as a Gaussian process,
+which for polystyrene beads, cancer cells and for algae
+cells is suggested by the fact that the single-individual
+velocity distributions are Gaussian, as shown in Figs.
+2b,e,h, the random force is Gaussian as well [19] with
+correlations given by
+⟨FR(t)FR(0)⟩= ΓR(t) ,
+(2)
+where ΓR(t) denotes the symmetric random-force kernel.
+Averaging cell velocities over the cell population can re-
+sult in non-Gaussian velocity distributions, even though
+distributions are Gaussian on the individual trajectory
+level [12, 16], as we show in the SI. Therefore we check
+the Gaussianity on the single-trajectory level in Fig. 2.
+The GLE eq.
+(1) does not contain time-dependent
+parameters and, therefore, describes a stationary process.
+Indeed, for the polystyrene beads, the cancer cells as well
+as for the algae cells the velocity distributions do not
+change in time as shown in Figs. 2c,f,i, which suggests
+that the GLE can be used to model the objects’ motion.
+For an equilibrium system, such as the passively mov-
+ing polystyrene beads in water, the fluctuation dissipa-
+tion theorem (FDT) predicts ΓR(t) = BΓv(|t|) with the
+3
+1µm
+(a)
+(b)
+(c)
+0
+5
+10
+x [µm]
+0
+5
+10
+y [µm]
+bead
+(d)
+0
+20
+40
+60
+t [min]
+0
+10
+20
+x [µm]
+cancer-
+cell
+(e)
+0
+2
+4
+x [µm]
+0
+2
+4
+y [µm]
+algae
+(f)
+FIG. 1. Microscopy image of (a) a fluorescently labeled polystyrene bead with radius r = 0.5 µm in three-dimensional solution,
+(b) a living breast-cancer cell (MDA-MB-231), where the pink area is the fluorescently labeled nucleus of the cell and the
+horizontal lines indicate the fibronectin-covered lane on which the cell moves, and (c) a Chlamydomonas reinhardtii algae cell
+confined between two glass plates at a separation of about 10 µm. In (d)-(f) we show exemplary trajectories of the different
+moving objects shown in (a)-(c). The trajectory lengths are (d) L = 23.7 s, (e) L = 64.7 min and (f) L = 8.2 s, where the insets
+show enlarged sections of the trajectories.
+mean-squared velocity B ≡⟨v2⟩given by B = kBT/m
+according to the equipartition theorem, where m is the
+mass of the moving object and kBT denotes the thermal
+energy [30, 31]. For living cells, both FDT and equiparti-
+tion theorem do not hold in general and thus there is no
+a priori reason why BΓv(|t|) and ΓR(t) should be equal
+[33, 34]. Nevertheless, for non-equilibrium scenarios with
+Gaussian statistics one can construct a surrogate model
+with an effective kernel Γ(|t|) = ΓR(t)/B = Γv(|t|) that
+exactly reproduces the dynamics described by the non-
+equilibrium GLE with ΓR(t) ̸= BΓv(|t|) [12, 19]. Thus,
+for each combination of ΓR(t) and Γv(t), a unique Γ(t) ex-
+ists, which can be extracted from trajectories via the ve-
+locity autocorrelation function (VACF) [12, 16] (as shown
+in the SI). Since the VACF completely determines the dy-
+namics of a Gaussian system [12, 35], this implies that
+the extracted effective kernel Γ(t) not only describes the
+VACF exactly but also completely characterizes the mo-
+tion [35]. Recent work, where the non-equilibrium GLE
+is derived from a suitably chosen time-dependent Hamil-
+tonian, shows that for Gaussian non-equilibrium observ-
+ables the condition ΓR(t) = BΓv(|t|) is actually satisfied
+[19], in line with our method that is based on extracting
+an effective kernel Γ(t) for active cell motion. Since we
+show that the GLE is appropriate to model our exper-
+imental trajectory data, we can use it to produce syn-
+thetic trajectories with the same length as experimental
+trajectories shown in Figs. 2a,c,g and compare them to
+the experiments, which is key to determining the vari-
+ance of parameters characterizing the individual objects’
+differences.
+B.
+Trajectory analysis
+A suitable characterization of stochastic trajectories
+employs the VACF or the MSD, defined by
+Cvv(t) = ⟨v(0)v(t)⟩,
+(3)
+CMSD(t) = ⟨(x(0) −x(t))2⟩,
+(4)
+respectively. Even though the VACF is just the curva-
+ture of the MSD, Cvv(t) = 1
+2
+d2
+dt2 CMSD(t), these correla-
+tion functions accentuate different aspects of trajectories.
+For the passively moving polystyrene beads, the MSD in
+Fig. 3a demonstrates the purely diffusive nature of the
+motion, where the average over all beads (black symbols)
+agrees well with the Brownian prediction CMSD(t) = 2Dt
+for a sphere of radius r = 0.5 µm shown as a dashed
+green line. For this prediction we use the Einstein re-
+lation between the friction of a moving object with its
+environment γ at temperature T and the diffusivity D,
+where the friction of a sphere with radius r depends on
+4
+0
+750
+1500
+probability
+beads
+N = 125
+(a)
+−5.0
+−2.5
+0.0
+2.5
+5.0
+10−3
+10−2
+10−1
+100
+⟨σind⟩= 4.6 µm
+s
+(b)
+−5.0
+−2.5
+0.0
+2.5
+5.0
+10−3
+10−2
+10−1
+100
+(c)
+0-0.6 s
+0.6-1.2 s
+1.2-1.8 s
+0
+300
+600
+900
+probability
+cancer cells
+N = 131
+(d)
+−5.0
+−2.5
+0.0
+2.5
+5.0
+10−2
+10−1
+100
+⟨σind⟩= 1.3 µm
+min
+(e)
+−5.0
+−2.5
+0.0
+2.5
+5.0
+10−2
+10−1
+100
+(f)
+0-10 min
+10-20 min
+20-30 min
+0
+2000
+4000
+6000
+L/∆
+probability
+algae
+N = 23
+(g)
+−5.0
+−2.5
+0.0
+2.5
+5.0
+(vind −vind)/σind
+10−3
+10−2
+10−1
+100
+⟨σind⟩= 8.3 µm
+s
+(h)
+−5.0
+−2.5
+0.0
+2.5
+5.0
+(vt
+ind −vind)/σind
+10−3
+10−2
+10−1
+100
+(i)
+0-0.4 s
+0.8-1.2 s
+1.6-2 s
+FIG. 2. Distributions of trajectory lengths L in units of the experimental discretization time ∆for (a) polystyrene beads with
+∆= 0.02 s, (d) breast-cancer cells with ∆= 20 s and (g) algae cells with ∆= 0.002 s. Velocity distributions of individual
+moving objects rescaled by subtracting their individual mean velocity vind and dividing by their individual standard deviation
+σind for (b) polystyrene beads, (e) breast-cancer cells and (h) algae cells, where individual cells are distinguished by color and
+population mean values ⟨σind⟩are given in the plots. The black symbols in (b),(e),(h) represent the population average over all
+moving objects, which agrees very well with the standard normal distribution shown as a dashed blue line. The average over
+individually rescaled velocity distributions is identical for three different time windows for (c) polystyrene beads (f) breast-
+cancer cells and (i) algae cells, which suggests stationarity.
+the solution viscosity η, according to
+D = kBT
+γ
+= kBT
+6πηr .
+(5)
+Velocities follow from trajectories using finite differences
+(see Methods eq. (11)), which depend on the recording
+time step ∆and localization noise. The VACF for the
+polystyrene beads in Fig. 3b exhibits a single peak at
+time zero, which reflects that consecutive displacements
+are completely uncorrelated and shows that the persis-
+tence time τm is much smaller than ∆. This implies that
+the friction kernel Γ(t) is a delta function, which per-
+fectly matches the extracted kernel shown in Fig.
+3c.
+We explain the extraction scheme of the friction kernel
+in detail in the SI. For the actively moving cancer cells,
+the average MSD over all cells exhibits superdiffusive be-
+havior ∝t1.6 with a slightly decreasing slope for longer
+times shown in Fig. 3d, where the long time diffusive
+regime is not well resolved due to larger noise (caused
+by less averaging) for long times. The VACFs of the ac-
+tively moving cancer cells are decaying on the scale of
+a few minutes, as shown in Fig.
+3e.
+Similarly to the
+polystyrene beads, the friction kernels shown in Fig. 3f
+exhibit a delta peak at time zero, followed by a dip at
+the first time step t = ∆= 20 s and is then zero. This
+dip, which is also present for the algae cell kernels at the
+first time step t = ∆= 0.002 s in Fig. 3i, originates from
+localization noise (see SI for more information), as this
+noise reduces the correlation of consecutive velocities and
+influences the extracted kernel [12]. For algae cells the
+MSD exhibits a long ballistic regime up to a few seconds
+followed by the long time diffusive regime, as shown in
+Fig. 3g, whereas the VACF in Fig. 3h shows strong os-
+cillations that correspond to the flagella beat cycle with
+5
+a frequency of ∼50 Hz.
+The extracted friction kernel
+shown in Fig. 3i shows oscillations as well, but the os-
+cillations exhibit a slightly different frequency because of
+the complex dependence of the VACF frequency on the
+kernel amplitude and frequency [12].
+The extracted friction kernels imply different modes of
+motion. For the algae cells in Fig. 3i, the kernel exhibits a
+delta peak at time zero followed by a decaying oscillation,
+which was previously modeled by [12]
+Γ(t) = 2aδ(t) + be−t/τ
+
+cos(Ωt) + 1
+τΩsin(Ωt)
+
+.
+(6)
+The extracted kernels of the cancer cells in Fig.
+3f
+suggest a simple persistent random walk [36] (note that
+an earlier study modeled a different cancer cell line by
+a slightly more complex model including an exponential
+decay in the friction kernel Γ(t) [16]).
+The persistent
+random walk is described by the GLE eq. (1) with
+Γ(t) = 2δ(t)/τm ,
+(7)
+where the transition from the ballistic to the long time
+diffusive regime, i.e.
+the persistence time τm, occurs
+for cancer cells within the experimentally observed time
+scales; the mean value τm ≈2 min is in the order of min-
+utes and thus much larger than the time step of ∆= 20 s.
+Therefore, the observed superdiffusive scaling behavior of
+the ensemble-averaged MSD in Fig. 3d is explained by
+the transition from ballistic ∝t2 to the long time diffu-
+sive regime ∝t, which is confirmed by fits of the model to
+single-cell data explained below. In contrast to the can-
+cer cells, the persistence time of the polystyrene beads
+estimated by τm = m/γ ≈0.1 µs is much smaller than
+the experimental time resolution ∆= 0.02 s, so that only
+the long-time diffusive behavior is observed. Hence, we
+model the polystyrene beads by pure diffusion, in which
+case the GLE eq. (1) simplifies to
+˙x(t) =
+√
+Dξ(t) ,
+(8)
+where ξ(t) is uncorrelated white noise with ⟨ξ(t)⟩= 0
+and ⟨ξ(0)ξ(t)⟩= 2δ(t).
+In Fig. 4 we show fits of the analytical models to the
+MSD, VACF and friction kernel data using for a sin-
+gle polystyrene bead, eq. (8), for a single breast-cancer
+cell eqs.
+(1) and (7), and for a single algae cell, eqs.
+(1) and (6), all randomly selected from the ensemble of
+moving objects. The GLE describes the data perfectly,
+which confirms the applicability of the GLE to describe
+the active or passive motion of single moving objects.
+Moreover, the model that includes localization noise (de-
+scribed in the Methods) correctly captures the decorre-
+lation of consecutive velocities seen in the VACF in Figs.
+4e,h and the dip in the kernel at the first time step seen
+in Figs. 4f,i. In the case of pure diffusion, consecutive
+displacements are uncorrelated, thus, the effect of the lo-
+calization noise is not visible as strongly in the VACF
+and the friction kernel of the diffusing polystyrene beads
+in Figs. 4b,c.
+C.
+Reproducing experimental parameter
+distributions by simulation
+Even though all polystyrene beads are nearly iden-
+tical, with the standard deviation of the radius being
+∆r ∼25 nm according to the manufacturer and as con-
+firmed by our measurement of the bead radii by atomic
+force microscopy (explained in the SI), the extracted
+MSDs, VACFs and friction kernels of single beads scat-
+ter significantly around the mean, as seen in Figs. 3a-c.
+Hence, the fitted single-bead parameters show a large
+spread, seen in Fig. 5a, which does not reflect the true
+parameter spread that the beads actually exhibit, as we
+demonstrate further below.
+For living organisms it is often not known how similar
+individuals of one population are to each other. Natu-
+rally, the question arises: How much of the spread of the
+parameters extracted from experimental data originates
+from differences among individuals and how much comes
+from the motion stochasticity and experimental errors?
+We imagine the scenario that all individuals are com-
+pletely identical and are represented by the median of
+the extracted parameter distribution. Here, we use the
+median instead of the mean, because a least-squares fit
+of a noisy exponential function leads to a log-normal dis-
+tribution of the fitting parameters with the median being
+the best representation of the true parameter value, as
+explained in the SI. We simulate the same number of ex-
+perimentally recorded trajectories N, with the same tra-
+jectory length distribution as in the experiment shown in
+Figs. 2a,d,g using the median parameters estimated from
+the experimental trajectories using the GLE model at a
+temporal resolution h which is 20 to 200 times smaller
+than the experimental discretization ∆.
+We then use
+every (∆/h)-th point of the simulation to obtain a tra-
+jectory with time step ∆and add the localization noise
+to the trajectories, which is estimated directly by our fit
+described in the Methods.
+From such a simulation of
+N trajectories with identical parameters, we extract the
+VACF and perform the same fit that we used to extract
+the parameters from the experiment.
+If the spread of
+the distribution extracted from the N simulations with
+identical GLE parameters is comparable to the spread of
+the distribution extracted from the experiment, then it
+is likely that all moving objects are actually completely
+identical in their motion parameters.
+In fact, the experimentally determined spread of the
+single breast-cancer cell parameters shown in Fig.
+5e
+and of the single algae cell parameters shown in Fig. 5i
+are much larger than the spread of the respective pa-
+rameters extracted from simulations with identical input
+parameters, shown in Figs. 5f,j by the red triangles. This
+suggests that the ensemble of cancer cells as well as the
+ensemble of algae cells are not characterized by identi-
+cal parameters of motion. In contrast, in Fig. 5b the
+spread of the bead parameter distribution extracted from
+the simulations with identical input parameters is almost
+as large as the spread of the parameter distribution ex-
+6
+10−1
+100
+101
+t [s]
+10−2
+100
+102
+CMSD(t) [µm2]
+∝t
+beads
+(a)
+0.000 0.025 0.050 0.075 0.100
+t [s]
+0
+50
+100
+Cvv(t) [µm2/s2]
+(b)
+0.000 0.025 0.050 0.075 0.100
+t [s]
+0.00
+0.01
+Γ(t) [ms−2]
+(c)
+100
+101
+102
+t [min]
+10−2
+100
+102
+104
+CMSD(t) [µm2]
+∝t1.6
+cancer-
+cells
+(d)
+0
+2
+4
+t [min]
+0
+2
+4
+6
+Cvv(t) [µm2/min2]
+(e)
+0
+1
+2
+3
+4
+t [min]
+0
+10
+20
+Γ(t) [min−2]
+(f)
+10−3
+10−1
+101
+t [s]
+10−4
+10−1
+102
+CMSD(t) [µm2]
+∝t2
+∝t
+algae
+(g)
+0.00
+0.05
+0.10
+0.15
+0.20
+t [s]
+0
+200
+Cvv(t) [µm2/s2]
+(h)
+0.0
+0.1
+0.2
+t [s]
+−0.2
+0.0
+0.2
+0.4
+0.6
+Γ(t) [ms−2]
+(i)
+FIG. 3. Results for the MSD, CMSD(t) defined in eq. (4), the VACF, Cvv(t) defined in eq. (3) and the friction kernel Γ(t)
+extracted from the trajectories for polystyrene beads in (a)-(c), for cancer cells in (d)-(f) and for algae cells in (g)-(i). Different
+colors represent results for individual moving objects. The black lines in the first two columns denote the average over all
+objects. In the third column the black line denotes the friction kernel calculated from the average VACF. The dashed green
+line in (a) is the theoretical prediction for the diffusion of a sphere with radius r = 0.5 µm in water predicted by the Einstein
+relation eq. (5). The black dashed lines in the MSD plots indicate the scaling behavior. The dotted line in (g) shows the long
+time diffusive regime from a recording with lower spatial resolution and longer observation times.
+tracted from the experiment, indicating that most of the
+observed spread originates from the finite length and the
+experimental noise, in line with the small variance of the
+bead radii determined by our AFM measurement.
+The simulation results in Figs. 5f,j suggest that the in-
+dividual cancer and algae cells are characterized by non-
+identical GLE parameters within the respective popula-
+tions. To determine the actual parameter distribution of
+individual cells, we test whether simulations using input
+parameters from a Gaussian distribution with a certain
+covariance Covinp result in an extracted parameter dis-
+tribution that agrees in the covariance Covsim with the
+covariance of the parameter distribution extracted from
+the experiment Covexp. For this we use a so-called per-
+mutation test that compares the covariances Covsim and
+Covexp, which is explained in the Methods.
+We denote the summed ratio of the d-dimensional in-
+put parameter covariance for the simulation, Covinp, and
+the covariance of the distribution extracted from the ex-
+periment, Covexp, as
+S = d−2
+d
+X
+i,j
+Covinp
+ij /Covexp
+ij
+,
+(9)
+where the covariance of a distribution of parame-
+ter
+vectors
+⃗z
+is
+defined
+in
+the
+standard
+way
+as
+Covij = ⟨(zi −⟨zi⟩)(zj −⟨zj⟩)⟩with zi being the compo-
+nents of the vector ⃗z and ⟨zi⟩the d components of the
+mean vector, d denotes the number of parameters. We
+consider input covariances in the range from S = 0, which
+corresponds to all moving objects described by identical
+input parameters of motion, to S = 1, where we use the
+parameter distribution extracted from the experiment as
+the simulation input parameters. For intermediate val-
+ues 0 < S < 1, simulation input distributions are drawn
+from Gaussian distributions with covariances that are
+uniformly rescaled by S.
+Exemplary simulation input
+parameter distributions are shown as green symbols in
+Figs. 5c,g,k.
+7
+10−2
+10−1
+100
+101
+t [s]
+10−2
+100
+102
+CMSD(t) [µm2]
+bead
+(a)
+0.0
+0.1
+0.2
+t [s]
+0
+20
+40
+Cvv(t) [µm2/s2]
+(b)
+0.0
+0.1
+0.2
+t [s]
+0.00
+0.01
+Γ(t) [ms−2]
+(c)
+100
+101
+102
+t [min]
+10−2
+100
+102
+CMSD(t) [µm2]
+cancer cell
+(d)
+0
+2
+t [min]
+0.0
+0.2
+0.4
+Cvv(t) [µm2/min2]
+(e)
+0
+2
+t [min]
+0
+10
+Γ(t) [min−2]
+(f)
+10−3
+10−1
+101
+t [s]
+10−3
+10−1
+101
+103
+CMSD(t) [µm2]
+algae
+(g)
+0.0
+0.1
+0.2
+t [s]
+0
+500
+Cvv(t) [µm2/s2]
+(h)
+0.0
+0.1
+0.2
+t [s]
+0.0
+0.5
+1.0
+Γ(t) [ms−2]
+(i)
+FIG. 4. Experimental results for the MSD, CMSD(t), VACF, Cvv(t), and friction kernel Γ(t), of a single bead (a)-(c), a single
+cancer cell (d)-(f) and a single algae cell (g)-(i) (blue symbols). The red lines denote predictions of the model defined in eq.
+(8) fitted to the bead MSD, of the model defined in eqs. (1) and (7) fitted to the cancer cell VACF and of the model defined
+in eqs. (1) and (6) fitted to the algae cell VACF. The individual bead, cancer cell and algae were picked at random; we show
+the individuals with the best fits to the models and the distribution of R2, which measures the goodness of the fit, in the SI.
+The main result of our method is the value S∗, for
+which the covariance of the distribution extracted from
+the experiment Covexp agrees with the covariance of the
+distributions extracted from simulations Covsim with the
+given input covariance Covinp∗. Hence, we call S∗the
+estimated covariance ratio and the corresponding input
+covariance Covinp∗the intrinsic parameter covariance of
+individual objects.
+Examples of distributions that are
+extracted from simulations with the green input distri-
+butions Covinp∗in 5c,g,k are shown in Figs. 5d,h,l (red
+triangles), which agree with the respective experimental
+distribution (blue symbols) according to our statistical
+test described in the Methods. The statistical test that
+we use compares the covariance of the experimentally de-
+termined parameter covariance Covexp to the covariance
+of a parameter distribution extracted from a simulation
+Covsim and yields a measure of how likely the two distri-
+butions originate from the same input covariance, which
+we call p2. If several values of S are accepted by our sta-
+tistical test, meaning they lead to agreeing covariances
+Covsim and Covexp according to the test, we choose the
+midpoint of the accepted range as S∗and use the upper
+and lower acceptance bounds to estimate the error of S∗,
+as demonstrated in Fig. 6.
+As an example, the diffusion of polystyrene beads in
+water is described by the two-dimensional parameter vec-
+tor comprising the diffusivity D and the localization noise
+width σloc, ⃗z = (D, σloc), the latter defines the uncer-
+tainty of the position data (see Methods).
+If the co-
+variance of a parameter distribution extracted from the
+experiment was given by Covexp =
+
+1
+0.5
+0.5
+1
+
+with a
+median of ⃗zmed = (0, 1), simulation input parameters
+for S = 0.1 would be drawn from a Gaussian distribu-
+tion with covariance Covinp =
+
+0.1
+0.05
+0.05
+0.1
+
+and median
+⃗zmed = (0, 1) (here we omit units for clarity). As men-
+tioned earlier, we use the median for generating simula-
+tion input parameters, because it is a better represen-
+tation of typical parameters than the mean when using
+least square fits (see SI). If the parameter distribution
+covariance extracted from the simulation with S = 0.1
+8
+0
+0.25 0.50 0.75
+D [µm2/s]
+10−2
+10−1
+σloc [µm]
+(a)
+beads
+0
+0.25 0.50 0.75
+D [µm2/s]
+(b)
+0
+0.25 0.50 0.75
+D [µm2/s]
+(c)
+S = 0.56
+0
+0.25 0.50 0.75
+D [µm2/s]
+(d)
+10−1
+101
+τm [min]
+10−1
+101
+B [µm2/min2]
+(e)
+cancer cells
+10−1
+101
+τm [min]
+(f)
+10−1
+101
+τm [min]
+(g)
+S = 0.83
+10−1
+101
+τm [min]
+(h)
+0
+0.15
+0.30
+b [ms−2]
+101
+102
+103
+B [µm2/s2]
+(i)
+algae cells
+0
+0.15
+0.30
+b [ms−2]
+(j)
+0
+0.15
+0.30
+b [ms−2]
+(k)
+S = 1
+0
+0.15
+0.30
+b [ms−2]
+(l)
+FIG. 5. Distributions of GLE model parameters extracted from the experiments are shown as blue symbols, for polystyrene
+beads we show the localization noise width σloc and diffusivity D in (a)-(d), for cancer cells the mean squared velocity B and
+the persistence time τm in (e)-(h) and for the algae cells the mean squared velocity B and the kernel oscillation amplitude b
+(see eq. (6)) in (i)-(l). The green symbols in (b), (f), (j) represent the respective median of the distribution of blue symbols
+and the red filled triangles represent the parameters extracted from a simulation where all objects have the median parameter
+set and using the experimental time step and length distribution, shown in Figs. 2a,d,g. Empty triangles in (c), (g) denote
+Gaussian distributions of simulation parameters with S = 0.56 and S = 0.83, respectively, which correspond to our estimate for
+the actual parameter spread S∗shown in Fig. 6a. In (k) simulation parameters (green triangles) correspond to the parameters
+extracted from the experiment, which means that S = 1. Simulations using the empty green triangle parameters in (c), (g),
+(k) and the respective model suggested by the data eqs. (6), (7), (8) and the experimental trajectory lengths lead to the filled
+red triangles in (d), (h), (l), which by definition of S∗have the same covariance as the blue symbols.
+Covsim is the same as the parameter covariance extracted
+from the experiment Covexp according to our statisti-
+cal test, we do the same for S = 0.2. Then we repeat
+the test increasing S in steps of 0.1 up to finally using
+S = 1. In the regime of accepted S values we use smaller
+steps to determine S∗. For accepted values in the range
+S = 0.05 −0.15, we would obtain the estimated covari-
+ance ratio as S∗= 0.1 ± 0.05. The evaluation of S∗is
+graphically depicted in Figs. 6b-d.
+For the polystyrene beads we find S∗= 0.56 ± 0.21
+as shown in Fig. 6a, which translates into an estimate
+for the standard deviation of the bead radius ∆r =
+86 ± 63 nm via the Einstein law eq. (5) and using the
+viscosity of water at room temperature η ≈1 mPs. The
+bead radius standard deviation of ∆r ∼25 nm listed
+by the manufacturer and confirmed by our atomic force
+microscopy (AFM) measurements is close to the lower
+bound of our result. Nevertheless, it should be noted that
+other experimental factors such as the bead-surface prop-
+erties contribute to additional individual-to-individual
+variance in diffusivity, thereby increasing the variance
+of the hydrodynamic radius ∆r, which explain our rel-
+atively large estimate of ∆r.
+For the cancer cells the estimated covariance ratio is
+9
+given by S∗= 0.83 ± 0.17 shown in Fig. 6a, which in-
+dicates a spread over nearly two orders of magnitude in
+the mean squared cell speed B and in the persistence
+time τm, seen in Fig. 5g, even though all cells are from
+the same cell line and supposedly share the same genetic
+code. This demonstrates the large phenotype variance
+among cancer cells of the same cell line. The distribu-
+tion extracted from the algae trajectories represents the
+true cell-to-cell variance accurately, as seen by comparing
+Figs. 5k,l, and as reflected by S∗= 0.98 ± 0.02 shown in
+Fig. 6a.
+Additionally
+to
+decomposing
+the
+spread
+on
+the
+individual-to-individual level, our approach allows us to
+estimate how long experimental recordings have to be, in
+order to obtain a certain level of S∗. The variance contri-
+bution due to the intrinsic stochasticity of the motion de-
+creases inversely proportional to the trajectory length, as
+explained in detail in the SI [37]. Therefore, if stochastic-
+ity of the motion is the main contribution to the variance,
+doubling the length of all trajectories of a given popu-
+lation of moving objects leads to 1 −S∗
+new = (1 −S∗)/2,
+consequently, S∗increases as S∗
+new = S∗+ (1 −S∗)/2. In
+the case of the polystyrene beads for instance, this would
+mean that for experimental trajectories observed twice
+as long as in the actual experiment, the estimated co-
+variance ratio would increase from S∗= 0.53 to roughly
+S∗
+new = 0.76, if the spread 1 −S∗stems mainly from the
+stochastic process observed over a finite time, i.e. if the
+influence of other experimental factors on the parameter
+spread is negligible.
+III.
+DISCUSSION & CONCLUSIONS
+We use the GLE eq. (1) to describe active cell mo-
+tion as well as passive motion of polystyrene beads. The
+objects’ motion is described by a set of GLE parame-
+ters, which we extract on the single trajectory level. The
+spread of these parameter distributions extracted from
+the experiments is due to a combination of intrinsic dif-
+ferences among the individual moving objects, the finite
+trajectory length and noise in the experiment. Our sim-
+ulation approach decomposes how much of the spread
+actually originates from intrinsic differences between in-
+dividuals of the observed population and how much stems
+from the experimental finite observation time. On top
+of that, it allows an estimate of how long experimental
+trajectories have to be in order to reach a certain ac-
+curacy level of the experimentally extracted parameter
+distributions. Our method readily includes experimental
+factors such as localization noise, discrete time steps and
+different trajectory lengths. We confirm the robustness
+of our model by applying it to data of passively mov-
+ing polystyrene beads in water and to synthetic data sets
+with known origin in the SI.
+Compared to the polystyrene beads that are relatively
+similar to each other, the cancer cells and algae cells
+show significant differences within the studied popula-
+beads
+cancer
+algae
+0.00
+0.25
+0.50
+0.75
+1.00
+(a)
+1−S∗
+,
+S∗
+0.0
+0.5
+1.0
+S
+0.0
+0.5
+1.0
+p2
+accept
+reject
+reject
+S∗
+(b)
+beads
+0.0
+0.5
+1.0
+S
+0.0
+0.5
+1.0
+p2
+accept
+reject
+S∗
+(c)
+cancer cells
+0.0
+0.5
+1.0
+S
+0.0
+0.5
+1.0
+p2
+reject
+S∗
+(d)
+algae
+FIG. 6. (a) Estimated covariance ratio S∗of the intrinsic to
+the experimentally observed parameters shown in green. Like-
+lihood measure p2 that the covariance extracted from simula-
+tion Covsim agrees with the experimental covariance Covexp
+according to our statistical test described in the Methods as a
+function of S (different S originate from different simulation
+input covariances Covinp) for (b) beads, (c) cancer cells, (d)
+algae.
+The acceptance level of p∗
+2 = 0.05 is indicated as a
+gray horizontal line and points below the line correspond to
+accepted S values and are shown in green. The acceptance
+region is indicated by dashed vertical lines with the center,
+denoted by S∗, and the width defines the error bars shown in
+(a).
+tions. For the motion of the breast-cancer cells, most of
+the observed spread in the mean squared velocity B and
+in the persistence time τm originates from sizable intrin-
+sic differences on the cell-to-cell level; this is noteworthy,
+as these cells carry the same genetic material. Such phe-
+notypic differences were previously observed [38] and are
+connected to different levels of expressed proteins in the
+cells [39]. The observed GLE parameter distribution of
+algae cells turns out to almost entirely reflect intrinsic
+cell-to-cell differences, which is part of the reason why
+the observed GLE parameters could previously be di-
+rectly used to distinguish different swimming styles of
+these confined algae cells on the single cell level [12].
+The usage of the GLE eq. (1) to describe active sys-
+tems relies on the Gaussianity of the underlying mo-
+tion process [12, 19].
+In cases of non-Gaussian single-
+cell velocity distributions, one could use filter approaches
+that render data Gaussian [40] and then apply the same
+methodology we describe in this paper.
+Alternatively,
+for non-Gaussian systems one could use the GLE in a
+heuristic manner or use previously introduced models to
+describe the organism motion [22, 41–44]. Since the GLE
+eq. (1) is valid for general observables, our approach can
+be applied to time-series data characterizing any organ-
+10
+ism or object of choice - be it active or passive.
+In summary, our approach allows us to disentangle the
+intrinsic individual-to-individual parameter variance of
+moving objects from noise and stochastic effects.
+As
+every distribution of parameters extracted from exper-
+iments inevitably is noisy due to finite recording time,
+we anticipate various applications of our method in in-
+fection biology, ecology, medicine and all other fields that
+rely on the knowledge of the heterogeneity of individual
+moving objects.
+ACKNOWLEDGEMENT
+We
+acknowledge
+the
+funding
+by
+the
+Deutsche
+Forschungsgemeinschaft
+(DFG)
+through
+grant
+CRC
+1449 “Dynamic Hydrogels at Biointerfaces”, Project ID
+431232613, Project A03.
+IV.
+METHODS, EXPERIMENTAL DETAILS
+AND CELL PREPARATION
+A.
+Statistical test
+In order to compare two d-dimensional distributions
+ρexp(⃗z) and ρsim(⃗z) which are determined by a finite num-
+ber of observations ⃗zexp
+i
+for ρexp and ⃗zsim
+i
+for ρsim, we use
+a so-called permutation test [45]. We define the distance
+measure
+T =
+d
+X
+i≤j
+ Cov1
+ij −Cov2
+ij
+2 ,
+(10)
+which measures the difference between two distributions
+in terms of their covariances Cov1 and Cov2. We denote
+the value of T of the distributions ρexp(⃗z) and ρsim(⃗z) by
+T0.
+The statistical test starts by randomly drawing sam-
+ples from the joint pool of observations ⃗zexp
+i
+and ⃗zsim
+i
+,
+which leads to the exchanged distributions ρexp
+exch(⃗z) and
+ρsim
+exch(⃗z).
+The exchanged distributions exhibit a new
+value of T called Texch.
+This process of sampling ex-
+changed distributions from the joint pool of observations
+is repeated nexch = 104 times, leading to 104 values of
+Texch. Comparing T0 to Texch leads to the probability of
+rejecting the hypothesis that the two distributions have
+the same covariance, given that the hypothesis is actu-
+ally true as p1 = nrej/nexch, with nrej being the number
+of exchanges for which Texch > T0 [45]. We use the accep-
+tance level p∗
+1 = 0.05, meaning we accept the hypothesis
+that the distributions ρexp(⃗z) and ρsim(⃗z) are identical in
+covariance when p1 ≤p∗
+1.
+In practice, we extract M = 100 distributions ρsim(⃗z)
+from simulations and compare each one to the experimen-
+tal distribution using the statistical test described above.
+This means we simulate a total of M×N trajectories. We
+define p2 as the ratio of rejected distributions Mrej, where
+p1 > p∗
+1, to the total number of simulated distributions
+p2 = Mrej/M. The hypothesis that the covariance from
+simulation Covsim originates from the same intrinsic co-
+variance Covinp∗as the experimental covariance Covexp
+is accepted as true, if p2 ≤p∗
+2, where p∗
+2 is the acceptance
+level. One expects the hypothesis to be rejected in aver-
+age p∗
+1 × M out of M times, if it is true. Therefore we
+set another acceptance level p∗
+2 = p∗
+1 = 0.05. Results of
+p2 depending on S are shown in Figs. 6b-d for different
+moving objects.
+B.
+Discretized fit to data including localization
+noise
+Every experimental recording of trajectories inevitably
+includes noise. In the case of cell-center trajectories the
+finite pixel size, thermal and electronic fluctuations in the
+camera sensors are just a few of many possible origins of
+localization noise present in the trajectories. Therefore,
+our fit to the experimental VACF of individual trajec-
+tories needs to account for finite time discretization and
+noise [16]. Here, we explain this fitting procedure. We de-
+note discrete values of a function f(t) as f(i∆) = fi = f i
+and the discretization time step as ∆. Velocities are com-
+puted at half time steps as
+vi+ 1
+2 = xi+1 −xi
+∆
+.
+(11)
+From the velocities the VACF defined by eq. (3) is com-
+puted according to
+Ci
+vv =
+1
+n −i
+n−i−1
+X
+j=0
+vj+ 1
+2 vj+i+ 1
+2 ,
+(12)
+with n being the the number of trajectory steps. In or-
+der to account for localization noise, we add Gaussian
+uncorrelated noise of width σloc at every time step to the
+trajectory, which leads to the noisy MSD as [16]
+Cnoise
+MSD(t) = Ctheo
+MSD(t) + 2(1 −δt0)σ2
+loc ,
+(13)
+where Ctheo
+MSD(t) is the theoretical expression for the model
+MSD given by eqs. (17), (18), (20) for the different mod-
+els eqs. (6), (7), (8) and δt0 is the Kronecker delta re-
+flecting the uncorrelated nature of the localization noise.
+Since the observed trajectories are sampled with a finite
+time step ∆, we discretize the relation
+Cvv(t) = 1
+2
+d2
+dt2 CMSD(t) ,
+(14)
+which leads to
+Cfit
+vv(i∆) =
+Cnoise
+MSD((i + 1)∆) −2Cnoise
+MSD(i∆) + Cnoise
+MSD((i −1)∆)
+2∆2
+.
+(15)
+11
+Finally, fits are performed by minimizing the cost func-
+tion
+Ecost =
+n−1
+X
+i=0
+(Cexp
+vv (i∆) −Cfit
+vv(i∆))2
+(16)
+with scipy’s least squares function in python and using
+eq. (15) to determine the parameters of Cfit
+vv(t). As the
+MSD and VACF follow from the GLE (1) and the friction
+kernel in eqs. (6),(7) or the LE in eq. (8), the parameters
+to be optimized are the kernel parameters, together with
+the mean squared velocity B and the localization noise
+width σloc. Resulting fits are shown in Figs. 4e,h, where
+the data is fitted up to 3.3 min for the cancer cells and up
+to 0.2 s for the algae cells in order to disregard the noisy
+part of the VACF at longer times. For the polystyrene
+beads, which perform purely diffusive motion, we use eq.
+(13) to fit the experimental MSD as the VACF is only
+non-zero for the first two time steps. A resulting fit is
+shown in Fig. 4a, where the MSD is fitted up to 0.2 s.
+Before we fit the data on the individual trajectory level,
+we estimate the order of magnitude of the mean squared
+velocity B by Best = C0
+vv for the cancer cells and algae
+cells. For the freely diffusing beads we estimate the diffu-
+sion coefficient D by the integral over the VACF, which
+becomes Dest = C0
+vv
+∆
+2 . Furthermore, for the cancer cells
+we estimate the order of magnitude of the persistence
+time τm by τ est
+m
+=
+2
+∆Γ0 . We apply boundaries for the
+optimization of cancer cell parameters: B is constrained
+between Best/4 and 4Best, τm between τ est
+m /4 and 4τ est
+m
+and the localization noise width σloc between 0.01−1 µm.
+For the algae cells B is assumed to lie between Best/3
+and 3Best, the delta amplitude a and the oscillation am-
+plitude b are assumed to lie between 0.01Γ0 and Γ0, the
+memory time τ is bound between 0.05−5 s, the kernel fre-
+quency Ωbetween 15 −250 Hz and the localization noise
+width σloc between 0 −0.05 µm. Further, for polystyrene
+beads we use bounds of 4Dest and Dest/4 for the diffusiv-
+ity D and the localization noise width σloc is constrained
+between 0.001 −0.2 µm. Finally, we discard fit results
+for which the localization noise width σloc is close to the
+boundaries and likely to be an unphysical fit result, when
+σloc is smaller than 1.5 times the lower boundary or larger
+than 0.99 times the upper boundary. This leads to four
+discarded trajectories out of 135 total trajectories for the
+breast-cancer cells, no discarded trajectories for the 23 al-
+gae cells and 19 discarded trajectories out of 144 for the
+polystyrene beads. For the diffusion of the polystyrene
+beads we additionally discard diffusion constants above
+0.8 µm2/s, which is roughly twice the theoretical value of
+a sphere with radius r = 0.5 µm according to the Stokes-
+Einstein law eq.
+(5), which leads to four additionally
+discarded trajectories.
+C.
+MSD expressions
+The diffusion coefficient defined in eq. (5) dictates the
+behavior of the MSD for pure diffusion as
+CMSD(t) = 2Dt .
+(17)
+In the case of the PRW the MSD takes the form
+CMSD(t) = 2Bτm
+
+t −τm(1 −e−t/τm)
+
+,
+(18)
+where the diffusion constant is given by D = Bτm and
+the VACF follows a single exponential decay
+Cvv(t) = Be−t/τm .
+(19)
+For the oscillating memory kernel eq. (6) the MSD takes
+the form [12]
+CMSD(t) = B
+τ 4
+
+k1t
+ω2
+1ω2
+2ω2
+3
++
+3
+X
+i=1
+e−√
+−ω2
+i t −1
+p
+−ω2
+i
+Q
+j̸=i(ω2
+i −ω2
+j )
+ k1
+ω2
+i
++ k2 + k3ω2
+i
+ 
+,
+(20)
+where the constants ωi and ki have been previously cal-
+culated [12].
+D.
+Polystyrene beads
+Materials:
+Fluorescently labeled polystyrene beads
+(diameter:
+1000 nm, excitation wavelength:
+505 nm,
+emission wavelength: 515 nm) were purchased from Ther-
+moFisher Scientific (order number:
+F8776).
+For sin-
+gle particle tracking experiments, the beads are diluted
+1:1000 in deionized water and sonicated for five min-
+utes at room temperature.
+Afterwards, 8 µl of bead-
+containing solution is injected into polydimethylsiloxane
+(PDMS) microwells, which are formed on glass cover slips
+as described previously [46].
+Imaging: Single-particle tracking of the fluorescently
+labeled polystyrene beads is performed using a Nikon
+Ti-E Eclipse fluorescence microscope (Nikon, Düsseldorf,
+Germany), which is equipped with focus stabilization,
+a white light source (Prior Lumen 200; Prior Scientific,
+Cambridge, UK) and an Andor Zyla 4.2 sCMOS camera
+(Oxford Instruments, Oxford, UK). Fluorescence exci-
+tation and emission is controlled using a GFP filter set
+(Nikon GFP-1828A; EX 482/18, DM 495, BA 520/28).
+The beads are imaged using a 100x Plan-Apo oil immer-
+sion objective (numerical aperture: 1.45) and the follow-
+ing setting of the sCMOS camera: 2 × 2 binning, 10 ms
+exposure time, acquisition rate of 50.41 frames per sec-
+ond at a field of view of 1024×1024 pixel2, corresponding
+to 133.12 × 133.12 µm2.
+Image analysis:
+Single particle tracking analysis is
+performed as previously described [47].
+In brief, the
+12
+beads are detected by a local maximum of the fluores-
+cence intensity and only considered for further analy-
+sis, if the corresponding intensity value exceeds a user-
+defined threshold, which is chosen slightly above the level
+of readout noise of the sCMOS camera. The center po-
+sition of each detected bead is determined by fitting a
+two-dimensional Gaussian distribution to its intensity
+distribution.
+Trajectories are generated by a nearest-
+neighbor linking scheme involving a distance threshold
+as described previously [48]. Finally, as convection of the
+aqueous solution (contained in the PDMS wells) cannot
+be ruled out even for these relatively small wells, the bead
+trajectories are corrected for the potential occurrence of
+convection-based distortions of bead motion. Convection
+affects the displacements of all beads in the same way
+and there is no further source of motional correlation
+for these randomly moving beads, except for hydrody-
+namic interactions, which are weak for the high dilution
+of beads employed here [49].
+The convection is deter-
+mined (i) by calculating the displacements of all beads
+between consecutive frames, followed (ii) by calculating
+the average value of all obtained two-dimensional dis-
+placement vectors and finally (iii) by integrating all av-
+erage displacement vector values from the first to the last
+frame (whereas the average displacement vector between
+the first two frames is set to zero). This running integral
+yields an estimate for the convection-based motion of the
+aqueous solution, which we subtract from the position of
+the beads to correct the trajectories for convection.
+E.
+Breast-cancer cells
+Micropatterning: The human breast-cancer cells of the
+cell line MDA-MBA-231 in our experiments move on one-
+dimensional lanes that are produced by coating with fi-
+bronectin (FN). We transfer fibronectin (FN) (YO Pro-
+teins, Ronninge, Sweden) to an imaging dish featuring
+a polymer coverslip bottom (ibidi, Gräfelfing, Germany)
+using polydimethylsiloxane (PDMS) stamps with a 15 µm
+wide lane pattern. The microcontact printing protocol,
+including the fabrication of the PDMS stamps, has been
+detailed previously [50].
+Cell culture: We culture MDA-MB-231 cells that had
+been stably transduced with histone-2B mCherry (gift
+from Timo Betz, University of Göttingen, Germany) in
+Leibovitz’s CO2-buffered L-15 medium with 2 mM Glu-
+tamax (Thermo Fisher Scientific, Waltham, MA, USA)
+at 37◦C. The growth medium was supplemented by 10 %
+fetal bovine serum (Thermo Fisher) and cells were pas-
+saged every 2-3 days using Accutase (Thermo Fisher).
+For experiments, we seeded about 5000 cells per dish.
+After incubation for 2-3 h, cells adhered to the micropat-
+terns and we exchanged the medium.
+Microscopy: The microscopy images, see for instance
+Fig. 1b, originate from time-lapse imaging on an inverted
+fluorescence microscope (Nikon Eclipse Ti, Nikon, Tokyo,
+Japan) outfitted with an XY-motorized stage, Perfect
+Focus System (Nikon), and a heating chamber (Okolab,
+Pozzuoli, Italy) maintained at 37◦C. We set up an ac-
+quisition protocol to sequentially scan and image fields
+of view employing the motorized stage, the Perfect Fo-
+cus System, a 10 CFI Plan Fluor DL objective (Nikon),
+a CMOS camera (PCO edge 4.2, Excelitas PCO, Kel-
+heim, Germany) and the acquisition software NIS Ele-
+ments (Nikon). Prior to the time-lapse measurement, we
+obtain epifluorescence images of the FN patterns. Sub-
+sequently, we capture phase-contrast images of the cells
+and epifluorescence images of their nuclei at 20 s intervals
+for a total of 48 h.
+Image analysis: In order to obtain trajectories from
+the microscopy data of the fluorescently labeled cell nu-
+clei, we employ MATLAB [51] scripts built upon previous
+work [27] for image analysis. Here, the geometric center
+of the fluorescently labeled nucleus is used as the cell po-
+sition. Detection of FN lanes is accomplished through
+a Hough transformation of the fluorescence signal from
+labeled FN. Tracking of nuclei positions involves setting
+a threshold after applying a background correction and a
+band-pass filter to fluorescent images of the nuclei. The
+position of the nuclei is adjusted to ensure that the po-
+sition aligns with the FN lanes such that nuclei center
+positions cannot be extracted offside of the FN lane.
+F.
+Algae cells
+Wild-type
+Chlamydomonas
+reinhardtii
+cells
+are
+recorded in two-dimensional confinement between two
+anti-adhesively coated glass plates with separation of
+roughly 10 µm by high-speed video microscopy (Olym-
+pus IX83/IX73) at 500 frames per second with a 40x
+phase-contrast objective (Olympus, 0.65 NA, Plan N,
+PH2) connected to a metal oxide semiconductor (CMOS)
+camera (Phantom Miro C110, Vision Research, pixel size
+= 5.6 µm). Trajectories of the algae cells are extracted by
+binarizing the image sequences with appropriate thresh-
+old parameters and tracking their centers using standard
+MATLAB routines [51]. More experimental details are
+given in [12, 29]. The Chlamydomonas reinhardtii cells
+were previously shown to exhibit two distinct swimming
+styles [12], only data of cells with synchronous flagella
+motion is considered in this work.
+The studied algae
+cells originate from multiple isolated colonies and, hence,
+are genetically heterogeneous.
+[1] E. Levien, J. Min, J. Kondev, and A. Amir, Non-genetic
+variability in microbial populations: survival strategy or
+nuisance?, Reports on progress in physics 84, 116601
+13
+(2021).
+[2] M. M. Conner and G. C. White, Effects of individual
+heterogeneity in estimating the persistence of small pop-
+ulations, Natural Resource Modeling 12, 109 (1999).
+[3] G. A. Fox, B. E. Kendall, J. W. Fitzpatrick, and G. E.
+Woolfenden, Consequences of heterogeneity in survival
+probability in a population of florida scrub-jays, Journal
+of Animal Ecology 75, 921 (2006).
+[4] R. Avraham, N. Haseley, D. Brown, C. Penaranda, H. B.
+Jijon, J. J. Trombetta, R. Satija, A. K. Shalek, R. J.
+Xavier, A. Regev, et al., Pathogen cell-to-cell variability
+drives heterogeneity in host immune responses, Cell 162,
+1309 (2015).
+[5] A. E. Fleming-Davies, V. Dukic, V. Andreasen, and
+G. Dwyer, Effects of host heterogeneity on pathogen di-
+versity and evolution, Ecology letters 18, 1252 (2015).
+[6] Asadullah, S. Kumar, N. Saxena, M. Sarkar, A. Barai,
+and S. Sen, Combined heterogeneity in cell size and de-
+formability promotes cancer invasiveness, Journal of cell
+science 134, jcs250225 (2021).
+[7] W. C. Aird, Endothelial cell heterogeneity, Critical care
+medicine 31, S221 (2003).
+[8] R. Rigler, A. Pramanik, P. Jonasson, G. Kratz, O. Jans-
+son, P.-Å. Nygren, S. Ståhl, K. Ekberg, B.-L. Johansson,
+S. Uhlen, et al., Specific binding of proinsulin c-peptide
+to human cell membranes, Proceedings of the National
+Academy of Sciences 96, 13318 (1999).
+[9] E. R. Jerison and S. R. Quake, Heterogeneous t cell motil-
+ity behaviors emerge from a coupling between speed and
+turning in vivo, Elife 9, e53933 (2020).
+[10] S. Studenski, S. Perera, K. Patel, C. Rosano, K. Faulkner,
+M. Inzitari, J. Brach, J. Chandler, P. Cawthon, E. B.
+Connor, et al., Gait speed and survival in older adults,
+Jama 305, 50 (2011).
+[11] P. Maiuri, J.-F. Rupprecht, S. Wieser, V. Ruprecht,
+O. Bénichou, N. Carpi, M. Coppey, S. De Beco, N. Gov,
+C.-P. Heisenberg, et al., Actin flows mediate a univer-
+sal coupling between cell speed and cell persistence, Cell
+161, 374 (2015).
+[12] A. Klimek,
+D. Mondal,
+S. Block,
+P. Sharma, and
+R. R. Netz, Data-driven classification of individual cells
+by their non-Markovian motion, Biophysical Journal
+10.1016/j.bpj.2024.03.023 (2024).
+[13] F. N. Brünig, J. O. Daldrop, and R. R. Netz, Pair-
+reaction dynamics in water: competition of memory, po-
+tential shape, and inertial effects, The Journal of Physical
+Chemistry B 126, 10295 (2022).
+[14] F. N. Brünig, O. Geburtig, A. v. Canal, J. Kappler,
+and R. R. Netz, Time-dependent friction effects on vi-
+brational infrared frequencies and line shapes of liquid
+water, The Journal of Physical Chemistry B 126, 1579
+(2022).
+[15] B. A. Dalton, H. Kiefer, and R. R. Netz, The role of
+memory-dependent friction and solvent viscosity in iso-
+merization kinetics in viscogenic media, Nature Commu-
+nications 15, 3761 (2024).
+[16] B. G. Mitterwallner, C. Schreiber, J. O. Daldrop, J. O.
+Rädler, and R. R. Netz, Non-Markovian data-driven
+modeling of single-cell motility, Phys. Rev. E 101, 032408
+(2020), publisher: American Physical Society.
+[17] C. Ayaz, L. Tepper, F. N. Brünig, J. Kappler, J. O. Dal-
+drop, and R. R. Netz, Non-markovian modeling of protein
+folding, Proceedings of the National Academy of Sciences
+118, e2023856118 (2021).
+[18] B. A. Dalton, C. Ayaz, H. Kiefer, A. Klimek, L. Tep-
+per, and R. R. Netz, Fast protein folding is governed by
+memory-dependent friction, Proceedings of the National
+Academy of Sciences 120, e2220068120 (2023).
+[19] R. R. Netz, Derivation of the nonequilibrium generalized
+langevin equation from a time-dependent many-body
+hamiltonian, Physical Review E 110, 014123 (2024).
+[20] D. Martin, J. O’Byrne, M. E. Cates, É. Fodor, C. Nar-
+dini, J. Tailleur, and F. Van Wijland, Statistical mechan-
+ics of active ornstein-uhlenbeck particles, Physical Re-
+view E 103, 032607 (2021).
+[21] B. G. Mitterwallner, L. Lavacchi, and R. R. Netz, Nega-
+tive friction memory induces persistent motion, The Eu-
+ropean Physical Journal E 43, 1 (2020).
+[22] G. M. Viswanathan, M. G. Da Luz, E. P. Raposo, and
+H. E. Stanley, The physics of foraging: an introduction
+to random searches and biological encounters (Cambridge
+University Press, 2011).
+[23] T. K. Moon, The expectation-maximization algorithm,
+IEEE Signal processing magazine 13, 47 (1996).
+[24] A. M. Law, W. D. Kelton, and W. D. Kelton, Simulation
+modeling and analysis, Vol. 3 (Mcgraw-hill New York,
+2007).
+[25] R. R. Barton and L. W. Schruben, Resampling methods
+for input modeling, in Proceeding of the 2001 winter sim-
+ulation conference (Cat. No. 01CH37304), Vol. 1 (IEEE,
+2001) pp. 372–378.
+[26] A. B. Massada and Y. Carmel, Incorporating output vari-
+ance in local sensitivity analysis for stochastic models,
+ecological modelling 213, 463 (2008).
+[27] C. Schreiber, B. Amiri, J. C. Heyn, J. O. Rädler, and
+M. Falcke, On the adhesion–velocity relation and length
+adaptation of motile cells on stepped fibronectin lanes,
+Proceedings of the National Academy of Sciences 118,
+e2009959118 (2021).
+[28] B. Amiri, J. C. Heyn, C. Schreiber, J. O. Rädler, and
+M. Falcke, On multistability and constitutive relations
+of cell motion on fibronectin lanes, Biophysical Journal
+122, 753 (2023).
+[29] D. Mondal,
+A. G. Prabhune,
+S. Ramaswamy, and
+P. Sharma, Strong confinement of active microalgae leads
+to inversion of vortex flow and enhanced mixing, eLife
+10, e67663 (2021), publisher: eLife Sciences Publications,
+Ltd.
+[30] H. Mori, Transport, Collective Motion, and Brownian
+Motion, Prog. Theor. Phys. 33, 423 (1965).
+[31] R. Zwanzig, Memory effects in irreversible thermodynam-
+ics, Physical Review 124, 983 (1961).
+[32] C. Ayaz, L. Scalfi, B. A. Dalton, and R. R. Netz, Gen-
+eralized langevin equation with a nonlinear potential of
+mean force and nonlinear memory friction from a hybrid
+projection scheme, Phys. Rev. E 105, 054138 (2022).
+[33] D. Mizuno, C. Tardin, C. F. Schmidt, and F. C. MacK-
+intosh, Nonequilibrium mechanics of active cytoskeletal
+networks, Science 315, 370 (2007).
+[34] R. R. Netz, Fluctuation-dissipation relation and sta-
+tionary distribution of an exactly solvable many-particle
+model for active biomatter far from equilibrium, The
+Journal of chemical physics 148, 185101 (2018).
+[35] R. R. Netz, Multi-point distribution for gaussian non-
+equilibrium non-markovian observables (2023).
+[36] D. Selmeczi, S. Mosler, P. H. Hagedorn, N. B. Larsen, and
+H. Flyvbjerg, Cell motility as persistent random motion:
+theories from experiments, Biophysical journal 89, 912
+14
+(2005).
+[37] H. Flyvbjerg and H. G. Petersen, Error estimates on aver-
+ages of correlated data, The Journal of Chemical Physics
+91, 461 (1989).
+[38] B. Snijder and L. Pelkmans, Origins of regulated cell-to-
+cell variability, Nature reviews Molecular cell biology 12,
+119 (2011).
+[39] S. L. Spencer, S. Gaudet, J. G. Albeck, J. M. Burke, and
+P. K. Sorger, Non-genetic origins of cell-to-cell variability
+in trail-induced apoptosis, Nature 459, 428 (2009).
+[40] R. R. Netz, Temporal coarse-graining and elimina-
+tion of slow dynamics with the generalized langevin
+equation for time-filtered observables, arXiv preprint
+arXiv:2409.12429 (2024).
+[41] C. Bechinger, R. Di Leonardo, H. Löwen, C. Reichhardt,
+G. Volpe, and G. Volpe, Active particles in complex and
+crowded environments, Reviews of Modern Physics 88,
+045006 (2016).
+[42] P. Dieterich, R. Klages, R. Preuss, and A. Schwab,
+Anomalous dynamics of cell migration, Proceedings of
+the National Academy of Sciences 105, 459 (2008).
+[43] R. K. Sadhu, A. Iglič, and N. S. Gov, A minimal cell
+model for lamellipodia-based cellular dynamics and mi-
+gration, Journal of Cell Science 136, jcs260744 (2023).
+[44] J. Heyn, M. Atienza Juanatey, M. Falcke, and J. Raedler,
+Cell-mechanical parameter estimation from 1d cell tra-
+jectories using simulation-based inference, bioRxiv , 2024
+(2024).
+[45] F. Pesarin and L. Salmaso, The permutation testing ap-
+proach: a review, Statistica 70, 481 (2010).
+[46] M. Wallert, C. Nie, P. Anilkumar, S. Abbina, S. Bhatia,
+K. Ludwig, J. N. Kizhakkedathu, R. Haag, and S. Block,
+Mucin-inspired, high molecular weight virus binding in-
+hibitors show biphasic binding behavior to influenza a
+viruses, Small 16, 2004635 (2020).
+[47] M. Müller, D. Lauster, H. H. Wildenauer, A. Herrmann,
+and S. Block, Mobility-based quantification of multiva-
+lent virus-receptor interactions:
+new insights into in-
+fluenza a virus binding mode, Nano letters 19, 1875
+(2019).
+[48] Y. Kerkhoff and S. Block, Analysis and refinement of 2d
+single-particle tracking experiments, Biointerphases 15
+(2020).
+[49] Y. von Hansen, A. Mehlich, B. Pelz, M. Rief, and R. R.
+Netz, Auto-and cross-power spectral analysis of dual trap
+optical tweezer experiments using bayesian inference, Re-
+view of Scientific Instruments 83 (2012).
+[50] C. Schreiber, F. J. Segerer, E. Wagner, A. Roidl, and
+J. O. Rädler, Ring-shaped microlanes and chemical bar-
+riers as a platform for probing single-cell migration, Sci-
+entific reports 6, 26858 (2016).
+[51] D. Blair and E. Dufresne, The matlab particle track-
+ing code repository, Particle-tracking code available at
+http://physics. georgetown. edu/matlab (2008).
+Supporting Information:
+Intrinsic cell-to-cell variance from experimental single-cell motility
+data
+Anton Klimek,1 Johannes C. J. Heyn,2 Debasmita Mondal,3, 4 Sophia Schwartz,5
+Joachim O. Rädler,2 Prerna Sharma,3, 6 Stephan Block,5 and Roland R. Netz1
+1Fachbereich Physik, Freie Universität Berlin, 14195 Berlin, Germany
+2Physics Faculty and Center for NanoScience,
+Ludwig Maximilians Universität, 80539 München, Germany
+3Department of Physics, Indian Institute of Science, 560012 Bangalore, India
+4James Franck Intitute, University of Chicago, 60637 Chicago, USA
+5Fachbereich Chemie und Biochemie,
+Freie Universität Berlin, 14195 Berlin, Germany
+6Department of Bioengineering, Indian Institute of Science, 560012 Bangalore, India
+CONTENTS
+I. Averaging velocities over populations can result in non-Gaussian distributions
+2
+II. Memory kernel extraction
+3
+III. Goodness of fit to individual trajectory data
+3
+IV. Effective kernel follows uniquely from correlation function
+4
+V. Bead radius variance determined by atomic force microscopy
+6
+VI. Least-square fit parameter distributions of noisy exponentials: The median is more
+accurate than the mean
+7
+VII. Analytical estimation of parameter variance
+8
+VIII. Test method with known origin parameter distribution
+12
+1
+arXiv:2410.14561v1  [physics.bio-ph]  18 Oct 2024
+−5.0
+−2.5
+0.0
+2.5
+5.0
+10−3
+10−2
+10−1
+100
+p(v)
+beads
+(a)
+(vind −vind)/σind ; (vind −v)/σ
+−5.0
+−2.5
+0.0
+2.5
+5.0
+10−2
+10−1
+100
+cancer-
+cells
+(b)
+(vind −vind)/σind ; (vind −v)/σ
+−5.0
+−2.5
+0.0
+2.5
+5.0
+10−3
+10−2
+10−1
+100
+algae
+(c)
+(vind −vind)/σind ; (vind −v)/σ
+FIG. S1. Average velocity distribution of all moving objects for the beads (a), cancer cells (b), algae
+(c). The black symbols correspond to the averages shown in Fig. 2b,e,h and result from rescaling
+with respect to individual trajectory means vind and standard deviations σind according to the black
+x-axis label. Red symbols result from rescaling by the population mean v and standard deviation
+σ according to eq. (S1). The dashed cyan line represents the standard normal distribution.
+I.
+AVERAGING VELOCITIES OVER POPULATIONS CAN RESULT IN NON-
+GAUSSIAN DISTRIBUTIONS
+We show in the main text that the velocity distributions of the considered moving objects
+are Gaussian on the single-individual level in Fig. 2. Even though all moving objects exhibit
+Gaussian distributions on the individual level, averaging over the entire population can lead
+to non-Gaussian effects. In Fig. S1 we show that averaging with respect to the population
+mean velocity v and the population standard deviation σ according to
+v = (vind −v)/σ
+(S1)
+can lead to deviations from Gaussian behavior. These deviations are negligible for the beads
+shown in Fig. S1a. For the cancer cells deviations from Gaussian behavior are slightly
+increased when using eq. (S1) compared to the rescaling on the individual level, as shown
+in Fig. S1b. For the algae cells the deviations from Gaussian behavior are quite drastic,
+when rescaling according to eq. (S1). The results of Fig. S1 showcase that it is important
+to analyze motility data on the single-individual level and that averaging of quantities over
+individual moving objects can lead to non-Gaussian effects.
+2
+II.
+MEMORY KERNEL EXTRACTION
+Multiplying the GLE eq. (1) by the initial velocity ˙x(t0), averaging over the random force
+and integrating from t0 to t leads to
+(Cvv(t) −Cvv(0)) = −
+Z t
+0
+Cvv(s)G(t −s)ds ,
+(S2)
+where we used that ⟨˙x(t0)FR(t)⟩= 0 [30–32], set t0 = 0 and introduced the integral kernel
+G(t) =
+Z t
+0
+Γ(s)ds .
+(S3)
+In order to invert eq. (S2), we discretize it. Since Cvv(t) is even while G(t) is odd, we
+discretize G(t) on half steps and Cvv(t) on full steps and obtain [16]
+Gi+1/2 = 2(C0
+vv −Ci+1
+vv )
+∆(C1
+vv + C0
+vv) −
+i
+X
+j=1
+Gi−j+1/2
+Cj+1
+vv
++ Cj
+vv
+C1
+vv + C0
+vv
+.
+(S4)
+The kernel Γi is obtained by the discrete derivative Γi =
+Gi+1/2+Gi−1/2
+∆
+with the initial value
+Γ0 = 2G1/2/∆.
+III.
+GOODNESS OF FIT TO INDIVIDUAL TRAJECTORY DATA
+In Fig. 4 of the main text we show single-trajectory fit results of the models eqs. (6),
+(7), (8) to randomly chosen single trajectory data. Since we cannot show the fit results of
+all individuals, we instead show the distribution of R2 values for all fits in Fig. S2. Here,
+R2 is defined using the cost function Ecost of eq. (16) as
+R2 = 1 −
+Ecost
+Pn−1
+i=0 (Cexp
+vv (i∆) −Cexp
+vv )2 ,
+(S5)
+where Cexp
+vv denotes the mean value of the VACF over the n fitted time steps. Therefore, R2
+gives an estimate for the goodness of the fit, where a value of zero corresponds to a bad fit
+that is equivalent to assuming the function to be the mean everywhere and a value of one
+corresponds to perfect agreement between the fit and the data.
+Naturally, for noisy data obtained from experiments, there is some spread in the R2
+values, as shown in Fig. S2. Nevertheless, it can be seen that most of the R2 values of
+our extraction are close to one, thus indicating that our different fit models describe the
+3
+FIG. S2. Histogram of the R2 values defined in eq. (S5) for the fits of the respective model eqs.
+(8),(7),(6) to individual trajectories for polystyrene beads (a), breast cancer cells (b), algae cells
+(c).
+respective data accurately on the individual trajectory level. To further undermine this
+point, we show the fit results with the highest R2 value for the respective individuals in Fig.
+S3. Here, the data agrees perfectly with the fit results. The R2 values of the respective fits
+for the randomly chosen individuals in Figs. 4a,e,h are 1.000, 0.964, 0.953.
+IV.
+EFFECTIVE KERNEL FOLLOWS UNIQUELY FROM CORRELATION FUNC-
+TION
+Fourier transformation of eq. (1) and eq. (2) leads to
+˜v(ω) =
+˜FR(ω)
+˜Γ+
+v (ω) + iω
+(S6)
+with the single-sided Fourier transform defined as ˜Γ+
+v (ω) =
+R ∞
+0 e−iωtΓv(t)dt and
+⟨˜FR(ω) ˜FR(ω′)⟩= 2πδ(ω + ω′)˜ΓR(ω′) .
+(S7)
+From the Fourier transform of the VACF
+˜Cvv(ω) =
+Z ∞
+−∞
+dte−iωt⟨v(0)v(t)⟩
+=
+Z ∞
+−∞
+e−iωtdt
+Z ∞
+∞
+eiωtdω
+2π
+Z ∞
+−∞
+dω
+2π ⟨˜v(ω)˜v(ω′)⟩
+(S8)
+we obtain by inserting eqs. (S6) and (S7)
+˜Cvv(ω) =
+˜ΓR(ω)
+(˜Γ+
+v (ω) + iω)(˜Γ+
+v (−ω) −iω)
+.
+(S9)
+4
+FIG. S3. Experimental results for the MSD, CMSD(t), VACF, Cvv(t), and friction kernel Γ(t), of a
+single bead (a)-(c), a single cancer cell (d)-(f) and a single algae cell (g)-(i) (blue symbols), chosen
+as the objects with the highest R2 value, which is given in the respective plot. The red lines denote
+the fit result.
+Equating the non-equilibrium and the surrogate VACF with ΓR(t)/B = Γv(| t |) = Γ(| t |)
+leads to
+˜ΓR(ω)
+| ˜Γ+
+v (ω) + iω |2 =
+B˜Γ(ω)
+| ˜Γ+(ω) + iω |2 .
+(S10)
+Multiplying eq. (1) by v(t0), inserting Γ(|t|) = ΓR(t)/B = Γv(|t|) and averaging the
+entire equation leads to the Volterra equation
+d
+dtCvv(t) = −
+Z t
+0
+Γ(t −s)Cvv(s)ds ,
+(S11)
+where we used that the random force is not correlated with the initial velocity at the pro-
+jection time, i.e. ⟨v(t0)FR(t)⟩= 0, and set t0 = 0. For a given Γ(t) one can find a solution
+of eq. (S11) in terms of Cvv(t). Inversely, for given correlation function Cvv(t) one can solve
+eq. (S11) in terms of the friction kernel Γ(t) by Laplace transformation. With the definition
+5
+of the Laplace transform of a function f(t)
+ˆf(q) =
+Z ∞
+0
+f(t)e−qtdt,
+(S12)
+the unique solution for Γ(t) in Laplace space is given by
+ˆΓ(q) =
+ 
+Cvv(0)
+ˆCvv(q)
+−q
+!
+.
+(S13)
+The existence of a unique friction kernel for any given input correlation function Cvv(t)
+assures that one can always find an effective friction kernel Γ(t) that, when employed in the
+GLE and using Γ(|t|) = ΓR(t)/B = Γv(|t|), reproduces the two-point correlation functions.
+Thus, every non-equilibrium model described by eq. (1) with ΓR(t)/B ̸= Γv(|t|) can be
+mapped on an effective model with Γ(|t|) = ΓR(t)/B = Γv(|t|) determined by eq. (S13),
+because the Green’s function, which completely describes a Gaussian process, is solely given
+in terms of the positional two-point correlation function [12, 35].
+V.
+BEAD RADIUS VARIANCE DETERMINED BY ATOMIC FORCE MICROSCOPY
+In order to estimate the bead radius variance independently of the motion in water, we
+determine the radius variance from 220 beads via atomic force microscopy (AFM). The
+radius distribution is shown in Fig. S4, where the mean radius is ⟨r⟩= 0.51 µm and the
+standard deviation is ∆r = 0.02 µm. This is in line with the values of ⟨r⟩= 0.50 µm and
+standard deviation ∆r = 25 nm provided by the manufacturer. These values agree with the
+estimated radius variance from the motility data in the main text of ∆r = 86 ± 63 nm.
+The sample of beads is prepared on freshly cleaved mica. Before the AFM measurement
+the beads (FluoSpheres NeutrAvidin-Labeled Microspheres, 1.0 µm ThermoFisher Scientific)
+are diluted 1:100 in deionized water and sonicated for 10 min to reduce bead aggregation.
+The sample was then left to dry overnight. AFM images are obtained using a MultiMode
+8 atomic force microscope (Veeco, Santa Barbara, CA) with a Nanoscope V controller and
+NanoScope software. Imaging is performed with TappingMode in air using AC160TS can-
+tilevers (Asylum Research by Oxford Instruments, LOT#753014). The AFM images with
+a frame size of 10 µm × 10 µm are recorded at a scan rate of 1 Hz over 256 lines, with an
+integral gain of 5 and proportional gain of 10, without z-limit.
+6
+FIG. S4. Distribution of measured bead radii via AFM, where the exact sample preparation and
+AFM settings are explained in the text.
+VI.
+LEAST-SQUARE FIT PARAMETER DISTRIBUTIONS OF NOISY EXPO-
+NENTIALS: THE MEDIAN IS MORE ACCURATE THAN THE MEAN
+In Fig. S5 we show the fit results of 105 least-square fits to the noisy function
+f(t) = α0e−β0t + γ0 + ζ(t)
+(S14)
+with the fit function
+f fit(t) = αe−βt + γ ,
+(S15)
+where ζ(t) describes Gaussian noise with zero mean ⟨ζ(t)⟩= 0 and variance ⟨ζ(0)ζ(t) =
+5δ(t). The form of eq. (S14) is motivated by the fact that VACFs often contain exponen-
+tially decaying components. Since our model invokes fitting to VACFs with exponential
+components with a least-square fit according to eq. (16) in the main text, here, we discuss
+the resulting parameter distributions of such fits. The distribution of fitted values for the
+exponential prefactor α and the constant γ are well described by Gaussian distributions, see
+Figs. S5a,c, whereas the distribution of the exponential factor β is better described by a
+log-normal distribution, as shown in Fig. S5b, which has the form
+p(β) = exp(−(ln(β)−ln(βmed))2
+2σ2
+)
+βσ
+√
+2π
+,
+(S16)
+where βmed denotes the median of the distribution and σ determines the width of the dis-
+tribution.
+7
+FIG. S5. Distributions of fitted parameters (a) α, (b) β, (c) γ of 105 fits of eq. (S15) to data sets of
+eq. (S14) with input parameters α0 = 20, β0 = 20, γ0 = 8, ⟨ζ(0)ζ(t) = 5δ(t) for t between 0 −100
+in steps of 0.1. The mean and median of the data are presented as vertical lines and are given by
+⟨α⟩= 19.98, αmed = 20.00, ⟨β⟩= 34.18, βmed = 19.98, ⟨γ⟩= 8.00, γmed = 8.00.
+It turns out that the actual input parameter of β0 = 20 is better described by the median
+of the distribution of fitted parameters compared to the mean, which we show in Fig. S5b.
+For the parameters α and γ the median and mean describe the actual input parameters
+equally well, as seen in Fig. S5a,c. As the median accurately describes the true value of
+Gaussian distributed parameters as well as Log-normal distributed parameters from least-
+squares fits, we choose it as a representation of the center of distributions rather than the
+mean.
+VII.
+ANALYTICAL ESTIMATION OF PARAMETER VARIANCE
+We compare our parameter variance estimate from simulations with analytical estimates.
+As an example, we estimate the mean squared velocity B = ⟨v2⟩= Cvv(0) using the PRW
+model eq. (7). Due to our extraction of the model parameters from the VACF eq. (15),
+the statistical error of the parameters relates closely to the statistical error of the VACF.
+We consider a trajectory composed of n + 1 = L/∆positions which produces a VACF with
+n values, where the mean squared velocity of the continuous trajectory is estimated by the
+finite difference velocities eq. (11) as
+Best = 1
+n
+n
+X
+i=1
+v2
+i .
+(S17)
+8
+Here, it should be noted that this estimate deviates from the estimation of our fit model
+including localization noise effects eq.
+(15).
+Especially in cases with localization noise,
+the estimate Best in eq. (S17) overestimates the true value of B as displacements are on
+average increased by the noise. On the other hand, a finite time step discretization leads
+to decreased values Best, as a finite time step does not capture instantaneous velocities but
+rather an average over the interval of the time step. Our extraction of parameters by a least
+squares fit of eq. (15) accounts for discretization and localization noise effects, but is not
+analytically tractable.
+The moments of v follow from the velocity distribution ρ(v) as
+⟨vk⟩=
+Z ∞
+−∞
+vkρ(v)dv .
+(S18)
+We want to determine the dependence of the variance of our estimation Best on the length
+of the trajectories
+σ2(Best) = ⟨B2
+est⟩−⟨Best⟩2 .
+(S19)
+Inserting eq. S17 into eq. S19 leads to
+σ2(Best) =
+1
+n2⟨Pn
+i=1 v2
+i
+Pn
+j v2
+j⟩−( 1
+n
+Pn
+i=1⟨v2
+i ⟩)2
+(S20)
+=
+1
+n2(n⟨v4⟩+ Pn
+i̸=j⟨v2
+i v2
+j⟩−n2⟨v2⟩2) .
+If the velocities at time i and j are independent of each other, the correlation of the squared
+velocities can be written as
+⟨v2
+i v2
+j⟩= ⟨v2
+i ⟩⟨v2
+j⟩= ⟨v2⟩2,
+(S21)
+thus, the variance of Best follows as
+σ2(Best) = 1
+n2
+ n⟨v4⟩+ n(n −1)⟨v2⟩2 −n2⟨v2⟩2 
+= 1
+n
+ ⟨v4⟩−⟨v2⟩2
+.
+(S22)
+In fact, the assumption of uncorrelated squared velocities is not true for most experimental
+trajectories, indicated by the non-zero values of the VACF for t > 0, meaning one needs to
+consider the correlation between the squared velocities over time. This results in a different
+estimate for the variance of Best [37], which can be written as
+σ2(Best) = 1
+n(⟨v4⟩−⟨v2⟩2
+(S23)
++ 2
+n−1
+X
+k=1
+(1 −k/n)⟨v2
+0v2
+k⟩) ,
+9
+where we used that the correlation function only depends on time differences k = |i−j| and
+that the kth term ⟨v2
+0v2
+k⟩occurs n −k times in the sum. If one does not know the analytic
+form of Cv2v2(t) = ⟨v2(0)v2(t)⟩, one can use the function obtained from the data similarly to
+eq. 12 for Cvv(t), where one usually introduces a cutoff length ncut to estimate the variance
+as
+σ2(Best) = 1
+n
+ 
+C0
+v2v2 −(C0
+vv)2 + 2
+ncut
+X
+k=1
+Ck
+v2v2
+!
+(S24)
+in order to avoid using the estimated correlation function for large times t > ncut∆, where
+the noise is stronger due to less averaging, see eq. 12. Similarly to the VACF eq. (19) one
+can calculate the correlation of the squared velocities for the PRW (the GLE eq. (1) with
+the instantaneous friction kernel eq. (7)) starting from the formal solution for the velocity
+v(t) = v(0)e−t/τm +
+Z t
+0
+FR(s)e−(t−s)/τmds .
+(S25)
+The squared velocity correlation function then takes the form
+⟨v2(0)v2(t)⟩=
+*
+v2(0)
+"
+v2(0)e−2t/τm + 2v(0)e−t/τm
+Z t
+0
+FR(s)e−(t−s)/τm ds +
+Z t
+0
+FR(s)e−(t−s)/τm ds
+2#+
+.
+(S26)
+Inserting the first and second moment of the random force ⟨FR(s)⟩= 0 and ⟨FR(s)FR(s′)⟩=
+2Bδ(s −s′)/τm respectively and evaluating the integrals, one finds
+⟨v2(0)v2(t)⟩= 3⟨v2(0)⟩2e−2t/τm + B⟨v2(0)⟩
+ 1 −e−2t/τm
+,
+(S27)
+where we used that the fourth moment of a Gaussian is ⟨v(0)4⟩= 3⟨v2(0)⟩2. Now inserting
+⟨v2(0)⟩= B yields
+Cv2v2(t) = B2(1 + 2e−2t/τm) .
+(S28)
+In Fig. S6a we show extracted PRW parameter distributions from simulations with identi-
+cal input parameters for different trajectory lengths L, where one can clearly see the variance
+decreasing for increasing trajectory length. In Figs. S6b-d this decrease is presented for dif-
+ferent localization noise widths σloc. The analytic prediction for uncorrelated velocities eq.
+(S22) shown as black dashed line in Figs. S6b-d is clearly below the observed variance, since
+the velocities in the PRW are intrinsically correlated, but correctly describes the powerlaw
+dependence on L. For increasing localization noise, the relative variance σ2(B)/B2 decreases
+for Best (crosses in Figs. S6b-d), because the mean increases by
+⟨Best⟩= 2Ctheo
+MSD(∆) + 4σloc
+2∆2
+≈B + 2σloc
+∆2 ,
+(S29)
+10
+FIG. S6.
+(a) Distributions of PRW parameters B, τm extracted from simulated trajectories of
+different lengths in different colors, where each distribution contains N = 100 points and the input
+is shown as a black empty circle, B∆2/σloc = 1.25, τm/∆= 20.
+(b)-(d) The variance of the
+estimator for B in eq. (S17) is shown as crosses, the estimation of B by our fit eq. (16) in the
+main text as circles for different trajectory lengths estimated from N = 100 simulated trajectories
+with the input as in (a), but with (b) σloc = 0, (c) σloc = 0.9
+√
+B∆and (d) σloc = 1.8
+√
+B∆. The
+respective mean values of the two different estimates of B for trajectory length L/∆= 4 × 104
+are given in the upper right corner. The black dashed line represents the expected variance for
+uncorrelated data given in eq. (S22) and the cyan line the expected variance given by eq. (S24)
+using the analytical result for the correlation function given in eq. (S28) with ncut = n = L/∆−1.
+As dictated by the law of large numbers, the variance is inversely proportional to the number of
+data points, i.e. inversely proportional to the trajectory length L.
+11
+which follows directly from eq. (15) of the main text. The approximation in the latter part
+of eq. (S29) is accurate when the time step is smaller than the length of the ballistic regime
+in the MSD; in the case of the PRW, this means it is exact for ∆< τm. The localization
+noise increases the estimation of the mean squared velocity, as seen in eq. (S29) and it
+leads to a decorrelation of consecutive velocities, as seen for instance in Figs. 4e,f in the
+main text by the dip in the VACF at t = ∆. Therefore, the estimator Best eq. (S17) comes
+closer to the prediction for uncorrelated velocities for increasing localization noise, as seen
+by comparing the crosses in Fig. S6a to the crosses in Fig. S6b and c.
+The mean of Best according to eq. (S17) is shown in the upper right corner of Figs. S6b-d,
+which increases with increasing localization noise as expected from eq. (S29). Here, we also
+show that B determined by our fit of eq. (16), denoted by Bfit, gives accurate estimates close
+to the input value of B even for high localization noise width σloc. Moreover, the variance
+Bfit, shown as circles in Figs. S6b-d, is close to the analytical estimate for σ(Best) according
+to eq. (S24), shown as the cyan line in Figs. S6b-d. However, this close match is not
+guarantied for arbitrary models, since the derivation cannot be done analytically for non-
+linear fit models, such as our fit by eq. (16). Additionally, estimating the parameter variance
+of a trajectory ensemble of different trajectory lengths L further complicates the matter.
+All these complications are avoided by estimating the parameter variance by simulating the
+underlying process based on the GLE eq. (1), where all experimental settings, such as time
+step, different trajectory lengths and localization noise, can easily be included, as explained
+in the main text.
+VIII.
+TEST METHOD WITH KNOWN ORIGIN PARAMETER DISTRIBUTION
+In order to show, that the statistical test explained in the Methods actually results in
+correct estimates for the cell-to-cell variance, we use a synthetic parameter distribution of
+known origin. For the PRW model eq. (7) the parameter vector has three entries ⃗z =
+(τm, B, σloc), so we start by drawing N parameter vectors from a Gaussian distribution
+with known covariance
+Covinp∗=
+
+
+
+
+
+22.5
+68.2
+0.17
+68.2
+440.5
+−0.017
+0.17 −0.017 −0.012
+
+
+
+
+
+(S30)
+12
+and mean
+⟨⃗z⟩= (10 min, 1.25 µm2/min2, 0.1 µm) ,
+(S31)
+where the mean is in the order of the parameters exhibited by the cancer cells as seen in Fig.
+5e. For clarity we omit the units of the covariance in eq. (S30). A Gaussian distribution with
+covariance given by eq. (S30) and mean given by eq. (S31) is shown as violet empty symbols
+in Fig. S7a. We show the axes in Fig. S7 in relative units because this way the results are
+better comparable across different systems with different units and the simulation results
+only vary if the ratios of parameters change. Now, we simulate a trajectory for each of the
+N parameter vectors ⃗z of this known distribution of length L = 100 ∆with ∆= 0.5 min,
+which is a typical length for single-cell tracking data.
+In order to obtain the correct continuous time behavior, we simulate trajectories with
+a much smaller time step than the discretization of the trajectories with h = 0.05∆and
+then obtain trajectories by using only every ∆/h = 20th step of the simulation and adding
+localization noise drawn from the Gaussian distribution of width σloc. For simulations of the
+algae cells we use h = 0.005∆. The extracted parameters from these simulated trajectories
+are denoted by the blue symbols shown in Fig. S7a. Since we know the exact distribution
+that led to this extracted parameter distribution, we can now test whether our method
+reproduces the spread of the original distribution. The ratio S defined in eq. (9) of the
+input covariance Covinp∗to the covariance of the distribution extracted from the synthetic
+data, here denoted as Covexp, is S = 0.11. Indeed we find that the estimated covariance
+ratio using the statistical test introduced in the Methods is S∗= 0.17 ± 0.08. An exemplary
+distribution with S = 0.1 is shown in Fig. S7b as empty green triangles and agrees well
+with the true original distribution shown as empty violet pentagons. Hence, the distribution
+extracted from simulations using the empty green triangles in Fig. S7b shown in Fig. S7c
+(red triangles) agrees with the distribution extracted from the synthetic data (blue symbols).
+We note that if the type of the underlying distribution is known, one can easily adapt the
+method to use an input distribution different from a Gaussian distribution. Nevertheless, in
+the most common case where the distribution type is not known, the Gaussian approach is
+most likely to describe the distribution.
+Additionally, we create synthetic distributions of N = 100 PRW trajectories originating
+all from the same parameter vector B∆2/σ2
+loc = 80, τm/∆= 25 close to the values of
+the breast cancer cell data. All parameters being the same means Covinp∗= 0 and hence
+13
+FIG. S7. (a) N = 100 randomly drawn PRW parameter vectors from a Gaussian distribution with
+covariance and mean given in eqs. (S30), (S31) respectively, are shown as empty violet pentagons.
+Filled blue pentagons denote the parameters extracted from simulations using the empty violet
+pentagon input parameters for trajectories of length L = 100 ∆. (b) A Gaussian distribution of
+empty green triangles with S = 0.1 compares well to the original violet pentagon distribution that
+was used to create trajectories and extract the synthetic distribution of blue pentagons. (c) The
+red triangles represent the parameters extracted from the simulation using the green triangles in
+(b) as input parameters.
+100
+200
+500
+L/∆
+0.00
+0.25
+0.50
+0.75
+1.00
+1−S∗
+,
+S∗
+FIG. S8. (a) Estimated variance ratio S∗shown in green for synthetic distributions with all identical
+input parameters B∆2/σ2
+loc = 80, τm/∆= 25 (S = 0) and different trajectory lengths L for N = 100
+synthetic trajectories.
+14
+the expected result is S∗= 0. We create synthetic distributions by simulations of length
+L = 500 ∆, L = 200 ∆and L = 100 ∆respectively and show the results for the estimated
+variance ratio S∗in Fig. S8. All of the results agree with the expected value of S∗= 0,
+but the uncertainty is higher for shorter trajectories, since the spread and the fluctuations
+of the fitted correlation functions are higher for shorter trajectories.
+15

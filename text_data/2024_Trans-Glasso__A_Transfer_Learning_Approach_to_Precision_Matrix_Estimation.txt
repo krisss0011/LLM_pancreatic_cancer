@@ -1,0 +1,5325 @@
+Trans-Glasso: A Transfer Learning Approach to
+Precision Matrix Estimation
+Boxin Zhao1, Cong Ma2, and Mladen Kolar3
+1Booth School of Business, University of Chicago
+2Department of Statistics, University of Chicago
+3Department of Data Sciences and Operations, Marshall School of Business,
+University of Southern California
+Abstract
+Precision matrix estimation is essential in various fields, yet it is challenging when
+samples for the target study are limited. Transfer learning can enhance estimation accu-
+racy by leveraging data from related source studies. We propose Trans-Glasso, a two-step
+transfer learning method for precision matrix estimation. First, we obtain initial esti-
+mators using a multi-task learning objective that captures shared and unique features
+across studies. Then, we refine these estimators through differential network estimation
+to adjust for structural differences between the target and source precision matrices.
+Under the assumption that most entries of the target precision matrix are shared with
+source matrices, we derive non-asymptotic error bounds and show that Trans-Glasso
+achieves minimax optimality under certain conditions. Extensive simulations demon-
+strate Trans-Glasso ’s superior performance compared to baseline methods, particularly
+in small-sample settings. We further validate Trans-Glasso in applications to gene net-
+works across brain tissues and protein networks for various cancer subtypes, showcasing
+its effectiveness in biological contexts. Additionally, we derive the minimax optimal rate
+for differential network estimation, representing the first such guarantee in this area.
+1
+Introduction
+Estimating the precision matrix, i.e., the inverse covariance matrix, is a fundamental task in sta-
+tistical analysis and has broad applications, including in portfolio optimization, speech recognition,
+and genomics [Best and Grauer, 1992, Lauritzen, 1996, Yuan and Lin, 2007, Saon and Chien, 2011].
+The precision matrix is closely tied to Gaussian graphical models: estimating the support of the pre-
+cision matrix corresponds to uncovering the network structure of conditional dependencies between
+multivariate normal variables [Lauritzen, 1996]. However, estimating a precision matrix accurately
+is often challenging when the sample size is small compared to the dimension—a typical scenario in
+high-dimensional settings.
+In many applications, sample sizes are constrained for the target study of interest, yet data
+from related studies may be available. Transfer learning [Pan and Yang, 2009] provides a promis-
+ing approach in these scenarios by leveraging information from related source studies to improve
+estimation accuracy in the target study. For example, in gene expression studies across different
+tissue types, sample sizes may be small for specific tissues, but data from related tissues can help
+improve estimates [Li et al., 2023a]. Similarly, protein network studies for different cancer subtypes
+1
+arXiv:2411.15624v1  [stat.ML]  23 Nov 2024
+can benefit from transfer learning, as leveraging data from related subtypes can enhance estimation
+for a particular subtype with limited data [Peterson et al., 2015].
+A critical aspect of transfer learning is establishing similarity between the target and source
+tasks. Here, we assume that most entries of the target precision matrix are shared with those of the
+source matrices, with only a few differences. Based on this assumption, we propose Trans-Glasso,
+a novel two-step transfer learning method for precision matrix estimation. First, we obtain initial
+estimators through a multi-task learning objective that captures shared and unique dependencies
+across datasets. Second, we refine these estimators using differential network estimation to adjust
+for differences between the target and source matrices [Zhao et al., 2014, Yuan et al., 2017].
+We provide a theoretical analysis of Trans-Glasso, deriving non-asymptotic error bounds and es-
+tablishing that the method achieves minimax optimality in a wide range of parameter regimes.
+Through extensive simulations, we demonstrate that Trans-Glasso outperforms several baseline
+methods, particularly in scenarios where the target sample size is small.
+We also apply Trans-
+Glasso to gene networks across brain tissues and protein networks for various cancer subtypes,
+showing its practical effectiveness in biological applications. Additionally, as a byproduct of our
+analysis, we derive the minimax optimal rate for differential network estimation, to our knowledge,
+the first of its kind.
+1.1
+Related Work
+Precision matrix estimation.
+Estimation of sparse precision matrices in a single study is well
+studied. Common methods include penalized M-estimator [Yuan and Lin, 2007, Friedman et al.,
+2008, Rothman et al., 2008, Lam and Fan, 2009, Ravikumar et al., 2011] and constrained L1 mini-
+mization [Cai et al., 2011, Ren et al., 2015, Cai et al., 2016b]. There is also extensive literature on
+multi-task precision matrix estimation, which estimates multiple related but nonidentical precision
+matrices from multiple studies [Guo et al., 2011, Danaher et al., 2014, Zhu et al., 2014, Mohan et al.,
+2014, Lee and Liu, 2015, Cai et al., 2016a, Ma and Michailidis, 2016, Saegusa and Shojaie, 2016].
+See Tsai et al. [2022] for a survey. While related to transfer learning, multi-task learning aims to
+estimate parameters of all studies, whereas transfer learning only focuses on the target study.
+Transfer learning.
+Transfer learning has a long history [Pan and Yang, 2009] and has been applied
+in various contexts [Turki et al., 2017, Hajiramezanali et al., 2018, Bastani, 2021]. Recently, interest
+in transfer learning for statistical problems has grown. Li et al. [2022], He et al. [2024] studied high-
+dimensional linear regression. The fused regularizer in He et al. [2024] is similar to our multi-task
+objective; however, He et al. [2024] focuses on linear regression, while we focus on precision matrix
+estimation, making the techniques different. Li et al. [2023b], Tian and Feng [2023] studied high-
+dimensional generalized linear regression. Pathak et al. [2022], Ma et al. [2023], Wang [2023], Ge
+et al. [2024] addressed covariate shift. Cai and Wei [2021] studied nonparametric classification and
+Cai et al. [2024a] investigated multi-armed bandit problems. Liu [2023] proposed a unified transfer
+learning model for high-dimensional linear regression problems. Hanneke and Kpotufe [2019, 2022]
+studied the transfer learning problem from a learning theory perspective. Lin and Reimherr [2022],
+Cai et al. [2024b] studied transfer learning for functional data analysis.
+The most relevant work to this paper is Li et al. [2023a], which also studied transfer learning
+for precision matrix estimation. The key difference is the similarity assumption. Li et al. [2023a]
+assumes that the divergence matrices between the target and source precision matrices are sparse. We
+assume that most entries of the target precision matrix are shared across source precision matrices,
+with few different entries. Although the assumption in Li et al. [2023a] is motivated by the KL
+divergence between Gaussian distributions, ours is a structural assumption, making it applicable
+beyond Gaussian data and easier to interpret. Consequently, our method differs significantly from
+that of Li et al. [2023a].
+2
+Differential Network Estimation.
+Our approach leverages differential network estimation tech-
+niques, which aim to directly estimate the difference between two precision matrices without the
+need to estimate the individual ones [Zhao et al., 2014, Yuan et al., 2017, Liu et al., 2014, Ma et al.,
+2021]. Fazayeli and Banerjee [2016] explored this concept in the context of Ising models. Addition-
+ally, Zhao et al. [2019, 2022] extended differential network estimation methods to functional data,
+while Tugnait [2023] broadened its application to multi-attribute data.
+1.2
+Organization and Notation
+The rest of the paper is organized as following. In Section 2, we introduce the problem setup. In
+Section 3, we introduce the methodology of the paper. We then describe how to implement our
+method in practice in Section 4. The theoretical results are developed in Section 5. Besides, we
+implement extensive simulation experiments in Section 6. Furthermore, in Section 7, we apply our
+method on two real-world datasets. Finally, we conclude our paper with Section 8. The technical
+proofs and details about optimization algorithms are provided in the appendix.
+Notation.
+For a vector v P Rd, we use }v}p to denote its Lp-norm.
+More specifically, we
+have }v}p “ přd
+i“1 |vi|pq
+1
+p for 1 ď p ď 8, where }v}8 “ maxi |vi|.
+For a matrix A P Rdˆd,
+we use | ¨ | to denote its elementwise norm and } ¨ } to denote its operator norm.
+For exam-
+ple, |A|1 “ řd
+i“1
+řd
+j“1 |Aij|, |A|0 “ řd
+i“1
+řd
+j“1 1 tAij ‰ 0u, |A|8 “ max1ďi,jďd |Aij|; }A}1 “
+max1ďjďd
+řd
+i“1 |Aij|, }A}8 “ max1ďiďd
+řd
+j“1 |Aij|, and }A}2 denote the largest singular value of
+A. We use }A}F “ přd
+i“1
+řd
+j“1 |Aij|2q1{2 to denote the Frobenius norm of A. In addition, we use
+xA, By “ trpAJBq “ ř
+i,j AijBij for A, B P Rdˆd to define the inner product between two matrices.
+We use vecpAq to denote the d2-vector obtained by stacking the columns of A. When A is sym-
+metric, we let γminpAq and γmaxpAq denote its smallest and largest eigenvalue. For A P Rn1ˆn2 and
+B P Rm1ˆm2, we let A b B “ rAijBlmsi,j,l,m P Rn1m1ˆn2m2 denote the Kronecker product of two
+matrices. We define Sdˆd as the set of symmetric matrices with dimension d. The universal constants
+may vary from one line to another without further clarification. Finally, following Ravikumar et al.
+[2011], we say a random vector X P Rd with ErXs “ 0 is sub-Gaussian if there exists a constant
+σ ą 0 such that
+E
+”
+exp
+´
+λXj{
+a
+Σjj
+¯ı
+ď exp
+`
+σ2λ2{2
+˘
+for all λ P R and 1 ď j ď d,
+where Σ “ CovpXq.
+In addition, we use the following standard notation in the paper. For two positive sequences
+tfpnquně1 and tgpnquně1, fpnq “ Opgpnqq or fpnq À gpnq means that there exists a universal
+constant c ą 0 such that fpnq ď cgpnq holds for sufficiently large n; fpnq “ Ωpgpnqq or fpnq Á gpnq
+means that there exists a universal constant c ą 0 such that fpnq ě cgpnq holds for sufficiently large
+n; fpnq “ Θpgpnqq or fpnq — gpnq means that there exist universal constants c1, c2 ą 0 such that
+c1gpnq ď fpnq ď c2gpnq holds for sufficiently large n; fpnq “ opgpnqq indicates that fpnq{gpnq Ñ 0
+as n Ñ 8.
+2
+Problem Setup
+Imagine that we observe n0 i.i.d. samples txp0q
+i un0
+i“1 :“ D0 from a sub-Gaussian target distribution
+P0. Each sample xp0q
+i
+P Rd is assumed to have zero mean and covariance matrix Σp0q. Our goal is
+to estimate the target precision matrix Ωp0q “
+␣
+Σp0q(´1. Additionally, we have access to K sub-
+Gaussian source distributions tPkuK
+k“1, each with nk i.i.d. samples txpkq
+i
+unk
+i“1 :“ Dk. For 1 ď k ď K,
+each xpkq
+i
+P Rd also has zero mean, covariance matrix Σpkq, and corresponding precision matrix
+3
+Figure 1: Illustration of Assumption 1. The target precision matrix, Ωp0q, is shown alongside two
+source precision matrices, Ωp1q and Ωp2q.
+Black crosses represent the shared entries across the
+matrices, while colored shapes indicate individual, unique entries.
+Ωpkq “
+␣
+Σpkq(´1. The goal is to leverage samples from both the target and source distributions to
+accurately estimate Ωp0q.
+To facilitate transfer learning, we assume structural similarity between the target and source
+precision matrices, whereby most entries in Ωp0q are shared with those in Ωpkq, with relatively few
+differences. This assumption enables us to efficiently utilize source samples to enhance estimation
+of the target precision matrix.
+Formally, we characterize the relationship between the target and source precision matrices using
+the following assumption.
+Assumption 1. For each 0 ď k ď K, there exists a shared component Ω‹ and a unique component
+Γpkq‹ with disjoint supports such that
+Ωpkq “ Ω‹ ` Γpkq‹,
+(1)
+where |Ω‹|0 ď s, |Γpkq‹|0 ď h, and |Γpkq‹|1 ď MΓ. The sparsity parameters s and h satisfy s " h,
+indicating that the majority of the structure is shared, while unique components are minimal.
+See Figure 1 for a visual illustration of Assumption 1.
+Assumption 1 is inspired from the assumptions widely used in the differential network estimation
+literature [Zhao et al., 2014, Yuan et al., 2017, Zhao et al., 2022]. To see this connection, for each
+1 ď k ď K, define Ψpkq “ Ωpkq ´ Ωp0q to be the differential network between the target Ωp0q and the
+source Ωpkq. Two immediate implications of Assumption 1 are
+ˇˇˇΨpkqˇˇˇ
+0 ď 2h,
+and
+ˇˇˇΨpkqˇˇˇ
+1 ď 2MΓ,
+for all 1 ď k ď K.
+This matches exactly Condition 1 in the paper Zhao et al. [2014].
+In addition, Assumption 1 is naturally interpretable within Gaussian graphical models. Suppose
+we have an undirected graphical model G “ pV, Eq where nodes represent variables and edges
+represent conditional dependencies. In this model, an edge exists between nodes i and j if and only
+if Ωpkq
+ij ‰ 0 [Lauritzen, 1996]. Under Assumption 1, the target precision matrix Ωp0q and the source
+matrices
+␣
+Ωpkq(
+share a large subset of edges, with only a small number of unique edges in each
+source, corresponding to sparse deviations Ψpkq.
+Last but not least, we contrast Assumption 1 with the similarity assumptions based on divergence
+measures, used in Li et al. [2023a]. Li et al. [2023a] assumes that the divergence matrix
+Υpkq “ Ωp0qΣpkq ´ Id
+(2)
+4
+is sparse. However, our structural approach offers broader applicability beyond Gaussian data, as it
+does not rely on assumptions specific to Gaussian graphical models and provides a straightforward
+interpretation of shared structure. See a more detailed comparison in Appendix A.
+Next, we discuss estimating Ωp0q using samples from both target and source distributions under
+Assumption 1.
+3
+Trans-Glasso Algorithm
+In this section, we introduce Trans-Glasso, our transfer learning method for precision matrix esti-
+mation, which consists of two main steps. First, we initialize estimators of the precision matrices by
+solving a multi-task learning problem. Second, we refine these estimators using differential network
+estimation to adjust for structural differences between the target and source matrices.
+3.1
+Initialization via Multi-Task Learning
+To leverage shared structure across the target and source matrices, we begin by jointly estimating
+precision matrices for both the target and source distributions. Based on Assumption 1, we employ
+a multi-task variant of the graphical lasso estimator [Friedman et al., 2008], which we refer to as
+Trans-MT-Glasso (Transfer Multi-Task Graphical lasso).
+Let pΣpkq “
+1
+nk
+řnk
+i“1 xpkq
+i
+xpkqJ
+i
+denote the sample covariance matrix for 0 ď k ď K. We define
+Θ :“
+´
+Ω,
+␣
+Γpkq(K
+k“0
+¯
+for the shared component and the sparse unique components. The Trans-MT-
+Glasso objective is then given by
+pΘ “
+´
+pΩ, tpΓpkquK
+k“0
+¯
+P arg
+min
+ΘPCpMopq tL pΘq ` λMΦ pΘqu ,
+(3)
+where
+L pΘq :“
+K
+ÿ
+k“0
+αk
+!A
+Ω` Γpkq, pΣpkqE
+´ log det
+´
+Ω` Γpkq¯)
+,
+(4)
+Φ pΘq :“ |Ω|1 `
+K
+ÿ
+k“0
+?αk
+ˇˇˇΓpkqˇˇˇ
+1 ,
+(5)
+C pMopq :“
+"
+Θ “
+ˆ
+Ω,
+!
+Γpkq)K
+k“0
+˙
+: Ω` Γpkq ą 0 and
+›››Ω` Γpkq›››
+2 ď Mop for all 0 ď k ď K
+*
+.
+(6)
+Here, αk “ nk{N with N “ řK
+k“0 nk controls the contribution of each source, λM ą 0 is a regu-
+larization parameter, and Mop ą 0 is a predefined constant. The constraint
+››Ω` Γpkq››
+2 ď Mop is
+primarily included to facilitate theoretical analysis. While we theoretically need to set Mop to be
+a sufficiently large constant, as detailed in a later section, in practice, we simply set Mop “ 8 to
+effectively remove this constraint.
+The first term of (3) measures parameter fitness with observed data, while the second term
+ΦpΘqpromotes sparsity in both the shared and individual components. The sparsity penalization
+level for Γpkq is proportional to
+a
+nk{N, a factor that is crucial to balance contributions from the
+target and sources. See Section 5.1 for details.
+In the end, we construct the initial estimators of Ωpkq as qΩpkq “ pΩ` pΓpkq for 0 ď k ď K.
+5
+3.2
+Refinement via Differential Network Estimation
+To further enhance accuracy, we refine these initial estimators by estimating the differential networks
+Ψpkq “ Ωpkq ´ Ωp0q, which capture the structural differences between each source and the target.
+This refinement step corrects for potential biases in the initial estimates.
+Estimating Ψpkq has been extensively studied in the differential network estimation literature [Zhao
+et al., 2014, Yuan et al., 2017], with a variety of good estimators. For instance, Yuan et al. [2017]
+proposed estimation by solving
+pΨpkq P arg min
+Ψ LD
+´
+Ψ; pΣp0q, pΣpkq¯
+` λpkq
+Ψ |Ψ|1 ,
+(7)
+where
+LD
+´
+Ψ; pΣp0q, pΣpkq¯
+“ 1
+4
+´A
+pΣp0qΨ, ΨpΣpkqE
+`
+A
+pΣpkqΨ, ΨpΣp0qE¯
+´
+A
+Ψ, pΣp0q ´ pΣpkqE
+,
+and λpkq
+Ψ
+is a tuning parameter.
+For our purpose, any reasonable differential network estimator can correct for the bias. Thus,
+we treat differential network estimation as a black-box algorithm, and we obtain the estimates pΨpkq.
+With the initial estimator qΩpkq and refined differential network estimators pΨpkq, we construct the
+final transfer learning estimator for Ωp0q as
+pΩp0q “
+K
+ÿ
+k“0
+αk
+´
+qΩpkq ´ pΨpkq¯
+,
+(8)
+where pΨp0q “ 0 by definition. The final estimator Trans-Glasso (Transfer learning Graphical lasso)
+integrates both shared information and source-specific refinements, yielding a transfer learning ap-
+proach that leverages structural similarities across datasets for improved precision matrix estimation.
+Compared to Li et al. [2023a], our method is more sample efficient as it does not require sample
+splitting between the steps.
+4
+Implementation in Practice
+In this section, we provide practical guidelines for implementing Trans-Glasso, including optimization
+techniques, hyperparameter selection, and a method for identifying the informative set when not all
+sources are useful.
+4.1
+Optimization Algorithms
+To implement Trans-Glasso, we first solve the Trans-MT-Glasso objective from Equation (3) to
+obtain initial estimates for Ω‹ and Γpkq‹. This is a constrained optimization problem that can be
+efficiently solved using the Alternating Direction Method of Multipliers (ADMM) [Boyd et al., 2011].
+In this section, we slightly abuse notation by using superscripts to denote the iteration round and
+subscripts to represent the population.
+Define
+X “
+»
+———–
+Ω0
+Ω1
+...
+ΩK
+fi
+ffiffiffifl P RpK`1qdˆd,
+Y “
+»
+—————–
+Ω
+Γ0
+Γ1
+...
+ΓK
+fi
+ffiffiffiffiffifl
+P RpK`2qdˆd,
+6
+and
+B “
+»
+———–
+Id
+Id
+0
+¨ ¨ ¨
+0
+Id
+0
+Id
+¨ ¨ ¨
+0
+...
+...
+...
+...
+Id
+0
+0
+¨ ¨ ¨
+Id
+fi
+ffiffiffifl P RpK`1qdˆpK`2qd.
+With this notation, the objective in Equation (3) can be reformulated as
+minimize fpXq ` gpY q,
+subject to X “ BY,
+where
+fpXq “
+K
+ÿ
+k“0
+fkpΩkq,
+fkpΩkq “ αk
+!
+´ log det pΩkq `
+A
+pΣpkq, Ωk
+E)
+` I pΩk ą 0q ,
+0 ď k ď K,
+gpY q “ λM |Ω|1 ` λM
+K
+ÿ
+k“0
+?αk |Γk|1 ,
+where I pΩą 0q “ 0 if Ωą 0 and I pΩą 0q “ 8 otherwise.
+The augmented Lagrangian for this problem is:
+LρpX, Y, Zq “ fpXq ` gpY q ` ρ xZ, X ´ BY y ` ρ
+2 }X ´ BY }2
+F ,
+where
+Z “
+»
+———–
+Z0
+Z1
+...
+ZK
+fi
+ffiffiffifl P RpK`1qdˆd,
+is a dual variable and ρ isa penalty parameter.
+After initializing Y p0q and Zp0q such that Ωp0q, Γp0q
+k , and Zp0q
+k
+are symmetric, ADMM iteratively
+updates:
+Xptq “ arg min
+X Lρ
+´
+X, Y pt´1q, Zpt´1q¯
+,
+(9)
+Y ptq P arg min
+Y
+Lρ
+´
+Xptq, Y, Zpt´1q¯
+,
+(10)
+Zptq “ Zpt´1q ` ρ
+´
+Xptq ´ BY ptq¯
+.
+(11)
+Note that (11) is equivalent to Zptq
+k
+“ Zpt´1q
+k
+`ρ
+´
+Ωptq
+k ´ Ωptq ´ Γptq
+k
+¯
+for 0 ď k ď K. See Appendix H
+for detailed steps and stopping criteria.
+To refine the initial estimators, we solve the D-Trace loss objective (7) for differential network
+estimation. Here, we use a different proximal gradient descent algorithm [Parikh and Boyd, 2014]
+following Zhao et al. [2022, 2019]. For simplicity, let LDpΨq :“ LD
+´
+Ψ ; pΣp0q, pΣpkq¯
+for the chosen k.
+In iteration t, we update Ψpt´1q by solving
+Ψptq “ arg min
+Ψ
+"1
+2
+›››Ψ ´
+´
+Ψpt´1q ´ η∇LD
+´
+Ψpt´1q¯¯›››
+2
+F ` η ¨ λpkq
+Ψ |Ψ|1
+*
+,
+(12)
+where η is a user-specified step size. Note that ∇LDp¨q is Lipschitz continuous with constant }pΣp0q b
+pΣpkq}2 “ }pΣp0q}2}pΣpkq}2.
+Thus, for 0 ă η ď }pΣp0q}´1
+2 }pΣpkq}´1
+2 , the proximal gradient method
+converges [Beck and Teboulle, 2009]. The update in (12) has a closed-form solution:
+Ψptq
+jl “
+”ˇˇˇApt´1q
+jl
+ˇˇˇ ´ λpkq
+Ψ η
+ı
+` ¨ Apt´1q
+jl
+{
+ˇˇˇApt´1q
+jl
+ˇˇˇ ,
+1 ď j, l ď d,
+(13)
+7
+where Apt´1q “ Ψpt´1q ´ η∇LDpΨpt´1qq and x` “ maxt0, xu, x P R.
+Details on the optimization algorithms, including stopping criteria and descriptions, are in Sec-
+tion H.
+4.2
+Hyperparameter Selection
+This section covers the selection of hyperparameters, specifically λM in Trans-MT-Glasso (3) and
+λpkq
+Ψ
+in D-Trace loss (7).
+We choose λpkq
+Ψ for k P rKs to minimize the Bayesian information criterion (BIC) of D-Trace loss:
+BICpkq
+Ψ “ pn0 ` nkq
+››››
+1
+2
+´
+pΣp0q pΨpkqpΣpkq ` pΣpkq pΨpkqpΣp0q¯
+´ pΣp0q ` pΣpkq
+››››
+F
+`log pn0 ` nkq¨
+ˇˇˇpΨpkqˇˇˇ
+0 , (14)
+following Yuan et al. [2017]. After selecting λpkq
+Ψ
+and obtaining pΨpkq for all k P rKs, pΩp0q depends on
+λM. Recall that N “ řK
+k“0 nk. We choose λM to minimize the BIC of Trans-Glasso, defined as
+BICTrans “ N ¨
+”A
+pΣp0q , pΩp0qE
+´ log det
+´
+pΩp0q¯ı
+` log N ¨
+ˇˇˇpΩp0qˇˇˇ
+0 .
+(15)
+4.3
+Identifying the Informative Set
+In practice, it is not necessarily true that all source distributions are structurally similar to the
+target. We propose a data-driven method to estimate the informative set A Ď rKs.
+We obtain differential network estimations pΨpkq for all k P rKs, with the hyperparameter λpkq
+Ψ
+chosen by minimizing the BIC criterion in (14). We then rank sources according to the sparsity level
+of pΨpkq. Let Rk be the rank of the source k. For any 1 ď k1, k2 ď K, |pΨpk1q|0 ď |pΨpk2q|0 implies
+Rk1 ď Rk2. After ranking sources, we input samples into Trans-Glasso and determine the number
+of sources based on the cross-validation (CV) error. For Kchosen “ 0, 1, . . . , K, we select sources k
+with Rk ď Kchosen. When Kchosen “ 0, we obtain pΩp0q from graphical lasso [Friedman et al., 2008]
+using the target data alone. We then compute the CV error of Kchosen by the following procedure:
+(i) We randomly split the target samples into M-fold.
+(ii) For m “ 1, . . . , M, we select the m-th fold as the validation set, Dval, and the rest as the
+training set. We input the training set and chosen source samples into Trans-Glasso to obtain
+pΩp0q. We compute the CV error for the m-th fold as
+CVm “ 1
+2d
+#
+1
+|Dval|
+ÿ
+iPDval
+tr
+´
+xp0q
+i xp0qJ
+i
+pΩp0q¯
+´ log det
+´
+pΩp0q¯+
+` 1
+2 log π,
+(16)
+and define CVpKchosenq “
+1
+M
+řM
+m“1 CVm.
+We set the estimated informative set as p
+A “ tk P rKs : Rk ď K‹
+chosenu, where K‹
+chosen “
+arg mink“0,1,...,K CVpkq. Source samples from p
+A are used to estimate Ωp0q. If p
+A “ H, we obtain
+pΩp0q via graphical lasso on target samples. We note that sample splitting is not necessary between
+estimating A and Ωp0q. This procedure is called Trans-Glasso-CV. We demonstrate its empirical
+performance in Section 6.
+5
+Theoretical Analysis
+In this section, we establish theoretical guarantees for the Trans-Glasso algorithm. We begin by
+analyzing the initial estimation step using Trans-MT-Glasso, followed by an error bound for the
+8
+complete Trans-Glasso estimator. Finally, we derive a minimax lower bound, demonstrating that
+Trans-Glasso is minimax optimal in a wide range parameter regimes.
+To simplify the theoretical statements, we assume the following condition throughout this section.
+Assumption 2. Assume that
+MΣ :“ max
+0ďkďK
+ˇˇˇΣpkqˇˇˇ
+8 “ Op1q
+and
+MΩ:“ max
+0ďkďK
+›››Ωpkq›››
+2 “ Op1q.
+(17)
+5.1
+Analysis of Trans-MT-Glasso
+We first provide error bounds for the initial multi-task estimation step, Trans-MT-Glasso. This
+method estimates both the shared precision matrix component Ω‹ and the deviation matrices Γpkq‹
+based on the structural similarity outlined in Assumption 1.
+The following theorem provides a high probability upper bound on the Frobenius norm error for
+the Trans-MT-Glasso estimator. Recall that N “ řK
+k“0 nk.
+Theorem 1. Suppose Assumptions 1 and 2 hold. Fix a failure probability δ P p0, 1s. Suppose that
+the local sample size is large enough so that
+min
+0ďkďK nk ě 2 logp2 pK ` 2q d2{δq.
+(18)
+Set Mop ě MΩand the penalty parameter λM such that
+λM ě 160MΣ
+c
+logp2 pK ` 2q d2{δq
+2N
+.
+(19)
+Then with probability at least 1 ´ δ, the estimator satisfies
+K
+ÿ
+k“0
+αk}qΩpkq ´ Ωpkq}2
+F ď 18 ps ` pK ` 1qhq λ2
+M
+κ2
+,
+(20)
+where κ “ p2MΩ` Mopq´2.
+Note that the loss function defined in (4) is not strong convex with respect to the Euclidean norm.
+This prevents us from obtaining error guarantee for individual prevision matrix. Nevertheless, we
+make a key observation that the loss function exhibits strong convexity with respect to the weighted
+norm used in (20). See Appendix C for a detailed proof.
+When we choose λM —
+a
+plog dq{N, the rate shown in Theorem 1 consists of two parts. The first
+part, which is of the order ps log dq{N, refers to the estimation error of the shared component. In
+words, Trans-Glasso uses all the samples to estimate the shared component. The second part, of the
+order pKh log dq{N, relates to the estimation error of the individual components, i.e., on average,
+there are N{K samples to estimate each individual ocmponent.
+5.2
+Analysis of Trans-Glasso
+After the initial estimates are obtained via Trans-MT-Glasso, the differential network estimation step
+refines these estimates by isolating the deviations Ψpkq. This yields the final Trans-Glasso estimator
+pΩp0q.
+As discussed in Section 3, any differential network estimator can be used in Step 2 for refinement.
+The differential network estimates pΨpkq are treated as the result of a black-box algorithm, obeying
+›››pΨpkq ´ Ψpkq›››
+F À gpkq
+F pn0, nk, d, h, MΓ, δq :“ gpkq
+F
+(21)
+9
+holds simultaneously for all k “ 1, . . . , K with probability at least 1 ´ δ. We now establish a non-
+asymptotic error bound for this estimator, which combines the initial estimation error with the error
+from differential network estimation.
+Theorem 2. Let pΩp0q be the Trans-Glasso estimator obtained in Equation (8). Under the same con-
+ditions as in Theorem 1, and assuming Equation (21) holds for the differential network estimators.
+Then with probability at least 1 ´ 2δ, one has
+›››pΩp0q ´ Ωp0q›››
+2
+F À
+ˆ s
+N ` h
+sn
+˙
+logp2 pK ` 2q d2{δq `
+K
+ÿ
+k“0
+αkgpkq
+F .
+The error rates depend on differential network estimators’ performance. Next, we provide specific
+error rates using the D-Trace loss estimator.
+5.2.1
+A differential network estimator: D-Trace loss minimization
+We characterize gpkq
+F
+in the case when the D-Trace loss estimator in (7) is used. We use the tighter
+D-Trace loss estimator analysis from Zhao et al. [2019, 2022], Tugnait [2023].
+We then have the following theorem providing a high-probability error upper bound for D-Trace
+loss estimator. The theorem is derived directly from Theorem 7 in Appendix D.
+Theorem 3. Suppose that Assumptions 1-2 hold. Assume that min0ďkďK nk " h2 log
+`
+2pK ` 1qd2{δ
+˘
+.
+Set
+λpkq
+Ψ “ C
+d
+log p2pK ` 1qd2{δq
+mintnk, n0u
+for all k P rks
+for some large constant C ą 0. Then
+›››pΨpkq ´ Ψpkq›››
+F À
+?
+hMΓ
+d
+log p2pK ` 1qd2{δq
+mintnk, n0u
+holds simultaneously for all k P rKs with probability at least 1 ´ δ.
+By Theorem 3, we have
+gpkq
+F
+“
+?
+hMΓ
+d
+log p2pK ` 1qd2{δq
+mintnk, n0u
+for D-Trace loss estimator. Plug the above results into Theorem 2, we have the following corollary.
+Corollary 1. Let pΩp0q be obtained by Trans-Glasso (8) with the D-Trace loss estimator used in
+Step 1. Instate the assumptions in Theorems 1 and 3. For a given δ P p0, 1s, letting
+λM —
+c
+logp2 pK ` 2q d2{δq
+N
+,
+λpkq
+Ψ — MΓ
+d
+log p2pK ` 1qd2{δq
+mintnk, n0u
+for all k P rKs,
+we have that
+›››pΩp0q ´ Ωp0q›››
+F À
+˜c s
+N ` p1 ` MΓq
+c
+h
+sn ` MΓ
+c
+h
+n0
+¸
+a
+logp2 pK ` 2q d2{δq
+holds with probability at least 1 ´ 2δ.
+The estimation error consists of three parts: shared component estimation, individual component
+estimation, and differential network estimation.
+If sn ě n0 and MΓ is bounded by a universal
+constant, the error scales as
+b
+s log d
+N
+`
+b
+h log d
+n0
+. When N " n0, the error rate can be significantly
+reduced compared to the rate obtained by only using target samples, which is in the order of
+b
+s log d
+n0
+`
+b
+h log d
+n0
+.
+10
+5.3
+Minimax Lower Bounds and Optimality
+To evaluate the theoretical performance of Trans-Glasso, we derive the minimax lower bound for
+estimating the target precision matrix Ωp0q over the parameter space defined by Assumptions 1-2.
+More precisely, we define the relevant parameter space:
+G ps, hq :“
+"!
+Ωpkq)K
+k“0 : Ωpkq ą 0, Ωpkq “ Ω‹ ` Γpkq‹, supp pΩ‹q X supp
+´
+Γpkq‹¯
+“ H @0 ď k ď K,
+|Ω‹|0 ď s, max
+0ďkďK
+ˇˇˇΓpkq‹ˇˇˇ
+0 ď h, max
+0ďkďK
+ˇˇˇΓpkq‹ˇˇˇ
+1 ď MΓ, max
+0ďkďK
+›››Ωpkq›››
+2 ď MΩ, max
+0ďkďK
+ˇˇˇΣpkqˇˇˇ
+8 ď MΣ
+*
+,
+(22)
+where MΓ ą 0, MΩ, MΣ ą 1 are universal constants.
+Intuitively, the performance limit of any transfer learning estimator is dictated by the information-
+theoretic lower bounds of estimating two parts, namely the shared component and the individual
+component. Hence, to derive the minimax lower bound for the transfer learning estimator, we need
+to provide lower bounds for estimating these two parts.
+Lower bound for estimating shared component.
+The following theorem provides the minimax
+lower bound for estimating the shared component when all the distributions are the same.
+Theorem 4. Assume that we have n i.i.d. samples X1, . . . , Xn from Np0, Ω´1q, where
+ΩP G1 “
+␣
+ΩP Sdˆd : Ωą 0, |Ω|0 ď s, 0 ă c1 ď γminpΩq ď γmaxpΩq ď c2 ă 8
+(
+,
+and c1, c2 are universal constants.
+In addition, assume that s ě d ě c1nβ for some universal
+constants β ą 1 and c1 ą 0, and
+rs{ds “ o
+˜
+n
+plog dq
+3
+2
+¸
+.
+We then have
+inf
+pΩ
+sup
+ΩPG1
+E
+„›››pΩ´ Ω
+›››
+2
+F
+ȷ
+Á s log d
+n
+.
+The proof is based on [Cai et al., 2016b, Theorem 6.1].
+See Appendix E for more details.
+By
+Theorem 4, it is easy to see that the squared Frobenius error of estimating the shared component is
+lower bounded by s log d{N where N is the total number of samples.
+Lower bound for estimating the individual components.
+We also provide a lower bound
+for estimating the individual component. When Ωpkq “ Id for all 1 ď k ď K and Ωp0q “ Id ` ∆with
+diagp∆q “ 0, the source samples are not helpful to estimate Ωp0q at all. Thus, the minimax lower
+bound for estimating ∆provides a valid minimax lower bound for the transfer learning problem.
+Theorem 5. Assume that we have n i.i.d. samples X1, . . . , Xn from Np0, Ω´1q, where
+ΩP G2 “
+␣
+ΩP Sdˆd : Ωą 0, Ω“ Id ` ∆, ∆jj “ 0 for all 1 ď j ď d,
+|∆|0 ď h, |∆|1 ď CΓ, 0 ă c1 ď γminpΩq ď γmaxpΩq ď c2 ă 8u ,
+(23)
+where CΓ ą 0, c1 ă 1 and c2 ą 1 are constants. In addition, assume that
+d ě 4h, h log d ě 8 log 3, h log d
+n
+ď min
+␣
+2, 8p1 ´ c1q2, 8p1 ´ c2q2(
+, h
+c
+log d
+n
+ď 4CΓ.
+(24)
+We then have
+inf
+pΩ
+sup
+ΩPG2
+E
+„›››pΩ´ Ω
+›››
+2
+F
+ȷ
+Á h log d
+n
+.
+11
+See Appendix F for the proof, which relies on a novel construction of the packing set of the parameter
+space and on the celebrated Fano’s method [Wainwright, 2019, Section 15.3].
+It is worth noting that Theorem 5 also provides a minimax lower bound for estimating the
+differential network ΩX ´ ΩY for two precision matrices ΩX and ΩY when the L1-norm of the
+differential network is bounded. To our knowledge, this is also the first lower bound for differential
+network estimation [Zhao et al., 2014, Yuan et al., 2017]. As a result, we can derive the first minimax
+optimal rate for differential network estimation. See Appendix I for a more detailed discussion.
+Combining pieces together.
+Combining Theorem 4 and Theorem 5, we have the following
+lower bound for any transfer learning estimator.
+Theorem 6. Suppose that we have nk i.i.d. samples from a sub-Gaussian distribution Pk with zero
+mean and precision matrix Ωpkq for all 0 ď k ď K. Besides, assume that s ě d ě c1N β for some
+universal constants β ą 1, c1 ą 0 and
+rs{ds “ o
+˜
+N
+plog dq
+3
+2
+¸
+.
+In addition, assume that
+d ě 4h, h log d ě 8 log 3, h
+c
+log d
+n0
+ď 4MΓ, h log d
+n0
+ď min
+#
+2, 8 p1 ´ MΩq2 , 8
+ˆ
+1 ´
+1
+MΣ
+˙2+
+,
+where MΓ ą 0, MΩ, MΣ ą 1 are universal constants defined in (22). We then have
+inf
+pΩ
+sup
+tΩpkquK
+k“0PGps,hq
+E
+„›››pΩ´ Ωp0q›››
+2
+F
+ȷ
+Á s log d
+N
+` h log d
+n0
+.
+Theorem 6 demonstrates that Trans-Glasso achieves minimax optimality for the parameter space
+specified in (22) when sn ě n0. The obtained minimax optimal rate is reasonable, considering we have
+N samples for estimating the shared component with s non-zero entries and n0 samples for estimating
+the individual component with h non-zero entries. Furthermore, from a practical viewpoint, the rate
+suggests that the target sample size only needs to be sufficiently large in relation to the sparsity
+level h of the individual component. In contrast, if we only have target samples, the target sample
+size needs to be large enough to match the sparsity level s ` h of the entire precision matrix, which
+can be significantly larger.
+6
+Simulations
+In this section, we demonstrate the empirical performance of Trans-Glasso through a series of sim-
+ulations.
+We evaluate its accuracy in comparison with several baseline methods under different
+settings, including varying sample sizes and sparsity levels.
+We set the dimensionality d “ 100 and the number of source distributions K “ 5 for all experi-
+ments. In each experiment, we vary parameters such as the target sample size n0, the source sample
+size nk “ nsource, and the sparsity level h to assess the robustness of Trans-Glasso across diverse
+conditions. The data are simulated under three different models, each reflecting a specific structure
+for the shared and individual components of the precision matrices.
+12
+150
+300
+500
+750
+1000
+1200
+n0
+0.10
+0.15
+0.20
+0.25
+0.30
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 1
+750
+1000
+1500
+2000
+2500
+nsource
+0.12
+0.14
+0.16
+0.18
+0.20
+0.22
+0.24
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 2
+10
+20
+30
+40
+50
+h
+0.10
+0.15
+0.20
+0.25
+0.30
+0.35
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 3
+10
+20
+30
+40
+50
+h
+8
+10
+12
+14
+16
+18
+20
+∥ˆΩ−Ω(0)∥F
+Experiment 4
+Model I
+Glasso-Target
+Glasso-Pooled
+Trans-CLIME
+Trans-Glasso
+Figure 2: Simulation results for Model I. The default setting is n0 “ 300, nsource “ 1000 and h “ 40.
+In the first experiment, we increase n0 while fixing nsource and h. In the second experiment, we
+increase nsource while fixing n0 and h. In the third experiment, we increase both n0 and nsource
+while increasing h. More specifically, we let nsource “ 3n0, and n0 “ 70 when h “ 10, n0 “ 150
+when h “ 20, n0 “ 300 when h “ 30, n0 “ 600 when h “ 40 and n0 “ 1200 when h “ 50. In the
+fourth experiment, we fix both n0 and nsource while increasing h. Each dot represents the empirical
+mean across 30 repetitions and the vertical bar represents Mean ˘
+2
+?
+30 ˆ Standard Error.
+13
+150
+300
+500
+750
+1000
+1200
+n0
+0.15
+0.20
+0.25
+0.30
+0.35
+0.40
+0.45
+0.50
+0.55
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 1
+750
+1000
+1500
+2000
+2500
+nsource
+0.15
+0.20
+0.25
+0.30
+0.35
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 2
+20
+30
+40
+50
+60
+70
+80
+h
+0.2
+0.3
+0.4
+0.5
+0.6
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 3
+20
+30
+40
+50
+60
+70
+80
+h
+15
+20
+25
+30
+∥ˆΩ−Ω(0)∥F
+Experiment 4
+Model II
+Glasso-Target
+Glasso-Pooled
+Trans-CLIME
+Trans-Glasso
+Figure 3: Simulation results for Model II. The default setting is n0 “ 750, nsource “ 2000 and
+h “ 40. In the first experiment, we increase n0 while fixing nsource and h. In the second experiment,
+we increase nsource while fixing n0 and h. In the third experiment, we increase both n0 and nsource
+while increasing h. More specifically, we let nsource “ 3n0, and n0 “ 100 when h “ 20, n0 “ 200
+when h “ 30, n0 “ 300 when h “ 40, n0 “ 500 when h “ 50, n0 “ 800 when h “ 60, n0 “ 1000
+when h “ 70 and n0 “ 1200 when h “ 80. In the fourth experiment, we fix both n0 and nsource
+while increasing h. Each dot represents the empirical mean across 30 repetitions and the vertical
+bar represents Mean ˘
+2
+?
+30 ˆ Standard Error.
+14
+100
+150
+200
+300
+400
+500
+n0
+0.15
+0.20
+0.25
+0.30
+0.35
+0.40
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 1
+750
+1000
+1500
+2000
+2500
+nsource
+0.15
+0.20
+0.25
+0.30
+0.35
+0.40
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 2
+20
+30
+40
+50
+60
+h
+0.1
+0.2
+0.3
+0.4
+0.5
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Experiment 3
+20
+30
+40
+50
+60
+h
+10
+15
+20
+25
+30
+∥ˆΩ−Ω(0)∥F
+Experiment 4
+Model III
+Glasso-Target
+Glasso-Pooled
+Trans-CLIME
+Trans-Glasso
+Figure 4: Simulation results for Model III. The default setting is n0 “ 150, nsource “ 1000 and
+h “ 40. In the first experiment, we increase n0 while fixing nsource and h. In the second experiment,
+we increase nsource while fixing n0 and h. In the third experiment, we increase both n0 and nsource
+while increasing h. More specifically, we let nsource “ 4n0, and n0 “ 15 when h “ 20, n0 “ 30 when
+h “ 30, n0 “ 80 when h “ 40, n0 “ 300 when h “ 50, and n0 “ 1000 when h “ 60. In the fourth
+experiment, we fix both n0 and nsource while increasing h. Each dot represents the empirical mean
+across 30 repetitions and the vertical bar represents Mean ˘
+2
+?
+30 ˆ Standard Error.
+15
+0
+1
+2
+3
+4
+5
+|A|
+0.10
+0.15
+0.20
+0.25
+0.30
+0.35
+∥ˆΩ−Ω(0)∥F/∥Ω(0)∥F
+Model I
+0
+1
+2
+3
+4
+5
+|A|
+0.15
+0.20
+0.25
+0.30
+0.35
+0.40
+Model II
+0
+1
+2
+3
+4
+5
+|A|
+0.2
+0.3
+0.4
+0.5
+Model III
+Glasso-Target
+Glasso-Pooled
+Trans-CLIME
+Trans-Glasso-CV
+Figure 5: Simulation results when the informative set A is unknown. We set n0 “ 300 and nsource “
+1000 for Model I; n0 “ 750 and nsource “ 2000 for Model II; and n0 “ 300 and nsource “ 1000
+for Model III. Each dot represents the empirical mean across 30 repetitions and the vertical bar
+represents Mean ˘
+2
+?
+30 ˆ Standard Error.
+6.1
+Data Generation Models
+We generate data from three distinct models to assess the flexibility of Trans-Glasso. Each model
+starts with a shared component, followed by individual components. The final precision matrices
+are made positive definite by adding a diagonal matrix. Specifically, each model is set as follows.
+• Model I: The shared component is a banded matrix with bandwidth 1, where each entry ˜Ωij “
+5 ˆ 0.6|i´j|1p|i ´ j| ď 1q for 1 ď i, j ď d. For a given h and each k “ 0, 1, . . . , K, we uniformly
+choose rh{2s entries pi, jq such that 1 ď i ď t d
+2u and t d
+2u ` 1 ď j ď d, denoted as SΓpkq,up.
+We let ˜Γpkq
+ij
+“ uij1tpi, jq P SΓpkq,upu, 1 ď i, j ď d, where uij’s are from Unifr´3, 3s. Then
+Γpkq‹ “ ˜Γpkq `p˜ΓpkqqJ. Finally, we let Ωpkq “ ˜Ω`Γpkq‹ `σId, where σ ensures γminpΩpkqq ě 0.1
+for 0 ď k ď K.
+• Model II: Model II is similar to Model I but with a wider bandwidth of 5, introducing a more
+connected structure in the shared component.
+• Model III: We generate the shared component from an Erdos–Renyi graph. Specifically, let
+˜Ωii “ 5, 1 ď i ď d, and Uij „ Bernoullip0.02q, 1 ď i ă j ď d. If Uij “ 1, let ˜Ωij “ ˜Ωji „
+Unifr´3, 3s; otherwise, set ˜Ωij “ ˜Ωji “ 0. Let S˜Ω“ tpi, jq P rds ˆ rds : ˜Ωij ‰ 0u be the
+support of ˜Ω. For given h and 0 ď k ď K, uniformly choose h entries (h ` 1 if h is odd) from
+rds ˆ rdsz˜Ω, denoted as SΓpkq, such that pi, jq P SΓpkq if and only if pj, iq P SΓpkq. Let Γpkq‹
+ij
+“
+uij1tpi, jq P SΓpkqu, 1 ď i, j ď d, where uij „ Unifr´3, 3s. Finally, let Ωpkq “ ˜Ω` Γpkq‹ ` σId,
+where σ ensures γminpΩpkqq ě 0.1 for 0 ď k ď K.
+6.2
+Experimental Design
+We conduct four main experiments per model to investigate Trans-Glasso’s performance under var-
+ious conditions:
+16
+1. Experiment 1: Vary the target sample size n0 while keeping the source sample size nsource
+and sparsity h fixed.
+2. Experiment 2: Vary the source sample size nsource while keeping n0 and h fixed.
+3. Experiment 3: Increase both n0, nsource, and h proportionally to examine scalability.
+4. Experiment 4: Fix n0 and nsource while increasing h, assessing performance as sparsity in
+deviations increases.
+Each experiment is repeated 30 times to obtain reliable averages and standard errors.
+6.3
+Comparison Methods
+We compare Trans-Glasso with the following baseline methods:
+• Glasso-Target: Applies graphical lasso [Friedman et al., 2008] only to the target data.
+• Glasso-Pooled: Combines all target and source data, applying graphical lasso on the pooled
+dataset.
+• Trans-CLIME: A transfer learning approach for precision matrix estimation by Li et al.
+[2023a], which assumes a sparse divergence matrix across sources.
+6.4
+Results
+The results for Models I – III are shown in Figure 2–4. Trans-Glasso generally outperforms baseline
+methods.
+In Experiment 3, Trans-Glasso shows consistency across all models, whereas Glasso-
+Pooled and Trans-CLIME do not. Trans-CLIME performs better with small h, but its performance
+deteriorates as h increases. This is because a small increase in h can significantly increase the sparsity
+of the divergence matrix defined in (2) when the covariance matrix is not sparse, as discussed in
+Appendix A. Therefore, when the precision matrix is sparse but the covariance matrix is not, Trans-
+Glasso is more reliable and robust.
+6.5
+Experiments with Unknown Informative Set
+We perform simulation experiments with unknown A, using the same three models. We divide rKs
+into rKs “ A Y Ac. For k P A, we set the sparsity level h to be small, and for k P Ac, h to be large.
+Specifically, for Model I, h “ 20 for k P A and h “ 600 for k P Ac; for Model II, h “ 30 for k P A
+and h “ 600 for k P Ac; for Model III, h “ 10 for k P A and h “ 300 for k P Ac. We implement the
+Trans-Glasso-CV algorithm (Section 4.3) and compare it with other methods. We vary |A| from 0
+to K to observe performance changes. Each experiment is repeated 30 times with different random
+seeds.
+Figure 5 shows that Trans-Glasso-CV generally outperforms baseline methods. Notably, it never
+performs worse than Glasso-Target, indicating no “negative transfer” of knowledge. In contrast,
+both Glasso-Pooled and Trans-CLIME can underperform compared to Glasso-Target. Additionally,
+as |A| increases, Trans-Glasso-CV achieves the best performance.
+7
+Real-World Data Analysis
+We apply the Trans-Glasso algorithm to two real-world datasets. In Section 7.1, we use it on gene
+networks with different brain tissues. In Section 7.2, we use it on protein networks for various cancer
+subtypes.
+17
+A. C. cortex
+C. B. ganglia
+C. hemisphere
+Cerebellum
+Cortex
+F. Cortex
+Hippocampus
+Hypothalamus
+N. A. B. ganglia
+P. B. ganglia
+Tissue Name
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Relative Prediction Error
+GTex Brain
+Glasso-Pooled
+Trans-CLIME
+Trans-Glasso
+Figure 6: Cross-validation prediction error of different methods on GTEx brain tissue datasets,
+relative to Glasso-Target.
+7.1
+Gene Networks Data for Brain Tissues
+We apply Trans-Glasso to detect gene networks in different tissues using the Genotype-Tissue Ex-
+pression (GTEx) data1. Following Li et al. [2023a], we focus on genes related to central nervous
+system neuron differentiation (GO:0021953). We use the same 13 brain tissues as Li et al. [2023a],
+treating one as the target and the other 12 as sources. We only use 10 out of 13 tissues as targets,
+avoiding 3 due to small sample sizes. See Table 3 of the supplementary materials of Li et al. [2023a]
+for the complete list of tissues and Table 1 for the target tissues. We remove genes with missing val-
+ues in these tissues and compare Trans-Glasso with baseline methods by computing cross-validation
+prediction error as defined in (16).
+Figure 6 presents the final result, using Glasso-Target, Glasso-Pooled, and Trans-CLIME as
+baselines as in Section 6. To compare results across tissues, we report prediction errors relative to
+Glasso-Target. Figure 6 shows that Trans-Glasso performs best on most tissues. The relative pre-
+diction error of Trans-Glasso is always much smaller than 1, indicating that it performs significantly
+better than using target data alone and is robust to negative transfer. In comparison, Glasso-Pooled
+and Trans-CLIME can perform worse or similar to Glasso-Target on some tissues.
+1https://gtexportal.org/home/
+18
+AKT
+AKT.p308
+AKT.p473
+BAD
+BAD.p112
+BAD.p136
+BAD.p155
+BAX
+BCL2
+BCLXL
+CCND1
+GSK3
+GSK3.p
+MYC
+PTEN
+PTEN.p
+TP53
+XIAP
+Subtype M0
+AKT
+AKT.p308
+AKT.p473
+BAD
+BAD.p112
+BAD.p136
+BAD.p155
+BAX
+BCL2
+BCLXL
+CCND1
+GSK3
+GSK3.p
+MYC
+PTEN
+PTEN.p
+TP53
+XIAP
+Subtype M1
+AKT
+AKT.p308
+AKT.p473
+BAD
+BAD.p112
+BAD.p136
+BAD.p155
+BAX
+BCL2
+BCLXL
+CCND1
+GSK3
+GSK3.p
+MYC
+PTEN
+PTEN.p
+TP53
+XIAP
+Subtype M2
+AKT
+AKT.p308
+AKT.p473
+BAD
+BAD.p112
+BAD.p136
+BAD.p155
+BAX
+BCL2
+BCLXL
+CCND1
+GSK3
+GSK3.p
+MYC
+PTEN
+PTEN.p
+TP53
+XIAP
+Subtype M4
+Figure 7: Protein networks for four AML subtypes. Red edges are shared by all, blue edges are not.
+19
+7.2
+Protein Networks Data for AML
+We apply our method to a protein networks dataset for Acute Myeloid Leukemia (AML) subtypes.
+Understanding protein relationships in cells is crucial in cancer studies, and graphical models help
+build these networks.
+Following Peterson et al. [2015], we analyze protein levels for 213 newly
+diagnosed AML patients,2 classified by the FAB system. Although protein interactions may differ
+across subtypes, common AML-related processes suggest shared connections. Thus, transfer learning
+can enhance subtype estimation using data from other subtypes. We focus on 18 proteins involved
+in apoptosis and cell cycle regulation, studying four subtypes: M0 (17 subjects), M1 (34 subjects),
+M2 (68 subjects), and M4 (59 subjects) Peterson et al. [2015], Kanehisa et al. [2012].
+For each subtype, after applying Trans-Glasso, we obtain the final estimated graph by choosing
+20 edges with the largest absolute values in the estimated precision matrix, resulting in graphs with
+similar edge numbers as in Peterson et al. [2015]. The final result is shown in Figure 7. Comparing
+with Peterson et al. [2015], many edges are discovered in both studies. However, our estimated graphs
+are more similar across subtypes. M0, M1, and M2 have the same structures, while M4 differs in two
+edges and has stronger connections between proteins in BAD families. This is supported by Tzifi
+et al. [2012], which observed higher expression levels of BAD family proteins in AML subtypes M4,
+M5, and M6 [Tzifi et al., 2012, Table 1], indicating more active interactions.
+8
+Conclusion
+We introduce Trans-Glasso, a novel transfer learning approach to precision matrix estimation, which
+addresses the limitations of small target sample sizes by leveraging related source data. Trans-Glasso
+operates through a two-step process: an initial estimation using multi-task learning, followed by
+refinement via differential network estimation. This methodology achieves minimax optimality in a
+wide range of parameter regimes. Through extensive simulations, we demonstrate that Trans-Glasso
+consistently outperforms baseline methods, showcasing its robustness and adaptability, particularly
+in high-dimensional settings with limited target samples.
+Future research directions include extending Trans-Glasso to estimate other graphical models,
+such as Gaussian copula [Liu et al., 2009, 2012a], transelliptical [Liu et al., 2012b], functional [Qiao
+et al., 2019, Tsai et al., 2024, Zhao et al., 2024], and Ising models [Kuang et al., 2017], and studying
+inferential methods within the transfer learning framework.
+2The dataset is provided as the supplement to Kornblau et al. [2009].
+20
+References
+Hamsa Bastani. Predicting with proxies: Transfer learning in high dimension. Management Science,
+67(5):2964–2984, 2021.
+A. Beck and M. Teboulle. A fast iterative shrinkage-thresholding algorithm for linear inverse prob-
+lems. SIAM Journal on Imaging Sciences, 2:183–202, 2009.
+Michael J. Best and Robert R. Grauer. Positively weighted minimum-variance portfolios and the
+structure of asset expected returns. Journal of Financial and Quantitative Analysis, 27(4):513–537,
+1992.
+Stephen Boyd, Neal Parikh, Eric Chu, Borja Peleato, Jonathan Eckstein, et al. Distributed opti-
+mization and statistical learning via the alternating direction method of multipliers. Foundations
+and Trends® in Machine learning, 3(1):1–122, 2011.
+Changxiao Cai, T Tony Cai, and Hongzhe Li. Transfer learning for contextual multi-armed bandits.
+The Annals of Statistics, 52(1):207–232, 2024a.
+T. Tony Cai and Hongji Wei. Transfer learning for nonparametric classification: Minimax rate and
+adaptive classifier. The Annals of Statistics, 49(1):100 – 128, 2021.
+T. Tony Cai, Weidong Liu, and Xi Luo. A constrained l1 minimization approach to sparse precision
+matrix estimation. Journal of the American Statistical Association, 106(494):594–607, 2011.
+T. Tony Cai, Hongzhe Li, Weidong Liu, and Jichun Xie.
+Joint estimation of multiple high-
+dimensional precision matrices. Statistica Sinica, 26(2):445–464, 2016a.
+T. Tony Cai, Weidong Liu, and Harrison H. Zhou. Estimating sparse precision matrix: optimal rates
+of convergence and adaptive estimation. The Annals of Statistics, 44(2):455–488, 2016b.
+T Tony Cai, Dongwoo Kim, and Hongming Pu. Transfer learning for functional mean estimation:
+Phase transition and adaptive algorithms. The Annals of Statistics, 52(2):654–678, 2024b.
+Patrick Danaher, Pei Wang, and Daniela M. Witten. The joint graphical lasso for inverse covariance
+estimation across multiple classes. Journal of the Royal Statistical Society. Series B. Statistical
+Methodology, 76(2):373–397, 2014.
+Farideh Fazayeli and Arindam Banerjee. Generalized direct change estimation in ising model struc-
+ture. In International Conference on Machine Learning, 2016.
+Jerome Friedman, Trevor Hastie, and Robert Tibshirani. Sparse inverse covariance estimation with
+the graphical lasso. Biostatistics, 9(3):432–441, 2008.
+Jiawei Ge, Shange Tang, Jianqing Fan, Cong Ma, and Chi Jin. Maximum likelihood estimation is
+all you need for well-specified covariate shift. In International Conference on Learning Represen-
+tations, 2024.
+Jian Guo, Elizaveta Levina, George Michailidis, and Ji Zhu. Joint estimation of multiple graphical
+models. Biometrika, 98(1):1–15, 2011.
+Ehsan Hajiramezanali, Siamak Zamani Dadaneh, Alireza Karbalayghareh, Mingyuan Zhou, and
+Xiaoning Qian. Bayesian multi-domain learning for cancer subtype discovery from next-generation
+sequencing count data. Advances in Neural Information Processing Systems, 2018.
+Steve Hanneke and Samory Kpotufe. On the value of target data in transfer learning. Advances in
+Neural Information Processing Systems, 2019.
+21
+Steve Hanneke and Samory Kpotufe. A no-free-lunch theorem for multitask learning. The Annals
+of Statistics, 50(6):3119–3143, 2022.
+Zelin He, Ying Sun, and Runze Li. Transfusion: Covariate-shift robust transfer learning for high-
+dimensional regression. In International Conference on Artificial Intelligence and Statistics, pages
+703–711, 2024.
+Minoru Kanehisa, Susumu Goto, Yoko Sato, Miho Furumichi, and Mao Tanabe. Kegg for integration
+and interpretation of large-scale molecular data sets. Nucleic acids research, 40(D1):D109–D114,
+2012.
+Steven M Kornblau, Raoul Tibes, Yi Hua Qiu, Wenjing Chen, Hagop M Kantarjian, Michael An-
+dreeff, Kevin R Coombes, and Gordon B Mills. Functional proteomic profiling of aml predicts
+response and survival. Blood, The Journal of the American Society of Hematology, 113(1):154–164,
+2009.
+Zhaobin Kuang, Sinong Geng, and David Page.
+A screening rule for l1-regularized ising model
+estimation. In Advances in Neural Information Processing Systems, 2017.
+Clifford Lam and Jianqing Fan. Sparsistency and rates of convergence in large covariance matrix
+estimation. Annals of statistics, 37(6B):4254, 2009.
+Steffen L Lauritzen. Graphical models, volume 17. Clarendon Press, 1996.
+Wonyul Lee and Yufeng Liu. Joint estimation of multiple precision matrices with common structures.
+The Journal of Machine Learning Research, 16(1):1035–1062, 2015.
+Sai Li, T Tony Cai, and Hongzhe Li.
+Transfer learning for high-dimensional linear regression:
+Prediction, estimation and minimax optimality. Journal of the Royal Statistical Society Series B:
+Statistical Methodology, 84(1):149–173, 2022.
+Sai Li, T Tony Cai, and Hongzhe Li. Transfer learning in large-scale gaussian graphical models with
+false discovery rate control. Journal of the American Statistical Association, 118(543):2171–2183,
+2023a.
+Sai Li, Linjun Zhang, T Tony Cai, and Hongzhe Li. Estimation and inference for high-dimensional
+generalized linear models with knowledge transfer. Journal of the American Statistical Association,
+0(0):1–12, 2023b.
+Haotian Lin and Matthew Reimherr. Transfer learning for functional linear regression with structural
+interpretability. arXiv preprint arXiv:2206.04277, 2022.
+Han Liu, John Lafferty, and Larry Wasserman. The nonparanormal: Semiparametric estimation of
+high dimensional undirected graphs. Journal of Machine Learning Research, 10(80):2295–2328,
+2009.
+Han Liu, Fang Han, Ming Yuan, John Lafferty, and Larry Wasserman. High-dimensional semipara-
+metric Gaussian copula graphical models. The Annals of Statistics, 40(4):2293 – 2326, 2012a.
+Han Liu, Fang Han, and Cun-hui Zhang.
+Transelliptical graphical models.
+Advances in neural
+information processing systems, 25, 2012b.
+Shuo Shuo Liu.
+Unified transfer learning models for high-dimensional linear regression.
+arXiv
+preprint arXiv:2307.00238, 2023.
+22
+Song Liu, John A Quinn, Michael U Gutmann, Taiji Suzuki, and Masashi Sugiyama. Direct learning
+of sparse changes in markov networks by density ratio estimation. Neural computation, 26(6):
+1169–1197, 2014.
+Cong Ma, Junwei Lu, and Han Liu. Inter-subject analysis: A partial gaussian graphical model
+approach. Journal of the American Statistical Association, 116(534):746–755, 2021.
+Cong Ma, Reese Pathak, and Martin J Wainwright. Optimally tackling covariate shift in rkhs-based
+nonparametric regression. The Annals of Statistics, 51(2):738–761, 2023.
+Jing Ma and George Michailidis. Joint structural estimation of multiple graphical models. Journal
+of Machine Learning Research, 17:166:1–166:48, 2016.
+Karthik Mohan, Palma London, Maryam Fazel, Daniela Witten, and Su-In Lee. Node-based learning
+of multiple gaussian graphical models. The Journal of Machine Learning Research, 15(1):445–488,
+2014.
+Jorge Nocedal and Stephen J. Wright. Numerical Optimization. Springer New York, 2006.
+Sinno Jialin Pan and Qiang Yang. A survey on transfer learning. IEEE Transactions on knowledge
+and data engineering, 22(10):1345–1359, 2009.
+Neal Parikh and Stephen P. Boyd. Proximal algorithms. Foundations and Trends in Optimization,
+1(3):127–239, 2014.
+Reese Pathak, Cong Ma, and Martin Wainwright. A new similarity measure for covariate shift with
+applications to nonparametric regression. In International Conference on Machine Learning, 2022.
+Kaare Brandt Petersen, Michael Syskind Pedersen, et al. The matrix cookbook. Technical report,
+Technical University of Denmark, 2008.
+Christine Peterson, Francesco C Stingo, and Marina Vannucci. Bayesian inference of multiple gaus-
+sian graphical models. Journal of the American Statistical Association, 110(509):159–174, 2015.
+Xinghao Qiao, Shaojun Guo, and Gareth M James. Functional graphical models. Journal of the
+American Statistical Association, 114(525):211–222, 2019.
+Pradeep Ravikumar, Martin J. Wainwright, Garvesh Raskutti, and Bin Yu. High-dimensional co-
+variance estimation by minimizing l1-penalized log-determinant divergence. Electronic Journal of
+Statistics, 5:935 – 980, 2011.
+Zhao Ren, Tingni Sun, Cun-Hui Zhang, and Harrison H. Zhou. Asymptotic normality and optimal-
+ities in estimation of large Gaussian graphical models. The Annals of Statistics, 43(3):991–1026,
+2015.
+Adam J. Rothman, Peter J. Bickel, Elizaveta Levina, and Ji Zhu. Sparse permutation invariant
+covariance estimation. Electronic Journal of Statistics, 2:494 – 515, 2008.
+Takumi Saegusa and Ali Shojaie. Joint estimation of precision matrices in heterogeneous populations.
+Electronic Journal of Statistics, 10(1):1341, 2016.
+George Saon and Jen-Tzung Chien. Bayesian sensing hidden markov models for speech recognition.
+In IEEE International Conference on Acoustics, Speech and Signal Processing, 2011.
+Ye Tian and Yang Feng. Transfer learning under high-dimensional generalized linear models. Journal
+of the American Statistical Association, 118(544):2684–2697, 2023.
+23
+Katherine Tsai, Oluwasanmi Koyejo, and Mladen Kolar. Joint gaussian graphical model estimation:
+A survey. Wiley Interdisciplinary Reviews: Computational Statistics, 14(6):e1582, 2022.
+Katherine Tsai, Boxin Zhao, Sanmi Koyejo, and Mladen Kolar. Latent multimodal functional graph-
+ical model estimation. Journal of the American Statistical Association, 0(0):1–13, 2024.
+Alexandre B. Tsybakov. Introduction to Nonparametric Estimation. Springer New York, NY, 1st
+edition, 2008.
+Jitendra K Tugnait. Estimation of high-dimensional differential graphs from multi-attribute data.
+In IEEE International Conference on Acoustics, Speech and Signal Processing, 2023.
+Turki Turki, Zhi Wei, and Jason TL Wang. Transfer learning approaches to improve drug sensitivity
+prediction in multiple myeloma patients. IEEE Access, 5:7381–7393, 2017.
+Flora Tzifi, Christina Economopoulou, Dimitrios Gourgiotis, Alexandros Ardavanis, Sotirios Papa-
+georgiou, and Andreas Scorilas. The role of bcl2 family of apoptosis regulator proteins in acute
+and chronic leukemias. Advances in Hematology, 2012, 2012.
+Martin J Wainwright. High-dimensional statistics: A non-asymptotic viewpoint, volume 48. Cam-
+bridge University Press, 2019.
+Kaizheng Wang. Pseudo-labeling for kernel ridge regression under covariate shift. arXiv preprint
+arXiv:2302.10160, 2023.
+Huili Yuan, Ruibin Xi, Chong Chen, and Minghua Deng. Differential network analysis via lasso
+penalized d-trace loss. Biometrika, 104(4):755–770, 2017.
+Ming Yuan and Yi Lin. Model selection and estimation in the gaussian graphical model. Biometrika,
+94(1):19–35, 2007.
+Boxin Zhao, Y. Samuel Wang, and Mladen Kolar. Direct estimation of differential functional graph-
+ical models. In Advances in Neural Information Processing Systems, 2019.
+Boxin Zhao, Y. Samuel Wang, and Mladen Kolar.
+Fudge: A method to estimate a functional
+differential graph in a high-dimensional setting. Journal of Machine Learning Research, 23:82:1–
+82:82, 2022.
+Boxin Zhao, Percy S Zhai, Y Samuel Wang, and Mladen Kolar. High-dimensional functional graphi-
+cal model structure learning via neighborhood selection approach. Electronic Journal of Statistics,
+18(1):1042–1129, 2024.
+Sihai Dave Zhao, T Tony Cai, and Hongzhe Li. Direct estimation of differential networks. Biometrika,
+101(2):253–268, 2014.
+Yunzhang Zhu, Xiaotong Shen, and Wei Pan. Structural pursuit over multiple undirected graphs.
+Journal of the American Statistical Association, 109(508):1683–1696, 2014.
+24
+A
+Comparison with Li et al. [2023a]
+In this section, we make a more detailed comparison of the similarity assumption made in Li et al.
+[2023a] and our Assumption 1. Let Υpkq “
+`
+Ωp0q ´ Ωpkq˘
+Σpkq “ ´ΨpkqΣpkq, or equivalently Ψpkq “
+´ΥpkqΩpkq. Li et al. [2023a] assumes Υpkq is column-wise sparse in Lp-norm. Our Assumption 1 and
+the similarity assumption in Li et al. [2023a] do not imply each other and are generally incomparable.
+However, our Assumption 1 can be preferable in some applications. First, while the divergence matrix
+Υpkq is motivated by the KL divergence between Gaussian distributions, Assumption 1 is structural
+and applies to any distribution. Second, Assumption 1 is naturally interpreted in Gaussian graphical
+models, unlike the similarity assumption in Li et al. [2023a]. Finally, a technical advantage of our
+assumption is that, while sparsity in Ψpkq does not generally imply sparsity in Υpkq, or vice versa,
+further assumptions on Σpkq or Ωpkq can establish one or both directions. For example, note that
+ˇˇˇΨpkqˇˇˇ
+0 ď
+ÿ
+i,j
+1
+# dÿ
+l“1
+1
+!
+Υpkq
+il
+‰ 0
+)
+1
+!
+Ωpkq
+lj
+‰ 0
+)
+ě 1
++
+.
+If both Υpkq and Ωpkq are sparse, then Ψpkq is also sparse. Similarly, if Ψpkq and Σpkq are sparse,
+then Υpkq is sparse. The key difference is that Υpkq
+ùñ Ψpkq relies on Ωpkq being sparse, while
+Ψpkq
+ùñ
+Υpkq relies on Σpkq being sparse.
+In graphical models, sparsity assumptions on the
+precision matrix are more common than on the covariance matrix, making the sparsity assumptions
+on Ψpkq weaker than those on Υpkq.
+B
+Preliminary Lemmas
+We first collect several inequalities related to matrix norms.
+Lemma 1. For any two matrices A, B P Rdˆd, we have
+|AB|8 ď min t}A}8|B|8, }B}1|A|8u .
+(25)
+Proof. For 1 ď j ď d, denote by B:j the j-th column of B. We then have
+|AB|8 “ max
+1ďjďd }AB:j}8
+ď max
+1ďjďd }A}8}B:j}8
+“ }A}8 max
+1ďjďd }B:j}8
+“ }A}8|B|8.
+The other claim follows from the facts that |AB|8 “ |BJAJ|8, and }BJ}8 “ }B}1.
+■
+Lemma 2. For any matrix A P Rmˆn and any vector v P Rn, we have }Av}8 ď |A|8}v}1.
+Proof. Let Ai¨ denote the i-th row of A, we then have
+}Av}8 “ max
+1ďiďm |xAi¨, vy| ď max
+1ďiďm }Ai¨}8}v}1 “ |A|8}v}1,
+which completes the proof.
+■
+The next lemma requires the following definition of the sub-Gaussian random variable.
+Definition B.1 (Sub-Gaussian Random Variable, Definition 2 of Ravikumar et al. [2011]). We say
+that a random variable X P R is sub-Gaussian with parameter σ if
+E rexp pλXqs ď exp
+`
+σ2λ{2
+˘
+for all λ P R.
+25
+Lemma 3. Assume that we obtain samples from K distributions, each with a mean of zero and a
+covariance matrix of Σpkq. Let tXpkq
+i
+“ pXpkq
+i1 , . . . , Xpkq
+id qJunk
+i“1 represent nk independently distributed
+samples from the k-th distribution. In addition, we assume that Xpkq
+ij {
+b
+Σpkq
+jj
+is sub-Gaussian with
+parameter σ as defined in Definition B.1. Let
+pΣpkq “ 1
+nk
+nk
+ÿ
+i“1
+Xpkq
+i
+XpkqJ
+i
+,
+pΣ “
+K
+ÿ
+k“1
+αk pΣpkq,
+and
+Σ‹ “
+K
+ÿ
+k“1
+αkΣpkq,
+where αk “ nk{N and N “ řK
+k“1 nk. For a fixed δ P p0, 1s, we have
+P
+#ˇˇˇpΣ ´ Σ‹ˇˇˇ
+8 ą 16p1 ` 4σ2q
+"
+max
+1ďkďK
+ˇˇˇΣpkqˇˇˇ
+8
+*
+max
+#c
+logp2d2{δq
+2N
+, logp2d2{δq
+N
+++
+ď δ.
+Proof. Let s
+Xpkq
+ij
+“ Xpkq
+ij {
+b
+Σpkq
+jj , i “ 1, . . . , nk, k “ 1, . . . , K, j “ 1, . . . , d. Define U pkq
+i,jl “ s
+Xpkq
+ij ` s
+Xpkq
+il ,
+V pkq
+i,jl “ s
+Xpkq
+ij
+´ s
+Xpkq
+il , and ρpkq
+jl “ Σpkq
+jl {
+b
+Σpkq
+jj ¨ Σpkq
+ll . Then it follows from Proposition 2.9 and (2.18)
+in Wainwright [2019], that
+E
+„
+exp
+"
+λ
+„´
+U pkq
+i,jl
+¯2
+´ 2
+´
+1 ` ρpkq
+jl
+¯ȷ*ȷ
+ď exp
+ˆλ2ν2
+2
+˙
+,
+and
+E
+„
+exp
+"
+λ
+„´
+V pkq
+i,jl
+¯2
+´ 2
+´
+1 ´ ρpkq
+jl
+¯ȷ*ȷ
+ď exp
+ˆλ2ν2
+2
+˙
+,
+for all |λ| ă 1{ϕ where ν “ ϕ “ 16p1 ` 4σ2q. Since
+nk
+ÿ
+i“1
+´
+s
+Xpkq
+ij
+s
+Xpkq
+il
+´ ρpkq
+jl
+¯
+“ 1
+4
+nk
+ÿ
+i“1
+ˆ´
+U pkq
+i,jl
+¯2
+´ 2
+´
+1 ` ρpkq
+jl
+¯˙
+´ 1
+4
+nk
+ÿ
+i“1
+ˆ´
+V pkq
+i,jl
+¯2
+´ 2
+´
+1 ´ ρpkq
+jl
+¯˙
+,
+we have
+E
+«
+exp
+#
+λ
+« nk
+ÿ
+i“1
+´
+s
+Xpkq
+ij
+s
+Xpkq
+il
+´ ρpkq
+jl
+¯ff+ff
+“ E
+«
+exp
+#
+λ
+4
+« nk
+ÿ
+i“1
+ˆ´
+U pkq
+i,jl
+¯2
+´ 2
+´
+1 ` ρpkq
+jl
+¯˙ff+
+¨ exp
+#
+´λ
+4
+« nk
+ÿ
+i“1
+ˆ´
+V pkq
+i,jl
+¯2
+´ 2
+´
+1 ´ ρpkq
+jl
+¯˙ff+ff
+ď
+#
+E
+«
+exp
+#
+λ
+2
+« nk
+ÿ
+i“1
+ˆ´
+U pkq
+i,jl
+¯2
+´ 2
+´
+1 ` ρpkq
+jl
+¯˙ff+ff+ 1
+2
+ˆ
+#
+E
+«
+exp
+#
+´λ
+2
+« nk
+ÿ
+i“1
+ˆ´
+V pkq
+i,jl
+¯2
+´ 2
+´
+1 ´ ρpkq
+jl
+¯˙ff+ff+ 1
+2
+ď exp
+ˆnkν2λ2
+8
+˙
+for all |λ| ă 2
+ϕ.
+Let τ8 “ max1ďkďK |Σpkq|8. It then follows that
+E
+«
+exp
+#
+λ
+« nk
+ÿ
+i“1
+´
+Xpkq
+ij Xpkq
+il
+´ Σpkq
+jl
+¯ff+ff
+“ E
+«
+exp
+#
+λ
+b
+Σpkq
+jj
+b
+Σpkq
+ll
+« nk
+ÿ
+i“1
+´
+s
+Xpkq
+ij
+s
+Xpkq
+il
+´ ρpkq
+jl
+¯ff+ff
+26
+ď E
+«
+exp
+#
+λ|Σpkq|8
+« nk
+ÿ
+i“1
+´
+s
+Xpkq
+ij
+s
+Xpkq
+il
+´ ρpkq
+jl
+¯ff+ff
+ď E
+«
+exp
+#
+λτ8
+« nk
+ÿ
+i“1
+´
+s
+Xpkq
+ij
+s
+Xpkq
+il
+´ ρpkq
+jl
+¯ff+ff
+ď exp
+ˆnkν2τ 2
+8λ2
+8
+˙
+for all |λ| ă
+2
+ϕτ8
+,
+and
+E
+”
+exp
+!
+λN
+´
+pΣjl ´ Σ‹
+jl
+¯)ı
+“ E
+«
+exp
+#
+λ
+˜ K
+ÿ
+k“1
+nk
+ÿ
+i“1
+´
+Xpkq
+ij Xpkq
+il
+´ Σpkq
+jl
+¯¸+ff
+“
+K
+ź
+k“1
+E
+«
+exp
+#
+λ
+˜ nk
+ÿ
+i“1
+´
+Xpkq
+ij Xpkq
+il
+´ Σpkq
+jl
+¯¸+ff
+ď
+K
+ź
+k“1
+exp
+ˆnkν2τ 2
+8λ2
+8
+˙
+“ exp
+ˆNν2τ 2
+8λ2
+8
+˙
+when |λ| ă 2{pτ8ϕq. Using Proposition 2.9 in Wainwright [2019], for t ě 0, we have that
+P
+!ˇˇˇpΣjl ´ Σ‹
+jl
+ˇˇˇ ą t
+)
+“ P
+!ˇˇˇN
+´
+pΣjl ´ Σ‹
+jl
+¯ˇˇˇ ą Nt
+)
+ď 2 exp
+"
+´1
+2 min
+ˆ4Nt2
+ν2τ 28
+, 2Nt
+ϕτ8
+˙*
+.
+A union bound then gives us
+P
+!ˇˇˇpΣ ´ Σ‹ˇˇˇ
+8 ą t
+)
+ď 2d2 exp
+"
+´1
+2 min
+ˆ4Nt2
+ν2τ 28
+, 2Nt
+ϕτ8
+˙*
+.
+Rewriting the above equation, we complete the proof.
+■
+Lemma 4. Consider a zero mean random vector X “ pX1, . . . , XdqJ with covariance Σ‹ such that
+each Xj{aΣ‹
+jj is sub-Gaussian with parameter σ as defined in Definition B.1. Let tXpiqun
+i“1 be n
+i.i.d. copies of X and let pΣn “ 1
+n
+řn
+i“1 XpiqXpiqJ. For δ P p0, 1s, we have
+P
+#ˇˇˇpΣn ´ Σ‹ˇˇˇ
+8 ą 16p1 ` 4σ2q |Σ‹|8 max
+#c
+logp2d2{δq
+2n
+, logp2d2{δq
+n
+++
+ď δ.
+Proof. The proof follows directly from Lemma 3.
+■
+In the next lemma, we use Sd
+` to denote the set of positive definite matrices with dimension d.
+Lemma 5. Let A P Sd
+`.
+Define f pΩq :“ xΩ, Ay ´ log det Ωfor ΩP Sd
+`.
+Given Ω0 P Sd
+` and
+∆ΩP Rdˆd such that Ω0 ` ∆ΩP Sd
+`, there exists t P p0, 1q such that
+f pΩ0 ` ∆Ωq ´ f pΩ0q ´ x∇fpΩ0q, ∆Ωy “ 1
+2vec p∆ΩqJ !
+pΩ0 ` t∆Ωq´1 b pΩ0 ` t∆Ωq´1)
+vec p∆Ωq
+Proof. One can view f as a function of vecpΩq. Note that ∇2fpvecpΩqq “ Ω´1 b Ω´1. The rest of
+the proof then follows Taylor’s Theorem [Nocedal and Wright, 2006, Theorem 2.1].
+■
+27
+Lemma 6. Let Sppsq :“ tθ P Rp : }θ}0 ď s, }θ}2 ď 1u. There exists tθ0, θ1, . . . , θMu Ď Sppsq such
+that
+(i) θ0 “ 0;
+(ii)
+››θj ´ θk››
+2 ě 1
+4 for all 0 ď j ‰ k ď M;
+(iii) logpM ` 1q ě s
+2 log
+` d´s
+s
+˘
+.
+Proof. It follows from Example 15.16 in Wainwright [2019] that there exists a 1{2-packing of Sppsq,
+which we denote as t˜θ0, ˜θ1, . . . , ˜θMu, such that
+›››˜θj ´ ˜θk›››
+2 ě 1
+2
+for all 0 ď j ‰ k ď M
+and
+logpM ` 1q ě s
+2 log
+ˆd ´ s
+s
+˙
+.
+(26)
+Without loss of generality, assume that }˜θ0}2 ď }˜θj}2 for 1 ď j ď M. Let θ0 “ 0 and let θj “ ˜θj for
+1 ď j ď M. Then the set tθ0, θ1, . . . , θMu satisfies (i)–(iii). To prove the claim, by our construction
+of the set and (26), we only need to verify that }θj ´ θ0}2 “ }θj}2 ě 1
+4 for all 1 ď j ď M. We prove
+the result in two cases.
+Case 1: }˜θ0}2 ě 1
+4. Since }˜θ0}2 ď }˜θj}2, we have that }θj}2 “ }˜θj}2 ě }˜θ0}2 ě 1
+4 for 1 ď j ď M.
+Case 2: }˜θ0}2 ă 1
+4. We have
+››θj››
+2 “
+›››˜θj›››
+2 ě
+›››˜θj ´ ˜θ0›››
+2 ´
+›››˜θ0›››
+2 ą 1
+2 ´ 1
+4 “ 1
+4
+for 1 ď j ď M,
+where the last inequality follows from (26).
+Combining Case 1 and Case 2, we have proved that }θj}2 ě 1
+4 for 1 ď j ď M, which completes
+the proof.
+■
+Lemma 7. Let m ě 2 be an even integer and set d “ 2m. Let B P Rmˆm be such that }B}F ď 1{4
+and define
+Ω“
+„
+Im
+B
+BJ
+Im
+ȷ
+.
+Then Ωą 0 and DKL
+`
+N
+`
+0, Ω´1˘
+}N p0, Idq
+˘
+ď 16
+15 }B}2
+F .
+Proof. We begin with proving Ωą 0. By Weyl’s inequality, we know that
+γmin pΩq ě 1 ´
+››››
+„
+0
+B
+BJ
+0
+ȷ›››› ě 1 ´
+››››
+„
+0
+B
+BJ
+0
+ȷ››››
+F
+“ 1 ´
+?
+2 }B}F ě 1
+2.
+As a result, we have Ωą 0.
+Now we move on to the second claim regarding the KL divergence. Recall that
+DKL
+`
+N
+`
+0, Ω´1˘
+}N p0, Idq
+˘
+“ 1
+2
+“
+log det pΩq ´ d ` tr
+`
+Ω´1˘‰
+,
+(27)
+which motivates us to compute log det pΩq and tr
+`
+Ω´1˘
+. Let B “ UDV J be the singular value
+decomposition of B with U, D, V P Rmˆm, U JU “ UU J “ Im, V JV “ V V J “ Im, and D “
+diagpλ1, . . . , λmq. We have the following identities.
+log det pΩq “
+m
+ÿ
+i“1
+log
+`
+1 ´ λ2
+i
+˘
+.
+(28a)
+28
+tr
+`
+Ω´1˘
+“
+m
+ÿ
+i“1
+2
+1 ´ λ2
+i
+.
+(28b)
+Combining (27), (28a), and (28b), we obtain
+DKL
+`
+N
+`
+0, Ω´1˘
+}N p0, Idq
+˘
+“ 1
+2
+« m
+ÿ
+i“1
+log
+`
+1 ´ λ2
+i
+˘
+`
+m
+ÿ
+i“1
+2
+1 ´ λ2
+i
+´ d
+ff
+“
+m
+ÿ
+i“1
+«
+log
+`
+1 ´ λ2
+i
+˘
+2
+`
+1
+1 ´ λ2
+i
+´ 1
+ff
+.
+Since λ2
+j ď řd
+i“1 λ2
+i “ }B}2
+F ď 1{16, we have ´λ2
+j ě ´1{16. Also note that logp1 ` xq ď x for all
+x ě ´1. We thus have
+DKL
+`
+N
+`
+0, Ω´1˘
+}N p0, Idq
+˘
+ď
+m
+ÿ
+i“1
+„´λ2
+i
+2
+`
+1
+1 ´ λ2
+i
+´ 1
+ȷ
+“
+m
+ÿ
+i“1
+λ2
+i ` λ4
+i
+2 p1 ´ λ2
+i q ď
+m
+ÿ
+i“1
+λ2
+i
+1 ´ λ2
+i
+ď 16
+15
+m
+ÿ
+i“1
+λ2
+i “ 16
+15 }B}2
+F .
+This completes the proof.
+Proof of Equation (28a).
+Using Section 9.1.2 of Petersen et al. [2008], we have det pΩq “
+det
+`
+Im ´ BJB
+˘
+. Since
+Im ´ BJB “ Im ´ V D2V J “ V
+`
+Im ´ D2˘
+V J,
+(29)
+we have det pΩq “ det
+`
+Im ´ D2˘
+“ śm
+i“1
+`
+1 ´ λ2
+i
+˘
+and hence log det pΩq “ řm
+i“1 log
+`
+1 ´ λ2
+i
+˘
+.
+Proof of Equation (28b).
+Using Section 9.1.3 of Petersen et al. [2008], we have
+Ω´1 “
+„
+Im
+B
+BJ
+Im
+ȷ´1
+“
+«
+`
+Im ´ BBJ˘´1
+´B
+`
+Im ´ BJB
+˘´1
+´
+`
+Im ´ BJB
+˘´1 BJ
+`
+Im ´ BJB
+˘´1
+ff
+,
+which implies
+tr
+`
+Ω´1˘
+“ tr
+!`
+Im ´ BBJ˘´1)
+` tr
+!`
+Im ´ BJB
+˘´1)
+.
+(30)
+It follows from (29) that
+`
+Im ´ BJB
+˘´1 “ V
+`
+Im ´ D2˘´1 V J, and therefore,
+tr
+!`
+Im ´ BBJ˘´1)
+“ tr
+!
+V
+`
+Im ´ D2˘´1 V J)
+“ tr
+!`
+Im ´ D2˘´1)
+“
+m
+ÿ
+i“1
+1
+1 ´ λ2
+i
+.
+(31)
+Similarly, we have trt
+`
+Im ´ BJB
+˘´1u “ řm
+i“1
+1
+1´λ2
+i . Take the previous results collectively to yield
+the claim (28b).
+■
+C
+Proof of Theorem 1
+We adopt the proof strategy laid out in Wainwright [2019, Chapter 9].
+29
+C.1
+Additional Notation
+We first introduce some additional notation that will be helpful in the proof. We define the Hilbert
+space for the parameters
+H :“
+"
+Θ “
+ˆ
+Ω,
+!
+Γpkq)K
+k“0
+˙
+: Ω, Γpkq P Rdˆd for all 0 ď k ď K
+*
+,
+with the associated inner product
+@
+Θ, Θ1D
+H “
+@
+Θ, Θ1D :“
+@
+Ω, Ω1D
+`
+K
+ÿ
+k“0
+A
+Γpkq, Γpkq1E
+.
+The space H endowed with the inner product x¨, ¨y is indeed a Hilbert space. Correspondingly, we
+have
+}Θ}2
+H “ }Ω}2
+F `
+K
+ÿ
+k“0
+›››Γpkq›››
+2
+F .
+We also need the dual norm of Φp¨q, which is defined as
+Φ‹ pΘq :“
+sup
+Θ1:ΦpΘ1qď1
+@
+Θ, Θ1D
+.
+(32)
+Recall that Θ‹ “ pΩ‹, tΓpkq‹uK
+k“0q is the true parameter. Let SΩand SΓpkq be the supports of Ω‹
+and Γpkq‹ for all 0 ď k ď K, respectively. Under Assumption 1, the true parameter Θ‹ lies in the
+following subspace of H:
+M :“
+"
+Θ “
+ˆ
+Ω,
+!
+Γpkq)K
+k“0
+˙
+: supppΩq Ď SΩ, supp
+”
+Γpkqı
+Ď SΓpkq for all 0 ď k ď K
+*
+.
+(33)
+The orthogonal complement of M is given by
+MK :“
+"
+Θ “
+ˆ
+Ω,
+!
+Γpkq)K
+k“0
+˙
+: supppΩq Ď Sc
+Ω, supp
+”
+Γpkqı
+Ď Sc
+Γpkq for all 0 ď k ď K
+*
+.
+(34)
+Clearly, for any Θ P M and Θ1 P MK, we have that xΘ, Θ1y “ 0 .
+We also need to define the projection of a parameter onto a subspace. For any matrix B P Rdˆd
+and any subspace F Ď Rdˆd, we define
+rBsF “ arg min
+˜
+BPF
+››› ˜B ´ B
+›››
+F .
+Similarly, for any Θ P H and any subspace F Ď H, we define
+rΘsF “ arg min
+˜
+BPF
+››› ˜B ´ B
+›››
+H .
+In addition, for S Ď rds ˆ rds, we define
+MpSq :“
+␣
+B P Rdˆd : supppBq Ď S
+(
+.
+For any B P Rdˆd, we define rBsS :“ rBsMpSq. This way, for any Θ “ pΩ, tΓpkquK
+k“0q P H, we have
+rΘsM “
+˜
+rΩsSΩ,
+"”
+Γpkqı
+SΓpkq
+*K
+k“0
+¸
+and
+rΘsMK “
+¨
+˝rΩsSc
+Ω,
+#”
+Γpkqı
+Sc
+Γpkq
++K
+k“0
+˛
+‚.
+30
+Finally, we define our metric on the estimation error. For Θ “ pΩ, tΓpkquK
+k“0q P H, let
+HpΘq :“
+K
+ÿ
+k“0
+αk
+›››Ω` Γpkq›››
+2
+F .
+(35)
+We define
+p∆:“ pΘ ´ Θ‹ “
+ˆ
+pΩ´ Ω‹,
+!
+pΓpkq ´ Γpkq‹)K
+k“0
+˙
+,
+where pΘ is the Trans-Glasso estimator (3). Then our goal is to control
+Hpp∆q “
+K
+ÿ
+k“0
+αk
+›››pΩ´ Ω‹ ` pΓpkq ´ Γpkq‹›››
+2
+F “
+K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F .
+C.2
+Useful lemmas
+Now we collect several useful lemmas, whose proofs are deferred to the end of the section.
+We begin by demonstrating that Φp¨q, defined in (5), is decomposable with respect to pM, MKq.
+Lemma 8. We have
+ΦpΘ ` Θ1q “ ΦpΘq ` ΦpΘ1q
+for any Θ P M, Θ1 P MK.
+The following lemma relates ΦpΘq with HpΘq defined in (35) for any Θ P M.
+Lemma 9. For any Θ P M, we have
+ΦpΘq ď
+?
+2
+a
+s ` pK ` 1qh
+a
+HpΘq.
+For ∆Θ “ p∆Ω, t∆ΓpkquK
+k“0q P H such that ∆Ω` ∆Γpkq ` Ωpkq ą 0 for all 0 ď k ď K, we define
+R p∆Θq :“ L pΘ‹ ` ∆Θq ´ L pΘ‹q ´ x∇L pΘ‹q , ∆Θy
+to be the residual of Lp¨q around Θ‹, where Lp¨q is defined in (4). The following lemma claims that
+R p¨q is locally strongly convex with respect to the geometry defined by Hp¨q.
+Lemma 10. Let ∆Θ “ p∆Ω, t∆ΓpkquK
+k“0q P H be such that ∆Ω` ∆Γpkq ` Ωpkq ą 0 and assume that
+}∆Ω` ∆Γpkq}2 ď Mop ` MΩfor all 0 ď k ď K. Then, we have
+R p∆Θq ě κ
+2 H p∆Θq ,
+where κ “ p2MΩ` Mopq´2.
+Last but not least, define the event
+GpλMq :“
+"λM
+2
+ě Φ‹ p∇L pΘ‹qq
+*
+.
+(36)
+The following lemma asserts that this event happens with high probability.
+Lemma 11. When (18) holds and λM satisfies (19), we have that PtGpλMqu ě 1 ´ δ.
+31
+C.3
+Remaining proof
+Now we are ready to prove Theorem 1. As Lemma 11 asserts that GpλMq holds with high probability,
+thus we only need to prove the conclusion under the assumption that GpλMq holds. Throughout the
+proof, we assume the event GpλMq holds.
+For any ∆Θ “ p∆Ω, t∆ΓpkquK
+k“0q P H, we define the objective difference
+F p∆Θq :“ L pΘ‹ ` ∆Θq ´ L pΘ‹q ` λM tΦ pΘ‹ ` ∆Θq ´ Φ pΘ‹qu .
+Note that by definition, we have F
+´
+p∆Θ
+¯
+ď 0.
+It suffices to show that for all ∆Θ such that
+∆Θ ` Θ‹ P CpMopq and Hp∆Θq ą 18ps`pK`1qhqλ2
+M
+κ2
+, we have Fp∆Θq ą 0.
+It is easy to see that any such ∆Θ obeys
+∆Ω` ∆Γk ` Ωpkq “ Ω´ Ω‹ ` Γk ´ Γpkq‹ ` Ωpkq “ Ω` Γk ą 0,
+and for all 0 ď k ď K
+}∆Ω` ∆Γk}2 “
+›››Ω´ Ω‹ ` Γk ´ Γpkq‹›››
+2 “
+›››Ω` Γk ´ Ωpkq›››
+2 ď }Ω` Γk}2 `
+›››Ωpkq›››
+2 ď Mop ` MΩ,
+where the last inequality follows the definition of Mop and MΩ. These two taken together allows us
+to invoke Lemma 10 to obtain
+F p∆Θq ě x∇L pΘ‹q , ∆Θy ` κ
+2 H p∆Θq ` λM tΦ pΘ‹ ` ∆Θq ´ Φ pΘ‹qu ,
+where κ “ p2MΩ` Mopq´2.
+In addition, combining Lemma 8 and the fact that rΘ‹sMK “ 0 with Wainwright [2019, Lemma
+9.14], we have
+Φ pΘ‹ ` ∆Θq ´ Φ pΘ‹q ě Φ pr∆ΘsMKq ´ Φ pr∆ΘsMq
+(37)
+for any ∆Θ P H. This way, we have obtained a lower bound for ΦpΘ‹ ` ∆Θq ´ ΦpΘ‹q.
+Take the previous two displays together to reach
+F p∆Θq ě x∇L pΘ‹q , ∆Θy ` κ
+2 H p∆Θq ` λM tΦ pr∆ΘsMKq ´ Φ pr∆ΘsMqu .
+Recall the definition of Φ‹ in (32), under the assumption that GpλMq is true, we have
+F p∆Θq ě κ
+2 H p∆Θq ´ |x∇L pΘ‹q , ∆Θy| ` λM tΦ pr∆ΘsMKq ´ Φ pr∆ΘsMqu
+ě κ
+2 H p∆Θq ´ Φ p∆Θq Φ‹ p∇L pΘ‹qq ` λM tΦ pr∆ΘsMKq ´ Φ pr∆ΘsMqu
+ě κ
+2 H p∆Θq ´ λM
+2 Φ p∆Θq ` λM tΦ pr∆ΘsMKq ´ Φ pr∆ΘsMqu
+“ κ
+2 H p∆Θq ´ λM
+2 tΦ pr∆ΘsMq ` Φ pr∆ΘsMKqu ` λM tΦ pr∆ΘsMKq ´ Φ pr∆ΘsMqu
+“ κ
+2 H p∆Θq ´ λM
+2 t3Φ pr∆ΘsMq ´ Φ pr∆ΘsMKqu
+ě κ
+2 H p∆Θq ´ 3λM
+2 Φ pr∆ΘsMq .
+(38)
+By Lemma 9, we have
+Φ pr∆ΘsMq ď
+a
+s ` pK ` 1qh
+b
+H pr∆ΘsMq ď
+?
+2
+a
+s ` pK ` 1qh
+a
+H p∆Θq,
+32
+where the last inequality follows from Hp∆Θq “ H pr∆ΘsMq ` H pr∆ΘsMKq ě H pr∆ΘsMq. Plugging
+the above inequality into (38), we arrive at the conclusion that
+F p∆Θq ě κ
+2 H p∆Θq ´ 3λM
+?
+2
+a
+s ` pK ` 1qh
+a
+H p∆Θq
+“ 1
+2
+a
+H p∆Θq
+!
+κ
+a
+H p∆Θq ´ 3
+?
+2λM
+a
+s ` pK ` 1qh
+)
+ą 0,
+where the last relation arises from the assumption
+H p∆Θq ą 18 ps ` pK ` 1qhq λ2
+M
+κ2
+.
+(39)
+This finishes the proof.
+C.4
+Proof of Useful Lemmas
+In this section, we collect the proof of useful lemmas.
+C.4.1
+Proof of Lemma 8
+By the definition of Φp¨q and the fact that Θ P M and Θ1 P MK, we have
+ΦpΘ ` Θ1q “ Φ
+`
+rΘsM `
+“
+Θ1‰
+MK
+˘
+“
+ˇˇˇrΩsSΩ`
+“
+Ω1‰
+Sc
+Ω
+ˇˇˇ
+1 `
+K
+ÿ
+k“0
+?αk
+ˇˇˇˇˇ
+”
+Γpkqı
+SΓpkq
+`
+”
+Γpkq1ı
+Sc
+Γpkq
+ˇˇˇˇˇ
+1
+“
+ˇˇrΩsSΩ
+ˇˇ
+1 `
+ˇˇˇ
+“
+Ω1‰
+Sc
+Ω
+ˇˇˇ
+1 `
+K
+ÿ
+k“0
+?αk
+ˇˇˇˇ
+”
+Γpkqı
+SΓpkq
+ˇˇˇˇ
+1
+`
+K
+ÿ
+k“0
+?αk
+ˇˇˇˇˇ
+”
+Γpkq1ı
+Sc
+Γpkq
+ˇˇˇˇˇ
+1
+“ Φ prΘsMq ` Φ
+`“
+Θ1‰
+MK
+˘
+“ ΦpΘq ` ΦpΘ1q.
+C.4.2
+Proof of Lemma 9
+For any Θ P M, we have Ω“ rΩsSΩand Γpkq “
+“
+Γpkq‰
+SΓpkq. Thus
+ΦpΘq “
+ˇˇrΩsSΩ
+ˇˇ
+1 `
+K
+ÿ
+k“0
+?αk
+ˇˇˇˇ
+”
+Γpkqı
+SΓpkq
+ˇˇˇˇ
+1
+ď |SΩ|
+1
+2 ››rΩsSΩ
+››
+F `
+K
+ÿ
+k“0
+?αk |SΓpkq|
+1
+2
+››››
+”
+Γpkqı
+SΓpkq
+››››
+F
+pJensen’s inequalityq
+piiq
+ď ?s
+››rΩsSΩ
+››
+F `
+?
+h
+K
+ÿ
+k“0
+?αk
+››››
+”
+Γpkqı
+SΓpkq
+››››
+F
+.
+pby Assumption 1q
+Furthermore, by Jensen’s inequality, we have
+1
+2Φ2pΘq ď s
+››rΩsSΩ
+››2
+F ` h
+˜ K
+ÿ
+k“0
+?αk
+››››
+”
+Γpkqı
+SΓpkq
+››››
+F
+¸2
+ď s
+››rΩsSΩ
+››2
+F ` hpK ` 1q
+K
+ÿ
+k“0
+αk
+››››
+”
+Γpkqı
+SΓpkq
+››››
+2
+F
+33
+ď ps ` pK ` 1qhq
+#
+››rΩsSΩ
+››2
+F `
+K
+ÿ
+k“0
+αk
+››››
+”
+Γpkqı
+SΓpkq
+››››
+2
+F
++
+“ ps ` pK ` 1qhq
+K
+ÿ
+k“0
+αk
+˜
+››rΩsSΩ
+››2
+F `
+››››
+”
+Γpkqı
+SΓpkq
+››››
+2
+F
+¸
+.
+By the assumption that the supports of Ω‹ and Γpkq‹ are disjoint and the fact that Ω“ rΩsSΩand
+Γpkq “
+“
+Γpkq‰
+SΓpkq, we then have
+Φ2pΘq ď 2 ps ` pK ` 1qhq
+K
+ÿ
+k“0
+αk
+››››rΩsSΩ`
+”
+Γpkqı
+SΓpkq
+››››
+2
+F
+ď 2 ps ` pK ` 1qhq
+K
+ÿ
+k“0
+αk
+›››Ω` Γpkq›››
+2
+F
+“ 2 ps ` pK ` 1qhq H pΘq .
+C.4.3
+Proof of Lemma 10
+By Lemma 5, we have
+R p∆Θq “
+K
+ÿ
+k“0
+αk
+2 vec p∆Ω` ∆Γpkqq
+ˆ
+"´
+Ωpkq ` tk p∆Ω` ∆Γpkqq
+¯´1
+b
+´
+Ωpkq ` tk p∆Ω` ∆Γpkqq
+¯´1*
+ˆ vec p∆Ω` ∆Γpkqq ,
+(40)
+where tk P p0, 1q, 0 ď k ď K. Since γminpA´1 b A´1q “ }A}´2
+2
+for any A ą 0, we have
+γmin
+ˆ´
+Ωpkq ` tk p∆Ω` ∆Γpkqq
+¯´1
+b
+´
+Ωpkq ` tk p∆Ω` ∆Γpkqq
+¯´1˙
+“
+!›››Ωpkq ` tk p∆Ω` ∆Γpkqq
+›››
+2
+)´2
+ě
+!›››Ωpkq›››
+2 ` tk }∆Ω` ∆Γpkq}2
+)´2
+ě
+!›››Ωpkq›››
+2 ` }∆Ω` ∆Γpkq}2
+)´2
+ě p2MΩ` Mopq´2 ,
+where the last line follows the definition of MΩin (17) and the assumption that }∆Ω` ∆Γpkq}2 ď
+MΩ` Mop for all 0 ď k ď K. Let κ “ p2MΩ` Mopq´2. Then
+R p∆Θq ě κ
+2
+K
+ÿ
+k“0
+αk }vec p∆Ω` ∆Γpkqq}2
+2 .
+The final result follows by noting that }vecp∆Ω` ∆Γpkqq}2 “ }∆Ω` ∆Γpkq}F.
+C.4.4
+Proof of Lemma 11
+We first state and prove the following lemma that gives the closed-form expression of Φ‹p¨q.
+34
+Lemma 12. For the dual norm defined in (32), we have
+Φ‹ pΘq “ max
+#
+|Ω|8 , max
+0ďkďK
+ˇˇΓpkqˇˇ
+8
+?αk
++
+.
+Proof. For any Θ, Θ1 P H, we have
+@
+Θ, Θ1D
+“
+@
+Ω, Ω1D
+`
+K
+ÿ
+k“0
+A
+Γpkq, Γpkq1E
+ď |Ω|8
+ˇˇΩ1ˇˇ
+1 `
+K
+ÿ
+k“0
+ˇˇˇΓpkqˇˇˇ
+8
+ˇˇΓ1ˇˇ
+1
+“ |Ω|8
+ˇˇΩ1ˇˇ
+1 `
+K
+ÿ
+k“0
+?αk
+ˇˇΓ1ˇˇ
+1
+|Γpkq|8
+?αk
+ď |Ω|8
+ˇˇΩ1ˇˇ
+1 `
+#
+max
+0ďkďK
+ˇˇΓpkqˇˇ
+8
+?αk
++ K
+ÿ
+k“0
+?αk
+ˇˇΓ1ˇˇ
+1
+ď max
+#
+|Ω|8 , max
+0ďkďK
+ˇˇΓpkqˇˇ
+8
+?αk
++ ˜
+ˇˇΩ1ˇˇ
+1 `
+K
+ÿ
+k“0
+?αk
+ˇˇΓ1ˇˇ
+1
+¸
+“ max
+#
+|Ω|8 , max
+0ďkďK
+ˇˇΓpkqˇˇ
+8
+?αk
++
+Φ
+`
+Θ1˘
+.
+Thus, we have
+Φ‹ pΘq :“
+sup
+Θ1:ΦpΘ1qď1
+@
+Θ, Θ1D
+ď max
+#
+|Ω|8 , max
+0ďkďK
+ˇˇΓpkqˇˇ
+8
+?αk
++
+.
+Finally, it is easy to see that the equality is achievable.
+■
+Now we are ready to prove Lemma 11. Note that
+∇ΩL pΘq “
+K
+ÿ
+k“0
+αk
+ˆ
+pΣpkq ´
+´
+Ω` Γpkq¯´1˙
+,
+∇ΓpkqL pΘq “ αk
+ˆ
+pΣpkq ´
+´
+Ω` Γpkq¯´1˙
+for all 0 ď k ď K.
+Then by Lemma 12, we have
+GpλMq “
+#
+λM
+2
+ě max
+#ˇˇˇˇˇ
+K
+ÿ
+k“0
+αk
+´
+pΣpkq ´ Σpkq¯ˇˇˇˇˇ
+8
+, max
+0ďkďK
+?αk
+ˇˇˇpΣpkq ´ Σpkqˇˇˇ
+8
+++
+.
+(41)
+By Lemma 3 and the union bound, we have
+ˇˇˇˇˇ
+K
+ÿ
+k“0
+αk
+´
+pΣpkq ´ Σpkq¯ˇˇˇˇˇ
+8
+ď 80MΣ max
+#c
+logp2 pK ` 2q d2{δq
+2N
+, logp2 pK ` 2q d2{δq
+N
++
+and
+ˇˇˇpΣpkq ´ Σpkqˇˇˇ
+8 ď 80MΣ max
+#d
+logp2 pK ` 2q d2{δq
+2nk
+, logp2 pK ` 2q d2{δq
+nk
++
+35
+for all 0 ď k ď K hold simultaneously with probability at least 1 ´ δ. When min0ďkďK nk is large
+enough such that
+logp2 pK ` 2q d2{δq
+min0ďkďK nk
+ď 1
+2,
+we then have that
+ˇˇˇˇˇ
+K
+ÿ
+k“0
+αk
+´
+pΣpkq ´ Σpkq¯ˇˇˇˇˇ
+8
+ď 80MΣ
+c
+logp2 pK ` 2q d2{δq
+2N
+,
+ˇˇˇpΣpkq ´ Σpkqˇˇˇ
+8 ď 80MΣ
+d
+logp2 pK ` 2q d2{δq
+2nk
+for all 0 ď k ď K.
+(42)
+hold simultaneously with probability at least 1 ´ δ. Note that (42) implies that
+?αk
+ˇˇˇpΣpkq ´ Σpkqˇˇˇ
+8 ď 80MΣ
+c
+logp2 pK ` 2q d2{δq
+2N
+for all 0 ď k ď K.
+Thus, when
+λM ě 160MΣ
+c
+logp2 pK ` 2q d2{δq
+2N
+,
+(43)
+by (41), we have GpλMq hold with probability 1 ´ δ.
+D
+Theorem 7 and Its Proof
+The following theorem provides a high probability error bound for the D-Trace Loss estimator.
+Theorem 7. Suppose that Assumption 1 and Assumption 2 hold. Let Cγ “ M ´1
+Ω. Furthermore,
+suppose that for a given δ P p0, 1s and all k P rKs we have
+log
+`
+2pK ` 1qd2{δ
+˘
+mintnk, n0u
+ď min
+"
+1, γ2
+minpΣpkqqγ2
+minpΣp0qq
+C1h2M 4
+Σ
+*
+.
+(44)
+If
+λpkq
+Γ
+ě 2Cγ rpCγ ` 2qMΣMΓ ` 2s MΣ
+d
+log p2pK ` 1qd2{δq
+2 mintnk, n0u
+for all k P rKs, then
+›››pΨpkq ´ Ψpkq›››
+F ď
+C2?
+hλpkq
+Γ
+γminpΣpkqqγminpΣp0qq
+for all 0 ď k ď K
+hold simultaneously with probability at least 1 ´ δ, where C1, C2 are universal constants that depend
+on Cγ.
+Proof. The D-Trace Loss estimator is a special case of the FuDGE estimator proposed in Zhao et al.
+[2019, 2022]. We adapt the proof of Theorem 10 in Zhao et al. [2022] here.
+Given δ P p0, 1s, we define the event
+E1pδq :“
+# ˇˇˇpΣpkq ´ Σpkqˇˇˇ
+8 ď CγMΣ ¨ max
+#d
+log p2pK ` 1qd2{δq
+2nk
+, log
+`
+2pK ` 1qd2{δ
+˘
+nk
+)
+36
+for all 0 ď k ď K
++
+,
+where Cγ is a universal constant. By Lemma 4 and the union bound, we have PpE1pδqq ě 1 ´ δ. In
+the following, we work on the event E1pδq.
+Let
+ψk “ CγMΣ
+d
+log p2pK ` 1qd2{δq
+2 mintnk, n0u
+.
+On the event E1 and when the condition (44) holds with C1 “ 4096C2
+γpCγ ` 2q2, we have
+max
+!ˇˇˇpΣpkq ´ Σpkqˇˇˇ
+8 ,
+ˇˇˇpΣp0q ´ Σp0qˇˇˇ
+8
+)
+ď ψk.
+When (44) holds, we have
+ψk ď Cγ ¨ max
+0ďkďK
+ˇˇˇΣpkqˇˇˇ
+8
+and
+ψk ď γminpΣpkqqγminpΣp0qq
+64pCγ ` 2qhMΣ
+.
+Thus, we have
+κpkq
+L
+:“ 1
+2γminpΣpkqqγminpΣp0qq ´ 16h
+`
+ψ2
+k ` 2ψkMΣ
+˘
+ě 1
+4γminpΣpkqqγminpΣp0qq,
+where κpkq
+L
+is the restricted convexity parameter defined in the proof of Theorem 10 of Zhao et al.
+[2022]. Set
+λpkq
+Γ
+ě 4 rpCγ ` 2qMΣMΓ ` 1s ψk .
+Following the proof of Theorem 10 of Zhao et al. [2022], we have
+›››pΨpkq ´ Ψpkq›››
+2
+F ď
+18h
+1
+16γ2
+minpΣpkqqγ2
+minpΣp0qq
+´
+λpkq
+Γ
+¯2
+,
+which completes the proof.
+■
+E
+Proof of Theorem 4
+Let R “ ts{du and let r “ s´Rd. We follow the construction of the hard-case collection of precision
+matrices in Step 2 of Proof of Theorem 4.1 in Cai et al. [2016b] to get F‹. We set Mn,p and cn,p
+therein as Mn,p “ some constant and cn,p “ R. By (4.13) and (4.15) in Cai et al. [2016b], for any
+ΩP F‹, we have
+0 ă c1 ď γminpΩq ď γmaxpΩq ď c2 ă 8 .
+Furthermore, we have |Ω|0 ď cn,pd ď s. Thus, F‹ Ď G1. Following Theorem 6.1 of Cai et al. [2016b],
+we have
+inf
+pΩ
+sup
+ΩPG1
+E
+„›››pΩ´ Ω
+›››
+2
+F
+ȷ
+ě inf
+pΩ
+sup
+ΩPF‹
+E
+„›››pΩ´ Ω
+›››
+2
+F
+ȷ
+Á dcn,p
+log d
+n
+“ dR
+s ¨ s log d
+n
+ě 1
+2
+s log d
+n
+,
+which completes the proof.
+37
+F
+Proof of Theorem 5
+Without loss of generality, we assume that d and h are even positive numbers. Let m “ d{2. By
+Lemma 6, there exist tb0, b1, . . . , bMu Ď Rm2 such that
+(i) }bj}0 ď h
+2 and }bj}2 ď 1 for all 0 ď j ď M;
+(ii) b0 “ 0;
+(iii) }bj ´ bk}2 ě 1
+4 for all 0 ď j ‰ k ď M;
+(iv) logpM ` 1q ě h
+4 log
+´
+d2{4´h{2
+h{2
+¯
+.
+For j “ 0, . . . , M, let Bj P Rmˆm be such that vecpBjq “ δ ¨ bj, where δ is a positive number
+that depends on n, d, h and will be specified later. By (24), d ě 4h and
+logpM ` 1q ě h
+4 log
+ˆd2{4 ´ h{2
+h{2
+˙
+“ h
+4 log
+ˆ d2
+2h ´ 1
+˙
+ě h
+4 log
+ˆ d2
+4h
+˙
+ě h
+4 log d.
+Furthermore, we have
+ˇˇBjˇˇ
+0 ď h
+2 ,
+››Bj››
+F ď δ,
+for 0 ď j ď M,
+B0 “ 0,
+››Bj ´ Bk››
+F ě δ
+4,
+for 0 ď j ‰ k ď M.
+For j “ 0, . . . , M, let
+Ωj “
+„
+Im
+Bj
+pBjqJ
+Im
+ȷ
+.
+We next verify that Ωj P G2 when
+δ ď min
+" CΓ
+?
+2h
+, 1 ´ c1
+2
+, c2 ´ 1
+2
+*
+,
+(45)
+where G2 is defined in (23). First note that diagpΩjq “ Id,
+ˇˇΩj ´ Id
+ˇˇ
+0 “ 2
+ˇˇBjˇˇ
+0 ď h, and
+ˇˇΩj ´ Id
+ˇˇ
+1 “ 2
+ˇˇBjˇˇ
+1 ď 2
+c
+h
+2
+››Bj››
+F ď
+?
+2hδ ď CΓ,
+using the choice of δ in (45). Furthermore, we have
+γmin
+`
+Ωj˘
+“ γmin
+ˆ„
+Im
+0
+0
+Im
+ȷ
+`
+„
+0
+Bj
+pBjqJ
+0
+ȷ˙
+ě 1 ´
+››››
+„
+0
+Bj
+pBjqJ
+0
+ȷ››››
+2
+ě 1 ´
+››››
+„
+0
+Bj
+pBjqJ
+0
+ȷ››››
+F
+“ 1 ´ 2
+››Bj››
+F
+ě c1,
+again using the choice of δ in (45). Similarly, we have γmax
+`
+Ωj˘
+ď c2. Therefore, when (45) holds,
+we have that Ωj P G2.
+38
+Let Pj denote the probability measure of N
+`
+0, tΩju´1˘
+and let Pn
+j denote the product probability
+measure of pX1, . . . , Xnq where X1, . . . , Xn
+i.i.d.
+„
+Pj.
+Note that P0 “ Np0, Idq.
+When δ ď 1{4,
+Lemma 7 gives us
+DKL
+`
+Pn
+j } Pn
+0
+˘
+“ nDKL pPj } P0q ď 16
+15n
+››Bj››2
+F ď 16
+15nδ2,
+which implies that
+1
+M
+M
+ÿ
+j“1
+DKL
+`
+Pn
+j } Pn
+0
+˘
+ď 16
+15nδ2.
+(46)
+From condition (24), we have h log d ě 8 log 3 and thus logpM ` 1q ě log 9, which implies that
+M ě 8. Furthermore, we have
+log M “
+log M
+logpM ` 1q logpM ` 1q ě log 8
+log 9 logpM ` 1q ě 4
+5 logpM ` 1q ě h
+5 log d.
+We set
+δ “
+1
+4
+?
+2
+c
+h log d
+n
+.
+By (24), we have that (45) holds and that δ ď 1{4. Thus (46) holds, implying
+1
+M
+M
+ÿ
+j“1
+DKL
+`
+Pn
+j } Pn
+0
+˘
+ď 1
+30h log d ď 1
+6 log M.
+(47)
+In addition, we have
+››Bj ´ Bk››
+F ě 2 ¨
+1
+32
+?
+2
+c
+h log d
+n
+for all 0 ď j ‰ k ď M.
+(48)
+Note that
+logpM ` 1q ´ log 2
+log M
+´ 1
+6 ě log M ´ log 2
+log M
+´ 1
+6 ě log 8 ´ log 2
+log 8
+´ 1
+6 “ 1
+2.
+(49)
+Following Section 2.2 and Corollary 2.6 in Tsybakov [2008], combined with (47)–(49), we have
+min
+pΩ
+sup
+ΩPG2
+E
+„›››pΩ´ Ω
+›››
+2
+F
+ȷ
+ě 1
+2
+˜
+1
+32
+?
+2
+c
+h log d
+n
+¸2
+“
+1
+4096 ¨ h log d
+n
+,
+which completes the proof.
+G
+Proof of Theorem 6
+The upper bound follows directly from Corollary 1. To prove the lower bound, we assume that
+Pk “ N
+´
+0,
+`
+Ωpkq˘´1¯
+.
+First, when h “ 0, we have N i.i.d. samples from Ωp0q where
+Ωp0q P
+␣
+ΩP Rdˆd : Ωą 0, |Ω|0 ď s, }Ω}2 ď MΩ,
+ˇˇΩ´1ˇˇ
+8 ď MΣ
+( :“ ˜G1
+for some positive universal constants MΩand MΣ. Let
+G1 “
+"
+ΩP Rdˆd : Ωą 0, |Ω|0 ď s, 0 ă
+1
+MΣ
+ď γmin pΩq ď γmax pΩq ď MΩă 8
+*
+.
+39
+Since
+ˇˇΩ´1ˇˇ
+8 ď }Ω´1}2 “ tγminpΩqu´1 ď MΣ for any ΩP G1, we have G1 Ď ˜G1.
+Thus, when
+s ě d ě c1N β, for some universal constants c1 ą 0 and β ą 1 and
+rs{ds “ o
+˜
+N
+plog dq
+3
+2
+¸
+it follows by Theorem 4 that
+inf
+pΩ
+sup
+Ωp0qP ˜G1
+E
+„›››pΩ´ Ωp0q›››
+2
+F
+ȷ
+ě inf
+pΩ
+sup
+Ωp0qPG1 E
+„›››pΩ´ Ωp0q›››
+2
+F
+ȷ
+Á s log d
+N
+.
+(50)
+If Ωpkq “ Ω‹ “ Id and Γpkq‹ “ 0 for every k P rKs, then samples from source distributions cannot
+be used to estimate Ωp0q. Therefore, we must depend solely on samples from the target distribution
+to estimate Ωp0q. Note that now we have
+Ωp0q P
+␣
+ΩP Sdˆd : Ωą 0, Ω“ Id ` ∆, ∆jj “ 0 for all 1 ď j ď d,
+|∆|0 ď h, |∆|1 ď MΓ, }Ω}2 ď MΩ,
+ˇˇΩ´1ˇˇ
+8 ď MΣ
+( :“ ˜G2 .
+Let
+G2 “
+␣
+ΩP Sdˆd : Ωą 0, Ω“ Id ` ∆, ∆jj “ 0 for all 1 ď j ď d,
+|∆|0 ď h, |∆|1 ď MΓ, 0 ă
+1
+MΣ
+ď γminpΩq ď γmaxpΩq ď MΩă 8
+*
+.
+Given that for any ΩP G2, it holds that
+ˇˇΩ´1ˇˇ
+8 ď }Ω´1}2 “ tγminpΩqu´1 ď MΣ, we can deduce
+that G2 Ď ˜G2. By Theorem 5, when MΩ, MΣ ą 1 and
+d ě 4h, h log d ě 8 log 3, h log d
+n0
+ď min
+#
+2, 8
+ˆ
+1 ´
+1
+MΣ
+˙2
+, 8 p1 ´ MΩq2
++
+, h
+c
+log d
+n0
+ď 4MΓ,
+we have
+inf
+pΩ
+sup
+Ωp0qP ˜G2
+E
+„›››pΩ´ Ωp0q›››
+2
+F
+ȷ
+ě inf
+pΩ
+sup
+Ωp0qPG2 E
+„›››pΩ´ Ωp0q›››
+2
+F
+ȷ
+Á h log d
+n0
+.
+(51)
+The final result follows from (50) and (51).
+H
+Additional Optimization Details
+In this section, we provide more details about the numerical algorithms introduced in Section 4.1.
+We first discuss how to compute the updating steps (9) and (10). Note that (9) is equivalent to
+Ωptq
+k
+“ arg min
+Ωką0
+"
+fk pΩkq ` ρ
+A
+Zpt´1q
+k
+, Ωk ´ Ωpt´1q ´ Γpt´1q
+k
+E
+` ρ
+2
+›››Ωk ´ Ωpt´1q ´ Γpt´1q
+k
+›››
+2
+F
+*
+“ arg min
+Ωką0
+"
+´αk log det pΩkq ` ρ
+2
+›››Ωk ´ ˜Cpt´1q
+k
+›››
+2
+F
+*
+,
+(52)
+where ˜Cpt´1q
+k
+“ ´Zpt´1q
+k
+`
+´
+Ωpt´1q ` Γpt´1q
+k
+¯
+´ pαk{ρqpΣpkq for 0 ď k ď K. Taking the gradient with
+respect to Ωk in (52) and setting it to zero gives
+´αkΩ´1
+k
+` ρΩk ´ ρ ˜Cpt´1q
+k
+“ 0.
+(53)
+40
+The matrix Ωptq
+k
+is obtained by finding Ωk ą 0 that satisfies (53). Let ρ ˜Cpt´1q
+k
+“ UΛU J, Λ “
+diag
+´
+tλiud
+i“1
+¯
+, be the eigenvalue decomposition of ρ ˜Cpt´1q
+k
+. Following [Boyd et al., 2011, Section
+6.5], we have
+Ωptq
+k
+“ Udiag
+¨
+˝
+#
+λi `
+a
+λ2
+i ` 4ραk
+2ρ
++d
+i“1
+˛
+‚U J.
+On ther other hand, computing (10) is equivalent to solving
+Ωptq,
+!
+Γptq
+k
+)
+P arg
+min
+Ω,tΓpkqu
+#
+ρ
+K
+ÿ
+k“0
+A
+Zpt´1q
+k
+, Ωptq
+k ´ Ω´ ΓpkqE
+` ρ
+2
+K
+ÿ
+k“0
+›››Ωptq
+k ´ Ω´ Γpkq›››
+2
+F
+“ arg
+min
+Ω,tΓpkqu
+#
+ρ
+2
+K
+ÿ
+k“0
+›››Ω` Γpkq ´ ˇCptq
+k
+›››
+2
+F ` λM |Ω|1 ` λM
+K
+ÿ
+k“0
+?αk
+ˇˇˇΓpkqˇˇˇ
+1
++
+where ˇCptq
+k
+“ Ωptq
+k ` Zpt´1q
+k
+. Given c “ pc1, . . . , cKq, let Spcq be defined as Spcq “ px‹, y‹q where
+px‹, y‹q P arg min
+px,yq
+#
+ρ
+2
+K
+ÿ
+k“0
+px ` yk ´ ckq2 ` λM|x| ` λM
+K
+ÿ
+k“0
+?αk|yk|
++
+(54)
+with y “ py1, . . . , yKq. With Ωptq “ pΩptq
+jl q1ďj,lďd, Γptq
+k
+“ pΓptq
+k,jlq1ďj,lďd, and ˇCptq
+k
+“ p ˇCptq
+k,jlq1ďj,lďd, we
+have
+Ωptq
+jl ,
+!
+Γptq
+k,jl
+)K
+k“1 “ S
+ˆ!
+ˇCptq
+k,jl
+)K
+k“1
+˙
+,
+for 1 ď j, l ď d.
+To solve (54), we iteratively update x or y while fixing the other until convergence. For c P R and
+λ ě 0, let
+STλpcq “
+$
+’
+&
+’
+%
+c ´ λ
+if c ą λ,
+0
+if |c| ď λ,
+c ` λ
+if c ă ´λ
+(55)
+be the soft-thresholding function. After initializing xp0q, yp0q, we repeat the following process until
+convergence:
+xprq “ arg min
+x
+#
+ρ
+2
+K
+ÿ
+k“0
+´
+x ` ypr´1q
+k
+´ ck
+¯2
+` λM|x| ` λM
+K
+ÿ
+k“0
+?αk
+ˇˇˇypr´1q
+k
+ˇˇˇ
++
+“ STλM{pρpK`1qq
+˜
+1
+K ` 1
+K
+ÿ
+k“0
+´
+ck ´ ypr´1q
+k
+¯¸
+,
+and
+yprq “ arg min
+y
+#
+ρ
+2
+K
+ÿ
+k“0
+´
+xprq ` yk ´ ck
+¯2
+` λM
+ˇˇˇxprqˇˇˇ ` λM
+K
+ÿ
+k“0
+?αk |yk|
++
+ô yprq
+k
+“ STλM?αk{ρ
+´
+ck ´ xprq¯
+for 0 ď k ď K.
+We then discuss the stopping criterion for the ADMM algorithm to solve Trans-MT-Glasso
+objective (3).
+41
+Stopping criterion for ADMM.
+Following [Boyd et al., 2011, Section 3.3.1], let ϵabs ą 0 be
+an absolute tolerance and ϵrel ą 0 be a relative tolerance, we then define the feasibility tolerance
+for primal feasibility condition ϵpri ą 0 and the feasibility tolerance for dual feasibility condition
+ϵdual ą 0 at iteration t as
+ϵpri “ ϵabsd
+?
+K ` 1 ` ϵrel max
+$
+&
+%
+˜ K
+ÿ
+k“0
+›››Ωptq
+k
+›››
+2
+F
+¸ 1
+2
+,
+˜ K
+ÿ
+k“0
+›››Ωptq ` Γptq
+k
+›››
+2
+F
+¸ 1
+2 ,
+.
+- ,
+ϵdual “ ϵabsd
+?
+K ` 1 ` ϵrel
+˜ K
+ÿ
+k“0
+›››Zptq
+k
+›››
+2
+F
+¸ 1
+2
+.
+Besides, let
+rpri “
+˜ K
+ÿ
+k“0
+›››Ωptq
+k ´
+´
+Ωptq ` Γptq
+k
+¯›››
+2
+F
+¸ 1
+2
+and
+rdual “ ρ
+˜ K
+ÿ
+k“0
+›››
+´
+Ωptq ` Γptq
+k
+¯
+´
+´
+Ωpt´1q ` Γpt´1q
+k
+¯›››
+2
+F
+¸ 1
+2
+be the primal and dual residuals at iteration t. We then stop the iteration if
+rpri ď ϵpri
+and
+rdual ď ϵdual.
+Stopping criterion for sub problem (54).
+The optimality conditions of problem (54) are
+0 P ρ
+K
+ÿ
+k“0
+px‹ ` y‹
+k ´ ckq ` λMB|x‹|,
+(56)
+0 P ρ px‹ ` y‹ ´ ckq ` λM
+?αkB|y‹
+k|
+for all k “ 0, 1, . . . , K.
+(57)
+By the definition of yprq, we always have xprq, yprq satisfy (57). Besides, by definition of xprq, we have
+0 P ρ
+K
+ÿ
+k“0
+´
+xprq ` ypr´1q
+k
+´ ck
+¯
+` λMB|xprq|.
+(58)
+Thus, when
+ρ
+K
+ÿ
+k“0
+´
+yprq
+k
+´ ypr´1q
+k
+¯
+“ 0,
+we will have xprq, yprq satisfy (58). Let ϵabs ą 0 be an absolute tolerance and ϵrel ą 0 be a relative
+tolerance, we then stop at iteration r if
+rsub “ ρ
+ˇˇˇˇˇ
+K
+ÿ
+k“0
+´
+yprq
+k
+´ ypr´1q
+k
+¯ˇˇˇˇˇ ď pK ` 1qϵabs ` ϵrel max
+# K
+ÿ
+k“0
+ˇˇˇyprq
+k
+ˇˇˇ ,
+K
+ÿ
+k“0
+ˇˇˇypr´1q
+k
+ˇˇˇ
++
+:“ ϵsub.
+The final ADMM algorithm and the algorithm to solve the sub problem are summarized in
+Algorithm 1 and Algorithm 2.
+For the proximal gradient descent algorithm to solve D-Trace loss objective (7), the stopping
+criterion is introduced as below and the detailed algorithm is described in Algorithm 3.
+42
+Algorithm 1 ADMM for Trans-MT-GLasso
+1: Input: tpΣpkquK
+k“0, λM, ρ, ϵabs, ϵrel and tαkuK
+k“0.
+2: Initialize: Let Ωp0q “ Id, Γp0q
+k
+“ 0 and Zp0q
+k
+“ Id for all 0 ď k ď K. Let rpri “ rdual “ 8 and
+ϵpri “ ϵdual “ 0. Let t “ 0.
+3: while rpri ą ϵpri or rdual ą ϵdual do
+4:
+t Ð t ` 1.
+5:
+for k “ 0, 1, . . . , K do
+6:
+Let
+˜Cpt´1q
+k
+“ ´Zpt´1q
+k
+`
+´
+Ωpt´1q ` Γpt´1q
+k
+¯
+´ pαk{ρqpΣpkq,
+and compute the eigenvalue decomposition of ρ ˜Cpt´1q
+k
+as
+ρ ˜Cpt´1q
+k
+“ UΛU J,
+Λ “ diag
+´
+tλiud
+i“1
+¯
+.
+7:
+Let
+Ωptq
+k
+“ Udiag
+¨
+˝
+#
+λi `
+a
+λ2
+i ` 4ραk
+2ρ
++d
+i“1
+˛
+‚U J.
+8:
+Let
+ˇCptq
+k
+“ Ωptq
+k ` Zpt´1q
+k
+.
+9:
+end for
+10:
+Solve
+Ωptq
+jl ,
+!
+Γptq
+k,jl
+)K
+k“1 “ S
+ˆ!
+ˇCptq
+k,jl
+)K
+k“1
+˙
+for all 1 ď j, l ď d.
+by Algorithm 1.
+11:
+Let
+Zptq
+k
+“ Zpt´1q
+k
+` ρ
+´
+Ωptq
+k ´ Ωptq ´ Γptq
+k
+¯
+for all 0 ď k ď K.
+12:
+Let
+rpri “
+˜ K
+ÿ
+k“0
+›››Ωptq
+k ´
+´
+Ωptq ` Γptq
+k
+¯›››
+2
+F
+¸ 1
+2
+,
+rdual “ ρ
+˜ K
+ÿ
+k“0
+›››
+´
+Ωptq ` Γptq
+k
+¯
+´
+´
+Ωpt´1q ` Γpt´1q
+k
+¯›››
+2
+F
+¸ 1
+2
+,
+and
+ϵpri “ ϵabsd
+?
+K ` 1 ` ϵrel max
+$
+&
+%
+˜ K
+ÿ
+k“0
+›››Ωptq
+k
+›››
+2
+F
+¸ 1
+2
+,
+˜ K
+ÿ
+k“0
+›››Ωptq ` Γptq
+k
+›››
+2
+F
+¸ 1
+2 ,
+.
+- ,
+ϵdual “ ϵabsd
+?
+K ` 1 ` ϵrel
+˜ K
+ÿ
+k“0
+›››Zptq
+k
+›››
+2
+F
+¸ 1
+2
+.
+13: end while
+14: Output: qΩpkq “ Ωptq ` Γptq
+k
+for all k “ 0, 1, . . . , K.
+43
+Algorithm 2 Solver of sub problem (54)
+1: Input: c “ pc0, c1, . . . , cKq; Initial xp0q and typ0q
+k uK
+k“0; λM, ρ and tαkuK
+k“0.
+2: Initialize: rsub “ 8 and ϵsub “ 0. Define STλp¨q as in (55). Let r “ 0.
+3: while rsub ą ϵsub do
+4:
+r Ð r ` 1.
+5:
+Let
+xprq “ STλM{pρpK`1qq
+˜
+1
+K ` 1
+K
+ÿ
+k“0
+´
+ck ´ ypr´1q
+k
+¯¸
+.
+6:
+Let
+yprq
+k
+“ STλM?αk{ρ
+´
+ck ´ xprq¯
+for all 0 ď k ď K.
+7:
+Let
+rsub “ ρ
+ˇˇˇˇˇ
+K
+ÿ
+k“0
+´
+yprq
+k
+´ ypr´1q
+k
+¯ˇˇˇˇˇ ,
+ϵsub “ pK ` 1qϵabs ` ϵrelρ max
+# K
+ÿ
+k“0
+ˇˇˇyprq
+k
+ˇˇˇ ,
+K
+ÿ
+k“0
+ˇˇˇypr´1q
+k
+ˇˇˇ
++
+.
+8: end while
+9: Output: xprq and typrq
+k uK
+k“0.
+Stopping criterion for proximal gradient.
+If Γptq is the solution for (7), the optimization
+criterion requires that
+0 P ∇LDpΓptqq ` λpkq
+Γ
+¨ B
+ˇˇˇΓptqˇˇˇ
+1 .
+Note that by the definition of Γptq in (12), we have
+0 P Γptq ´
+´
+Γpt´1q ´ η∇LD
+´
+Γpt´1q¯¯
+` ηλpkq
+Γ
+¨ B
+ˇˇˇΓptqˇˇˇ
+1 ,
+(59)
+which implies that
+0 P ∇LDpΓptqq ` λpkq
+Γ
+¨ B
+ˇˇˇΓptqˇˇˇ
+1 ` 1
+η
+´
+Γptq ´ Γpt´1q¯
+´
+”
+∇LD
+´
+Γptq¯
+´ ∇LD
+´
+Γpt´1q¯ı
+.
+Thus, when
+rD “
+››››
+1
+η
+´
+Γptq ´ Γpt´1q¯
+´
+”
+∇LD
+´
+Γptq¯
+´ ∇LD
+´
+Γpt´1q¯ı››››
+F
+“
+››››
+1
+η
+´
+Γptq ´ Γpt´1q¯
+´ 1
+2
+pΣp0q ´
+Γptq ´ Γpt´1q¯
+pΣpkq ´ 1
+2
+pΣpkq ´
+Γptq ´ Γpt´1q¯
+pΣp0q
+››››
+F
+is close to zero, we then have (59) hold approximately.
+Therefore, given an absolute tolerance
+ϵabs ą 0 and a relative tolerance ϵrel ą 0, we then stop at iteration t if
+rD ď ϵabsd ` ϵrel ˆ max
+"1
+η
+›››Γptq ´ Γpt´1q›››
+F ,
+››››
+1
+2
+pΣp0q ´
+Γptq ´ Γpt´1q¯
+pΣpkq
+››››
+F
+*
+.
+44
+Algorithm 3 Proximal Gradient Method for D-Trace Loss
+1: Input: pΣp0q, pΣpkq, λpkq
+Γ , η, ϵabs and ϵrel.
+2: Initialize: Γp0q “ 0, rD “ 8, ϵD “ 0 and t “ 0.
+3: while rD ą ϵD do
+4:
+t Ð t ` 1
+5:
+Let
+Apt´1q “ Γpt´1q ´ η∇LD
+´
+Γpt´1q¯
+“ Γpt´1q ´ η
+"1
+2
+´
+pΣpkqΓpt´1qpΣp0q ` pΣp0qΓpt´1qpΣpkq¯
+´
+´
+pΣp0q ´ pΣpkq¯*
+.
+6:
+Let
+Γptq
+jl “
+”
+|Apt´1q
+jl
+| ´ λpkq
+Γ η
+ı
+` ¨ Apt´1q
+jl
+{|Apt´1q
+jl
+|,
+1 ď j, l ď d.
+7:
+Let
+rD “
+››››
+1
+η
+´
+Γptq ´ Γpt´1q¯
+´ 1
+2
+pΣp0q ´
+Γptq ´ Γpt´1q¯
+pΣpkq ´ 1
+2
+pΣpkq ´
+Γptq ´ Γpt´1q¯
+pΣp0q
+››››
+F
+,
+and
+ϵD “ ϵabsd ` ϵrel ˆ max
+"1
+η
+›››Γptq ´ Γpt´1q›››
+F ,
+››››
+1
+2
+pΣp0q ´
+Γptq ´ Γpt´1q¯
+pΣpkq
+››››
+F
+*
+.
+8: end while
+9: Output: pΨpkq “ Γptq.
+I
+Minimax Optimal Rate for Differential Network Estimation
+Differential network estimation aims to estimate the difference between two precision matrices with-
+out first estimating the individual precision matrices. Although existing studies focus on providing
+upper bounds for this problem [Zhao et al., 2014, Yuan et al., 2017, Zhao et al., 2022], there is no
+known matching lower bound, making the minimax optimal rate an open question. As a byproduct
+of our analysis, in this section, we provide a minimax optimal rate for differential network estimation
+problem under certain conditions. To the best of our knowledge, this is the first minimax optimal
+guarantee towards this direction.
+We start by formulating the problem setup. Note that we reintroduce some notation used in this
+section to make it self-contained, and one should not confuse it with the notation used in the other
+parts of the paper. Suppose that we have nX i.i.d. samples X1, . . . , XnX „ Np0, Ω´1
+X q and nY i.i.d.
+samples Y1, . . . , YnY „ Np0, Ω´1
+Y q. Let ∆:“ ΩY ´ ΩX be the differential network between ΩX and
+ΩY . Our goal is to use samples from two populations to estimate ∆. In addition, we assume that
+ΩX and ΩY belong to the following parameter space.
+pΩX, ΩY q P M :“
+␣
+ΩX, ΩY P Sdˆd : c1 ď γminpΩXq ď γmaxpΩXq ď c2,
+c1 ď γminpΩY q ď γmaxpΩY q ď c2, |∆|0 ď h, |∆|1 ď CΓu ,
+(60)
+where c1, c2, CΓ ą 0 are positive universal constants. The parameter space defined in (60) requires
+that the smallest eigenvalues and the largest eigenvalues of ΩX and ΩY are lower bounded and upper
+bounded, respectively. Besides, we also require that the sparsity level of the differential network is
+bounded by h, and the L1 norm of the differential network is bounded by universal constant.
+45
+We first present the minimax lower bound for the above estimation problem. We state the result
+in the following theorem.
+Theorem 8. Assume that
+d ě 4h, h log d ě 8 log 3, h log d
+n
+ď min
+␣
+2, 8p1 ´ c1q2, 8p1 ´ c2q2(
+, h
+c
+log d
+n
+ď 4CΓ.
+(61)
+We then have
+min
+p∆
+sup
+pΩX,ΩY qPM
+E
+„›››p∆´ ∆
+›››
+2
+F
+ȷ
+Á
+h log d
+min tnX, nY u
+Proof. Let ΩX “ Id, note that
+pId, ΩY q P M ð ΩY P G2,
+where G2 is defined in (23). Now that samples from population X are useless for estimating ΩY ,
+and we can only rely on samples from population Y to estimate ΩY . By Theorem 5, we then have
+min
+p∆
+sup
+pΩX,ΩY qPM
+E
+„›››p∆´ ∆
+›››
+2
+F
+ȷ
+ě min
+pΩY
+sup
+ΩY PG2
+E
+„›››pΩY ´ ΩY
+›››
+2
+F
+ȷ
+Á h log d
+nY
+.
+Similarly, we can show that
+min
+p∆
+sup
+pΩX,ΩY qPM
+E
+„›››p∆´ ∆
+›››
+2
+F
+ȷ
+Á h log d
+nX
+.
+Combine the above two inequalities, we have the final result.
+■
+Next, we derive the matching upper bound. Let p∆be the D-Trace loss estimator defined in (7),
+and ˇ∆pτq be the truncated version of p∆as defined in (62). Following directly from Theorem 13, we
+then have the following theorem.
+Theorem 9. Assume that CΓ ď dτ3, where CΓ is the same universal constant used in (60). Let
+λΓ —
+d
+log d
+min tnX, nY u,
+where λΓ is the penalization parameter of D-Trace loss. Then for any τ ě τ3, we have
+sup
+pΩX,ΩY qPM
+E
+”›› ˇ∆pτq ´ ∆
+››2
+F
+ı
+À
+h log d
+min tnX, nY u.
+Combine Theorem 8 and Theorem 9, we then have the final main result of this section.
+Theorem 10. Assume that the conditions of Theorem 8 and Theorem 9 hold. We have
+min
+p∆
+sup
+pΩX,ΩY qPM
+E
+„›››p∆´ ∆
+›››
+2
+F
+ȷ
+—
+h log d
+min tnX, nY u.
+J
+Upper Bound for Expected Error
+In this section, we develop theoretical guarantees for the expected error. We start with the analysis
+of the Trans-MT-Glasso.
+The subsequent theorem provides the expected error measured in the
+Frobenius norm.
+46
+Theorem 11. Suppose that Assumption 1 and Assumption 2 hold. Assume that 2 pK ` 2q ď dτ1
+and N ď dτ2, for some universal constants τ1, τ2 ą 0. In addition, assume that
+log d
+min0ďkďK nk
+À 1.
+Let sn “ N{pK ` 1q, Mop ě MΩand Mop “ Op1q. If λM —
+a
+log d{N, we have
+E
+« K
+ÿ
+k“0
+αk
+›››pΩk ´ Ωpkq›››
+2
+F
+ff
+À
+ˆ s
+N ` h
+sn
+˙
+log d.
+Refer to the proof in Appendix K. The rate described in Theorem 11 consists of two parts. The
+first part, which is of the order ps log dq{N, refers to the estimation of the shared component. The
+second part, of the order ph log dq{sn, relates to the estimation of the individual components.
+As discussed in Section 5.2, the differential network estimate pΨpkq is considered the result of a
+black-box algorithm, with the presumption that its estimation errors are appropriately controlled.
+Let BFpRq :“
+␣
+A P Rdˆd : }A}F ď R
+(
+be the ball with radius R. For τ ą 0 and 0 ď k ď K, we
+define
+pΨpkq
+projpτq P arg
+min
+ΓPBFpdτ q
+›››Γ ´ pΨpkq›››
+F .
+(62)
+pΨpkq
+projpτq is utilized solely for theoretical reasons. Suppose that by choosing τ appropriately, we have
+E
+„›››pΨpkq
+projpτq ´ Ψpkq›››
+2
+F
+ȷ
+À sgpkq
+F pn0, nk, d, h, MΓq :“ sgpkq
+F
+for all 0 ď k ď K.
+(63)
+We define
+pΩp0q
+projpτq “
+K
+ÿ
+k“0
+αk
+´
+qΩpkq ´ pΨpkq
+projpτq
+¯
+,
+(64)
+pΨpkq
+projpτq is defined in (62). Combining (63) with Theorem 11 yields the following theorem with
+expected error upper bound for Trans-Glasso.
+Theorem 12. If the conditions of Theorem 11 are satisfied and τ is chosen so that (63) holds, we
+have
+E
+„›››pΩp0q
+projpτq ´ Ωp0q›››
+2
+F
+ȷ
+À
+ˆ s
+N ` h
+sn
+˙
+log d `
+K
+ÿ
+k“0
+αksgpkq
+F
+.
+We then characterize sgpkq
+F
+in the case where the D-Trace loss estimator in (7) is used. Recall that
+pΨpkq
+projpτq is defined by (63).
+Theorem 13. Suppose that Assumption 1 and Assumption 2 hold. Assume that 2pK ` 1q ď dτ1,
+N ď dτ2 and MΓ ď dτ3 for some universal constants τ1, τ2, τ3 ą 0. Let
+λpkq
+Γ
+— MΓ
+d
+log d
+min tnk, n0u.
+Then, for any τ ě τ3, we have
+E
+„›››pΨpkq
+projpτq ´ Ψpkq›››
+2
+F
+ȷ
+À
+M 2
+Γ h log d
+min tnk, n0u.
+Proof. Note that }A}F ď |A|1 for any matrix A. Thus we have }Ψpkq}F ď }Ψpkq}1 ď 2MΓ. The rest
+of the proof is similar to the proof of Theorem 11.
+■
+47
+By Theorem 13, we have
+sgpkq
+F
+“
+M 2
+Γ h log d
+min tnk, n0u
+for D-Trace loss estimator. Plugging the above results into Theorem 12, we then have the following
+corollary.
+Corollary 2. Let pΩp0q be obtained by Trans-Glasso (8) with the D-Trace loss estimator used in
+Step 1. Suppose that Assumption 1 and Assumption 2 hold, and that the conditions in Theorem 11
+and Theorem 13 are satisfied. If 2 pK ` 2q ď dτ1, N ď dτ2, MΓ ď dτ3 for some universal constants
+τ1, τ2, τ3 ą 0, and
+λM —
+c
+log d
+N ,
+λpkq
+Γ
+— MΓ
+d
+log d
+min tnk, n0u
+for all k P rKs,
+then for any τ ě τ3, we have
+E
+„›››pΩp0q
+projpτq ´ Ωp0q›››
+2
+F
+ȷ
+À
+ˆ s
+N ` p1 ` M 2
+Γq ¨ h
+sn ` M 2
+Γ ¨ h
+n0
+˙
+log d .
+(65)
+The estimation error in (65) is comprised of three parts: shared component estimation, individual
+component estimation, and differential network estimation. If sn ě n0 and MΓ is bounded by a
+universal constant, the error scales as s log d
+N
+` h log d
+n0
+. When using only target samples, the lowest
+error rate achievable is ps`hq log d
+n0
+as stated in Theorem 4. Therefore, if N " n0, the error rate can be
+significantly reduced compared to the optimal rate obtained with only the target samples. Moreover,
+as demonstrated in Section 5.3, the rate s log d
+N
+` h log d
+n0
+is minimax optimal under certain conditions.
+K
+Proof of Theorem 11
+Note that for any matrix A P Rdˆd, we have }A}F ď
+?
+d }A}2.
+Since by our assumptions that
+››Ωpkq››
+2 “ Op1q and
+›››qΩpkq›››
+2 “ Op1q, we thus have
+›››Ωpkq›››
+F “ O
+´
+d
+1
+2
+¯
+and
+›››qΩpkq›››
+F “ O
+´
+d
+1
+2
+¯
+.
+For δ P p0, 1s, let
+λM ě C1C3
+c
+logp2 pK ` 2q d2{δq
+2N
+,
+where C1 “ 160 and C3 “ MΣ. Besides, by the proof of Theorem 1, when
+logp2 pK ` 2q d2{δq
+min0ďkďK nk
+ď 1
+2,
+then by (43), we have P tGpλMqu ě 1 ´ δ; or equivalently, we have P
+␣sGpλMq
+(
+ď δ, where sGpλMq
+denotes the event that GpλMq does not hold.
+Recall that by assumption we have 2 pK ` 2q ď dτ1. Let δ “ d´τ 1, where τ 1 will be specified
+later, then by letting
+λM “ C1C3
+c
+pτ 1 ` τ1 ` 2q log d
+2N
+,
+(66)
+pτ 1 ` τ1 ` 2q log d
+min0ďkďK nk
+ď 1
+2,
+(67)
+48
+we have P
+␣sGpλMq
+(
+ď d´τ 1. Besides, by Section C.3, when (66)–(67) are true, GpλMq then implies
+that
+K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F ď 9 ps ` pK ` 1qhq λ2
+M
+4κ2
+ď 9C2
+1C2
+3pτ 1 ` τ1 ` 2q
+8
+ˆ s
+N ` h
+sn
+˙
+log d.
+Note that
+E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ff
+“ P tGpλMqu E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ˇˇˇˇˇ GpλMq
+ff
+` P
+␣sGpλMq
+(
+E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ˇˇˇˇˇ
+sGpλMq
+ff
+.
+(68)
+Given (66)–(67) are true, we have
+E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ˇˇˇˇˇ GpλMq
+ff
+ď 9C2
+1C2
+3pτ 1 ` τ1 ` 2q
+8
+ˆ s
+N ` h
+sn
+˙
+log d.
+(69)
+Besides, since }qΩpkq}F, }Ωpkq}F “ Opd
+1
+2 q for all 0 ď k ď K, we have
+K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F ď C1d,
+for some constant C1 ą 0, and thus we have
+P
+␣sGpλMq
+(
+E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ˇˇˇˇˇ
+sGpλMq
+ff
+ď C1d ¨ d´τ 1 “ C1d´pτ 1´1q.
+By Assumption that we have N ď dτ2 where τ2 ą 0, then when we choose τ 1 such that
+τ 1 ě τ2 ` 1 ` log
+`
+8C1{9C2
+1C2
+3pτ 1 ` τ1 ` 2q
+˘
+log d
+,
+we then have
+C1d´pτ 1´1q ď 9C2
+1C2
+3pτ 1 ` τ1 ` 2q
+8
+¨ 1
+N
+ď 9C2
+1C2
+3pτ 1 ` τ1 ` 2q
+8
+ˆ s
+N ` h
+sn
+˙
+log d,
+which then implies that
+P
+␣sGpλMq
+(
+E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ˇˇˇˇˇ
+sGpλMq
+ff
+ď E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ˇˇˇˇˇ GpλMq
+ff
+.
+Combine the above inequality with (68) and (69), we finally have
+E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ff
+ď 2E
+« K
+ÿ
+k“0
+αk
+›››qΩpkq ´ Ωpkq›››
+2
+F
+ˇˇˇˇˇ GpλMq
+ff
+ď 18C2
+1C2
+3pτ 1 ` τ1 ` 2q
+8
+ˆ s
+N ` h
+sn
+˙
+log d
+À
+ˆ s
+N ` h
+sn
+˙
+log d.
+49

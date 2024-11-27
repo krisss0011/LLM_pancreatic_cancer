@@ -1,0 +1,723 @@
+Multiscale Latent Diffusion Model for Enhanced
+Feature Extraction from Medical Images
+1st Rabeya Tus Sadia
+dept. of Computer Science
+University of Kentucky
+Kentucky, USA
+rabeya.sadia@uky.edu
+2nd Jie Zhang
+Department of Radiology
+University of Kentucky
+Kentucky, USA
+jnzh222@uky.edu
+3rd Jin Chen
+Department of Medicine-Nephrology
+University of Alabama at Birmingham
+Birmingham, USA
+jinchen@uab.edu
+Abstract—Various imaging modalities are used in patient
+diagnosis, each offering unique advantages and valuable insights
+into anatomy and pathology. Computed Tomography (CT) is
+crucial in diagnostics, providing high-resolution images for pre-
+cise internal organ visualization. CT’s ability to detect subtle
+tissue variations is vital for diagnosing diseases like lung cancer,
+enabling early detection and accurate tumor assessment. How-
+ever, variations in CT scanner models and acquisition protocols
+introduce significant variability in the extracted radiomic fea-
+tures, even when imaging the same patient. This variability poses
+considerable challenges for downstream research and clinical
+analysis, which depend on consistent and reliable feature ex-
+traction. Current methods for medical image feature extraction,
+often based on supervised learning approaches, including GAN-
+based models, face limitations in generalizing across different
+imaging environments. In response to these challenges, we
+propose LTDiff++, a multiscale latent diffusion model designed
+to enhance feature extraction in medical imaging. The model
+addresses variability by standardizing non-uniform distributions
+in the latent space, improving feature consistency. LTDiff++
+utilizes a UNet++ encoder-decoder architecture coupled with a
+conditional Denoising Diffusion Probabilistic Model (DDPM) at
+the latent bottleneck to achieve robust feature extraction and
+standardization. Extensive empirical evaluations on both patient
+and phantom CT datasets demonstrate significant improvements
+in image standardization, with higher Concordance Correlation
+Coefficients (CCC) across multiple radiomic feature categories.
+Through these advancements, LTDiff++ represents a promising
+solution for overcoming the inherent variability in medical
+imaging data, offering improved reliability and accuracy in
+feature extraction processes.
+Index Terms—CT imaging, standardization, latent diffusion
+model, multiscale modeling
+I. INTRODUCTION
+One of the most prevalent malignancies affecting both
+men and women in the US, lung cancer continues to be
+the leading cause of cancer-related mortality [1]. Non-small
+cell lung cancer (NSCLC) has a five-year survival rate of
+about 19%. In order to improve treatment outcomes, computed
+tomography (CT) imaging is crucial for the early diagnosis
+of lung cancer and for defining the features of the tumor
+[2], [3]. Additionally, texture analysis of CT images makes
+it easier to quantify temporal and geographical variations
+in the functionality and structure of tumors, which allows
+for the evaluation of intra-tumor evolution [4],[5]. Image
+analysis technology is utilized to extract clinically relevant
+information from medical images, while image processing
+techniques enable the efficient and accurate segmentation of
+key features. Together, these technologies form an essential
+foundation for physicians in developing consultation strategies,
+surgical interventions, and diagnostic plans [6]. Moreover, due
+to the complexity, variability, and individual differences in
+organ structures within the human body, effectively extracting
+relevant features from medical images is critical for enhancing
+the accuracy of disease diagnosis and treatment planning.
+Currently, the most widely utilized techniques include the
+Gaussian curve method, direction template method, matrix
+method, and threshold method. Some researchers have in-
+troduced a novel approach for subpixel boundary extraction
+using Gaussian fitting. This approach involves selecting a set
+of points along the boundary of the original image, applying
+grayscale processing to those points, and then performing
+high-precision fitting for accurate boundary extraction [7], [8].
+Feature extraction from CT images plays a pivotal role in
+medical imaging tasks, including segmentation, classification,
+and disease diagnosis. Traditional methods for feature extrac-
+tion often relied on handcrafted techniques, but deep learning
+algorithms have revolutionized this field by automatically
+learning and extracting hierarchical features from raw images
+[9]. Convolutional Neural Networks (CNNs) have become the
+backbone of many medical imaging applications due to their
+ability to capture spatial hierarchies in pixel data. In particular,
+CNNs can be fine-tuned to recognize specific patterns, such
+as lesions or tumors, which may be critical for early diagnosis
+and treatment planning [10]. These models excel at capturing
+local features, such as edges and textures, while progressively
+learning more abstract representations in deeper layers.
+Recently, diffusion models have emerged as a powerful
+generative approach for enhancing image quality and extract-
+ing subtle features that might be overlooked by traditional
+CNNs. Diffusion models are based on iterative denoising
+processes, where a noisy image is progressively refined to
+recover detailed structures [11]. This technique is particularly
+useful in medical imaging, where noise and low contrast
+often obscure important features in CT scans. For example,
+Denoising Diffusion Probabilistic Models (DDPMs) have been
+shown to effectively reconstruct high-quality images from
+noisy inputs, preserving fine details such as the boundaries of
+arXiv:2410.04000v2  [eess.IV]  26 Oct 2024
+tumors or lesions [12]. By enhancing the visibility of these
+critical regions, diffusion models provide more informative
+features for downstream tasks, such as classification and
+segmentation.
+Combining deep learning approaches with diffusion models
+offers a promising direction for medical imaging. CNNs
+provide a solid framework for feature extraction, while dif-
+fusion models augment the process by refining and enhancing
+these features, especially in challenging cases where noise or
+artifacts may degrade image quality. In particular, diffusion
+models can improve the clarity of regions of interest (ROI),
+such as tumors, which are often difficult to delineate in
+raw CT images. This fusion of techniques enables a more
+comprehensive analysis of the medical data, improving both
+the accuracy of diagnostic models and the interpretability of
+results. By leveraging the strengths of both deep learning and
+diffusion models, researchers are advancing the state-of-the-
+art in medical image analysis, providing more robust tools
+for clinical applications [13]. In comparison to established
+generative models such as Generative Adversarial Networks
+(GANs) and Variational Autoencoders (VAEs), Denoising
+Diffusion Probabilistic Models (DDPMs) have demonstrated
+superior performance in image standardization tasks. DDPMs
+use a Markov chain process that progressively transforms a
+simple starting distribution, like isotropic Gaussian noise, into
+the target data distribution. This approach involves two key
+stages: first, a forward diffusion process gradually adds noise
+to the image by sequentially sampling latent variables, and
+second, a reverse process uses a neural network, often a U-
+Net, to progressively remove the noise, recovering a clear
+image from the noisy input. Since gaining attention in 2020,
+DDPMs and their variants have driven major advancements
+in data modeling, with notable successes in areas like image
+generation, super-resolution, and image-to-image translation.
+More recently, conditional DDPMs have shown exceptional
+results in generating images based on specific conditions,
+while latent DDPMs have enabled efficient image generation
+within a low-dimensional latent space.
+The training process for our proposed model, LTDiff++
+involves three main phases. First, the multiscale UNet++
+encoder-decoder network is trained using all available CT
+images, whether standardized or not, to learn how to encode
+each image into a latent vector that can be used to reconstruct
+the original image with minimal information loss. Next, a
+latent conditional DDPM is trained on pairs of non-standard
+and standardized images, allowing the model to learn the
+conditional probability distribution required to synthesize stan-
+dardized images. Finally, the trained networks are combined to
+get the enhanced features from new CT images, enabling the
+robust harmonization of image data while maintaining crucial
+structural features.
+II. BACKGROUND
+A.
+CT Image Acquisition and Reconstruction Parameters
+CT images are obtained by precisely adjusting several
+acquisition parameters, such as kilovoltage peak (kVp),
+pitch, milliampere-seconds (mAs), reconstruction field of view
+(FOV), slice thickness, and reconstruction kernels. Variations
+in CT image capture and reconstruction parameters, together
+with the use of different CT scanners, can drastically alter the
+radiomic features extracted from the pictures. For example, as
+seen in Figure 1, the Br40 kernel helps to provide a more
+homogeneous image texture, but the Bl64 kernel improves
+image sharpness. These textural variations are important be-
+cause they result in the extraction of diverse radiomic fea-
+tures, which complicates subsequent clinical evaluations and
+decision-making processes.
+Fig. 1.
+Shows how disparities in imaging procedures might result in
+differences in tumor picture characteristics. The same scanner was used to
+scan the identical lungman chest phantom. Two distinct image reconstruction
+techniques were utilized to get CT images kernels appropriately, as the text
+at the bottom of the pictures shows. Green rectangles are used to indicate
+tumors in the images on the left (the top row shows the tumor regions that
+have been zoomed in). The feature variance in terms of CCC between these
+two tumors was displayed by the histogram on the right. The potential of
+extensive radiomic research may be significantly impacted by the detected
+variations in the tumor pictures.
+B. Radiomic Features
+Radiology uses cutting-edge non-invasive imaging tech-
+niques to identify and treat a variety of illnesses. Accurate
+tumor characterization depends on the image attributes that
+are derived from radiological images using statistical and
+mathematical models [14]. Within the field of medical imaging
+analysis, radiomic features provide deep insights into the
+genetic and cellular aspects of phenotypic patterns that are
+unseen to the human eye [14], [15], [16]. The following six
+categories can be used to systematically classify these features
+in order to aid in a deeper understanding of underlying biolog-
+ical processes: Neighbor Intensity Difference (NID), Gradient
+Oriented Histogram (GOH), Gray Level Co-occurrence Matrix
+(GLCM), Gray Level Run Length Matrix (GLRLM), Intensity
+Direct (ID), and Intensity Histogram (IH). In clinical diagnos-
+tic and research situations, these classifications improve the
+interpretability and application of radiomic data.
+C. Existing Methods
+CT image standardization can be broadly divided into two
+categories, each based on data availability and customized to
+meet particular needs. The first method requires the existence
+of paired image data and is called intra-scanner image stan-
+dardization. By comparing and correcting images taken with
+varied settings, this method is crucial for standardizing images
+within the same scanner [17].
+Each image pair in this method consists of two images
+from the same scan that have been processed using different
+reconstruction kernels; the target image utilizes a standard
+kernel (e.g., Siemens Bl64) and the source image is created
+using a non-standard kernel (e.g., Siemens Br40). This paired
+image data is used by a machine learning model to train itself
+to convert source images into matching target images. Instead
+of depending on paired data, cross-scanner standardization
+models are used in the second type of CT image standard-
+ization technique. Images are not required to correlate in this
+paradigm directly; instead, they are acquired independently
+using different protocols and stored in various locations.
+III. METHOD
+Figure 2 illustrates the architecture of the multiscale latent
+Diffusion model, which integrates with primary elements: a
+multiscale residual-based image embedding mechanism and a
+conditional Deep Diffusion Probabilistic Model (DDPM) op-
+erating within the latent space under deep supervision. The im-
+age embedding mechanism utilizes a residual-based encoder-
+decoder network to convert input Computed Tomography (CT)
+images into a compact, low-dimensional latent representation.
+Following this, the conditional DDPM is employed to model
+the conditional probability distribution of the latent represen-
+tations, enabling the generation of standardized images. A
+significant characteristic of the multiscale model lies in its
+utilization of a latent diffusion network underpinned by deep
+supervision. Within the UNet architecture, the encoder and
+decoder sub-networks are interconnected via a sequence of in-
+tricately nested, dense skip pathways. These reconfigured skip
+pathways are strategically designed to diminish the semantic
+discrepancy between the feature maps of the sub-networks,
+thereby simplifying the learning process. The training process
+for the model unfolds in three distinct phases. Initially, the
+multiscale encoder-decoder network, which enhances learning
+efficiency by facilitating gradient flow, undergoes training with
+a comprehensive set of CT images from the training dataset,
+without discriminating based on their standard or non-standard
+status, or their originating imaging technology, be it GE or
+Siemens. The objective of this phase is to efficiently translate
+images into one-dimensional latent vectors, alleviating the
+vanishing gradient issue, and improving model performance
+by achieving a reconstruction of the original images with min-
+imal loss of information. In the subsequent phase, the latent
+conditional DDPM is trained using pairs of images, each pair
+comprising a non-standard image and its standard counterpart.
+The multiscale training with deep supervision phase empowers
+the DDPM to accurately model the conditional probability
+distribution of the latent representations, thereby facilitating
+the generation of standardized and enhanced featured images.
+The final phase involves the integration of all the trained
+neural networks, optimizing them to standardize new images
+effectively.
+A. Multiscale Encoder Decoder Training
+1) UNet++: We employed UNet++ [18], a deeply super-
+vised encoder-decoder architecture where the encoder and de-
+coder sub-networks are linked via nested, dense skip pathways.
+These redesigned skip pathways are intended to minimize the
+semantic gap between the feature maps of the encoder and
+decoder sub-networks. UNet++ is constructed with an encoder
+and decoder that are interconnected through a series of nested,
+dense convolutional blocks. The primary objective of UNet++
+is to close the semantic gap between the encoder and decoder
+feature maps before their fusion. For instance, the semantic
+disparity between X0,0 and X1,3 is addressed using a dense
+convolution block comprising three convolution layers.
+In Fig. 2, black represents the original U-Net, while green
+and blue illustrate dense convolution blocks along the skip
+pathways, and red highlights deep supervision. The colors red,
+green, and blue distinctly mark UNet++ from the traditional
+U-Net. Furthermore, UNet++ can be pruned at inference time
+if it has been trained under deep supervision.
+2) Re-designed skip pathways: In the UNet++ architecture,
+the skip pathways have been redesigned to enhance the con-
+nectivity between the encoder and decoder sub-networks by
+employing nested, dense convolutional blocks. This redesign
+aims to bridge the semantic gap between the feature maps
+of the encoder and decoder, facilitating smoother feature
+integration prior to fusion. For instance, the skip pathway that
+connects X0,0 and X1,3 includes a dense convolution block
+consisting of three convolution layers. Each layer in this block
+fuses the output from the previous convolution layer with the
+up-sampled output from a lower block, progressively enriching
+the feature maps to match the semantic level of the decoder’s
+feature maps. Mathematically, the feature map Xi,j in a nested
+skip pathway is calculated as follows:
+Xi,j =
+(
+H(Xi−1,j)
+if j = 0
+H
+h
+Xi,j−1, {U(Xi+1,j−1)}j−1
+k=0
+i
+if j > 0
+where H denotes a convolution followed by activation, U
+denotes up-sampling, and the brackets denote the concatena-
+tion of feature maps.
+3) Deep supervision: Deep supervision in UNet++ is im-
+plemented by attaching auxiliary segmentation outputs to each
+of the decoder layers. These outputs are directly connected to
+the loss function, enabling early and accurate gradient prop-
+agation and helping the model to learn detailed segmentation
+at multiple semantic levels. The loss function combining these
+multiple outputs is a weighted sum of the losses computed at
+each level, potentially using a combination of binary cross-
+entropy and Dice loss:
+L =
+X
+j
+wj ·
+ 
+−1
+N
+N
+X
+b=1
+"
+1
+2Yb log( ˆYb,j) + 2Yb ˆYb,j
+Yb + ˆYb,j
+#!
+where Yb is the ground truth for the bth image, ˆYb,j is the
+predicted output from the jth deep supervision layer, wj is
+Fig. 2.
+Overview of LTDiff++ architechture. A and ZA: non-standard image and its latent vector. B and ZB: standard image and its latent vector. A′:
+standardized image of A that falls in the B domain. η: Gaussian noise. Given an image pair (A, B) where A and B are non-standard and the corresponding
+standard images, the model aims to synthesize a new image A′ in the domain B. The representation learning component leverages a modified UNet++
+encoder-decoder structure. This framework is pivotal for learning encoded latent representations of CT images. Concurrently, the target-specific latent-space
+mapping component is purpose-built for standard image synthesis. It integrates a DDPM model for effective latent space mapping. Here, ZA represents the
+latent vector of the non-standard image A, ZB is the latent vector of the standard image B, ZA′ is the standardized latent vector of image A, and η denotes
+Gaussian noise.
+the weight for the jth layer’s loss contribution, and N is the
+number of training samples.
+B. Conditional Latent Diffusion Model for Image Standard-
+ization
+1. Feature Extraction and Encoding
+Both the non-standard image A and the standard image B
+are encoded into their respective latent representations ZA and
+ZB. This encoding is performed using a neural network based
+on the UNet++ architecture, which acts as the encoder E:
+ZA = E(A),
+ZB = E(B)
+where E(·) denotes the encoding function that maps an
+image to its latent representation.
+2. Adding Gaussian Noise
+After obtaining the latent representation ZA of the non-
+standard image, Gaussian noise η is added to this representa-
+tion to initiate the diffusion process:
+˜ZA = ZA + η,
+η ∼N(0, σ2I)
+The addition of noise helps simulate the forward diffusion
+process, where data gradually transitions from a meaningful
+state to a pure noise state. The noise level σ2 controls the
+intensity of the noise added.
+3. Conditional Diffusion Process
+The core of this methodology is the reverse diffusion pro-
+cess, which is conditioned on the latent space representation
+ZB of the standard image. The purpose is to reverse the noise
+addition by gradually denoising ˜ZA back to a state that is not
+just a denoised version of ZA but also aligned with ZB:
+pθ(ZA,t−1|ZA,t, ZB) = N(ZA,t−1; µθ(ZA,t, ZB, t), σ2
+t I)
+In this equation:
+• ZA,t denotes the latent state at diffusion time step t.
+• µθ is the parameterized mean function which is learned
+during training and is conditioned on both ZA,t and ZB.
+• σ2
+t represents the variance at each step, which can either
+be learned or preset as part of the model’s hyperparam-
+eters.
+The reverse process involves iteratively calculating ZA,t−1
+from ZA,t using the above Gaussian distribution, starting from
+ZA,T (which is ˜ZA) and moving backwards to ZA,0.
+4. Decoding to Image Space
+Once the reverse diffusion process is completed, the output
+ZA,0 is expected to be the denoised and standardized latent
+representation. This is then decoded back into the image space
+using a decoder D, which is typically the inverse function of
+the encoder E:
+A′ = D(ZA,0)
+C. Model Training Procedure
+The multuscale conditional Diffusion model is trained in
+a multi-phase approach that ensures each component is opti-
+mized to contribute effectively to the final standardization task.
+The training phases are as follows:
+1) Training the Encoder-Decoder Network: Initially, the
+encoder-decoder framework is trained without the in-
+tegration of the diffusion model. This phase focuses on
+capturing a robust latent representation of the input data.
+The encoder maps each CT image to a low-dimensional
+latent space, while the decoder aims to reconstruct the
+image from this latent representation. The objective
+during this phase is to minimize the reconstruction
+error, essentially training the network to retain all vital
+information in the compressed latent form. Given a set
+of paired images (A, B) where A is a non-standard
+image and B is its corresponding standard counterpart,
+the training involves two main components:
+2) Training the Latent Diffusion Model: Subsequently,
+the latent diffusion model is trained while keeping the
+encoder-decoder fixed. This phase involves the diffusion
+model learning to transform the latent representation
+from the non-standard to the standard domain using
+paired data, where one image is a non-standard and
+the other is the corresponding standard image. The
+model learns to approximate the conditional probabil-
+ity distribution of the latent representation to generate
+standardized latent forms.
+3) Integration and Synthesis: In the final phase, the sep-
+arately trained components are integrated. The complete
+model processes an input image through the encoder
+to its latent form, the diffusion model then adjusts this
+latent representation towards the standard, and finally,
+the decoder reconstructs the standardized image from
+the modified latent representation.
+• The encoder E maps A to a latent space, producing ZA =
+E(A), and similarly, B to ZB = E(B).
+• The latent diffusion model then processes ZA to generate
+ZA′, approximating ZB. This process is modeled as:
+ZA′ = Diffusion(ZA|ZB)
+The diffusion process is detailed as a Markov chain in latent
+space where each step is defined by:
+Zt+1 =
+p
+1 −βtZt +
+p
+βtϵ,
+ϵ ∼N(0, I)
+Here, βt are the parameters controlling the noise level at each
+step of the diffusion process.
+The loss function for the diffusion process combines the
+fidelity of the transformation and the preservation of the
+structural integrity, typically defined as:
+L = ∥ZA′ −ZB∥2 + λ∥D(ZA′) −B∥2
+where D is the decoder, and λ is a regularization parameter
+balancing the two aspects of the loss.
+IV. RESULTS
+Using four Nvidia V100 GPU cards on a Linux computer
+server, LTDiff++ was developed with PyTorch. Initialization
+of the network weights was achieved by tuning the parameters.
+The Adam optimizer was used to set the learning rate to 10-4.
+The encoder-decoder network was trained for 400 epochs.
+We trained the diffusion model with the same parameters
+and epochs. It took the model roughly 72 hours to train
+from the beginning. After training, the model processed and
+synthesized a DICOM CT image slice in approximately 30
+seconds. We have evaluated the results of the model with
+concordance Correlation Coefficient (CCC) metric and relative
+error and downstream analysis for future lung cancer risk
+prediction.In addition to the original DDPM and the encoder-
+decoder network, we compared LTDiff++ with the current es-
+tablished method of standardization, DiffusionCT[19]. Figure
+3 illustrates the outcomes of the models on a sample tumor,
+highlighting noticeable differences between the input tumor
+image and the standard image, both in visual appearance and
+radiomic characteristics. The image produced by LTDiff++
+stands out, showing the highest Concordance Correlation Co-
+efficient (CCC) values for Gray-Level Co-occurrence Matrix
+(GLCM) features when compared to the standard image.
+A. Data
+We have used two datasets for training and testing the model
+independently. First dataset is patient data trained and tested on
+the LTDiff++ Patient model and the second set of data is chest
+phantom data trained and tested in the LTDiff++ Phantom
+model. The patient training dataset consists of 38,048 paired
+CT image slices from 70 lung cancer patients, obtained using
+a Siemens CT Somatom Force scanner at the University of
+Kentucky Albert B. Chandler Hospital. These images were
+captured using two distinct kernels, Br40 and Bl64, with a
+slice thickness of 1mm. The phantom dataset includes 5,280
+image slices from a Lungman chest phantom. This phantom
+was scanned using the same two kernels (Br40 and Bl64) and
+different slice thicknesses, 0.625mm, 1.25mm, 3.75mm, and
+5mm on the same scanner. LTDiff++ training involved 28,168
+CT image slices. For this experiment, Siemens Bl64 is used as
+the standard protocol, while Br40 is considered non-standard.
+B. Evaluation Metric
+The evaluation of model performance was conducted
+systematically at both the whole image (DICOM) level
+and within randomly selected regions of interest (ROIs)
+across four Hounsfield Unit (HU) ranges: [−800, −300],
+[−100, 250],
+[10, 250],
+and
+[300, 800].
+LTDiff++,
+which
+compares standard and non-standard images in deep feature
+space during training, was assessed within the radiomic
+feature domain. For each CT image or ROI, a total of 1,401
+radiomic features were extracted using the PyRadiomics
+library. These features are categorized into seven classes:
+Gray Level Co-occurrence Matrix (GLCM) 2.5D, GLCM 3D,
+Neighbor Intensity Difference (NID) 2.5D, Intensity Direct,
+Intensity Histogram, NID 2.5D, and NID 3D were extracted
+using IBEX[20]. We considered evaluation metrics for the
+TABLE I
+CCC VALUES OF PATIENT IMAGES SYNTHESIZED BY DIFFERENT
+STANDARDIZATION MODELS. EACH COLUMN SHOWS THE MEAN ±
+STANDARD DEVIATION OF CCC VALUES FOR LUNG TUMOR ROIS ACROSS
+SPECIFIC RADIOMIC FEATURE GROUPS.
+Feature Class
+GOH
+GLCM
+GLRLM
+ID
+IH
+NID
+Baseline
+0.90 ± 0.05
+0.20 ± 0.13
+0.59 ± 0.13
+0.33 ± 0.16
+0.35 ± 0.12
+0.28 ± 0.15
+UNet++
+1.00 ± 0.00
+0.85 ± 0.19
+0.81 ± 0.15
+0.62 ± 0.11
+0.79 ± 0.25
+0.63 ± 0.09
+DiffusionCT
+1.00 ± 0.00
+0.83 ± 0.25
+0.82 ± 0.27
+0.89 ± 0.18
+0.49 ± 0.15
+0.87 ± 0.02
+LTDiff++
+1.00 ± 0.00
+0.86 ± 0.11
+0.84 ± 0.04
+0.84 ± 0.05
+0.72 ± 0.04
+0.88 ± 0.03
+one-to-one feature comparison and group-wise comparison.
+The reproducibility of radiomic features was assessed using
+the Concordance Correlation Coefficient (CCC), which mea-
+sures the correlation between standard and synthesized image
+features within a given feature class. The CCC ranges from
+−1 to 1, with higher values indicating better reproducibility.
+Mathematically, CCC represents the correlation between the
+standard and the non-standard image features in the feature
+classes:
+CCC =
+2ρs,tσsσt
+σ2sσ2
+t + (µs −µt)2
+(1)
+where µs and σs (or µt and σt) are the mean and standard
+deviation of the radiomic features belonging to the same
+feature class.
+TABLE II
+CCC VALUES OF PHANTOM IMAGES SYNTHESIZED BY DIFFERENT
+STANDARDIZATION MODELS. EACH COLUMN SHOWS THE MEAN ±
+STANDARD DEVIATION OF CCC VALUES FOR LUNG TUMOR ROIS ACROSS
+SPECIFIC RADIOMIC FEATURE GROUPS.
+Feature Class
+GOH
+GLCM
+GLRLM
+ID
+IH
+NID
+Baseline
+0.89 ± 0.15
+0.30 ± 0.11
+0.51 ± 0.18
+0.33 ± 0.16
+0.35 ± 0.12
+0.28 ± 0.15
+DiffusionCT
+1.00 ± 0.00
+0.85 ± 0.14
+0.79 ± 0.20
+0.89 ± 0.25
+0.41 ± 0.06
+0.86 ± 0.19
+LTDiff++
+1.00 ± 0.00
+0.86 ± 0.35
+0.72 ± 0.06
+0.84 ± 0.05
+0.57 ± 0.08
+0.84 ± 0.02
+V. ABLATION STUDY
+We conducted an ablation study to assess the impact of
+various components within the LTDiff++ framework on both
+phantom and patient data. Initially, we employed the con-
+ditional denoising diffusion probabilistic model (DDPM) to
+train the data, followed by an evaluation of the radiomic
+features. Subsequently, we compared the outcomes using the
+proposed LTDiff++ architecture, which was trained solely
+using the UNet++ encoder-decoder. Additionally, the training
+results of LTDiff++ model were analyzed by leveraging the
+skip connections of the UNet++ model configured as an
+encoder-decoder. As depicted in Table I, the images generated
+by LTDiff++ exhibited the highest Concordance Correlation
+Coefficient (CCC) values for the Gray Level Co-occurrence
+Matrix (GLCM) compared to those generated by other models,
+demonstrating a visual similarity to the standard image that
+was notably superior.
+VI. CASE STUDY ON FUTURE LUNG CANCER RISK
+PREDICTION
+To assess the performance of our model, we applied it to
+predict future lung cancer risk using both synthesized standard
+and robust output images. These predictions were compared to
+those obtained from non-standardized patient data. We utilized
+Sybil[21], a validated deep-learning model designed for pre-
+dicting future lung cancer risk from Computed Tomography
+scans, incorporating our synthesized patient output data. The
+difference between the predictions based on standard patient
+data and the model’s synthesized data is smaller compared
+to the discrepancy between non-standard input data and the
+model’s output. This finding suggests that the model’s syn-
+thesized output closely resembles the standard patient data,
+yielding nearly identical lung cancer risk predictions across
+Years 1 to 6.
+VII. DISCUSSION AND CONCLUSION
+In conclusion, LTDiff++ represents a significant advance-
+ment in CT image standardization for radiomic feature ex-
+traction. By addressing the challenges of image variability
+introduced by different CT scanner protocols, the model offers
+a robust solution for enhancing feature reproducibility and
+accuracy. The results from both patient and phantom datasets
+highlight the model’s superior performance compared to exist-
+ing methods, and its successful application in future lung can-
+cer risk prediction underscores its potential for broader clinical
+and diagnostic use. Future work could focus on expanding the
+model’s applicability to other imaging modalities and further
+optimizing its performance for diverse clinical scenarios.
+REFERENCES
+[1] J. Collins, “Letter from the editor: Lung cancer screening facts.,” in
+Seminars in roentgenology, vol. 52, pp. 121–122, 2016.
+[2] H. J. De Koning, R. Meza, S. K. Plevritis, K. Ten Haaf, V. N. Munshi,
+J. Jeon, S. A. Erdogan, C. Y. Kong, S. S. Han, J. Van Rosmalen, et al.,
+“Benefits and harms of computed tomography lung cancer screening
+strategies: a comparative modeling study for the us preventive services
+task force,” Annals of internal medicine, vol. 160, no. 5, pp. 311–320,
+2014.
+[3] M. Ravanelli, D. Farina, M. Morassi, E. Roca, G. Cavalleri, G. Tassi, and
+R. Maroldi, “Texture analysis of advanced non-small cell lung cancer
+(nsclc) on contrast-enhanced computed tomography: prediction of the
+response to the first-line chemotherapy,” European radiology, vol. 23,
+pp. 3450–3455, 2013.
+[4] D. Ardila, A. P. Kiraly, S. Bharadwaj, B. Choi, J. J. Reicher, L. Peng,
+D. Tse, M. Etemadi, W. Ye, G. Corrado, et al., “End-to-end lung
+cancer screening with three-dimensional deep learning on low-dose chest
+computed tomography,” Nature medicine, vol. 25, no. 6, pp. 954–961,
+2019.
+[5] Q. Song, L. Zhao, X. Luo, and X. Dou, “Using deep learning for
+classification of lung nodules on computed tomography images,” Journal
+of healthcare engineering, vol. 2017, no. 1, p. 8314740, 2017.
+[6] X. Yan, W. Wang, M. Xiao, Y. Li, and M. Gao, “Survival prediction
+across diverse cancer types using neural networks,” in Proceedings of the
+2024 7th International Conference on Machine Vision and Applications,
+pp. 134–138, 2024.
+[7] Y. Hu, H. Yang, T. Xu, S. He, J. Yuan, and H. Deng, “Exploration of
+multi-scale image fusion systems in intelligent medical image analysis,”
+arXiv preprint arXiv:2406.18548, 2024.
+[8] R. T. Sadia, J. Chen, and J. Zhang, “Ct image denoising methods for
+image quality improvement and radiation dose reduction,” Journal of
+Applied Clinical Medical Physics, vol. 25, no. 2, p. e14270, 2024.
+[9] Y. LeCun, Y. Bengio, and G. Hinton, “Deep learning,” nature, vol. 521,
+no. 7553, pp. 436–444, 2015.
+[10] G. Litjens, T. Kooi, B. E. Bejnordi, A. A. A. Setio, F. Ciompi,
+M. Ghafoorian, J. A. Van Der Laak, B. Van Ginneken, and C. I. S´anchez,
+“A survey on deep learning in medical image analysis,” Medical image
+analysis, vol. 42, pp. 60–88, 2017.
+[11] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,”
+Advances in neural information processing systems, vol. 33, pp. 6840–
+6851, 2020.
+[12] A. Q. Nichol and P. Dhariwal, “Improved denoising diffusion probabilis-
+tic models,” in International conference on machine learning, pp. 8162–
+8171, PMLR, 2021.
+[13] X. Shen, H. Huang, B. Nichyporuk, and T. Arbel, “Improving robustness
+and reliability in medical image classification with latent-guided diffu-
+sion and nested-ensembles,” arXiv preprint arXiv:2310.15952, 2023.
+[14] S. S. Yip and H. J. Aerts, “Applications and limitations of radiomics,”
+Physics in Medicine & Biology, vol. 61, no. 13, p. R150, 2016.
+[15] S. Basu, T. C. Kwee, R. Gatenby, B. Saboury, D. A. Torigian, and
+A. Alavi, “Evolving role of molecular imaging with pet in detecting
+and characterizing heterogeneity of cancer tissue at the primary and
+metastatic sites, a plausible explanation for failed attempts to cure
+malignant disorders,” 2011.
+[16] X. Yang and M. V. Knopp, “Quantifying tumor vascular heterogeneity
+with dynamic contrast-enhanced magnetic resonance imaging: a review,”
+BioMed Research International, vol. 2011, no. 1, p. 732848, 2011.
+[17] M. Selim, J. Zhang, B. Fei, G.-Q. Zhang, and J. Chen, “Stan-ct:
+Standardizing ct image using generative adversarial networks,” in AMIA
+Annual Symposium Proceedings, vol. 2020, p. 1100, American Medical
+Informatics Association, 2020.
+[18] Z. Zhou, M. M. Rahman Siddiquee, N. Tajbakhsh, and J. Liang,
+“Unet++: A nested u-net architecture for medical image segmenta-
+tion,” in Deep Learning in Medical Image Analysis and Multimodal
+Learning for Clinical Decision Support: 4th International Workshop,
+DLMIA 2018, and 8th International Workshop, ML-CDS 2018, Held in
+Conjunction with MICCAI 2018, Granada, Spain, September 20, 2018,
+Proceedings 4, pp. 3–11, Springer, 2018.
+[19] M. Selim, J. Zhang, F. Fathi, M. A. Brooks, G. Wang, G. Yu, and
+J. Chen, “Latent diffusion model for medical image standardization and
+enhancement,” arXiv preprint arXiv:2310.05237, 2023.
+[20] L. Zhang, D. V. Fried, X. J. Fave, L. A. Hunter, J. Yang, and L. E. Court,
+“Ibex: an open infrastructure software platform to facilitate collaborative
+work in radiomics,” Medical physics, vol. 42, no. 3, pp. 1341–1353,
+2015.
+[21] P. G. Mikhael, J. Wohlwend, A. Yala, L. Karstens, J. Xiang, A. K.
+Takigami, P. P. Bourgouin, P. Chan, S. Mrah, W. Amayri, Y.-H. Juan,
+C.-T. Yang, Y.-L. Wan, G. Lin, L. V. Sequist, F. J. Fintelmann, and
+R. Barzilay, “Sybil: a validated deep learning model to predict future
+lung cancer risk from a single low-dose chest computed tomography,”
+Journal of Clinical Oncology, pp. JCO–22, 2023.

@@ -1,0 +1,1937 @@
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2024
+1
+HMIL: Hierarchical Multi-Instance Learning for
+Fine-Grained Whole Slide Image Classification
+Cheng Jin, Student Member, IEEE, Luyang Luo, Member, IEEE, Huangjing Lin, Jun Hou, and Hao Chen,
+Senior Member, IEEE
+Abstract— Fine-grained
+classification
+of
+whole
+slide
+images (WSIs) is essential in precision oncology, en-
+abling precise cancer diagnosis and personalized treat-
+ment strategies. The core of this task involves distinguish-
+ing subtle morphological variations within the same broad
+category of gigapixel-resolution images, which presents
+a significant challenge. While the multi-instance learning
+(MIL) paradigm alleviates the computational burden of
+WSIs, existing MIL methods often overlook hierarchical
+label correlations, treating fine-grained classification as
+a flat multi-class classification task. To overcome these
+limitations, we introduce a novel hierarchical multi-instance
+learning (HMIL) framework. By facilitating on the hierarchi-
+cal alignment of inherent relationships between different
+hierarchy of labels at instance and bag level, our approach
+provides a more structured and informative learning pro-
+cess. Specifically, HMIL incorporates a class-wise attention
+mechanism that aligns hierarchical information at both the
+instance and bag levels. Furthermore, we introduce super-
+vised contrastive learning to enhance the discriminative
+capability for fine-grained classification and a curriculum-
+based dynamic weighting module to adaptively balance the
+hierarchical feature during training. Extensive experiments
+on our large-scale cytology cervical cancer (CCC) dataset
+and two public histology datasets, BRACS and PANDA,
+demonstrate the state-of-the-art class-wise and overall per-
+formance of our HMIL framework. Our source code is avail-
+able at https://github.com/ChengJin-git/HMIL.
+Index Terms— Fine-grained Image Recognition, Multi-
+instance Learning, Hierarchical Classification, Whole-slide
+Image Classification.
+I. INTRODUCTION
+W
+HOLE-SLIDE images (WSIs) have been acknowl-
+edged as the gold standard for diagnosis [1], [2].
+Manuscript received on November 12, 2024. This work was supported
+by the National Natural Science Foundation of China (No. 62202403),
+Hong Kong Innovation and Technology Fund (Project No. MHP/002/22),
+Shenzhen Science and Technology Innovation Committee Fund (Project
+No. KCXFZ20230731094059008) and the General Program for Clinical
+Research at Peking University Shenzhen Hospital (No. LCYJ202001).
+(Corresponding author: Hao Chen.)
+Cheng Jin and Luyang Luo are with the Department of Computer
+Science and Engineering, The Hong Kong University of Science and
+Technology, Kowloon, Hong Kong SAR, China. Huangjing Lin is with De-
+partment of Computer Science and Engineering, The Chinese Univer-
+sity of Hong Kong, Hong Kong, China. Jun Hou is with the Department
+of Obstetrics and Gynecology, Peking University Shenzhen Hospital,
+Shenzhen, China. Hao Chen is with the Department of Computer Sci-
+ence and Engineering and the Department of Chemical and Biological
+Engineering and Division of Life Science, The Hong Kong University of
+Science and Technology, Kowloon, Hong Kong SAR, China.
+In precision oncology, fine-grained classification of WSIs is
+essential for accurate diagnosis and treatment planning. Unlike
+merely distinguishing between benign and malignant cases or
+simple categorization into two or three broad classes, fine-
+grained classification involves observing subtle morphological
+differences among cancer subtypes by examining different cell
+types and tissue structures within WSIs. This detailed classifi-
+cation provides doctors with more information to make accu-
+rate diagnoses and personalized treatment decisions, which is
+essential for recommending precise treatments such as surgery,
+radiation, and hormonal therapy [3].
+Significant challenges are presented in fine-grained WSI
+classification due to the need to differentiate subtle variations
+under the gigapixel resolutions inherent in WSIs, setting it
+apart from natural image classification tasks [4]. To this
+end, multi-instance learning (MIL) has emerged as a leading
+approach for WSI classification. In this method, each slide
+is treated as a “bag” containing multiple image patches (in-
+stances), and only the bag-level labels are required for training.
+Despite advancements in MIL, there has been limited progress
+in addressing fine-grained classification tasks within WSI.
+Hierarchical classification incorporates hierarchical labels
+and corresponding network designs to tackle fine-grained
+classification challenges [5], [6]. In contrast to prior meth-
+ods that address the problem in the setting of flat multi-
+class classification, hierarchical classification leverages the
+underlying structure of cancer subtypes. Several studies have
+attempted to address the challenges of fine-grained WSI
+classification within this context [7]–[9]. Specifically, Mercan
+et al. [7] conceptualized this as a multi-instance, multi-label
+learning problem. They utilized a conventional max-pooling
+MIL method constrained by a multi-label loss, where the
+instances were regions of interest identified by pathologists.
+However, their approach did not incorporate the hierarchical
+mapping among cancer subtypes across different hierarchies,
+which has been empirically shown to enhance the performance
+of fine-grained image recognition in natural images [10]–[12].
+Introducing hierarchical mapping could provide valuable prior
+knowledge, aiding in distinguishing subtle differences between
+closely related subtypes.
+Recognizing this potential, Lin et al. [8] proposed DPNet,
+which utilizes instance-level annotations along with a hier-
+archical grouping loss in the instance detector and a rule-
+based classifier for slide-level predictions. Gao et al. [9]
+leverage information bottleneck theory to model pathologist-
+arXiv:2411.07660v1  [cs.CV]  12 Nov 2024
+2
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2024
+selected instances with hierarchical features within a multi-
+task framework, which employs an auxiliary instance-level
+classifier to enrich the feature representation for slide-level
+classification. While these approaches have advanced fine-
+grained WSI classification, their reliance on instance-level
+annotations limits broader applicability and fails to fully
+exploit hierarchical information for semantic guidance at both
+the instance and bag levels in MIL models.
+To this end, we propose a novel hierarchical multi-instance
+learning (HMIL) framework. As illustrated in Figure 1, our
+HMIL framework adopts a dual-branch structure: a coarse
+branch for coarse-grained classification and a fine branch for
+fine-grained classification. Between this dual-branch structure,
+we introduce hierarchical alignment at both instance and bag
+levels to better guide the learning process. At the instance
+level, both branches utilize class-wise attention-based MIL
+to introduce the foundation of hierarchical information, and
+the hierarchical instance matching module aligns the fine
+branch’s class-wise attention with the coarse branch’s class-
+wise attention through a fine-to-coarse similarity constrain. At
+the bag level, the hierarchical bag alignment module ensures
+fine-to-coarse prediction consistency by aligning the predic-
+tions of both branches. Moreover, we incorporate supervised
+contrastive learning [13] to strengthen the discriminative ca-
+pability of the fine branch by maximizing inter-class distances
+and minimizing intra-class variations. Recognizing that the
+broad knowledge provided by the coarse branch may not
+sufficiently guide fine-grained classification, we introduce a
+dynamic weighting strategy to balance the influence between
+the coarse and fine branches during training.
+The contributions of this paper are twofold. First, we
+formulate and explore hierarchical classification under the
+MIL settings and propose a novel framework termed HMIL.
+This framework leverages holistic hierarchical guidance at
+both the instance and bag levels to optimize the learning of
+feature embeddings and refine predictions, thereby enhancing
+the model’s ability to differentiate closely related cancer sub-
+types. Second, we evaluated our HMIL framework extensively
+on multiple fine-grained classification WSI datasets across
+various imaging modalities, including our private large-scale
+cytology cervical cancer (CCC) WSI classification dataset,
+which comprises 33,528 cytology WSIs, as well as two public
+histology WSI datasets, specifically BRACS [14] and PANDA
+[15]. Our findings indicate that HMIL achieves state-of-the-art
+performance compared to baseline models and enhances class-
+wise performance, revealing the importance of incorporating
+label hierarchy into the model.
+II. RELATED WORK
+A. MIL in WSI Classification
+In WSI classification, to tackle the challenges of gigapixel-
+sized WSIs with weak annotations, many methods primarily
+the MIL framework. This framework involves three main
+stages: extracting features at the patch level, aggregating
+these patch-level features into slide-level representations, and
+training a classifier with these representations using slide
+labels for fully supervised prediction. Existing MIL methods
+in WSI classification can be broadly categorized based on their
+reliance on instance-level annotations.
+Methods that rely on instance-level annotations typically
+leverage detailed region-specific information annotated by
+pathologists to enhance classification accuracy. Early works
+in histology WSI classification [16], [17] and more recent
+works in cytology classification adopt this approach. These
+methods leverage patch-level annotations for training patch-
+based detection classification models that extract patch-level
+features, which are then aggregated to enable slide-level pre-
+dictions within the MIL framework. For instance, Cheng et al.
+[18] introduced a progressive detection method that utilizes
+multi-scale features for abnormal cell detection, followed
+by a recurrent neural network (RNN) [19] for slide-level
+classification. Cao et al. [20] enhanced detection performance
+by integrating clinical knowledge and an attention mechanism
+into their AttFPN cell detection model. Zhang et al. [21]
+employed the RetinaNet [22] detection model for suspicious
+cell detection and the ResNeXt-50 [23] classification model for
+detection label refinement at instance level. At slide level, they
+aggregate them using graph attention networks (GAT) [24]
+for WSI classification. However, these methods require labor-
+intensive, disease-specific manual annotations on the instances,
+limiting their applicability across different diseases.
+In response, recent efforts have focused on developing
+frameworks that only require slide labels. Under this context,
+MIL methods can be further categorized into two directions:
+the design of feature extractors leveraging self-supervised
+methods and the exploration of various aggregation strategies
+[25]. Advancements have been made in the pretraining of
+feature extractors [26]–[30] inspired by contrastive learning
+strategies in self-supervised learning [31], [32]. These methods
+aim to create robust feature representations that can be used
+in subsequent aggregation phase. At the aggregation phase,
+literature attempts to select the discriminative feature. Ilse
+et al. [33] introduced aggregation based on instance-level
+attention scores, marking a seminar effort in this direction.
+Subsequently, Lu et al. [34] developed a clustering-constrained
+attention MIL for WSI cancer classification, employing class-
+wise attention pooling to selectively emphasize on instances.
+Similarily, Zhang et al. [35] proposed multi-branch attention
+learning with stochastic masking strategy for discriminative
+instance discovery. Yu et al. [28] enhanced feature selection
+by extracting multiple cluster prototypes. From the perspective
+of alleviating the negative impact of insufficient training data,
+Zhang utilized bag augmentation by dividing training bags into
+smaller bags and applying double-tier feature distillation for
+training [36]. Liu et al. employed a mixup approach for bag
+and label augmentation [37]. Furthermore, innovative network
+architectures have been explored. Shao et al. employed the
+self-attention mechanism of the Transformer architecture [38]
+for histology WSI analysis, as exemplified by TransMIL [39].
+Recent advancements by Fillioux et al. [40] have investigated
+the structured state space model for long sequence modeling
+of patches within the MIL framework. Nevertheless, these
+techniques focus solely on a single resolution, which may
+neglect contextual nuances, prompting the development of
+multi-resolution methods [26], [27] to apprehend hierarchical
+JIN et al.: HIERARCHICAL MULTI-INSTANCE LEARNING FOR FINE-GRAINED WHOLE SLIDE IMAGE CLASSIFICATION
+3
+Fig. 1.
+Comparison among prior works and our proposed HMIL framework in fine-grained WSI analysis. Left: Conventional flat classification
+methods, which form fine-grained classification as a multi-class classification task. Middle: Prior hierarchical classification methods, which typically
+leverage detector-enriched instance feature for hierarchical classification. Right: Our HMIL framework relaxed the need for detectors, introducing
+hierarchical alignment at both instance and bag level to improve fine-grained classification.
+features at different resolution levels.
+These advancements underscore the potential of MIL mod-
+els that require only slide-level labels compared to previous
+methods. However, existing methods primarily focus on binary
+or ternary classification tasks, which are relatively simple
+compared to fine-grained classification.
+B. Hierarchical Fine-grained Recognition
+Fine-grained recognition is challenging due to small inter-
+class differences that complicate the distinction between simi-
+lar categories. Conventional flat classifiers often fail to capture
+hierarchical relationships, limiting recognition accuracy. In
+response, hierarchical fine-grained recognition (HFR) assigns
+hierarchical labels to data points, enhancing the understanding
+of their relationships [5], [6]. Typical HFR models follow
+a hierarchical architecture, with early designs featuring tree
+structures where leaf nodes represent specific classes and
+internal nodes indicate broader categories [41]–[43]. Recent
+research leverages components such as knowledge graphs [12]
+and hierarchical prompting [44], as well as strategies like self-
+paced learning [45], to improve the capability of the model to
+learn hierarchical relationships.
+Although these approaches demonstrate the potential of
+hierarchical classification in fully supervised learning contexts,
+a gap remains in applying such methods without relying on
+instance-level annotations in the MIL framework. For example,
+Mercan et al. [7] employed a traditional max-pooling MIL
+approach constrained by a multi-label loss for breast cancer
+WSI classification, where the instances were regions of interest
+identified by pathologists. Lin et al. [8] explored cervical
+cancer screening on cytology WSIs using DPNet based on
+VGG-16 [46]. A hierarchical grouping loss is proposed for
+suspicious cell detection, and the detected instances were
+aggregated with fixed clinical rules at the bag level. Gao et
+al. [9] proposed a multi-task framework for the classification
+of leukemia bone marrow. This framework utilizes the label
+hierarchy and introduces the information bottleneck achieved
+through contrastive methods on the instances [47], [48]. Ad-
+ditionally, their approach leverages an instance-level auxiliary
+classifiers to enrich feature representation, aiming to improve
+classification accuracy. However, this method relies heavily
+on expert annotations, with each bag containing a relatively
+small number of pre-selected instances, which does not reflect
+the tens of thousands of instances typically involved in WSIs.
+Additionally, the neglect of alignment at the bag level restricts
+the capture of complex cellular features.
+III. METHOD
+In this section, we first review the MIL paradigm and then
+highlight the distinctions of our method. We then introduce
+our HMIL framework, as illustrated in Figure 2.
+A. Preliminary
+1) The MIL Paradigm: From the perspective of MIL, a
+WSI X is considered a bag, while its patches are considered
+4
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2024
+Fig. 2. Overview of the proposed HMIL. We use fine-grained cervical cancer classification as an example. Patched WSI is fed into an offline feature
+extractor for the coarse features of the WSI, followed by an online feature re-embedding module that produces fine-grained feature. Subsequently, a
+dual-branch MIL architecture performs attention extraction and classification tasks at different hierarchical levels, with hierarchical alignment applied
+to instance and bag levels. Fully connected layers are then employed on top of the aggregated features in each branch to predict classification logits.
+Specifically, in the fine-grained branch, we incorporate supervised contrastive learning to further refine the feature representation. Finally, a dynamic
+weighting training strategy is incorporated to regulate the weights of these two branches throughout network training.
+instances within this bag, represented as X = {Xi}Ni
+i=1. The
+number of instances Ni varies for different bags. For a binary
+classification task, there is a known label Y for a bag and
+an unknown label yi for each of its instances. If there is at
+least one positive instance in a bag, then the bag is labeled as
+positive; otherwise, it is labeled as negative. The goal of a MIL
+model is to predict the bag label using all instances. As stated
+in the introduction, the MIL prediction process can be divided
+into three steps: instance feature extraction, aggregation, and
+bag classification, as follows:
+ˆY = h
+
+g
+
+{f(Xi)}Ni
+i=1
+
+(1)
+where f(·), g(·), and h(·) denote the instance feature
+extractor, aggregator, and bag classifier, respectively.
+2) Hierarchical Classification for MIL: Hierarchical classifi-
+cation not only considers the presence of certain instances,
+but also leverages the predefined hierarchical mapping M(·)
+reflecting the relationships between hierarchical labels to
+enhance classification performance. For a WSI bag X, its
+corresponding bag label Y = (Yc, Yf), where Yc = M(Yf),
+represents the coarse-grained and fine-grained hierarchical la-
+bels, respectively. Each hierarchy contains Kc and Kf classes.
+Under this setting, existing methods [8], [9] primarily leverage
+this mapping M at the instance level and requires instance
+annotation. In response, we advocate for using this mapping
+at both the instance and bag levels, while exploring the model’s
+capability without instance annotations.
+B. The Hierarchical MIL Framework
+Our HMIL framework operates in a dual-branch hierarchical
+structure with a coarse branch and a fine branch. By leveraging
+label hierarchy comprehensively, we anticipate our framework
+not only learns from the broad categories provided by coarse
+labels but also effectively refines its predictions by focusing on
+the specific details and variations present in fine-level classes,
+enabling accurate fine-grained classification of WSIs.
+1) Hierarchical Feature Extraction: Given a WSI X tiled into
+Ni instances, a pretrained encoder serves as an offline feature
+extractor (OFE), extracting coarse-grained feature vector hc
+with an embedded dimension of dc. However, due to the
+differences in granularity required for specific classification
+tasks, it is necessary to re-embed these features. To address
+this, we leverage a non-linear multi-layer perceptron (MLP)
+serving as our online feature re-embedder (OFR) to re-embed
+these coarse-grained features into fine-grained feature vector
+hf. The dimensionality reduction to df = dc/4 is designed to
+refine the feature space and force the model to learn more
+discriminative features in a reduced feature space, thereby
+enhancing its ability to capture intricate patterns relevant to
+the classification task.
+2) Primal Hierarchical Guidance: With the introduction of
+hierarchical labels, primal hierarchical guidance can be estab-
+lished by leveraging the classification loss. Based on these
+class-level probabilities, the objective functions for classifi-
+cation in the different hierarchies are defined using cross-
+entropy loss: L(c,f)
+ce
+= −PKc,f
+i=1 Yi log( ˆYi), where Y is the
+true label, ˆY is the predicted probability distribution, and Kc,f
+is the number of classes. The overall classification loss is then
+defined as: Lcls = L(c)
+ce + L(f)
+ce . By applying this loss for
+coarse and fine classifications, we anticipate that it will provide
+foundational knowledge for the model to distinguish different
+subtypes of cancers.
+3) Holistic Hierarchical Alignment: Despite hierarchical clas-
+sification losses provide basic guidance to the framework,
+relying solely on these losses overlooks the hierarchical
+JIN et al.: HIERARCHICAL MULTI-INSTANCE LEARNING FOR FINE-GRAINED WHOLE SLIDE IMAGE CLASSIFICATION
+5
+relationships between categories. Without additional design
+considerations, priors from the coarse branch may introduce
+noise into fine-grained classification due to semantic misalign-
+ment. To address this, we introduce a holistic hierarchical
+alignment at both the instance and bag levels using a pre-
+defined hierarchical mapping matrix M ∈RKf ×Kc, based on
+hierarchical relationships specified by pathologists. M maps
+fine categories to coarse categories, where each element mi,j
+is 1 if the fine-grained subtype Yf is a subtype of the coarse
+category Yc, and 0 otherwise. This hierarchical alignment
+enables the model to semantically align features in the fine
+branch with those in the coarse branch, enhancing its ability
+to differentiate between nuanced cancer subtypes.
+Hierarchical Alignment at Instance Level. At the instance
+level, our hierarchical alignment is achieved through the
+hierarchical attention matching (HAM) module. Recognizing
+the importance of hierarchical mapping, we employ class-wise
+attention learning instead of direct attention learning in our
+HAM module to effectively leverage the predefined mapping
+matrix M. Specifically, we assess the contributions of the
+instances to the bag by utilizing the gated attention mechanism
+[49] to learn the class-wise contributions of each instance
+within its respective hierarchy. The class-wise attention scores
+are computed as follows:
+A{c,f} = softmax(W{c,f}(tanh(V{c1,f1}(h{c,f}))
+⊙sigmoid(V{c2,f2}(h{c,f}))))
+(2)
+here, Ac
+∈RKc×Ni and Af
+∈RKf ×Ni represent the
+instance attentions across classes at the coarse and fine levels,
+respectively. The fully connected (FC) layers Vc1, Vc2, Wc
+and Vf1, Vf2, Wf are designed with output dimensions of
+dc/4, dc/4, Kc and df/4, df/4, Kf respectively. This class-
+wise attention learning within each hierarchy allows the model
+to selectively emphasize more informative feature from the
+patches, enhancing the discriminative capability of the model
+across different levels of hierarchy.
+After obtaining class-wise attention at each hierarchy, we
+match the learned attention Ac, Af in our HAM module by
+aggregating the attention logits for corresponding classes as
+dictated by the mapping matrix M. The alignment introduces
+an instance-specific coarse-to-fine constraint via a loss func-
+tion defined as:
+Lia = 1
+Ni
+(1 −cos(Ai,c, MAi,f))
+(3)
+where cos denotes the cosine similarity, and the mapping
+matrix M translates fine-grained attention scores into the
+coarse-grained hierarchy. This strategic alignment ensure the
+fine-level learning does not deviate into incorrect or irrelevant
+feature spaces that do not align with the broader category
+defined at the coarse level.
+Hierarchical Alignment at Bag Level. At the bag level,
+alignment is centered on ensuring that predictions made
+at the fine level are meaningfully translatable back to the
+coarse level through the hierarchical bag alignment (HBA).
+We firstly obtain the prediction by utilizing attention pooling
+operations to aggregate class-wise instance-level features into
+bag-level representations, guided by the attention matrices
+Ac and Af: B{c,f} = A{c,f}
+⊤× h{c,f}, where × denotes
+matrix multiplication, Bc ∈RKc×dc and Bf ∈RKf ×df
+denote the bag-level representations at the coarse and fine
+levels, respectively. Subsequently, HMIL utilizes the bag-level
+representations from both hierarchy levels to compute the
+slide-level probabilities: p{c,f} = softmax(cls{c,f}(B{c,f})).
+In this formulation, pc and pf represent the probabilities that
+X is classified into coarse and fine categories, respectively.
+These probabilities are determined by the classifiers clsc and
+clsf, which consist of FC layers. The classifications for X
+at both levels are obtained through ˆY
+= ( ˆYc, ˆYf), where
+ˆYc = argmax(pc) and ˆYf = argmax(pf).
+In HBA, given the fine-grained logits pf, the mapping
+matrix M is employed to align the bag-level logits with their
+coarser counterparts can be expressed in a form analogous to
+the cross-entropy loss as follows:
+Lba = −
+Kc
+X
+i=1
+Y (c)
+i
+log( ˜Y (c)
+i
+),
+(4)
+where Y (c)
+i
+is the true label for coarse category i, and ˜Y (c) =
+Mpf represents the predicted coarse probabilities derived
+from the fine probabilities through the mapping matrix M. By
+enforcing the hierarchical alignment, the model is compelled
+to prevent the misinterpretation of fine-grained feature, and
+enhancing the overall accuracy of the classification.
+4) Supervised Contrastive Learning: With the introduction
+of hierarchical alignment, given that fine-grained classification
+of WSI necessitates differentiating subtle variations inherent
+in gigapixel resolutions, which are characterized by high sim-
+ilarity between classes and significant intra-class variability.
+To further enhance the discriminative capability of the fine-
+grained bag-level feature, we apply supervised contrastive loss
+[13] in a batch b to the ℓ2-normalized fine-grained bag-level
+feature Bf, as defined by the equation below:
+Lreg =
+b
+X
+i=1
+−1
+|Pi|
+X
+Bp,f ∈Pi
+log
+exp
+
+Bi,f · Bp,f
+⊤/τ
+
+P
+Bo,f ∈Vi exp
+
+Bi,f · Bo,f
+⊤/τ
+
+(5)
+where Vi = {Bi,f}i∈[b] \ {Bi,f} denotes the set of current
+batch feature at the fine branch, excluding Bi,f. Set Pi =
+{Bj,f ∈Vi : Yj,f = Yi,f} comprises feature within the fine
+branch that share the same fine-grained label. The temperature
+hyperparameter τ is set to 0.1 following the literature [31],
+[50], with ablation studies detailed in Sect. IV-C.4. This
+constraint improves the discriminative ability of fine-grained
+features by bringing embeddings of the same class closer
+together and pushing those of different classes further apart.
+C. Training Strategy and Overall Loss Function
+To design the overall loss function, we recognize that
+the coarse branch’s broad knowledge is insufficient for fine-
+grained classification due to differences in feature hierarchies.
+Inspired by [51], [52], which use dynamic weighting to
+balance loss components based on task relevance, we propose
+our dynamic weighting strategy. Initially, we emphasize coarse
+classification and alignment losses to improve fine-grained
+6
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2024
+classification, as we believe the coarse classification task is
+inherently less complex. As training progresses, we shift our
+focus toward the fine branch’s supervised contrastive learning
+to enhance feature representation in the fine branch as follows:
+L = β · (L(c)
+ce + Lia + Lba) + (1 −β) · Lreg + L(f)
+ce
+(6)
+where β = 1 −
+e
+E is a dynamically adjusting weighting
+coefficient, with E as the total number of epochs and e as the
+current epoch. Further details on parameter ablation studies
+can be found in IV-C.4.
+IV. EXPERIMENTS
+A. Datasets and Evaluation Metrics
+To assess the robustness and clinical applicability of our
+framework, we employed three datasets: two publicly available
+histology WSI datasets, namely BRACS [14] and PANDA
+[15], along with our own collected cytology WSI dataset for
+cervical cancer screening, termed CCC. The details of the
+datasets are described as follows.
+The BReAst Carcinoma Subtyping (BRACS) dataset
+is designed for breast cancer subtyping and comprises 547
+histology WSIs. The dataset’s labels are organized into a
+hierarchical structure to facilitate both coarse and fine-grained
+classification: at the coarse level, labels include benign tumors
+(BT), atypical tumors (AT), and malignant tumors (MT); at
+the fine level, labels are normal (N), pathological benign
+(PB), usual ductal hyperplasia (UDH), flat epithelial atypia
+(FEA), atypical ductal hyperplasia (ADH), ductal carcinoma in
+situ (DCIS), and invasive carcinoma (IC). Given the dataset’s
+limited size, we employ a 10-fold cross-validation protocol.
+The Prostate cANcer graDe Assessment (PANDA) dataset
+includes 10,616 histological WSIs of prostate biopsies, each
+annotated with a single label to indicate its normal status
+or corresponding ISUP (International Society of Urological
+Pathology) grade. Given the absence of the label hierarchy
+within the original dataset, we manually introduced coarse-
+level labels by mapping ISUP grades to risk categories as
+per the European Association of Urology (EAU) guidelines
+for prostate cancer [53]. Specifically, WSIs categorized as
+normal or with an ISUP grade of 1 were assigned to the
+low-risk group. Those with an ISUP grade of 2-3 were
+classified as intermediate-risk, and biopsies with a grade of
+4-5 were designated as high-risk. The original ISUP grades
+were retained as fine-level labels. A 10-fold cross-validation
+protocol was employed for both the training and testing phases.
+Our in-house Cervical Cytological Carcinoma (CCC)
+dataset comprises 33,528 WSIs, collected from multiple med-
+ical centers. This dataset adheres to the Bethesda System
+(TBS) [54] for cervical cytology classification, which delin-
+eates a range of cytological findings in the following hier-
+archical structure: labels include negative for intraepithelial
+lesion or malignancy (NILM) for specimens without cytolog-
+ical abnormalities, and five categories for positive findings:
+atypical squamous cells of undetermined significance (ASC-
+US), atypical squamous cells that cannot exclude high-grade
+squamous intraepithelial lesion (ASC-H), low-grade squamous
+intraepithelial lesion (LSIL), high-grade squamous intraepithe-
+lial lesion (HSIL), and squamous cell carcinoma (SCC). For
+benchmarking, the dataset was randomly divided into training,
+validation, and test sets at a ratio of 7:1:2 and employs non-
+parametric bootstrapping using 1,000 bootstrap replicates for
+testing to ensure the robustness of our evaluation.
+The detail of the hierarchical mapping and sub-class dis-
+tributions of these datasets can be referred to Figure 3. To
+evaluate the classification performance of our datasets, we use
+a consistent set of metrics across different WSI classification
+tasks. Specifically, we report the metrics including accuracy,
+specificity, sensitivity, F1 score, and area under the curve
+(AUC) computed in a one-versus-rest manner.
+B. Compared Baselines and Implementation Details
+We present the experimental results of our proposed HMIL
+framework compared to the following methods: (1) Con-
+ventional instance-level Multiple Instance Learning (MIL),
+which includes Mean-Pooling MIL and Max-Pooling MIL.
+(2) The standard attention-based MIL, ABMIL [33]. (3) Four
+variants of ABMIL: the contrastive learning pretraining-based
+non-local attention pooling DSMIL [26], the single-attention-
+branch with clustering capability CLAM-SB [34], its multi-
+branch counterpart CLAM-MB [34], and the multi-branch
+attention-challenging ACMIL [35]. (4) Two transformer-based
+MIL architectures: TransMIL [39] and the multi-resolution
+pretraining-based HIPT [27]. (5) Pseudo bag augmented MIL,
+which includes double-tier augmented bag distillation DTFD
+[36] and mixup-based bag augmentation PseMix [37]. (6)
+Prototype-based metric learning MIL, PMIL [28]. (7) State
+space model-based MIL, S4MIL [40]. We faithfully reproduce
+these methods according to their official implementations.
+During the preprocessing phase, we applied Otsu’s thresh-
+olding method [55] to identify and delineate tissue regions
+for generating patches. Except for the DSMIL, HIPT, and
+PMIL methods, which used different patching strategies as
+specified in their original publications, we produced non-
+overlapping patches of 512×512 pixels at 20× magnification
+for the PANDA and BRACS datasets. For cytology WSIs, to
+accommodate varying resolutions across different imaging in-
+struments, we standardized the images to a 20× magnification
+(0.2578 µm/pixel) and generated non-overlapping patches of
+1, 024×1, 024 pixels. Following the studies in [34], [36], [39],
+we employed ResNet-50 [56] as the offline feature extractor,
+except where DSMIL [26], HIPT [27], and PMIL [28] required
+different feature extractors according to their original papers.
+Specifically, DSMIL employs SimCLR [50] as the feature
+extractor and extracts features at 5× and 20× resolution with
+tiled patches of 224 × 224 pixels. HIPT employs the DINO
+[57] approach and pretrains two vision transformer feature
+extractors at different resolutions, generating tiled patches
+of 256 × 256 and 4, 096 × 4, 096 pixels. We utilized the
+provided pretrained weights from the original work for the
+evaluation. PMIL finetunes ResNet-34 [56] feature extractor
+using vocabulary-based prototype learning on the training split
+and generates tiled patches of 256 × 256 pixels.
+The experiments were conducted on a workstation with
+NVIDIA RTX 3090 GPUs using the Adam optimizer with
+JIN et al.: HIERARCHICAL MULTI-INSTANCE LEARNING FOR FINE-GRAINED WHOLE SLIDE IMAGE CLASSIFICATION
+7
+Fig. 3. Hierarchical mappings and sub-class distributions in BRACS [14], PANDA [15] and our collected CCC datasets. The mappings are from the
+original datasets designed by pathologists.
+a weight decay of 1 × 10−5. Training lasted for 200 epochs,
+during which the best results were saved. For the CCC and
+PANDA datasets, the learning rate was 1 × 10−3 with a batch
+size of b = 512. For the BRACS dataset, the learning rate was
+1 × 10−4 with a batch size of b = 128.
+C. Experiment Results and Ablation Studies
+1) Fine-grained Classification: We evaluated the proposed
+HMIL in fine-grained WSI classification tasks and summa-
+rized the results in the left part of Tables I-III. From the
+results, it is observed our proposed HMIL outperforms all
+compared methods in terms of accuracy, specificity, sensi-
+tivity, F1 score, and AUC, demonstrating its effectiveness in
+identifying subtle differences and patterns within WSI images.
+Specifically, in the histology BRACS dataset (Table I), HMIL
+achieved the highest accuracy of 55.56 ± 5.92%, specificity
+of 91.21 ± 5.90%, sensitivity of 38.61 ± 6.02%, F1 score
+of 38.98 ± 7.21%, and AUC of 83.03 ± 2.85. Similarly, for
+the histology PANDA dataset (Table II), HMIL demonstrated
+superior performance with an accuracy of 63.41 ± 1.42%,
+specificity of 92.42±1.54%, sensitivity of 58.36±1.57%, F1
+score of 58.16±1.70%, and AUC of 89.43±0.27%. Lastly, in
+the CCC dataset (Table III), which is more challenging inferred
+from the metrics, HMIL outperformed other methods with
+an accuracy of 80.25 ± 0.32%, specificity of 93.93 ± 0.12%,
+sensitivity of 40.97 ± 0.92%, F1 score of 44.39 ± 0.99%, and
+AUC of 91.24 ± 0.18%.
+The quantitative results demonstrate that current MIL meth-
+ods still face challenges in fine-grained classification tasks, as
+indicated by the relatively low sensitivity metric. Methods that
+rely solely on learning attention from each instance may not
+be sufficient to discern subtle differences.
+While the ABMIL method shows stability through attention-
+based classification, more complex designs, such as CLAM-
+SB and CLAM-MB, which utilize learned multi-branch class-
+wise clusters, achieve no significant improvement compared
+to their single-branch variant, CLAM-SB, and even exhibit
+worse performance on the BRACS dataset. Data augmentation
+approaches like DTFD and PseMix have improved sensitiv-
+ity, but at the cost of reduced specificity, and they have
+not demonstrated significant advantages in enhancing overall
+model performance. Both DSMIL and HIPT benefited from
+their pretrained encoders. However, HIPT’s pretrained weights
+are based on TCGA datasets [27], introducing significant
+domain shift issues, while DSMIL has a relatively small
+pretraining size and less effective aggregator, as highlighted in
+the ablation studies in Sect. IV-C.4. S4MIL, which leverages
+state space model architecture, achieves nearly the second-best
+performance but still falls short of the proposed HMIL. This
+further underscores the advantage of the supervision provided
+by label hierarchy in fine-grained WSI classification tasks.
+2) Coarse-grained Classification: We also explored whether
+hierarchical alignment leads to mutual enhancement by con-
+ducting coarse-grained classification experiments. HMIL ex-
+hibits significant improvements compared to baseline methods.
+In the BRACS dataset (Table I), HMIL achieved an accuracy
+of 64.07 ± 5.12%, specificity of 84.49 ± 4.28%, sensitivity
+of 60.79 ± 5.13%, F1 score of 58.75 ± 5.21%, and AUC
+of 87.66 ± 4.52%. In the PANDA dataset (Table II), HMIL
+attained the highest accuracy of 77.23 ± 1.38%, specificity
+of 88.02 ± 0.77%, sensitivity of 73.08 ± 1.12%, F1 score
+of 73.50 ± 1.37%, and AUC of 90.25 ± 0.84. Finally, for
+the CCC dataset (Table III), HMIL achieved an accuracy
+of 91.44 ± 0.23%, specificity of 89.32 ± 0.27%, sensitivity
+of 89.39 ± 0.81%, F1 score of 89.66 ± 0.90, and AUC of
+95.88 ± 0.17.
+These results confirm the utility of label hierarchy in fa-
+cilitating classification tasks at the coarse level. In coarse-
+grained tasks, where features are more distinguishable, the
+fine branch through hierarchical alignment serves to confirm
+and refine feature representation, thereby enhancing overall
+accuracy. Since the classification task is easier with fewer
+categories to identify, methods with learned attention from
+the instances like CLAM-MB, with its multi-branch class-wise
+clusters, show improved performance compared to their single-
+branch variant, CLAM-SB. Other methods also show varying
+degrees of improvement. However, they still fall short of our
+HMIL. This consistent performance across different datasets
+underscores the versatility and effectiveness of HMIL.
+3) Class-wise Performance Visualization: We present the
+class-wise AUC distribution and bag feature visualization for
+the top-performing methods in Figures 4 and 5. From the class-
+wise AUC distributions, a notable observation is that although
+pretraining methods like DSMIL and HIPT exhibit high overall
+8
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2024
+TABLE I
+EVALUATION OF PERFORMANCE ON THE HISTOLOGY WSI DATASETS BRACS. WE REPORT THE RESULTS IN THE FORM OF MEANSTD. THE BEST
+AND SECOND BEST RESULTS ARE HIGHLIGHTED IN RED AND BLUE, RESPECTIVELY.
+Method
+Accuracy
+Specificity
+Sensitivity
+F1
+AUC
+Accuracy
+Specificity
+Sensitivity
+F1
+AUC
+Fine-grained Classification
+Coarse-grained Classification
+Max-pooling
+46.308.07
+89.855.66
+29.056.58
+25.727.92
+72.025.56
+56.424.77
+75.835.46
+53.736.90
+52.435.34
+79.914.68
+Mean-pooling
+42.784.86
+89.485.54
+30.906.41
+26.336.54
+73.494.14
+57.215.12
+77.324.71
+53.729.18
+52.275.29
+80.155.15
+ABMIL [33]
+51.486.66
+90.525.31
+34.367.32
+30.739.56
+79.922.30
+59.265.52
+79.684.99
+58.346.37
+57.545.77
+85.034.25
+CLAM-SB [34]
+51.356.72
+90.266.20
+37.147.10
+34.918.47
+79.333.06
+60.284.85
+80.915.52
+58.686.45
+56.716.78
+85.204.85
+CLAM-MB [34]
+49.706.41
+89.465.92
+36.246.36
+33.717.48
+78.303.75
+61.135.40
+81.094.72
+58.506.96
+56.535.10
+85.445.83
+DSMIL [26]
+51.346.23
+90.286.61
+37.316.67
+34.905.92
+79.363.36
+61.794.88
+81.604.34
+58.017.47
+56.165.68
+85.945.45
+TransMIL [39]
+49.286.55
+89.106.17
+35.746.32
+33.007.63
+78.233.78
+60.585.99
+81.385.95
+56.427.30
+56.195.30
+85.205.52
+HIPT [27]
+49.506.28
+89.716.04
+35.177.28
+34.878.22
+79.343.26
+61.455.03
+81.285.66
+56.206.95
+56.025.24
+85.055.30
+DTFD [36]
+49.386.43
+88.036.10
+36.616.41
+32.707.86
+78.413.71
+61.285.18
+81.144.73
+57.226.97
+56.965.17
+84.965.81
+PMIL [28]
+48.896.44
+88.207.12
+35.026.15
+34.213.53
+77.533.33
+61.375.13
+81.275.66
+56.216.96
+56.036.25
+84.665.31
+PseMix [37]
+51.415.94
+90.136.02
+35.846.92
+33.595.68
+78.705.05
+61.596.16
+82.143.14
+57.606.70
+56.375.39
+85.324.05
+ACMIL [35]
+46.524.51
+87.165.02
+35.387.03
+32.266.44
+77.853.06
+61.115.87
+82.065.21
+57.825.10
+57.225.16
+85.604.39
+S4MIL [40]
+52.406.78
+90.605.94
+37.987.94
+34.809.71
+80.203.10
+61.314.88
+81.414.59
+58.186.65
+57.085.30
+85.344.78
+HMIL (Ours)
+55.565.92
+91.215.90
+38.616.02
+38.987.21
+83.032.85
+64.075.12
+84.494.28
+60.795.13
+58.755.21
+87.664.52
+TABLE II
+EVALUATION OF PERFORMANCE ON THE HISTOLOGY WSI DATASETS PANDA. WE REPORT THE RESULTS IN THE FORM OF MEANSTD. THE BEST
+AND SECOND BEST RESULTS ARE HIGHLIGHTED IN RED AND BLUE, RESPECTIVELY.
+Method
+Accuracy
+Specificity
+Sensitivity
+F1
+AUC
+Accuracy
+Specificity
+Sensitivity
+F1
+AUC
+Fine-grained Classification
+Coarse-grained Classification
+Max-pooling
+61.211.50
+90.741.75
+54.471.82
+54.472.01
+88.220.68
+76.081.48
+86.780.80
+70.191.95
+70.982.06
+88.990.87
+Mean-pooling
+61.511.49
+90.651.84
+55.211.64
+55.431.67
+88.320.71
+76.481.43
+87.030.74
+70.971.61
+72.031.73
+89.480.85
+ABMIL [33]
+62.061.59
+90.592.43
+55.752.01
+55.872.08
+88.340.60
+76.281.45
+86.970.93
+70.601.50
+71.481.63
+89.240.51
+CLAM-SB [34]
+61.251.76
+90.561.92
+54.672.14
+54.492.49
+88.140.48
+76.511.32
+87.000.73
+70.811.62
+71.631.71
+89.200.62
+CLAM-MB [34]
+61.701.76
+90.611.87
+55.241.58
+55.202.43
+88.260.62
+76.731.53
+87.030.85
+70.872.02
+72.072.08
+89.510.74
+DSMIL [26]
+61.741.46
+91.221.51
+55.251.62
+55.421.68
+88.440.68
+76.521.32
+86.930.71
+70.851.58
+71.671.74
+89.320.77
+TransMIL [39]
+61.401.55
+90.871.56
+54.781.90
+54.702.14
+88.230.72
+76.251.51
+86.980.83
+70.621.96
+71.362.00
+88.980.80
+HIPT [27]
+61.281.53
+90.792.13
+54.202.25
+54.172.49
+88.280.45
+76.431.40
+86.920.76
+70.611.31
+71.341.51
+89.140.88
+DTFD [36]
+61.561.57
+91.022.06
+54.931.88
+54.842.10
+88.290.72
+76.361.52
+87.050.83
+70.771.93
+71.491.98
+89.070.94
+PMIL [28]
+61.261.67
+90.142.47
+54.662.17
+54.562.22
+88.050.57
+76.321.50
+86.790.85
+70.651.34
+71.452.15
+88.930.94
+PseMix [37]
+62.141.73
+90.801.30
+55.711.30
+55.421.91
+88.370.95
+76.611.67
+87.070.92
+70.932.43
+71.922.24
+89.470.48
+ACMIL [35]
+61.561.89
+90.451.36
+54.612.20
+54.282.63
+88.400.72
+76.681.60
+87.890.72
+70.451.51
+71.171.57
+89.430.92
+S4MIL [40]
+61.471.57
+91.141.41
+54.311.90
+54.942.06
+88.300.71
+76.301.50
+86.710.74
+70.641.44
+71.392.06
+89.050.62
+HMIL (Ours)
+63.411.42
+92.421.54
+58.361.57
+58.161.70
+89.430.27
+77.231.38
+88.020.77
+73.081.12
+73.501.37
+90.250.84
+TABLE III
+PERFORMANCE EVALUATION ON THE CYTOLOGY WSI DATASET CCC. WE REPORT THE RESULTS IN THE FORM OF MEANSTD. THE BEST AND
+SECOND BEST RESULTS ARE HIGHLIGHTED IN RED AND BLUE, RESPECTIVELY.
+Method
+Accuracy
+Specificity
+Sensitivity
+F1
+AUC
+Accuracy
+Specificity
+Sensitivity
+F1
+AUC
+Fine-grained Classification
+Coarse-grained Classification
+Max-pooling
+72.570.25
+87.930.21
+25.081.42
+25.620.57
+81.290.42
+81.690.64
+84.260.39
+81.530.75
+81.590.77
+87.880.46
+Mean-pooling
+73.130.32
+85.210.97
+25.760.96
+25.870.35
+82.750.45
+84.170.32
+83.720.97
+82.970.96
+82.450.35
+88.120.45
+ABMIL [33]
+76.610.47
+88.850.21
+26.930.17
+26.030.96
+87.260.16
+83.770.59
+83.560.67
+83.790.98
+83.741.09
+89.380.61
+CLAM-SB [34]
+74.160.58
+86.730.10
+36.060.93
+34.680.22
+85.800.55
+81.690.92
+84.860.61
+82.801.40
+82.680.62
+88.320.58
+CLAM-MB [34]
+74.810.94
+87.520.21
+37.920.18
+36.290.95
+86.090.12
+85.300.99
+88.190.36
+85.120.80
+85.210.97
+90.800.37
+DSMIL [26]
+75.180.76
+88.290.88
+29.770.52
+28.440.72
+87.290.80
+86.410.44
+88.190.69
+86.291.12
+86.340.80
+91.570.94
+TransMIL [39]
+74.960.92
+86.960.35
+28.390.66
+32.270.54
+84.050.39
+81.590.30
+83.860.35
+81.801.22
+81.681.15
+86.540.35
+HIPT [27]
+77.110.62
+91.380.14
+35.230.43
+39.241.57
+87.030.48
+84.870.70
+88.720.94
+84.630.62
+84.750.67
+91.341.06
+DTFD [36]
+74.510.49
+85.940.37
+35.590.81
+34.140.87
+85.960.41
+86.980.96
+88.540.63
+85.660.69
+85.820.72
+92.100.36
+PMIL [28]
+76.320.49
+88.190.31
+34.240.83
+35.260.28
+84.070.16
+81.780.49
+83.920.80
+82.580.36
+82.620.31
+88.090.62
+PseMix [37]
+76.070.79
+87.240.26
+33.320.61
+32.240.39
+87.310.24
+88.090.56
+88.780.84
+85.470.72
+82.790.62
+92.020.38
+ACMIL [35]
+76.561.89
+90.421.36
+33.612.20
+38.282.63
+87.470.72
+86.681.60
+88.890.72
+85.451.51
+86.171.57
+91.350.92
+S4MIL [40]
+77.300.88
+92.540.11
+35.090.41
+40.870.58
+87.640.43
+87.390.22
+88.930.53
+87.290.39
+87.330.35
+92.700.16
+HMIL (Ours)
+80.250.32
+93.930.12
+40.970.92
+44.390.99
+91.240.18
+91.440.23
+89.320.27
+89.390.81
+89.660.90
+95.880.17
+performance, they tend to perform better on classes with
+larger sample sizes. In contrast, the other baselines yield
+more balanced results, particularly S4MIL. Nevertheless, our
+method not only achieves a more balanced performance but
+also demonstrates superior overall results, which we attribute
+to the contextual guidance provided by hierarchical context.
+To observe and visualize the effectiveness of feature rep-
+resentation, we employ the t-SNE method [58] to visualize
+JIN et al.: HIERARCHICAL MULTI-INSTANCE LEARNING FOR FINE-GRAINED WHOLE SLIDE IMAGE CLASSIFICATION
+9
+Fig. 4. The class-wise AUC distribution of top-performing methods on BRACS (Left), PANDA (Middle), and CCC (Right) datasets.
+Fig. 5.
+The t-SNE visualization on PANDA (top) and CCC (bottom) datasets. The upper section of each dataset displays coarse-grained classes,
+while the lower section showcases fine-grained classes.
+the learned bag features B{c,f} at each branch of HMIL. Ad-
+ditionally, we compare the feature representation capabilities
+of ABMIL, DSMIL, and HIPT in coarse- and fine-grained
+WSI classification using the PANDA and CCC datasets, as
+10
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2024
+these datasets provide a sufficient sample size for effective
+visualization. In the results for the PANDA dataset, the upper
+section illustrates that ABMIL exhibits minimal clustering and
+lacks distinct separation among coarse-grained categories. In
+contrast, HIPT and DSMIL, having benefited from pretraining,
+show improved feature representation; however, some degree
+of overlap persists in their clustering. Notably, HMIL lever-
+ages contextual guidance to achieve a significantly clearer
+separation among coarse-grained categories, underscoring its
+effectiveness in distinguishing between different risk levels.
+When we examine fine-grained classifications, the challenges
+become more pronounced. DSMIL and HIPT exhibit signifi-
+cant overlap in fine-grained tasks, highlighting the challenges
+of classification. In contrast, HMIL demonstrates a better abil-
+ity to distinguish between different ISUP categories. Similar
+observations are noted within the cytology CCC dataset, which
+presents even greater challenges for classification, reinforcing
+the consistency of our findings. Collectively, these results
+underscore the superior feature representation capabilities of
+HMIL in both coarse and fine-grained classifications, partic-
+ularly in addressing the complexities inherent in fine-grained
+tasks. This positions HMIL as a particularly effective model
+for managing intricate datasets.
+4) Ablation Studies: To further study the efficacy of our
+HMIL architecture, as illustrated in Figure 6, we conduct a
+comprehensive analysis using the test set of the three evaluated
+datasets and report the results in terms of AUC for one-versus-
+rest classification scenarios.
+Fig. 6. Ablation study conducted on the HMIL framework. The modules
+and strategy involved in the study, namely HAM, HBA, OFR, SCL in
+different branches, and DW, are delineated with dashed lines.
+Holistic Hierarchical Guidance Matters in Fine-grained
+WSI Classification. We first study the effectiveness of hier-
+archical guidance at different MIL levels within our HMIL
+framework, focusing on instance-level guidance via hierarchi-
+cal attention mapping (HAM), bag-level guidance via hier-
+archical bag alignment (HBA), and their combination. From
+Table IV, we note that starting with only the fine branch
+using a class-wise attention learning mechanism, similar to
+ABMIL but with added class-wise constraints, leads to de-
+graded performance. Without any guidance provided by the
+hierarchical mapping, the performance become worser when
+a coarse branch is added. While hierarchical instance-level
+guidance offers moderate improvements, it remains inferior to
+the flat fine branch model. In contrast, combining the coarse
+branch with bag-level guidance surpasses the flat fine branch.
+The best performance is achieved by integrating both instance-
+level and bag-level guidance with the coarse branch, highlight-
+ing their complementary strengths. These results underscore
+the importance of combining alignment strategies to capture
+hierarchical relationships and enhance classification accuracy.
+TABLE IV
+EVALUATION OF HIERARCHICAL GUIDANCE ON MODEL PERFORMANCE.
+✓DENOTES APPLYING THE CORRESPONDING MODULE TO THE MODEL.
+BEST RESULTS ARE HIGHLIGHTED IN BOLD.
+FB
+CB
+HAM
+HBA
+BRACS
+PANDA
+CCC
+✓
+78.03
+88.01
+87.48
+✓
+✓
+76.83
+87.62
+87.43
+✓
+✓
+✓
+77.92
+87.45
+86.64
+✓
+✓
+✓
+79.23
+88.55
+87.06
+✓
+✓
+✓
+✓
+81.22
+89.03
+89.52
+ABMIL [33]
+79.84
+88.32
+88.59
+We next examine the contribution of our hierarchical feature
+refinement (HFE) components, including the online feature
+re-embedding (OFR) module, supervised contrastive learning
+(SCL) at different branches, and the dynamic weighting (DW)
+strategy upon the core model, which operates in dual-branch
+with holistic hierarchical alignment, the results are summa-
+rized in Table V.
+TABLE V
+COMPARISON OF OUR APPROACH USING DIFFERENT COMBINATIONS OF
+THE PROPOSED MODULES OFR, DW, AND SCL. ✓DENOTES APPLYING
+THE CORRESPONDING MODULE TO THE MODEL. SUBSCRIPTS f AND c
+DENOTE APPLYING THE SCL MODULE TO THE FINE OR COARSE
+BRANCH, RESPECTIVELY. BEST RESULTS ARE HIGHLIGHTED IN BOLD.
+Core
+OFR
+SCLf
+DW
+SCLc
+BRACS
+PANDA
+CCC
+✓
+80.47
+88.65
+88.84
+✓
+✓
+81.22
+89.03
+89.52
+✓
+✓
+80.94
+88.92
+89.02
+✓
+✓
+81.06
+89.07
+89.21
+✓
+✓
+✓
+81.39
+89.18
+89.94
+✓
+✓
+✓
+82.19
+89.33
+90.95
+✓
+✓
+✓
+81.83
+89.25
+90.43
+✓
+✓
+✓
+✓
+83.42
+89.39
+91.16
+✓
+✓
+✓
+✓
+✓
+83.36
+89.35
+91.14
+From the results, we observe that the hierarchical feature re-
+finement components each contribute to enhancing the model’s
+performance. The OFR module improves feature representa-
+tions for the fine branch, while the DW strategy balances
+information from both branches. The SCL module also pro-
+vides performance gains. When combined, these components
+work synergistically, with the highest performance achieved
+when all three are used together, demonstrating their collective
+effectiveness in refining features and balancing information
+JIN et al.: HIERARCHICAL MULTI-INSTANCE LEARNING FOR FINE-GRAINED WHOLE SLIDE IMAGE CLASSIFICATION
+11
+for superior classification performance. For a comprehensive
+evaluation, we also applied SCL to the coarse branch. Notably,
+the results did not show significant improvement, suggesting
+that SCL is more effective in fine-grained contexts. This
+further reinforces our understanding that the primary benefits
+of SCL are realized when applied to the fine branch.
+Finally, we conducted ablation studies on loss function as
+shown in Table VI to verify the effectiveness of our dynamic
+weighting strategy based on the following loss function:
+L = a · (L(f)
+ce + Lia + Lba) + b · Lreg + L(c)
+ce
+(7)
+TABLE VI
+ABLATION STUDIES OF THE PROPOSED HMIL FRAMEWORK FOR LOSS
+FUNCTION, WITH THE BEST RESULTS HIGHLIGHTED IN BOLD.
+a
+b
+τ
+BRACS
+PANDA
+CCC
+1
+1
+0.1
+82.66
+89.16
+91.05
+1
+0.1
+0.1
+81.85
+88.51
+89.72
+1
+0.01
+0.1
+81.46
+88.27
+87.88
+1
+0
+0.1
+80.95
+88.14
+87.82
+0.1
+1
+0.1
+80.81
+88.32
+88.35
+0.01
+1
+0.1
+79.92
+88.24
+87.69
+0
+1
+0.1
+79.65
+88.06
+87.29
+Dynamic Weighting
+1
+82.76
+88.93
+90.55
+Dynamic Weighting
+0.01
+83.46
+89.14
+90.53
+Dynamic Weighting
+0.1
+83.42
+89.39
+91.16
+The results indicate that the best performance is achieved
+with a combination of dynamic weighting and proposed tem-
+perature parameter highlighted in bold. Notably, the dynamic
+weighting approach consistently outperforms static config-
+urations, demonstrating its ability to enhance classification
+accuracy across all datasets. This underscores the importance
+of adaptive loss functions in optimizing model performance
+within our HMIL framework.
+Hierarchical Guidance Has Mutual Benifits. In addition
+to fine-grained WSI classification, to comprehensively study
+the effect of hierarchical alignment for coarse-grained WSI
+classification, we also conduct an ablation study to explore the
+hierarchical guidance at different MIL levels and the effective-
+ness of HFE components as detailed in Table VII. It should be
+noted that under this setting, models with DW strategy utilize
+the following loss function, which concentrating on the coarse
+branch, for balancing the knowledge from each branch:
+L = β · (L(f)
+ce + Lia + Lba) + (1 −β) · Lreg + L(c)
+ce
+(8)
+From the results, we observe that introducing the fine
+branch without applying any alignment strategies already leads
+to a noticeable improvement in the performance of coarse-
+grained classification. Adding specific alignment and feature
+enhancement strategies results in only slight improvements,
+indicating that the network is already capable of effectively
+discerning features under coarse classification conditions.
+Hierarchical
+Guidance
+Efficiently
+Enhances
+Fine-
+Grained WSI Classification. Moreover, we compared meth-
+ods relying on instance-level annotations to reveal the effi-
+ciency of our proposed framework in the task of fine-grained
+TABLE VII
+ABLATION STUDIES OF THE PROPOSED HMIL FRAMEWORK FOR
+COARSE-GRAINED CANCER SUBTYPING TASK, WITH THE BEST RESULTS
+HIGHLIGHTED IN BOLD.
+CB
+FB
+HAM
+HBA
+HFE
+BRACS
+PANDA
+CCC
+✓
+85.15
+89.17
+90.42
+✓
+✓
+87.34
+90.01
+94.92
+✓
+✓
+✓
+87.38
+89.94
+95.01
+✓
+✓
+✓
+87.45
+90.05
+95.26
+✓
+✓
+✓
+✓
+87.48
+90.19
+95.60
+✓
+✓
+✓
+✓
+✓
+87.49
+90.22
+95.65
+ABMIL [33]
+83.92
+89.26
+89.56
+HIPT [27]
+86.27
+89.17
+90.51
+S4MIL [40]
+86.38
+89.01
+92.87
+WSI classification of cervical cancer. We utilized the instance-
+level annotation of our CCC dataset, which containing 18,314
+ROIs with 41,402 annotations in 5,332 WSIs in the training
+set. Following the original works of [8], [18], [21], we
+reproduce these methods and present the results in Table VIII.
+TABLE VIII
+COMPARISON FOR FINE-GRAINED CERVICAL CANCER CLASSIFICATION
+TASK, WITH THE BEST RESULTS HIGHLIGHTED IN BOLD.
+Methods
+Accuracy
+Specificity
+Sensitivity
+F1
+AUC
+ABMIL [33]
+76.27
+88.67
+26.11
+26.28
+87.26
+DSMIL (ImageNet Feature) [26]
+75.95
+88.19
+24.52
+24.43
+85.51
+DSMIL (Original Feature) [26]
+76.42
+91.03
+24.12
+24.07
+87.92
+Lin et al. [8]
+75.12
+87.01
+25.22
+25.18
+86.85
+Cheng et al. [18]
+79.20
+91.12
+35.30
+36.25
+90.03
+Zhang et al. [21]
+80.27
+93.48
+41.05
+44.37
+91.34
+HMIL (Ours)
+80.39
+93.60
+40.84
+44.13
+91.16
+From the results, we observed that our method has com-
+parable performance to methods that rely on instance-level
+annotations, underscoring its efficiency. Specifically, Lin’s
+method, equipped with a simple VGG-based detector and rule-
+based aggregation methods, even falls short of ABMIL, which
+does not rely on instance-level annotations. This indicates
+that reliance on instance-level annotations does not neces-
+sarily guarantee superior performance. On the other hand,
+Cheng and Zhang’s methods both utilize several instance-
+level models to refine the results from the initial detector
+and achieve better performance. However, these methods
+come with the significant drawback of requiring instance
+annotations in various forms, which are time-consuming and
+labor-intensive to gather. DSMIL, while utilizing pretrained
+features, shows limited performance improvement and reduced
+sensitivity, indicating that pretraining encoders on a rela-
+tively small dataset may not be sufficient. Furthermore, when
+it directly leverages features extracted from the ImageNet-
+pretrained encoder, performance drops significantly, indicating
+that the non-local aggregator may not be ideally suited for
+fine-grained WSI classification tasks. In contrast, our HMIL
+framework comprehensively integrates hierarchical guidance
+into the MIL framework and achieves state-of-the-art per-
+formance, which underscores the technical path of reducing
+reliance on instance-level annotations to improve fine-grained
+WSI classification performance.
+12
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2024
+V. DISCUSSION AND CONCLUSION
+Our experiments underscore the mutual benefits of integrat-
+ing hierarchical alignment in bolstering both fine-grained and
+coarse-grained WSI classification. In the current study, we
+introduced hierarchical guidance through class-wise attention
+learning, demonstrating its potential. However, it must be ac-
+knowledged that fine-grained classification still has a long way
+to go, particularly because the sensitivity is not yet sufficiently
+high. Recent state-space model-based approaches have shown
+promise in multiple-instance learning (MIL) applications due
+to their long-range sequence modeling capabilities, achieving
+competitive results in our studies. Future work could explore
+the incorporation of hierarchical guidance into these MIL
+architectures [40], [59], [60]. Additionally, we should not
+neglect the domain bias present in WSIs, which can arise from
+inference factors such as background noise, z-stack artifacts,
+and tissue or cell distortion. Investigating domain adaptation
+and debiasing techniques could enhance model robustness
+and generalizability, particularly when dealing with diverse
+and heterogeneous imaging modalities [61]. Overall, these
+insights highlight the importance of both hierarchical guidance
+and addressing domain biases in advancing fine-grained WSI
+classification methods.
+In summary, we introduced the HMIL framework, an ap-
+proach that leverages label hierarchy into the MIL framework
+to address the fine-grained WSI classification task. HMIL
+comprehensively aligns features from the instance to the bag
+level. The framework further incorporates dynamic weighting
+and supervised contrastive learning, which refine slide-level
+representations, resulting in improved classification outcomes.
+Crucially, HMIL eliminates the need for extensive instance-
+level annotations. It demonstrates robust performance across
+various WSI datasets from different imaging modalities, in-
+cluding the publicly available histology datasets BRACS and
+PANDA, as well as our extensive cervical cytology WSI
+dataset CCC, underscoring its effectiveness and adaptability.
+REFERENCES
+[1] R. L. Siegel, K. D. Miller, H. E. Fuchs, and A. Jemal, “Cancer statistics,
+2022.,” CA: a cancer journal for clinicians, vol. 72, no. 1, 2022.
+[2] M. N. Gurcan, L. E. Boucheron, A. Can, A. Madabhushi, N. M.
+Rajpoot, and B. Yener, “Histopathological image analysis: A review,”
+IEEE reviews in biomedical engineering, vol. 2, pp. 147–171, 2009.
+[3] J. G. Elmore, G. M. Longton, P. A. Carney, B. M. Geller, T. Onega,
+A. N. Tosteson, H. D. Nelson, M. S. Pepe, K. H. Allison, S. J. Schnitt,
+et al., “Diagnostic concordance among pathologists interpreting breast
+biopsy specimens,” Jama, vol. 313, no. 11, pp. 1122–1132, 2015.
+[4] C. Jin, Z. Guo, Y. Lin, L. Luo, and H. Chen, “Label-efficient deep
+learning in medical image analysis: Challenges and future directions,”
+arXiv preprint arXiv:2303.12484, 2023.
+[5] C. N. Silla and A. A. Freitas, “A survey of hierarchical classification
+across different application domains,” Data mining and knowledge
+discovery, vol. 22, pp. 31–72, 2011.
+[6] X. Ran, Y. Xi, Y. Lu, X. Wang, and Z. Lu, “Comprehensive survey
+on hierarchical clustering algorithms and the recent developments,”
+Artificial Intelligence Review, vol. 56, no. 8, pp. 8219–8264, 2023.
+[7] C. Mercan, S. Aksoy, E. Mercan, L. G. Shapiro, D. L. Weaver, and J. G.
+Elmore, “Multi-instance multi-label learning for multi-class classifica-
+tion of whole slide breast histopathology images,” IEEE transactions on
+medical imaging, vol. 37, no. 1, pp. 316–325, 2017.
+[8] H. Lin, H. Chen, X. Wang, Q. Wang, L. Wang, and P.-A. Heng, “Dual-
+path network with synergistic grouping loss and evidence driven risk
+stratification for whole slide cervical image analysis,” Medical Image
+Analysis, vol. 69, p. 101955, 2021.
+[9] Z. Gao, A. Mao, K. Wu, Y. Li, L. Zhao, X. Zhang, J. Wu, L. Yu,
+C. Xing, T. Gong, et al., “Childhood leukemia classification via infor-
+mation bottleneck enhanced hierarchical multi-instance learning,” IEEE
+Transactions on Medical Imaging, 2023.
+[10] M. Nauta, R. Van Bree, and C. Seifert, “Neural prototype trees for
+interpretable fine-grained image recognition,” in Proc. IEEE Conf.
+Comput. Vis. Pattern Recogn., pp. 14933–14943, 2021.
+[11] J. Chen, P. Wang, J. Liu, and Y. Qian, “Label relation graphs enhanced
+hierarchical residual network for hierarchical multi-granularity classifi-
+cation,” in Proc. IEEE Conf. Comput. Vis. Pattern Recogn., pp. 4858–
+4867, 2022.
+[12] R. Zhou, J. Wei, Q. Zhang, R. Qi, X. Yang, and C. Li, “Multi-granularity
+archaeological dating of chinese bronze dings based on a knowledge-
+guided relation graph,” in Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition, pp. 3103–3113, 2023.
+[13] P. Khosla, P. Teterwak, C. Wang, A. Sarna, Y. Tian, P. Isola,
+A. Maschinot, C. Liu, and D. Krishnan, “Supervised contrastive learn-
+ing,” Proc. Adv. Neural Inf. Process. Syst., vol. 33, pp. 18661–18673,
+2020.
+[14] N. Brancati, A. M. Anniciello, P. Pati, D. Riccio, G. Scognamiglio,
+G. Jaume, G. De Pietro, M. Di Bonito, A. Foncubierta, G. Botti, et al.,
+“Bracs: A dataset for breast carcinoma subtyping in h&e histology
+images,” Database, vol. 2022, p. baac093, 2022.
+[15] W. Bulten, K. Kartasalo, P.-H. C. Chen, P. Str¨om, H. Pinckaers,
+K. Nagpal, Y. Cai, D. F. Steiner, H. van Boven, R. Vink, et al., “Artificial
+intelligence for diagnosis and gleason grading of prostate cancer: the
+panda challenge,” Nature medicine, vol. 28, no. 1, pp. 154–163, 2022.
+[16] D. Wang, A. Khosla, R. Gargeya, H. Irshad, and A. H. Beck,
+“Deep learning for identifying metastatic breast cancer,” arXiv preprint
+arXiv:1606.05718, 2016.
+[17] P. Bandi, O. Geessink, Q. Manson, M. Van Dijk, M. Balkenhol,
+M. Hermsen, B. E. Bejnordi, B. Lee, K. Paeng, A. Zhong, et al., “From
+detection of individual metastases to classification of lymph node status
+at the patient level: the camelyon17 challenge,” IEEE transactions on
+medical imaging, vol. 38, no. 2, pp. 550–560, 2018.
+[18] S. Cheng, S. Liu, J. Yu, G. Rao, Y. Xiao, W. Han, W. Zhu, X. Lv,
+N. Li, J. Cai, et al., “Robust whole slide image analysis for cervical
+cancer screening using deep learning,” Nature communications, vol. 12,
+no. 1, p. 5639, 2021.
+[19] W. Zaremba, I. Sutskever, and O. Vinyals, “Recurrent neural network
+regularization,” arXiv preprint arXiv:1409.2329, 2014.
+[20] L. Cao, J. Yang, Z. Rong, L. Li, B. Xia, C. You, G. Lou, L. Jiang, C. Du,
+H. Meng, et al., “A novel attention-guided convolutional network for
+the detection of abnormal cervical cells in cervical cancer screening,”
+Medical image analysis, vol. 73, p. 102197, 2021.
+[21] X. Zhang, M. Cao, S. Wang, J. Sun, X. Fan, Q. Wang, and L. Zhang,
+“Whole slide cervical cancer screening using graph attention network
+and supervised contrastive learning,” in Proc. Int. Conf. Med. Image
+Comput. Comput.-Assisted Intervention, pp. 202–211, Springer, 2022.
+[22] T.-Y. Lin, P. Goyal, R. Girshick, K. He, and P. Doll´ar, “Focal loss for
+dense object detection,” in Proc. IEEE Int. Conf. Comput. Vis., pp. 2980–
+2988, 2017.
+[23] J. Hu, L. Shen, and G. Sun, “Squeeze-and-excitation networks,” in
+Proceedings of the IEEE conference on computer vision and pattern
+recognition, pp. 7132–7141, 2018.
+[24] P. Veliˇckovi´c, G. Cucurull, A. Casanova, A. Romero, P. Lio, and Y. Ben-
+gio, “Graph attention networks,” arXiv preprint arXiv:1710.10903, 2017.
+[25] M. Bilal, R. Jewsbury, R. Wang, H. M. AlGhamdi, A. Asif, M. East-
+wood, and N. Rajpoot, “An aggregation of aggregation methods in
+computational pathology,” Medical Image Analysis, p. 102885, 2023.
+[26] B. Li, Y. Li, and K. W. Eliceiri, “Dual-stream multiple instance learning
+network for whole slide image classification with self-supervised con-
+trastive learning,” in Proc. IEEE Conf. Comput. Vis. Pattern Recogn.,
+pp. 14318–14328, 2021.
+[27] R. J. Chen, C. Chen, Y. Li, T. Y. Chen, A. D. Trister, R. G. Krishnan,
+and F. Mahmood, “Scaling vision transformers to gigapixel images via
+hierarchical self-supervised learning,” in Proc. IEEE Conf. Comput. Vis.
+Pattern Recogn., pp. 16144–16155, 2022.
+[28] J.-G. Yu, Z. Wu, Y. Ming, S. Deng, Y. Li, C. Ou, C. He, B. Wang,
+P. Zhang, and Y. Wang, “Prototypical multiple instance learning for
+predicting lymph node metastasis of breast cancer from whole-slide
+pathological images,” Medical Image Analysis, vol. 85, p. 102748, 2023.
+[29] M. Cao, M. Fei, J. Cai, L. Liu, L. Zhang, and Q. Wang, “Detection-free
+pipeline for cervical cancer screening of whole slide images,” in Proc.
+Int. Conf. Med. Image Comput. Comput.-Assisted Intervention, pp. 243–
+252, Springer, 2023.
+JIN et al.: HIERARCHICAL MULTI-INSTANCE LEARNING FOR FINE-GRAINED WHOLE SLIDE IMAGE CLASSIFICATION
+13
+[30] B. Zhao, W. Deng, Z. H. H. Li, C. Zhou, Z. Gao, G. Wang, and X. Li,
+“Less: Label-efficient multi-scale learning for cytological whole slide
+image screening,” Medical Image Analysis, p. 103109, 2024.
+[31] X. Chen, H. Fan, R. Girshick, and K. He, “Improved baselines with mo-
+mentum contrastive learning,” arXiv preprint arXiv:2003.04297, 2020.
+[32] H. Chen, F. Liu, Y. Wang, L. Zhao, and H. Wu, “A variational approach
+for learning from positive and unlabeled data,” Proc. Adv. Neural Inf.
+Process. Syst., vol. 33, pp. 14844–14854, 2020.
+[33] M. Ilse, J. Tomczak, and M. Welling, “Attention-based deep multiple
+instance learning,” in Proc. Int. Conf. Mach. Learn., pp. 2127–2136,
+PMLR, 2018.
+[34] M. Y. Lu, D. F. Williamson, T. Y. Chen, R. J. Chen, M. Barbieri,
+and F. Mahmood, “Data-efficient and weakly supervised computational
+pathology on whole-slide images,” Nature biomedical engineering,
+vol. 5, no. 6, pp. 555–570, 2021.
+[35] Y. Zhang, H. Li, Y. Sun, S. Zheng, C. Zhu, and L. Yang, “Attention-
+challenging multiple instance learning for whole slide image classifica-
+tion,” 2023.
+[36] H. Zhang, Y. Meng, Y. Zhao, Y. Qiao, X. Yang, S. E. Coupland, and
+Y. Zheng, “Dtfd-mil: Double-tier feature distillation multiple instance
+learning for histopathology whole slide image classification,” in Proc.
+IEEE Conf. Comput. Vis. Pattern Recogn., pp. 18802–18812, 2022.
+[37] P. Liu, L. Ji, X. Zhang, and F. Ye, “Pseudo-bag mixup augmentation
+for multiple instance learning-based whole slide image classification,”
+IEEE Transactions on Medical Imaging, vol. 43, no. 5, pp. 1841–1852,
+2024.
+[38] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez,
+Ł. Kaiser, and I. Polosukhin, “Attention is all you need,” Proc. Adv.
+Neural Inf. Process. Syst., vol. 30, 2017.
+[39] Z. Shao, H. Bian, Y. Chen, Y. Wang, J. Zhang, X. Ji, et al., “Transmil:
+Transformer based correlated multiple instance learning for whole slide
+image classification,” Proc. Adv. Neural Inf. Process. Syst., vol. 34,
+pp. 2136–2147, 2021.
+[40] L.
+Fillioux,
+J.
+Boyd,
+M.
+Vakalopoulou,
+P.-H.
+Courn`ede,
+and
+S. Christodoulidis, “Structured state space models for multiple instance
+learning in digital pathology,” in Proc. Int. Conf. Med. Image Comput.
+Comput.-Assisted Intervention, pp. 594–604, Springer, 2023.
+[41] R. Ji, L. Wen, L. Zhang, D. Du, Y. Wu, C. Zhao, X. Liu, and
+F. Huang, “Attention convolutional binary neural tree for fine-grained vi-
+sual categorization,” in Proc. IEEE Conf. Comput. Vis. Pattern Recogn.,
+pp. 10468–10477, 2020.
+[42] D. Chang, K. Pang, Y. Zheng, Z. Ma, Y.-Z. Song, and J. Guo, “Your”
+flamingo” is my” bird”: fine-grained, or not,” in Proc. IEEE Conf.
+Comput. Vis. Pattern Recogn., pp. 11476–11485, 2021.
+[43] S. Kim, J. Nam, and B. C. Ko, “Vit-net: Interpretable vision transformers
+with neural tree decoder,” in Proc. Int. Conf. Mach. Learn., pp. 11162–
+11172, PMLR, 2022.
+[44] W. Wang, Y. Sun, W. Li, and Y. Yang, “Transhp: Image classification
+with hierarchical prompting,” Proc. Adv. Neural Inf. Process. Syst.,
+vol. 36, 2024.
+[45] Z. Yuan, H. Liu, H. Zhou, D. Zhang, X. Zhang, H. Wang, and H. Xiong,
+“Self-paced unified representation learning for hierarchical multi-label
+classification,” in AAAI Conf. Artif. Intell., vol. 38, pp. 16623–16632,
+2024.
+[46] K. Simonyan and A. Zisserman, “Very deep convolutional networks for
+large-scale image recognition,” arXiv preprint arXiv:1409.1556, 2014.
+[47] N. Tishby, F. C. Pereira, and W. Bialek, “The information bottleneck
+method,” arXiv preprint physics/0004057, 2000.
+[48] A. A. Alemi, I. Fischer, J. V. Dillon, and K. Murphy, “Deep variational
+information bottleneck,” arXiv preprint arXiv:1612.00410, 2016.
+[49] Y. N. Dauphin, A. Fan, M. Auli, and D. Grangier, “Language modeling
+with gated convolutional networks,” in Proc. Int. Conf. Mach. Learn.,
+pp. 933–941, PMLR, 2017.
+[50] T. Chen, S. Kornblith, M. Norouzi, and G. Hinton, “A simple framework
+for contrastive learning of visual representations,” in Proc. Int. Conf.
+Mach. Learn., pp. 1597–1607, PMLR, 2020.
+[51] P. Wang, K. Han, X.-S. Wei, L. Zhang, and L. Wang, “Contrastive
+learning based hybrid networks for long-tailed image classification,”
+in Proceedings of the IEEE/CVF conference on computer vision and
+pattern recognition, pp. 943–952, 2021.
+[52] X. Chen, Y. Zhou, D. Wu, C. Yang, B. Li, Q. Hu, and W. Wang, “Area:
+adaptive reweighting via effective area for long-tailed classification,” in
+Proceedings of the IEEE/CVF International Conference on Computer
+Vision, pp. 19277–19287, 2023.
+[53] A. Salonia, C. Bettocchi, P. Capogrosso, J. Carvalho, G. Corona,
+G. Hatzichristodoulou, T. Jones, A. Kadioglu, J. Martinez-Salamanca,
+S. Minhas, et al., “Eau guidelines,” in The EAU Annual Congress Milan;
+EAU Guidelines Office: Arnhem, The Netherlands, 2023.
+[54] D. Solomon and R. Nayar, The Bethesda System for reporting cervical
+cytology: definitions, criteria, and explanatory notes. Springer Science
+& Business Media, 2004.
+[55] N. Otsu et al., “A threshold selection method from gray-level his-
+tograms,” Automatica, vol. 11, no. 285-296, pp. 23–27, 1975.
+[56] K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for
+image recognition,” in Proc. IEEE Conf. Comput. Vis. Pattern Recogn.,
+pp. 770–778, 2016.
+[57] M. Caron, H. Touvron, I. Misra, H. J´egou, J. Mairal, P. Bojanowski, and
+A. Joulin, “Emerging properties in self-supervised vision transformers,”
+in Proc. IEEE Int. Conf. Comput. Vis., pp. 9650–9660, 2021.
+[58] L. Van der Maaten and G. Hinton, “Visualizing data using t-sne.,”
+Journal of machine learning research, vol. 9, no. 11, 2008.
+[59] R. Xu, S. Yang, Y. Wang, B. Du, and H. Chen, “A survey on
+vision mamba: Models, applications and challenges,” arXiv preprint
+arXiv:2404.18861, 2024.
+[60] S. Yang, Y. Wang, and H. Chen, “Mambamil: Enhancing long sequence
+modeling with sequence reordering in computational pathology,” in
+Proc. Int. Conf. Med. Image Comput. Comput.-Assisted Intervention,
+pp. 296–306, Springer, 2024.
+[61] L. Luo, X. Huang, M. Wang, Z. Wan, and H. Chen, “Medical image
+debiasing by learning adaptive agreement from a biased council,” arXiv
+preprint arXiv:2401.11713, 2024.

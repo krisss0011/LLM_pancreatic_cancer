@@ -1,0 +1,698 @@
+Identifying Key Genes in Cancer Networks Using Persistent
+Homology
+Rodrigo Henrique Ramos1,2*, Yago Augusto Bardelotte1,
+Cynthia de Oliveira Lage Ferreira1, Adenilso Simao1
+1*University of S˜ao Paulo, Av. Trab. S˜ao Carlense, 400, S˜ao Carlos, 13566-590, S˜ao
+Paulo, Brazil.
+2Federal Institute of S˜ao Paulo, Estrada Municipal Paulo Eduardo de Almeida, S˜ao
+Carlos, 13565-820, S˜ao Paulo, Brazil.
+Abstract
+Identifying driver genes is crucial for understanding oncogenesis and developing targeted cancer
+therapies. Driver discovery methods using protein or pathway networks rely on traditional network
+science measures, focusing on nodes, edges, or community metrics. These methods can overlook the
+high-dimensional interactions that cancer genes have within cancer networks. This study presents a
+novel method using Persistent Homology to analyze the role of driver genes in higher-order structures
+within Cancer Consensus Networks derived from main cellular pathways. We integrate mutation
+data from six cancer types and three biological functions: DNA Repair, Chromatin Organization,
+and Programmed Cell Death. We systematically evaluated the impact of gene removal on topologi-
+cal voids (β2 structures) within the Cancer Consensus Networks. Our results reveal that only known
+driver genes and cancer-associated genes influence these structures, while passenger genes do not.
+Although centrality measures alone proved insufficient to fully characterize impact genes, combin-
+ing higher-order topological analysis with traditional network metrics can improve the precision of
+distinguishing between drivers and passengers. This work shows that cancer genes play an impor-
+tant role in higher-order structures, going beyond pairwise measures, and provides an approach to
+distinguish drivers and cancer-associated genes from passenger genes.
+Keywords: Topological Data Analysis, Persistent Homology, Cancer Genomics, Driver Genes, Pathways
+Networks, Protein Networks
+1 Introduction
+Cancer research has advanced significantly with the advent of high-throughput genomic data and the
+development of public databases. The availability of extensive genomic data has facilitated the devel-
+opment of computational and statistical methods in various fields, including the identification of cancer
+1
+arXiv:2409.19115v1  [q-bio.MN]  27 Sep 2024
+genes [1]. A major challenge in analysing mutation data lies in distinguishing between passenger and
+driver mutations. Passengers are the result of random genetic alterations or evolutionary processes
+and do not contribute to cancer development. In contrast, driver mutations are responsible for the
+onset and progression of the disease, making them targets for therapeutic intervention and personalised
+medicine [1, 2]. In this work, in addition to drivers and passengers, we also use the term “cancer-
+associated genes” to refer to genes with publications associating them with cancer but are not present
+in driver databases.
+Protein-protein interaction networks (PPIN) and pathway networks are graph-based models rep-
+resenting protein interactions within cells. PPIN encompasses the entire interactome, while pathway
+networks represent specific biological functions, working as subsets of the interactome [3]. Numerous
+computational approaches use the topology of PPIN and pathway networks to investigate cancer-related
+phenomena, such as mutual exclusivity, and to identify driver genes [4–7].
+Traditional network science measures mainly address individual nodes, communities, or the whole
+network. Although powerful, traditional methods can overlook the topological and structural significance
+of gene interactions between the node and community level. Given the limitations of traditional methods,
+the Persistent Homology (PH), a tool from algebraic topology, offers a novel way to analyse complex
+networks by capturing multi-dimensional features [8, 9]. This approach enables the identification of
+higher-order structures in cancer networks, providing a deeper understanding of the roles that specific
+genes play in the context of these structures.
+The objective of this study is to employ PH to identify genes that form higher-order structures
+within cancer networks derived from pathway networks and to explore their relationship with cancer. We
+constructed Cancer Consensus Networks (CCNs) using data from six types of cancer and three major
+biological functions: DNA Repair, Chromatin Organisation, and Programmed Cell Death. To evaluate
+the impact of each gene on topological voids (β2 structures) within the CCNs, we systematically removed
+individual nodes and analysed the resulting changes. We then examine the role of these impactful genes
+in cancer.
+Our findings reveal that every gene that affects β2 structures is either a known driver or a cancer-
+associated gene, with the potential to be new drivers. The CCNs were constructed using mutated genes
+from various types of cancer. Given that most mutations are passengers [2, 10], we emphasise that
+removing passenger genes does not affect β2 structures. Furthermore, we evaluated these impactful genes
+(known drivers or genes associated with cancer) using traditional network science measures, highlighting
+how centrality metrics alone are insufficient to fully characterise them. Not all known drivers or cancer-
+associated genes in the CCNs impact the formation of β2 structures. However, no passenger gene
+has such an impact. Our method exhibits high precision with low to medium recall in distinguishing
+between drivers, cancer-associated genes, and passengers. Integrating higher-order topological features
+with traditional measures makes it possible to achieve a more comprehensive understanding of a gene’s
+role in cancer, which can be applied to evaluate candidate driver genes.
+This work is organised as follows. The next two sections, “Cancer Mutation Data and Reactome’s
+Super Pathways” and “Persistence Homology”, present the theoretical background for developing this
+research. The “Methods” section details the data pipeline and our use of PH to characterise genes in
+2
+CCNs. The “Results and Discussion” section explores the removal of genes from networks, its impact on
+higher-order structures, and how drivers and cancer-associated genes play a critical role in it. Finally, we
+end our paper with the concluding remarks. An appendix with formal PH definitions is also included.
+2 Cancer Mutation Data and Reactome’s Super Pathways
+Advancements in DNA sequencing technologies have led to the generation of extensive genomic data.
+In the field of cancer research, databases such as the International Cancer Genome Consortium (ICGC)
+and the Cancer Genome Atlas (TCGA) offer datasets containing gene and mutation data for various
+types of cancer. Among the available datasets, the Mutation Annotation Format (MAF) is a commonly
+used tab-delimited file that connects patient samples, genes, and mutations. Each patient has one or
+more samples, each sample containing multiple genes linked to one or more mutations. The MAF file
+is frequently utilised in exploratory and computational approaches to identify driver genes and study
+patterns of mutual exclusivity [7, 11]. In this work, we used cancer data from TCGA. Since TCGA
+deidentifies and anonymises all patient information, ethical approval was not required for this research.
+Mutated genes in MAF files can be classified as either drivers or passengers. Drivers are genes whose
+mutations are causally linked to cancer [1], with databases such as NCG [12] and IntOGen [13] offering
+lists of well-established drivers. These databases update their lists as new evidence emerges regarding a
+gene’s role in cancer. Passengers, on the other hand, are mutated genes present in the MAF file but are
+not relevant to cancer [1]. Distinguishing between drivers and passengers remains a critical challenge in
+cancer genomics [2], leading to the development of numerous computational methods to identify new
+drivers [6]. In this paper, we consider the genes listed in these databases as “known drivers”, with high
+confidence in their role in cancer. All other mutated genes can be passengers or cancer-associated genes
+with the potential to be new drivers.
+Pathways consist of sets of genes that collaborate to produce specific biological functions. As path-
+ways are subsets of the entire PPIN, they are considerably smaller and provide meaningful information
+on the biological roles of their genes [3]. Recent research comparing human PPINs from various databases
+reveals substantial inconsistencies in their interactions and topological structures [14]. The same study
+shows that subnetworks, including pathway networks, are more consistent across different PPINs. These
+findings indicate that whole PPINs are incomplete and still evolving, with new interactions continu-
+ously being discovered, validated, or invalidated. In contrast, interactions within well-known pathways,
+such as those used in this study, are more established, making pathway networks a more reliable option
+compared to whole PPINs [14].
+The Reactome Knowledgebase (https://reactome.org) is an open access, peer-reviewed, expertly
+curated database focused on biological pathways [15]. It offers a variety of online bioinformatics tools
+designed for the analysis and visualisation of pathway-related data. Additionally, Reactome includes
+a PPIN derived from its pathway networks [16]. In 2020, Reactome introduced “Super Pathways”, a
+hierarchical organisation of pathways that begins with broad biological functions, such as Programmed
+Cell Death, and extends into more detailed subcategories, such as Apoptosis and Regulated Necrosis
+3
+[17]. Reactome presents pathways as lists of genes, enabling the extraction of induced subgraphs from
+a PPIN to create Super Pathways Networks (SPNs), a procedure we explain in the Methods section.
+3 Persistence Homology
+Topological data analysis (TDA) [18–20] is based on the principle that topology and geometry can be
+utilised to derive both qualitative and quantitative insights about the underlying structure of data.
+Topological methods rely on the definition of similarity or distance between data points, allowing
+comparisons between data sets that may exist in different coordinate systems.
+Persistent Homology (PH) [21], a method within TDA, examines the topological features of data
+on various scales. PH identifies and quantifies the size and number of structures, such as connected
+components, cycles, and voids, by constructing a corresponding topological space from the data. The
+PH framework is built upon some fundamental concepts: simplicial complexes, filtrations, chains, and
+boundaries. These concepts are formally defined and illustrated with examples in the appendix. In this
+section, we provide an overview of PH and demonstrate its application in network analysis.
+Typically PH is calculated over a point cloud, as exemplified in Figure 4 in the appendix. However,
+PH can also be computed over a network by defining a metric space based on a distance matrix calculated
+by pairwise distances between nodes. Figure 1 demonstrates this process. Figure 1-(A) shows a network
+that resembles a dodecahedron, with 20 nodes and 30 edges. Figure 1-(B) shows a N × N distance
+matrix calculated using the shortest path length between nodes. This matrix is the metric space used to
+calculate PH. Figure 1-(C) presents the Persistence Barcode, a plot normally used to visualise structures
+found during the PH. We will detail this in the next section.
+Fig. 1 From network to persistence barcodes.
+3.1 Persistence, Barcodes and Betti Numbers
+PH identifies the topological structures within the data. During the filtration step (explained in the
+appendix), structures are born at a given time and die at another. Significant structures persist longer
+than noise structures and are meaningful for characterising the data. Persistence barcodes represent
+the birth and death of topological structures across multiple scales. In Figure 1-(C), the bar colours
+4
+represent different dimensions: red bars indicate connected components, blue bars indicate cycles (2-
+dimensional holes) and green bars indicate voids (3-dimensional holes). The X-axis of Figure 1-(C) shows
+the passage of time, i.e., the filtration process. Twenty red bars appear at time 0, and 19 persist until
+time 1, when the filtration process connects all loose connected components to one. This connection
+occurs at time 1 because the edges in Figure 1-(A) weight 1. At time 1, the dodecahedron faces are
+identified and persist for 1 tick of time. At time 2, a void is identified, representing the empty space
+inside the dodecahedron network. In summary, PH successfully identified the topological structures in
+Figure 1-(A), and the persistence barcode is a way to represent them.
+Betti numbers quantify the topological features of a space. Specifically, the k-th Betti number βk
+represents the number of k-dimensional holes in the data. β0 counts the number of connected compo-
+nents, β1 counts the number of cycles, and β2 counts the number of voids. In Figure 1-(C), we have
+β0 = 20, β1 = 11, and β2 = 1. As a polyhedron, the dodecahedron consists of 12 pentagonal faces. How-
+ever, persistence homology identified only 11 cycles because not all faces contribute to distinct cycles.
+The edges of the “missing” cycle are shared with adjacent cycles, thereby not forming an independent
+cycle. Betti numbers provide a convenient method for quantifying the structures represented in Persis-
+tence Barcodes. In this work, we focus on using Betti numbers rather than barcodes, as our primary
+concern is the number of structures in the network and the impact individual genes have on them.
+3.2 Persistence Homology in Cancer Studies
+PH is an innovative tool in data science and has made contributions in many fields, such as network
+science, physics, chemistry, biology, and medicine [22–27], thanks to its ability to analyse high-dimension
+datasets and extract meaningful features from complex data.
+In cancer studies, PH has been applied in various contexts, including image analysis, protein net-
+works, gene expression networks, and point clouds. Specifically, PH has been used to evaluate prostate
+cancer in order to improve the Gleason grading system by capturing structure features independently of
+Gleason patterns. By computing topological representations of prostate cancer histopathology images,
+PH demonstrates the ability to group these images into unique groups through a ranked persistence
+vector. This method showed sensitivity to specific substructure groups within single Gleason patterns,
+offering a higher granularity than existing measures. The topological representations generated by PH
+could improve future approaches for better diagnosis and prognosis [28].
+Furthermore, PH has been utilised in the study of protein interactions in the KEGG database to
+inform cancer therapy by analysing the correlation between Betti numbers and patient survival [9]. In
+the context of gene expression networks, PH has been employed to examine gene interactions, uncovering
+structural features of the disease. It highlights significant deviations in the network topology between
+cancerous and healthy cells, emphasising the importance of cycles in cancer cells and voids in healthy
+cells [8].
+Moreover, PH has been applied in tumour segmentation of Hematoxylin and Eosin stained histology
+images to enhance computer-aided diagnosis systems. This approach segments tumours in whole-slide
+5
+images by analysing the degree of connectivity among nuclei through persistent homology profiles, out-
+performing convolutional neural networks [29]. Lastly, PH has been used to characterise comparative
+genomic hybridisation profiles in breast cancer, providing a deeper understanding of chromosome ampli-
+fications and deletions in an individual’s genome. The results were aligned with previous studies and
+distinguished between cancer recurrence frequencies in chemotherapy-treated and nontreated patient
+populations, highlighting the potential of PH in genomic data analysis [30].
+4 Methods
+We selected three SPNs, Chromatin Organisation (CHR), DNA Repair (DNA), and Programmed Cell
+Death (PCD), due to the roles these biological processes play in cancer development [31–33]. Further-
+more, these networks exhibit a high proportion of known driver genes [34], making them suitable for
+our study. Although other SPNs, such as Gene Expression and Signal Transduction, are also relevant to
+cancer, their extensive size, comprising over a thousand nodes, renders them computationally infeasible
+for analysis using the Vietoris-Rips complex in PH analysis due to the prohibitive combinatorial costs
+involved.
+The selected pathway networks represent the proteins and interactions present in normal and healthy
+cells. To associate these networks with cancer, we created the CCNs using mutation data from six types
+of cancer: Bladder, Breast, Head and Neck, Lung, Skin, and Stomach. Mutation data was obtained from
+MAF files in a TCGA pancancer study [35]. Figure 2 shows the pipeline used in this work.
+In the first step, we collected data from the Reactome PPIN and Reactome pathways. In the second
+step, we adopted a method similar to our previous research [34], where we generated SPNs by extracting
+induced subgraphs from the Reactome PPIN using gene sets linked to Super Pathways. The third phase
+was conducted independently of the previous steps. We selected genes that were mutated in at least
+four of the six MAF files corresponding to different types of cancer. Furthermore, we identified known
+driver genes by considering the combined data from the intOGen [13] and NCG [12] driver databases.
+Step four depends on steps two and three, since we use the selected mutated genes to extract induce
+subnetworks from each SPN, creating three CCNs. We also identify genes in the CCNs that are known
+drivers, represented in the plot as red nodes. The original SPNs for CHR, DNA and PCD contain 221,
+300, and 206 nodes, respectively. Their corresponding CCNs reduced the nodes to 162 (73%), 233 (78%),
+and 170 (83%). The number of driver genes in CHR, DNA, and PCD are 45, 46, and 26, respectively. In
+particular, the consensus networks retained at least 93% of the original driver genes. Although the total
+number of nodes in the consensus networks decreased by approximately 22% compared to the original
+SPNs, the reduction in driver genes was only 7%.
+The fifth step in Figure 2 summarises the analysis we performed to characterise nodes regarding
+their topological role in higher-order structures. It begins by calculating the PH for each CCN and
+recording the β2 value using the Vietoris-Rips complex [19]. In this work, we only focus on β2 impact,
+since they are topologically more significant, are built using β1, and their removal can increase the
+number of β1. In the example, the original CCN contains one cycle, formed by the nodes D, E, F, and
+one void, formed by the nodes A, B, C, D. Following this initial characterisation of the network, we
+6
+Fig. 2 Data pipeline: We gather data from different databases to create Cancer Consensus Networks (CCNs), integrating
+data from three main biological functions with cancer-specific information. After that, we analyse the topological role of
+drivers and non-drivers in relation to their impact on higher-order structures.
+systematically remove each node, one at a time, from the network and measure its impact on the β2
+value compared to the original CCN.
+In the figure’s example, removing node H creates three new connected components, but does not
+affect any higher-order structures. H ’s impact can not be measured using PH, but can be measured by
+traditional network science measures, as previously done in the context of SPN and drivers [34]. On the
+other hand, removing node A barely affects the network by traditional measures, but it has a relevant
+impact on higher-order structures. Node A removal destroys a void (β2) and creates a new cycle (β1).
+Contrary to nodes H and A, node D significantly impacts both traditional measures and higher-order
+structures.
+The sixth and final step in Figure 2 illustrates the second analysis performed to characterise the
+nodes. For each CCN, we calculate four centrality measures: degree, clustering, betweenness, and close-
+ness. We then identify the position of the nodes that affected β2 in the initial analysis. This step aims
+to compare the novel approach introduced in this paper, i.e., the impact of node on β2, with traditional
+centrality measures.
+7
+5 Result and Discussion
+The main objective of this work is to use PH to identify genes that form higher-order structures in
+CCNs and explore their relationship to cancer. By applying our proposed methodology, we assess the
+impact of each gene on the CCN’s β2 by individually removing nodes. Our results demonstrate that
+every node impacting β2 structures is either a known driver or a gene associated with cancer, which
+potentially represents new drivers. The CCNs are constructed using mutated genes from various types
+of cancer. Given that most mutations are passengers [2, 10], we emphasise that removing passengers
+does not affect β2 structures. In addition, we analyse these impactful genes (known drivers or cancer-
+associated genes) using traditional network science measures and discuss how centrality measures alone
+fail to fully capture them.
+5.1 Impact on β2 by single node removal
+We calculated the PH for each CCN, identifying two β2 structures in the CHR CCN, four β2 structures
+in the DNA CCN, and ten β2 structures in the PCD CCN. The PCD CCN, despite being the smallest
+network, exhibited the highest complexity in higher-order structures. Table 1 lists every gene that
+impacts β2 structures in each CCN, highlighting in bold known drivers.
+Table 1 Impact on β2 structures by single node removal. Bold names are known drivers.
+CCN
+β2 Impact
+GENES
+CHR
+-1
+ACTL6A, BRMS1, RELA, SMARCE1, WDR77
+DNA
+-1
+ATM, EP300
+DNA
+-2
+ABL1, ACTL6A, ATR, FANCD2, HERC2, KAT5, PCNA, POLN,
+RAD51, XPA, XRCC6
+PCD
+-1
+AKT1, APAF1, BAD, BIRC2, CASP1, CTNNB1, MAPT, RIPK1,
+ROCK1, STAT3, STUB1, TNFSF10
+PCD
+-2
+HSP90AA1N, PTK2
+PCD
+-3
+CASP3, CASP6, CASP8
+PCD
+-5
+TP53
+CHR CCN is the least complex network, with five genes destroying one β2 structure. In the DNA
+CCN, most impacting genes affected two β2 structures. The PCD CCN, the most complex network,
+exhibited a different pattern, with the majority of impacting genes affecting only one β2 structure. Five
+of the six genes that impacted more than one β2 structure are known drivers. In particular, TP53, one of
+the most well-known genes in cancer research and frequently mutated across various types of cancer [36],
+stands out for its ability to independently destroy five β2 structures. Most of the known drivers in the
+analysed CCNs did not impact β2 structures. We hypothesise that these genes may be involved in even
+higher-dimensional structures, beyond β2. However, the exponential computational cost of performing
+Vietoris-Rips filtration restricts such an analysis. This limitation suggests an avenue for future research
+to develop a filtration method specific to cancer networks that could reduce computational costs and
+enable the exploration of these higher-dimensional structures.
+Table 1 lists 35 unique genes, of which 20 are identified as known drivers according to the combined
+data from the NCG and IntOGen databases. Table 2, details these 35 impacting genes anWe provide
+8
+the most recent publications for genes not found in driver databases, and the most recent publications
+associating them with cancer. In particular, all 15 genes not found in drivers database are drug targets
+or related to cancer.
+Table 2 All 35 genes impacting β2 structures in CCNs. 20 are known drivers listed in the
+NCG or IntOGen databases. The Literature column presents the most recent publication
+associating the remaining 15 genes with cancer.
+Gene
+NCG
+IntOGen
+Literature
+ABL1
+X
+X
+ACTL6A
+-
+-
+Association with Squamous Cell Carcinoma [37]
+AKT1
+X
+X
+APAF1
+-
+-
+Melona drug target [38]
+ATM
+X
+X
+ATR
+X
+X
+BAD
+-
+-
+Association with Triple-negative breast cancer [39]
+BIRC2
+-
+-
+Head and Neck drug target [40]
+BRMS1
+-
+-
+Metastasis suppressor in breast cancer [41]
+CASP1
+-
+-
+Association with Acute Myeloid Leukemia [42]
+CASP3
+X
+-
+CASP6
+-
+-
+Association with Pancreatic cancer [43]
+CASP8
+X
+X
+CTNNB1
+X
+X
+EP300
+X
+X
+FANCD2
+X
+X
+HERC2
+X
+-
+HSP90AA1
+-
+X
+KAT5
+-
+-
+Association with Hepatocellular carcinoma [44]
+MAPT
+-
+-
+Association in Pan-Cancer [45]
+PCNA
+-
+-
+Drug target in multiple cancers [46]
+POLN
+-
+-
+Association in Nasopharyngeal carcinoma [47]
+PTK2
+X
+-
+RAD51
+-
+-
+Potential therapeutic target [48]
+RELA
+X
+X
+RIPK1
+X
+X
+ROCK1
+-
+-
+Association with Cancreatic cancer [49]
+SMARCE1
+X
+-
+STAT3
+X
+X
+STUB1
+X
+-
+TNFSF10
+X
+-
+TP53
+X
+X
+WDR77
+-
+-
+Association with Prostate cancer [50]
+XPA
+X
+-
+XRCC6
+-
+-
+Association with Lung Cancer Chemotherapy [51]
+The CCNs are extracted from SPNs using mutations from cancer patients, where the majority of
+mutations are passengers (i.e. not related to cancer). The results showed no β2 impact upon removing
+passenger mutations, only consolidated known drivers or genes associated with cancer caused impact in
+higher-order structures.
+5.2 Impacting genes and centrality measures
+Taking into account traditional network science measures, drivers are known to have a high degree and
+work as hubs [52], while some drivers genes have small degree [34]. Other works indicate that drivers can
+9
+be categorised using additional centrality measures [53, 54]. When characterising cancer driver genes,
+one of the key challenges lies in identifying drivers in the long tail of distributions associated with
+measures from protein networks and mutation data [5], as many methods are affected by “ascertainment
+bias”, which tends to favour frequently mutated genes and network hubs [55]. Here, we discuss whether
+genes impacting β2 structures can be characterized using four centrality measures.
+Figure 3 displays the distributions of four centrality measures for all genes within each CCN. Grey
+points represent genes whose removal does not impact β2, while red and blue points indicate genes
+whose removal decreases β2, which correspond to the genes listed in Tables 1 and 2. Red points are
+known drivers, and blue points are cancer-associated genes.
+Fig. 3 Centrality distributions for CCNs. Grey points represent genes whose removal does not affect β2. Red and
+blue points indicate genes whose removal reduces β2, with red points representing known drivers and blue points genes
+associated with cancer.
+Overall, each centrality measure exhibits a similar distribution across the three CCNs, but the
+positions of the red and blue points vary. The CHR CCN has only five impacting genes, making it
+difficult to identify clear patterns. In this network, drivers and cancer-associated genes intermingle,
+occupying medium to high ranges in Degree, Closeness, and Betweenness. In the DNA CCN, with 13
+impacting genes, the red and blue points are more evenly distributed in the middle, showing no clear
+distinction between drivers and cancer-associated genes, and they do not appear at the distribution
+extremes. Conversely, in the PCD CCN, drivers tend to occupy the top values in Degree, Closeness, and
+Betweenness, with low Clustering values. Additionally, there is a noticeable separation where known
+drivers tend to lead in these centrality measures, followed by cancer-associated genes.
+10
+Figure 3 shows that no single centrality measure is sufficient to characterise the genes impacting β2
+structures. Although traditional centrality measures focus on nodes and edges within the network, they
+fail to capture the complexity of high-dimensional structures associated with these genes. This indicates
+that understanding the role of these genes requires going beyond basic centrality measures to account
+for the more complex, high-dimensional interactions and structures present in the network.
+6 Conclusion
+The study presents a novel approach to identifying known drivers and cancer-associated genes within
+cancer networks extracted from pathways using Persistent Homology. We constructed Cancer Consensus
+Networks by integrating mutation data from six types of cancer and three main biological functions.
+We measure the impact of removal of each gene in cancer networks with respect to its role in the
+construction of higher-order structures. We complement the analysis using centrality measures to verify
+if traditional measures can capture the impacting genes. The results demonstrate that only a few genes
+decrease the number of voids (β2 structures). In particular, all impactful genes are established cancer
+drivers or cancer-associated genes, supported by existing literature, with the potential to be new drivers.
+Although not every driver or cancer-associated gene impacts β2, no passenger gene does. The pipeline
+used in this work demonstrated high precision and low to average recall in distinguishing drivers from
+passengers. Although centrality measures alone do not fully characterise drivers and cancer-associated
+genes in CCNs, these genes generally exhibit low clustering and medium to high degree, closeness, and
+betweenness centrality values. This centrality profile, combined with the observation that no passenger
+mutations impact higher-order structures, can be utilized to evaluate candidate driver genes. Their
+topological characteristics can help determine their biological function as drivers or passengers.
+Acknowledgements
+The authors acknowledge the financial support received from the Federal Institute of Sao Paulo (IFSP),
+the University of Sao Paulo (USP), the Sao Paulo Research Foundation (FAPESP), the Center for
+Mathematical Sciences Applied to Industry (CeMEAI), the Brazilian National Research and Technol-
+ogy Council (CNPq), and the Brazilian Federal Foundation for Support and Evaluation of Graduate
+Education (CAPES).
+Declarations
+Ethical Approval
+The cancer data utilized in this study were sourced from TCGA. As TCGA de-identifies and anonymizes
+all patient information, ethical approval was not required for this research.
+11
+Availability of data and materials
+The mutation datasets are from a TCGA study [35] and can be download from cBioPortal.
+All
+code,
+input,
+and
+output
+files
+are
+on
+GitHub:https://github.com/RodrigoHenriqueRamos/
+Identifying-Key-Genes-in-Cancer-Networks-Using-Persistent-Homology
+References
+[1] Stratton, M.R., Campbell, P.J., Futreal, P.A.: The cancer genome. Nature 458(7239), 719–724
+(2009)
+[2] Ostroverkhova, D., Przytycka, T.M., Panchenko, A.R.: Cancer driver mutations: predictions and
+reality. Trends in Molecular Medicine (2023)
+[3] Garc´ıa-Campos, M.A., Espinal-Enr´ıquez, J., Hern´andez-Lemus, E.: Pathway analysis: state of the
+art. Frontiers in physiology 6, 383 (2015)
+[4] Dimitrakopoulos, C.M., Beerenwinkel, N.: Computational approaches for the identification of can-
+cer genes and pathways. Wiley Interdisciplinary Reviews: Systems Biology and Medicine 9(1), 1364
+(2017)
+[5] Cutigi, J.F., Evangelista, A.F., Reis, R.M., Simao, A.: A computational approach for the discovery
+of significant cancer genes by weighted mutation and asymmetric spreading strength in networks.
+Scientific reports 11(1), 1–10 (2021)
+[6] Cutigi, J.F., Evangelista, A.F., Simao, A.: Approaches for the identification of driver mutations in
+cancer: A tutorial from a computational perspective. Journal of Bioinformatics and Computational
+Biology 18(03), 2050016 (2020)
+[7] Deng, Y., Luo, S., Deng, C., Luo, T., Yin, W., Zhang, H., Zhang, Y., Zhang, X., Lan, Y., Ping,
+Y., et al.: Identifying mutual exclusivity across cancer genomes: computational approaches to dis-
+cover genetic interaction and reveal tumor vulnerability. Briefings in Bioinformatics 20(1), 254–266
+(2019)
+[8] Masoomy, H., Askari, B., Tajik, S., Rizi, A.K., Jafari, G.R.: Topological analysis of interaction pat-
+terns in cancer-specific gene regulatory network: persistent homology approach. Scientific Reports
+11(1), 1–11 (2021)
+[9] Benzekry, S., Tuszynski, J.A., Rietman, E.A., Lakka Klement, G.: Design principles for cancer
+therapy guided by changes in complexity of protein-protein interaction networks. Biology direct
+10, 1–14 (2015)
+[10] Kumar, S., Warrell, J., Li, S., McGillivray, P.D., Meyerson, W., Salichos, L., Harmanci, A.,
+Martinez-Fundichely, A., Chan, C.W., Nielsen, M.M., et al.: Passenger mutations in more than
+12
+2,500 cancer genomes: overall molecular functional impact and consequences. Cell 180(5), 915–927
+(2020)
+[11] Mayakonda, A., Koeffler, H.P.: Maftools: Efficient analysis, visualization and summarization of maf
+files from large-scale cohort based cancer studies. BioRxiv, 052662 (2016)
+[12] Dressler, L., Bortolomeazzi, M., Keddar, M.R., Misetic, H., Sartini, G., Acha-Sagredo, A., Montorsi,
+L., Wijewardhane, N., Repana, D., Nulsen, J., et al.: Comparative assessment of genes driving
+cancer and somatic evolution in non-cancer tissues: an update of the network of cancer genes (ncg)
+resource. Genome biology 23(1), 1–22 (2022)
+[13] Mart´ınez-Jim´enez, F., Mui˜nos, F., Sent´ıs, I., Deu-Pons, J., Reyes-Salazar, I., Arnedo-Pac, C., Mula-
+roni, L., Pich, O., Bonet, J., Kranas, H., et al.: A compendium of mutational cancer driver genes.
+Nature Reviews Cancer 20(10), 555–572 (2020)
+[14] Ramos, R.H., Ferreira, C.d.O.L., Simao, A.: Human protein–protein interaction networks: A
+topological comparison review. Heliyon (2024)
+[15] Gillespie, M., Jassal, B., Stephan, R., Milacic, M., Rothfels, K., Senff-Ribeiro, A., Griss, J., Sevilla,
+C., Matthews, L., Gong, C., et al.: The reactome pathway knowledgebase 2022. Nucleic acids
+research 50(D1), 687–692 (2022)
+[16] Wu, G., Haw, R.: Functional interaction network construction and analysis for disease discovery.
+protein bioinformatics: from protein modifications and networks to proteomics, 235–253 (2017)
+[17] Jassal, B., Matthews, L., Viteri, G., Gong, C., Lorente, P., Fabregat, A., Sidiropoulos, K., Cook,
+J., Gillespie, M., Haw, R., et al.: The reactome pathway knowledgebase. Nucleic acids research
+48(D1), 498–503 (2020)
+[18] Carlsson, G.: Topology and data. Bulletin of the American Mathematical Society 46(2), 255–308
+(2009)
+[19] Chazal, F., Michel, B.: An introduction to topological data analysis: fundamental and practical
+aspects for data scientists. arXiv preprint arXiv:1710.04019 (2017)
+[20] Chazal, F.: High-dimensional topological data analysis. In: Handbook of Discrete and Computa-
+tional Geometry, pp. 663–683 (2017)
+[21] Zomorodian, A., Carlsson, G.: Computing persistent homology. Discrete & Computational Geom-
+etry 33(2), 249–274 (2005)
+[22] Tadi´c, B., Andjelkovi´c, M., Boshkoska, B.M., Levnaji´c, Z.: Algebraic topology of multi-brain con-
+nectivity networks reveals dissimilarity in functional patterns during spoken communications. PLoS
+One 11(11), 0166787 (2016)
+13
+[23] Andjelkovi´c, M., Tadi´c, B., Melnik, R.: The topology of higher-order complexes associated with
+brain hubs in human connectomes. Scientific reports 10(1), 17320 (2020)
+[24] Kartun-Giles, A.P., Bianconi, G.: Beyond the clustering coefficient: A topological analysis of node
+neighbourhoods in complex networks. Chaos, Solitons & Fractals: X 1, 100004 (2019)
+[25] Horak, D., Maleti´c, S., Rajkovi´c, M.: Persistent homology of complex networks. Journal of
+Statistical Mechanics: Theory and Experiment 2009(03), 03034 (2009)
+[26] Ichinomiya, T., Obayashi, I., Hiraoka, Y.: Persistent homology analysis of craze formation. Physical
+Review E 95(1), 012504 (2017)
+[27] Nguyen, M., Aktas, M., Akbas, E.: Bot detection on social networks using persistent homology.
+Mathematical and Computational Applications 25(3), 58 (2020)
+[28] Lawson, P., Sholl, A.B., Brown, J.Q., Fasy, B.T., Wenk, C.: Persistent homology for the quantitative
+evaluation of architectural features in prostate cancer histology. Scientific reports 9(1), 1139 (2019)
+[29] Qaiser, T., Sirinukunwattana, K., Nakane, K., Tsang, Y.-W., Epstein, D., Rajpoot, N.: Persistent
+homology for fast tumor segmentation in whole slide histology images. Procedia Computer Science
+90, 119–124 (2016)
+[30] DeWoskin, D., Climent, J., Cruz-White, I., Vazquez, M., Park, C., Arsuaga, J.: Applications of
+computational homology to the analysis of treatment response in breast cancer patients. Topology
+and its Applications 157(1), 157–164 (2010)
+[31] Schuster-B¨ockler, B., Lehner, B.: Chromatin organization is a major influence on regional mutation
+rates in human cancer cells. nature 488(7412), 504–507 (2012)
+[32] Jin, M.H., Oh, D.-Y.: Atm in dna repair in cancer. Pharmacology & therapeutics 203, 107391
+(2019)
+[33] Mishra, A.P., Salehi, B., Sharifi-Rad, M., Pezzani, R., Kobarfard, F., Sharifi-Rad, J., Nigam, M.:
+Programmed cell death, from a cancer perspective: an overview. Molecular diagnosis & therapy
+22(3), 281–295 (2018)
+[34] Ramos, R.H., Cutigi, J.F., Oliveira Lage Ferreira, C.d., Simao, A.: Topological characterization
+of cancer driver genes using reactome super pathways networks. In: Brazilian Symposium on
+Bioinformatics, pp. 26–37 (2021). Springer
+[35] Hoadley, K.A., Yau, C., Hinoue, T., Wolf, D.M., Lazar, A.J., Drill, E., Shen, R., Taylor, A.M.,
+Cherniack, A.D., Thorsson, V., et al.: Cell-of-origin patterns dominate the molecular classification
+of 10,000 tumors from 33 types of cancer. Cell 173(2), 291–304 (2018)
+14
+[36] Guimaraes, D., Hainaut, P.: Tp53: a key gene in human cancer. Biochimie 84(1), 83–93 (2002)
+[37] Shrestha, S., Adhikary, G., Xu, W., Kandasamy, S., Eckert, R.L.: Actl6a suppresses p21cip1 expres-
+sion to enhance the epidermal squamous cell carcinoma phenotype. Oncogene 39(36), 5855–5866
+(2020)
+[38] Carotenuto, P., Romano, A., Barbato, A., Quadrano, P., Brillante, S., Volpe, M., Ferrante, L.,
+Tammaro, R., Morleo, M., De Cegli, R., et al.: Targeting the mitf/apaf-1 axis as salvage therapy
+for mapk inhibitors in resistant melanoma. Cell Reports 41(6) (2022)
+[39] Boac, B.M., Abbasi, F., Ismail-Khan, R., Xiong, Y., Siddique, A., Park, H., Han, M., Saeed-Vafa,
+D., Soliman, H., Henry, B., et al.: Expression of the bad pathway is a marker of triple-negative
+status and poor outcome. Scientific Reports 9(1), 17496 (2019)
+[40] Roohollahi, K., Jong, Y., Pai, G., Zaini, M.A., Lint, K., Sie, D., Rooimans, M.A., Rockx, D.,
+Hoskins, E.E., Ameziane, N., et al.: Birc2–birc3 amplification: a potentially druggable feature of a
+subset of head and neck cancers in patients with fanconi anemia. Scientific reports 12(1), 45 (2022)
+[41] Zhang, H.-M., Qiao, Q.-D., Xie, H.-F., Wei, J.-X.: Breast cancer metastasis suppressor 1 (brms1)
+suppresses prostate cancer progression by inducing apoptosis and regulating invasion. European
+Review for Medical & Pharmacological Sciences 21(1) (2017)
+[42] Liu, J., Zhao, M., Feng, X., Zeng, Y., Lin, D.: Expression and prognosis analyses of casp1 in acute
+myeloid leukemia. Aging (Albany NY) 13(10), 14088 (2021)
+[43] Zhu, J., Shi, Y., Lan, S., Wang, J., Jiang, F., Tang, C., Cai, Y., Pan, Z., Jian, H., Fang, H., et al.:
+Dissection of pyroptosis-related prognostic signature and casp6-mediated regulation in pancreatic
+adenocarcinoma: New sights to clinical decision-making. Apoptosis 28(5), 769–782 (2023)
+[44] Yuan, Y., Cao, W., Zhou, H., Qian, H., Wang, H.: H2a. z acetylation by lincznf337-as1 via
+kat5 implicated in the transcriptional misregulation in cancer signaling pathway in hepatocellular
+carcinoma. Cell Death & Disease 12(6), 609 (2021)
+[45] Callari, M., Sola, M., Magrin, C., Rinaldi, A., Bolis, M., Paganetti, P., Colnaghi, L., Papin, S.:
+Cancer-specific association between tau (mapt) and cellular pathways, clinical outcome, and drug
+response. Scientific Data 10(1), 637 (2023)
+[46] Peterson, L.E., Kovyrshina, T.: Dna repair gene expression adjusted by the pcna metagene predicts
+survival in multiple cancers. Cancers 11(4), 501 (2019)
+[47] Xiao, R.-W., Wang, F., Wang, T.-M., Zhang, J.-B., Wu, Z.-Y., Deng, C.-M., Liao, Y., Zhou, T.,
+Yang, D.-W., Dong, S.-Q., et al.: Rare poln mutations confer risk for familial nasopharyngeal
+carcinoma through weakened epstein-barr virus lytic replication. EBioMedicine 84, 104267 (2022)
+15
+[48] Wang, Z., Jia, R., Wang, L., Yang, Q., Hu, X., Fu, Q., Zhang, X., Li, W., Ren, Y.: The emerging
+roles of rad51 in cancer and its potential as a therapeutic target. Frontiers in Oncology 12, 935593
+(2022)
+[49] Whatcott, C.J., Ng, S., Barrett, M.T., Hostetter, G., Von Hoff, D.D., Han, H.: Inhibition of rock1
+kinase modulates both tumor cells and stromal fibroblasts in pancreatic cancer. PloS one 12(8),
+0183871 (2017)
+[50] O’Bryant, D., Wang, Z.: The essential role of wd repeat domain 77 in prostate tumor initiation
+induced by pten loss. Oncogene 37(30), 4151–4163 (2018)
+[51] Singh, A., Singh, N., Behera, D., Sharma, S.: Role of polymorphic xrcc6 (ku70)/xrcc7 (dna-pkcs)
+genes towards susceptibility and prognosis of lung cancer patients undergoing platinum based
+doublet chemotherapy. Molecular biology reports 45, 253–261 (2018)
+[52] Porta-Pardo, E., Garcia-Alonso, L., Hrabe, T., Dopazo, J., Godzik, A.: A pan-cancer catalogue of
+cancer driver protein interaction interfaces. PLoS computational biology 11(10), 1004518 (2015)
+[53] Erten, C., Houdjedj, A., Kazan, H.: Ranking cancer drivers via betweenness-based outlier detection
+and random walks. BMC bioinformatics 22, 1–16 (2021)
+[54] Li, F., Li, H., Shang, J., Liu, J.-X., Dai, L., Liu, X., Li, Y.: A network-based method for identifying
+cancer driver genes based on node control centrality. Experimental Biology and Medicine 248(3),
+232–241 (2023)
+[55] Reyna, M.A., Leiserson, M.D., Raphael, B.J.: Hierarchical hotnet: identifying hierarchies of altered
+subnetworks. Bioinformatics 34(17), 972–980 (2018)
+16
+Appendix
+Simplicial Complex and Filtration
+A simplicial complex is a collection of simplices σ = [0, ..., k] with dimension k. A 0-simplex corresponds
+to a vertex [0], a 1-simplex to an edge [0, 1], a 2-simplex to a triangle [0, 1, 2], a 3-simplex to a tetrahedron
+[0, 1, 2, 3], and so forth. Figure 4-(A) provides a visual representation of simplices. In a simplicial complex
+K, if a simplex σ ⊂K, then every non-empty subset τ ⊂σ is also a part of K. Additionally, two
+k-simplices in K are either disjoint or intersect in a lower-dimensional simplex that is also contained
+within K.
+To analyze the persistent homology of a dataset, a sequence of simplicial complexes K1 ⊆K2 ⊆... ⊆
+Kn, known as a filtration, must be constructed. A common filtration is the Vietoris-Rips complex [19],
+which constructs a topological space from a metric space using a distance r. By selecting a parameter
+r > 0, we construct a simplicial complex Kr, where a k-simplex is included in Kr if the distance
+between any two points forming the simplex is less than 2r. It is important to note that if r2 ≥r1, then
+Kr1 ⊆Kr2. Figure 4-(B) exemplify a filtration over 4 points, and the birth and death of topological
+structures.
+Fig. 4 (A) Shows examples of simplexes of dimensions 0, 1, 2 and 3. (B) Presents the Vietoris-Rips filtration for a
+point cloud consisting of four equidistant points and the Persistent Barcode capturing the birth and death of topological
+structures.
+Chains and Boundaries
+To describe the topological properties in a simplicial complex Kr, we must utilize concepts from algebraic
+topology. In a simplicial complex K, for k ≥0, a k-chain Ck is defined as a vector space whose basis
+consists of a set of k-simplices in K. The dimension of Ck is determined by the number of elements in
+this basis. These vector spaces are composed of all linear combinations c = P
+i aiσi, where ai ∈Zp (p
+being a prime integer) and the summation runs over all k-simplices σi in K. Within this framework,
+the linear transformation ∂k : Ck →Ck −1 can be introduced. This map, known as the boundary map,
+is defined as ∂k([0, ..., k]) = Pk
+i=0(−1)i[0, ...,ˆi, ..., k], where the notation ˆi indicates the removal of that
+17
+vertex. The boundary map applied to a simplex yields the alternating sum of the simplices along the
+boundary. Recall that the boundary of a k-simplex σ is the union of the (k - 1)-subsimplices τ ⊆σ.
+Additionally, note that the composition ∂k o ∂k+1 = 0. This implies that im(∂k+1) ⊆ker(∂k).
+Consider a chain complex ... →Ck+1
+∂k+1
+−−−→Ck
+∂k
+−→Ck−1 →... →C2
+∂2
+−→C1
+∂1
+−→C0
+∂0
+−→0, and define
+two subspaces of Ck using the kernel and image of the boundary maps, namely Zk = ker(∂k) (k-cycles)
+and Bk = im(∂k+1) (k-boundaries). It is important to note that Bk is a subspace of Zk, and thus we can
+define Hk = Zk/Bk, which represents the quotient of these vector spaces. The kth Betti number [19],
+denoted by βk, is defined as βk = dim(Hk) = dim(Zk) −dim(Bk). Betti numbers quantify the number
+of “holes” in a simplicial complex K. Specifically, β0 indicates the number of connected components
+in K, β1 the number of cycles in K, β2 the number of 2-dimensional holes, and more generally, βk
+represents the number of k-dimensional holes in K. Betti numbers are a topological invariant, meaning
+that topologically equivalent spaces share the same Betti numbers. Figure 5 provides an example of
+calculating the Betti number β1 for two distinct simplicial complexes.
+Fig. 5 The Betti number β1 for the complexes K0 and K1. Observe that the only element in C1 that lies within the
+kernel of ∂1 is [0, 1] + [1, 2] + [2, 0], leading to dim(Z1(K0)) = dim(Z1(K1)) = 1. Additionally, note that the boundary
+of the simplex [0, 1, 2] forms the oriented triangle [1, 2] −[0, 2] + [0, 1]. As a result, dim(B1(K0)) = 0, dim(B1(K1)) = 1,
+yielding b1(K0) = 1 and b1(K1) = 0. This indicates that K0 contains a cycle, whereas K1 does not.
+18

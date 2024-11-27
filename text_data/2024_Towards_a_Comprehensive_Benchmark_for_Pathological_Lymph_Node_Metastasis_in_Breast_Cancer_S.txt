@@ -1,0 +1,1529 @@
+Towards a Comprehensive Benchmark for
+Pathological Lymph Node Metastasis in Breast
+Cancer Sections
+Xitong Ling1,†, Yuanyuan Lei2,†, Jiawen Li1,†, Junru Cheng3,, Wenting Huang2,, Tian Guan1,
+Jian Guan2,*, and Yonghong He1,*
+1Shenzhen International Graduate School, Tsinghua University, Shenzhen, 518071, China
+2National Cancer Center/National Clinical Research Center for Cancer/Cancer Hospital & Shenzhen Hospital,
+Chinese Academy of Medical Sciences and Peking Union Medical College, Shenzhen, 518116, China
+3Research Institute of Tsinghua, Guangzhou, 508157, China
+*corresponding author(s): Yonghong He (heyh@sz.tsinghua.edu.cn), Jian Guan (graceguan9@hotmail.com)
+†these authors contributed equally to this work
+ABSTRACT
+Advances in optical microscopy scanning have significantly contributed to computational pathology (CPath) by converting
+traditional histopathological slides into whole slide images (WSIs). This development enables comprehensive digital reviews
+by pathologists and accelerates AI-driven diagnostic support for WSI analysis. Recent advances in foundational pathology
+models have increased the need for benchmarking tasks. The Camelyon series1,2 is one of the most widely used open-source
+datasets in computational pathology. However, the quality, accessibility, and clinical relevance of the labels have not been
+comprehensively evaluated.In this study, we reprocessed 1,399 WSIs and labels from the Camelyon-161 and Camelyon-172
+datasets, removing low-quality slides, correcting erroneous labels, and providing expert pixel annotations for tumor regions in
+the previously unreleased test set. Based on the sizes of re-annotated tumor regions, we upgraded the binary cancer screening
+task to a four-class task: negative, micro-metastasis, macro-metastasis, and Isolated Tumor Cells (ITC). We reevaluated
+pre-trained pathology feature extractors and multiple instance learning (MIL) methods using the cleaned dataset, providing a
+benchmark that advances AI development in histopathology.
+Background & Summary
+The efficient utilization of digital pathology and computational resources has led to the rapid rise of AI-based computational
+pathology3,4. In recent years, general foundational models for pathology, pre-trained on large-scale data, have garnered
+significant attention5–9. These models have demonstrated strong feature extraction capabilities for pathological images, as
+evidenced by evaluations across a series of whole-slide image-level downstream tasks10–12. For example, CTransPath8 uses
+a Semantically-Relevant Contrastive Learning (SRCL) framework to pre-train a CNN-Transformer hybrid feature extractor
+on 150 million patches, with its effectiveness validated across five downstream tasks. UNI6 employed the self-supervised
+DINO-v213 method to train a robust general pathology visual encoder on one billion patches from approximately 100,000
+whole slide images (WSIs). Gigapath7 utilized 1.3 billion patches to train a LongNet14 architecture-based visual encoder for
+slide-level representation learning. These pathology-pre-trained models have demonstrated superior performance in downstream
+tasks including tumor classification, survival analysis, and lesion segmentation. PLIP5, pre-trained on approximately 200,000
+pathology image-text pairs collected from medical Twitter, developed a multimodal pathology foundational model using
+contrastive learning15, capable of both image and text comprehension. CONCH9 employs CoCa16 for self-supervised
+pre-training on 1.17 million image–caption pairs and has been extensively evaluated across 14 downstream benchmarks,
+demonstrating its outstanding performance.
+Acquiring finely annotated large-scale pathology image datasets remains challenging due to the extremely high resolution of
+pathology images and the specialized expertise required for annotations. Nonetheless, the continued development of foundational
+models and downstream tasks in computational pathology makes high-quality pathology image datasets increasingly essential.
+The Camelyon series1,2(http://gigadb.org/dataset/100439) , a publicly available pathology dataset focused on detecting
+breast cancer lymph node metastasis, is widely used for evaluating multiple instance Learning (MIL) methods. However, as
+shown in Figure 1, some images in the Camelyon series are of poor quality, exhibit treatment-related artifacts, and contain
+errors in slide-level labeling. The Camelyon-161 dataset includes only tumor and negative labels, making it incompatible with
+arXiv:2411.10752v1  [eess.IV]  16 Nov 2024
+Camelyon-172 labels. Many pixel-level annotations are inaccurate, and some slides lack pixel-level annotations entirely. These
+issues hinder the accurate evaluation of deep learning methods in downstream pathology tasks.
+In this paper, we filtered out and removed slides from the Camelyon dataset that were blurred, poorly stained, exhibited
+treatment-related artifacts, or were ambiguous in terms of positivity. Additionally, we expanded the binary classification labels
+in Camelyon-161 to a four-class system to facilitate the merging of Camelyon-16 and Camelyon-172 datasets. Finally, we
+corrected the pixel-level annotations in the Camelyon dataset and added pixel-level annotations to positive slides that previously
+lacked them. Using the corrected dataset, we reevaluated 12 mainstream MIL methods, including ABMIL17, TransMIL18 and
+ClAM19, etc. on two natural image pre-trained feature encoders, ResNet-5020 and VIT-S17, as well as four pathology-specific
+pre-trained feature encoders, PILP5, CONCH9, UNI6 and Gigapath7.
+Methods
+Dataset Overview
+The official Camelyon-161 dataset contains 399 WSIs, split into 270 for training and 129 for testing. The training set includes
+111 tumor slides and 259 negative slides, while the test set includes 49 tumor slides and 80 negative slides. The official
+Camelyon-172 dataset consists of 1000 WSIs, evenly divided into 500 for training and 500 for testing. The training set consists
+of 318 negative slides, 59 micro-metastasis slides, 87 macro-metastasis slides, and 36 Isolated Tumor Cells (ITC) slides. The
+test set labels are not publicly available. After data cleaning by professional pathologists, the Camelyon-16 dataset consists of
+386 WSIs: 238 negative, 71 micro-metastasis, 69 macro-metastasis, and 8 ITC WSIs. The Camelyon-17 dataset consists of 964
+WSIs: 633 negative, 103 micro-metastasis, 182 macro-metastasis, and 46 ITC WSIs. We combined the updated Camelyon-16
+and Camelyon-17 datasets to form the Camelyon+ dataset. It consists of 1,350 WSIs: 871 negative, 174 micro-metastasis, 251
+macro-metastasis, and 54 ITC WSIs.
+Exclusion Criteria
+We excluded certain WSIs based on the following criteria: focal blurriness, poor staining quality, difficulty distinguishing
+positive foci, and the presence of treatment-related artifacts. Of the 49 slides we remove, 26 show therapeutic response, 3 have
+staining issues, 12 exhibit focal blurring, 4 are of poor quality, and 4 contain suspicious cancerous regions The presence of
+treatment response may interfere with model construction. In pathology, tumor treatment response refers to the histological
+changes in tumors following treatments such as surgery, chemotherapy, radiotherapy, targeted therapy, or immunotherapy,
+and the corresponding reaction to these treatments. Pathological analysis can assess histological indicators such as tumor cell
+necrosis, proliferation, and apoptosis, thereby evaluating treatment efficacy. Two typical treatment responses are tissue necrosis
+and fibrosis. Necrosis refers to areas of dead tissue formed after tumor cells die following treatment. Fibrosis refers to the scar
+tissue formed as a result of the tumor’s self-repair after damage. Necrotic and fibrotic areas can affect the feature representation
+of tumor regions in computational pathology, thereby impacting the performance of downstream tasks.
+Data Records
+The Camelyon+ dataset is available via ScienceDB: (https://doi.org/10.57760/sciencedb.16442). The original WSI data can
+be downloaded from the official websites of Camelyon161 and Camelyon-172, so it has not been uploaded to the database.
+Slide-level labels are recorded in XLSX files. We provide the classification labels of the merged Camelyon+ dataset, which
+combines corrected versions of Camelyon-16 and Camelyon-17. The dataset includes four classification labels (negative,
+micro, macro, ITC) and two classification labels (negative, tumor), facilitating various downstream tasks. Since the original
+training dataset from Camelyon-16 is named using "tumor," "normal," and ID, we have renamed it to prevent pathologists
+correcting the data from forming prior judgments. The correspondence with the original naming will also be recorded and made
+public using a XLSX file. For positive WSIs, pixel-level annotations are provided in XML format. In order to facilitate future
+comparative experiments of multiple feature extractors on the Camelyon+ dataset, we also release the feature files extracted at
+20X magnification using ResNet-5020, VIT-S21, PLIP5, CONCH9, UNI6, and Gigapath7. The feature files are stored in PT
+format, which can be easily processed using the PyTorch library. Detailed dataset information and download links are available
+at:(https://github.com/lingxitong/CAMELYON-PLUS-BENCHMARK).
+Technical Validation
+Methodology
+The objective of our designed benchmark is to utilize slide-level labels to predict metastasis types. The commonly used
+approach is to adopt a deep learning strategy based on MIL, which has been recognized in recent studies for its strong capability
+to represent slide-level features.22–26. MIL is a weakly supervised approach where a single WSI is treated as a bag, and each
+2/14
+patch within the WSI is considered an instance. If any instance is cancerous, the entire WSI is labeled as cancerous, while a
+WSI is classified as normal only if all instances are normal.
+With the advancement of deep neural networks, embedding-based MIL has become the dominant approach for WSI analysis.
+In embedding-based MIL, a pre-trained feature extractor first extracts features from the WSI, followed by an aggregator that
+pools the features for downstream classification tasks. Mean-MIL and Max-MIL aggregate features using mean pooling and
+max pooling, respectively, though the pooling mechanism inevitably results in information loss. ABMIL17 introduces the
+attention mechanism into MIL, dynamically assigning weights to each instance based on attention scores. CLAM19 further
+enhances this by incorporating instance-level clustering mechanisms to introduce domain knowledge, providing additional
+supervision alongside attention-based weight assignments. TransMIL18 leverages self-attention within the MIL aggregator to
+capture relationships between different instances, thereby improving global modeling capabilities. AMD-MIL27 introduces an
+agent mechanism into the MIL aggregator and employs threshold filtering for feature selection, improving MIL performance.
+DSMIL28 models instance relationships directly using a dual-stream architecture and a trainable distance measurement module.
+DTFD29 addresses the issue of limited WSIs by creating pseudo-bags. WiKG30 treats WSIs as knowledge graphs, dynamically
+constructing neighboring nodes and directed edges based on relationships between instances, and then updates the head
+node using knowledge-aware attention. FR-MIL31 introduces a distribution re-calibration approach that adjusts the feature
+distribution of a WSI bag (instances) based on the statistics of the max-instance (key) feature.
+Data Preprocessing
+For all datasets, we crop non-overlapping 256×256 patches at 20× magnification. We then use six feature extractors ResNet-
+5020, VIT-S21, PLIP5, CONCH9, UNI6, and Gigapath7 to extract features from the WSIs. Subsequently, we conduct two sets of
+experiments. The first set is a comparative experiment on the Camelyon-172 dataset before and after label correction. The
+Camelyon-17-Origin dataset follows the official split, with 500 WSIs for training and 500 WSIs for testing. The Camelyon-17-
+Refine dataset also maintains the official split but excludes slides that fall under exclusion criteria. The Camelyon-17-Refine
+training set contains 492 slides, while the test set includes 472 slides. This comparative experiment evaluates the impact
+of dataset quality on MIL models. Since the original version of Camelyon-161 does not have four-class labels, we do not
+perform similar experiments on it. The next set is the benchmark experiments on Camelyon+, we evaluate using five-fold
+cross-validation, with each fold employing stratified sampling to maintain a fixed proportion of different classes. Since each
+patient has multiple slides in the Camelyon-17 dataset, in order to prevent data leakage, we ensure that slides of the same label
+of the same patient do not appear in the training set and the validation set at the same time.
+Camelyon-17 Comparative Experiment
+In the comparative experiments before and after correction on the Camelyon-172 dataset, we primarily evaluated three pathology
+pre-trained feature extractors: PLIP5, UNI6, and Gigapath7. The learning rate was set to 2e-4, using the Adam optimizer
+with a weight decay of 1e-5. We repeated the experiments with random seeds of 2023, 2024, and 2025, and reported the
+mean and standard deviation of the evaluation metrics as shown in Table 1 and Table 2. All experiments were conducted on a
+workstation equipped with 4 NVIDIA RTX 3090 GPUs. Due to the significant class imbalance in the Camelyon-17 four-class
+dataset, our analysis concentrated on two key evaluation metrics: AUC and F1-score. Figure 3 presents a visualization of
+these metrics for a single MIL model across different feature extractors, using bar charts for both the Camelyon-17-Origin
+and Camelyon-17-Refine datasets. This visualization effectively illustrates how these metrics vary as the dataset undergoes
+refinement. Our results indicate that both AUC and F1-score exhibited notable changes following the dataset’s adjustment.
+Figure 4 further visualizes the F1-score, AUC, and their combined values, highlighting the top three models to assess the impact
+of dataset refinement on the performance ranking of the models. While the overall model rankings shifted to some extent after
+the dataset refinement, the CLAM-MB19 model consistently maintained its top-ranked position, indicating its robustness. In
+summary, dataset refinement enhanced the accuracy of model evaluation metrics and improved the fairness of model rankings,
+establishing a more solid foundation for future research.
+Camelyon+ Benchmark Experiment
+In the Benchmark Experiment on Camelyon+, we maintained the same hyperparameter settings as in the comparative
+experiments on Camelyon-172. On the merged Camelyon+ dataset, we evaluated the MIL approach using feature extractors
+from two pre-trained natural image models, ResNet-5020 and VIT-S21, and four pre-trained pathology image models, PLIP5,
+CONCH9, UNI6, and Gigapath7. We classify these feature extractors into three main categories: ResNet-5020 and ViT-S21 fall
+under the domain of natural image pre-training; PLIP and CONCH fall under the domain of image-text contrastive learning
+pre-training; and UNI, and GigaPath belong to the category of pathology-specific visual pre-training. We report the mean and
+variance of model performance in Table 3, Table 4 and Table 5, which can serve as baselines and references for future work
+based on the Camelyon+ dataset.
+3/14
+As shown in Figure 5, we present a heatmap of the distribution of AUC and F1-score across different MIL models
+under various feature extractors. It can be observed that pathology-pretrained feature extractors significantly enhance the
+performance of MIL. Notably, the CONCH9 model, which uses a VIT-Base17 architecture with image-text contrastive learning,
+achieves performance comparable to the UNI6 and Gigapath7 models, which utilize VIT-Large17 and VIT-Giant17 architectures,
+respectively. Moreover, both UNI and Gigapath leverage larger training datasets. This suggests that image-text contrastive
+pretraining may hold greater potential than pure visual pretraining in the pathology domain. While the PLIP5 model is also
+pretrained using image-text contrastive learning, its performance does not match that of CONCH, likely due to its smaller
+dataset and the lower quality of data sourced from Twitter.
+In the benchmark results, while the model demonstrates relatively strong performance in terms of accuracy and AUC,
+the F1-score, recall, and precision are notably low. As illustrated in Figure 6, we visualized the confusion matrices for the
+CLAM-MB19 and FR-MIL31 models. The results show that the models perform relatively well in classifying the negative,
+micro, and macro categories, but perform poorly in the ITC category. We used macro-averaging to calculate the F1-score, recall,
+and precision, and the model’s poor performance on the ITC category significantly lowered the overall performance metrics. To
+investigate this issue further, we analyzed the model’s difficulty in identifying ITC cases. One major factor is the severe class
+imbalance in the Camelyon+ dataset. As shown in Figure 2, the head class, negative, contains 871 slides, while the tail class,
+ITC, contains only 54 slides, resulting in an imbalance ratio of approximately 16.1. This imbalance classifies the dataset as
+having a moderately long-tailed distribution. Such imbalance highlights a key challenge in pathology image analysis: how
+to achieve balanced model performance on long-tailed datasets like Camelyon+, particularly since real-world pathological
+data naturally follow a long-tailed distribution. Furthermore, we identified a fundamental difference between the four-class
+classification task in Camelyon+ and typical cancer subtyping tasks, such as those in TCGA-NSCLC, TCGA-RCC, or BRACS.
+The ITC, micro, and macro categories in Camelyon+ are primarily distinguished by the size of metastatic regions, whereas MIL
+is generally better suited for binary classification tasks, such as detecting the presence or absence of cancer. This explains why
+models achieve high performance on binary tasks like those in Camelyon-161 or Camelyon-172. Consequently, Camelyon+
+raises an important question about whether the MIL approach the most suitable paradigm for clinical classification tasks like
+Camelyon+, where categories are defined by the size of metastatic regions rather than distinct subtypes of cancer.
+Evaluation metrics
+In the comparative experiments on the Camelyon-172 dataset and Benchmark experiments, we used accuracy, AUC, F1-score,
+recall, precision, and kappa value to assess classification performance. The Kappa coefficient is a statistical measure used to
+evaluate the level of agreement in classification models. It is commonly employed to assess classifier performance, particularly in
+multi-class classification tasks. This coefficient measures how well the predicted results align with actual labels while accounting
+for the agreement that could occur by chance. We calculated these metrics using the macro method, while results based on the
+micro and weighted methods will be available at (https://github.com/lingxitong/CAMELYON-PLUS-BENCHMARK).
+Usage Notes
+The Camelon+ Dataset is publicly available under the Creative Commons Zero (CC0) license. However, please note that this
+dataset is not intended for developing diagnosis-focused algorithms or models, and should not be used as the sole basis for
+clinical evaluations in classification tasks.
+Code availability
+The code related to dataset partitioning strategies, hyperparameter configurations, integration of MIL methods, and evaluation
+metric calculations will be made publicly available at:(https://github.com/lingxitong/MIL_BASELINE).
+References
+1. Bejnordi, B. E. et al. Diagnostic assessment of deep learning algorithms for detection of lymph node metastases in women
+with breast cancer. Jama 318, 2199–2210 (2017).
+2. Bandi, P. et al. From detection of individual metastases to classification of lymph node status at the patient level: the
+camelyon17 challenge. IEEE transactions on medical imaging 38, 550–560 (2018).
+3. Song, A. H. et al. Artificial intelligence for digital and computational pathology. Nat. Rev. Bioeng. 1, 930–949 (2023).
+4. Van der Laak, J., Litjens, G. & Ciompi, F. Deep learning in histopathology: the path to the clinic. Nat. medicine 27,
+775–784 (2021).
+4/14
+5. Huang, Z., Bianchi, F., Yuksekgonul, M., Montine, T. J. & Zou, J. A visual–language foundation model for pathology
+image analysis using medical twitter. Nat. medicine 29, 2307–2316 (2023).
+6. Chen, R. J. et al. Towards a general-purpose foundation model for computational pathology. Nat. Medicine 30, 850–862
+(2024).
+7. Xu, H. et al. A whole-slide foundation model for digital pathology from real-world data. Nature 1–8 (2024).
+8. Wang, X. et al. Transformer-based unsupervised contrastive learning for histopathological image classification. Med.
+image analysis 81, 102559 (2022).
+9. Lu, M. Y. et al. A visual-language foundation model for computational pathology. Nat. Medicine 30, 863–874 (2024).
+10. Kather, J. N. et al. Predicting survival from colorectal cancer histology slides using deep learning: A retrospective
+multicenter study. PLoS medicine 16, e1002730 (2019).
+11. Pataki, B. Á. et al. Huncrc: annotated pathological slides to enhance deep learning applications in colorectal cancer
+screening. Sci. Data 9, 370 (2022).
+12. Barbano, C. A. et al. Unitopatho, a labeled histopathological dataset for colorectal polyps classification and adenoma
+dysplasia grading. In 2021 IEEE International Conference on Image Processing (ICIP), 76–80 (IEEE, 2021).
+13. Oquab, M. et al. Dinov2: Learning robust visual features without supervision. arXiv preprint arXiv:2304.07193 (2023).
+14. Ding, J. et al. Longnet: Scaling transformers to 1,000,000,000 tokens. arXiv preprint arXiv:2307.02486 (2023).
+15. Radford, A. et al. Learning transferable visual models from natural language supervision. In International conference on
+machine learning, 8748–8763 (PMLR, 2021).
+16. Yu, J. et al. Coca: Contrastive captioners are image-text foundation models. arXiv preprint arXiv:2205.01917 (2022).
+17. Ilse, M., Tomczak, J. & Welling, M. Attention-based deep multiple instance learning. In International conference on
+machine learning, 2127–2136 (PMLR, 2018).
+18. Shao, Z. et al. Transmil: Transformer based correlated multiple instance learning for whole slide image classification. Adv.
+neural information processing systems 34, 2136–2147 (2021).
+19. Lu, M. Y. et al. Data-efficient and weakly supervised computational pathology on whole-slide images. Nat. biomedical
+engineering 5, 555–570 (2021).
+20. He, K., Zhang, X., Ren, S. & Sun, J. Deep residual learning for image recognition. In Proceedings of the IEEE conference
+on computer vision and pattern recognition, 770–778 (2016).
+21. Dosovitskiy, A.
+An image is worth 16x16 words: Transformers for image recognition at scale.
+arXiv preprint
+arXiv:2010.11929 (2020).
+22. Yan, R. et al. Shapley values-enabled progressive pseudo bag augmentation for whole-slide image classification. IEEE
+Transactions on Med. Imaging (2024).
+23. Ouyang, M. et al.
+Mergeup-augmented semi-weakly supervised learning for wsi classification.
+arXiv preprint
+arXiv:2408.12825 (2024).
+24. Chu, H. et al. Retmil: Retentive multiple instance learning for histopathological whole slide image classification. In
+International Conference on Medical Image Computing and Computer-Assisted Intervention, 437–447 (Springer, 2024).
+25. Qiehe, S. et al. Nciemil: Rethinking decoupled multiple instance learning framework for histopathological slide classifica-
+tion. In Medical Imaging with Deep Learning (2024).
+26. Yang, S., Wang, Y. & Chen, H. Mambamil: Enhancing long sequence modeling with sequence reordering in computational
+pathology. In International Conference on Medical Image Computing and Computer-Assisted Intervention, 296–306
+(Springer, 2024).
+27. Ling, X. et al. Agent aggregator with mask denoise mechanism for histopathology whole slide image analysis. arXiv
+preprint arXiv:2409.11664 (2024).
+28. Li, B., Li, Y. & Eliceiri, K. W. Dual-stream multiple instance learning network for whole slide image classification
+with self-supervised contrastive learning. In Proceedings of the IEEE/CVF conference on computer vision and pattern
+recognition, 14318–14328 (2021).
+29. Zhang, H. et al. Dtfd-mil: Double-tier feature distillation multiple instance learning for histopathology whole slide image
+classification. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, 18802–18812
+(2022).
+5/14
+30. Li, J. et al. Dynamic graph representation with knowledge-aware attention for histopathology whole slide image analysis.
+In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 11323–11332 (2024).
+31. Chikontwe, P. et al. Fr-mil: Distribution re-calibration based multiple instance learning with transformer for whole slide
+image classification. IEEE Transactions on Med. Imaging 1–1, 10.1109/TMI.2024.3446716 (2024).
+32. Deng, J. et al. Imagenet: A large-scale hierarchical image database. In 2009 IEEE conference on computer vision and
+pattern recognition, 248–255 (Ieee, 2009).
+Acknowledgements
+This work was supported by the National Natural Science Foundation of China (NSFC) under Grant No. 82430062. We also
+gratefully acknowledge the support from the Shenzhen Engineering Research Centre (Grant No. XMHT20230115004) and the
+Shenzhen Science and Technology Innovation Commission (Grant No. KCXFZ20201221173207022). This work was also
+supported by the Shenzhen High-level Hospital Construction Fund. Additionally, we thank the Jilin FuyuanGuan Food Group
+Co., Ltd. for their collaboration.
+Author contributions statement
+X.L. and J.L. conceptualized the study, designed the experiments, and conducted the specific experiments. Y.L., J.C., and
+W.H. were responsible for dataset correction and construction. T.G., J.G., and Y.H. contributed to the manuscript writing and
+provided insights into the development of the manuscript structure. All authors read and approved the final version of the
+manuscript.
+Competing interests
+The authors declare no competing interests.
+6/14
+Figures & Tables
+(a) The WSI shows a therapeutic response with tissue fibrosis.
+(b) The WSI shows a blurred histiocyte-cancer boundary (left) and  poor staining (right).
+ Camelyon-16  tumor_077.tif 
+ Camelyon-17 patient_26_node_2.tif
+ Camelyon-16  tumor_034.tif 
+ Camelyon-17 patient_19_node_2.tif 
+(a) The cancerous region is missed in the annotation of this WSI.
+(d) The WSI shows a therapeutic response with tissue necrosis.
+Figure 1. Issues within the Camelyon-161 and Camelyon-172 datasets: therapeutic response, annotation omissions, blurred
+boundaries, and poor staining.
+          (a) Negative                                     (b) Micro            
+            (c) Macro                                        (d) ITC            
+Figure 2. Revised data distribution of the Camelyon dataset and the pathological characteristics of different categories.
+7/14
+Figure 3. AUC and F1-score Comparison of Different Methods in the Camelyon-17-Origin and Camelyon-17-Refine
+Comparative Experiments.
+        Camelyon-17-Origin（PLIP）                          Camelyon-17-Origin（UNI）                     Camelyon-17-Origin（Gigapath）                        Camelyon-17-Origin（Total）
+        Camelyon-17-Refine（PLIP）                          Camelyon-17-Refine（UNI）                     Camelyon-17-Refine（Gigapath）                        Camelyon-17-Refine（Total）
+F1
+AUC
+AUC + F1
+1st
+2nd
+3rd
+Figure 4. Model ranking radar chart based on AUC and F1-score on Camelyon-17-Origin and Camelyon-17-Refine datasets.
+8/14
+AUC (Mean) heatmap for feature encoders and models of benchmark results 
+Fl-score (Mean) heatmap for feature encoders and models of benchmark results 
+Max-MIL 
+Mean-MIL 
+ABMIL-
+Gate-AB MIL -
+CLAM -SB-
+s1apow
+ 
+s1apow
+ 
+CLAM-MB-
+DSMIL-
+TransMIL-
+DTFD-
+AMD-MIL 
+WiKG -
+FR-MIL 
+80.7 
+81.4 
+81.1 
+81.7 
+80.2 
+85.1 
+81.8 
+86.7 
+84.0 
+ResNet-50 
+77.2 
+74.0 
+81.6 
+82.3 
+82.3 
+84.8 
+78.9 
+83.9 
+78.5 
+83.0 
+83.2 
+83.1 
+VIT-5 
+78.2 
+75.4 
+85.1 
+84.5 
+84.7 
+84.8 
+86.3 
+84.2 
+86.5 
+83.8 
+78.3 
+85.1 
+PUP 
+CONCH 
+Feature Encoders 
+82.1 
+77.8 
+UNI 
+90 
+85 
+-80 
+75 
+70 
+Max-MIL 
+Mean-MIL 
+ABMIL-
+Gate-ABM IL -
+CLAM -SB-
+CLAM-M B-
+DSMIL-
+TransMIL 
+DTFD-
+AMD-MIL 
+WiKG-
+FR-MIL-
+52.7 
+4
+8
+2
+2
+0
+5
+•
+ 1
+2
+6
+8
+8
+1
+ 
+5
+5
+5
+4
+5
+5
+57.9 
+54.3 
+55.6 
+ResNet-50 
+47.7 
+42.0 
+51.0 
+54.0 
+54.0 
+57.6 
+49.6 
+50.8 
+49.3 
+53.1 
+51.6 
+54.5 
+VIT-5 
+43.9 
+43.7 
+53.1 
+4
+0
+8
+3
+5
+5
+．
+ 
+3
+2
+9
+4
+1
+8
+5
+5
+5
+5
+5
+4
+ 
+57.7 
+57.8 
+52.8 
+44.8 
+53.1 
+60.4 
+PUP 
+CONCH 
+Feature Encoders 
+50.1 
+43.5 
+59.6 
+59.7 
+55.4
+46.3 
+65 
+60 
+- 55 
+- so 
+45 
+40 
+35 
+Gigapath 
+UNI 
+Gigapath 
+Figure 5. Distribution of AUC and F1-score in benchmark results across different feature extractors and aggregators.
+Figure 6. Confusion matrices of CLAM-MB19 and FR-MIL31 under the PLIP5, CONCH6, UNI9, and Gigapath7 feature
+encoders.
+9/14
+Table 1. Performance metrics of different methods on the Camelyon-17-Origin dataset.
+Methods
+Acc (%)
+AUC (%)
+F1 (%)
+Recall (%)
+Precision (%)
+Kappa
+PLIP5 (WSIs pre-trained)
+Max-MIL
+83.1±0.90
+79.8±1.58
+46.2±0.34
+45.4±0.83
+46.6±2.35
+0.69±0.00
+Mean-MIL
+78.7±0.64
+77.1±0.17
+43.1±0.25
+44.5±0.43
+49.3±1.58
+0.56±0.01
+ABMIL17
+84.4±0.72
+86.2±0.24
+56.6±1.17
+54.4±0.31
+53.5±0.45
+0.77±0.01
+Gate-ABMIL17
+83.9±1.30
+86.4±0.50
+55.5±2.66
+53.8±1.78
+53.3±0.69
+0.76±0.02
+CLAM-SB19
+84.9±0.50
+86.4±0.32
+54.4±1.63
+53.2±1.05
+52.5±0.55
+0.76±0.01
+CLAM-MB19
+86.1±0.42
+89.2±0.62
+60.6±3.30
+58.4±2.58
+59.4±5.25
+0.79±0.02
+DSMIL28
+86.1±0.61
+87.4±1.14
+57.8±4.20
+57.9±3.57
+61.2±6.58
+0.76±0.02
+TransMIL18
+85.4±1.11
+88.3±1.42
+61.0±5.51
+58.3±4.43
+56.7±4.24
+0.74±0.06
+DTFD29
+85.5±0.50
+86.1±0.55
+52.9±1.79
+52.1±2.14
+52.6±1.01
+0.76±0.01
+AMD-MIL27
+83.7±3.18
+88.1±1.31
+58.9±3.40
+56.4±4.36
+55.1±4.74
+0.73±0.02
+WiKG30
+86.3±1.22
+88.2±0.41
+61.2±2.91
+59.1±3.13
+58.4±3.04
+0.78±0.01
+FR-MIL31
+82.7±3.64
+84.0±4.32
+52.8±6.72
+52.0±5.30
+52.1±4.52
+0.71±0.07
+UNI6 (WSIs pre-trained)
+Max-MIL
+85.3±0.58
+84.1±1.40
+47.2±0.59
+44.8±0.75
+45.0±4.80
+0.72±0.03
+Mean-MIL
+76.1±2.66
+81.1±0.55
+46.8±0.74
+47.0±1.25
+48.4±2.37
+0.57±0.03
+ABMIL17
+82.4±0.35
+91.3±0.35
+65.4±1.86
+61.2±1.35
+59.7±1.63
+0.73±0.02
+Gate-ABMIL17
+80.9±1.40
+89.9±0.44
+63.6±5.47
+58.8±4.05
+56.7±3.37
+0.71±0.02
+CLAM-SB19
+81.3±1.86
+91.9±0.53
+66.2±4.04
+59.9±2.85
+58.5±1.61
+0.70±0.04
+CLAM-MB19
+85.1±0.31
+95.0±0.41
+77.4±2.02
+68.1±1.20
+64.9±0.55
+0.70±0.02
+DSMIL28
+83.2±0.53
+92.7±1.27
+67.7±4.95
+61.8±3.23
+60.2±2.49
+0.66±0.05
+TransMIL18
+86.0±0.35
+93.7±1.24
+69.0±2.47
+64.4±2.31
+64.4±1.92
+0.77±0.02
+DTFD29
+84.4±0.60
+92.7±0.37
+66.6±5.33
+61.7±5.15
+59.2±4.56
+0.77±0.04
+AMD-MIL27
+82.5±1.62
+94.0±0.70
+70.2±1.79
+63.0±1.60
+61.1±1.04
+0.63±0.06
+WiKG30
+84.6±3.20
+93.6±0.87
+63.9±1.87
+60.0±1.72
+58.4±1.25
+0.72±0.08
+FR-MIL31
+84.1±0.70
+94.3±0.66
+75.0±3.91
+66.2±2.13
+63.5±1.28
+0.71±0.01
+Gigapath7 (WSIs pre-trained)
+Max-MIL
+83.5±1.81
+84.7±3.79
+51.5±5.76
+49.5±5.31
+48.2±4.85
+0.74±0.04
+Mean-MIL
+78.3±1.36
+81.6±0.17
+47.3±2.31
+48.7±1.69
+53.2±3.11
+0.53±0.05
+ABMIL17
+79.2±2.43
+92.1±0.27
+65.7±6.11
+58.1±5.31
+58.6±0.99
+0.68±0.03
+Gate-ABMIL17
+80.7±1.14
+91.6±0.99
+68.0±1.85
+61.9±1.88
+60.0±1.55
+0.72±0.02
+CLAM-SB19
+80.3±4.02
+92.7±0.59
+66.0±9.69
+60.1±8.21
+61.4±4.20
+0.75±0.01
+CLAM-MB19
+85.5±0.61
+96.2±0.30
+77.3±1.45
+68.3±0.94
+65.2±0.73
+0.70±0.02
+DSMIL28
+86.2±1.71
+93.2±1.30
+70.1±2.06
+65.6±0.86
+63.6±1.00
+0.71±0.01
+TransMIL18
+84.7±2.21
+94.6±0.36
+77.4±3.45
+68.3±3.26
+64.6±3.06
+0.73±0.04
+DTFD29
+81.5±1.22
+92.0±0.80
+60.8±3.69
+55.6±3.66
+54.2±2.66
+0.75±0.07
+AMD-MIL27
+83.5±1.03
+93.9±0.36
+71.3±0.79
+64.7±0.38
+62.9±1.31
+0.74±0.01
+WiKG30
+83.4±0.72
+94.0±1.13
+70.6±5.09
+64.5±2.23
+63.0±1.46
+0.74±0.05
+FR-MIL31
+83.9±0.81
+93.7±1.02
+71.8±5.51
+64.8±3.34
+62.3±2.78
+0.70±0.04
+10/14
+Table 2. Performance metrics of different methods on the Camelyon-17-Refine dataset.
+Methods
+Acc (%)
+AUC (%)
+F1 (%)
+Recall (%)
+Precision (%)
+Kappa
+PLIP5 (WSIs pre-trained)
+Max-MIL
+77.8±9.55
+72.7±11.09
+38.7±10.28
+37.4±10.63
+41.0±3.25
+0.49±0.32
+Mean-MIL
+79.8±0.24
+77.7±0.25
+43.2±0.18
+44.8±0.22
+49.2±0.57
+0.59±0.00
+ABMIL17
+81.8±1.39
+87.0±1.18
+52.9±1.63
+51.0±1.48
+51.5±0.42
+0.75±0.02
+Gate-ABMIL17
+81.9±2.04
+87.5±0.13
+53.1±2.83
+51.3±2.61
+51.7±1.01
+0.75±0.02
+CLAM-SB19
+82.8±1.73
+87.0±0.76
+54.2±2.32
+52.3±1.95
+52.0±0.88
+0.76±0.02
+CLAM-MB19
+87.2±0.80
+89.3±0.41
+61.4±2.12
+59.6±2.69
+61.2±7.85
+0.82±0.01
+DSMIL28
+86.2±1.32
+87.8±0.86
+56.4±2.37
+56.2±1.95
+56.5±1.79
+0.76±0.02
+TransMIL18
+83.8±1.00
+88.9±1.15
+58.9±5.70
+56.9±4.14
+56.7±2.78
+0.71±0.02
+DTFD29
+84.3±1.81
+86.7±0.95
+52.1±1.79
+51.2±1.12
+51.3±0.19
+0.77±0.01
+AMD-MIL27
+86.4±0.97
+89.0±0.67
+61.9±3.01
+59.6±3.07
+58.4±2.66
+0.78±0.03
+WiKG30
+87.1±1.20
+88.2±1.64
+57.9±2.76
+56.6±2.13
+55.8±1.86
+0.80±0.03
+FR-MIL31
+80.6±1.59
+87.0±5.90
+57.5±6.19
+55.3±4.36
+54.8±3.49
+0.63±0.02
+UNI6 (WSIs pre-trained)
+Max-MIL
+79.6±10.07
+77.9±11.95
+41.3±10.87
+39.1±9.87
+41.1±2.10
+0.55±0.35
+Mean-MIL
+76.5±2.02
+81.6±0.26
+46.4±0.70
+46.8±1.09
+49.4±0.83
+0.49±0.06
+ABMIL17
+82.1±1.60
+92.3±0.64
+67.7±1.51
+61.9±1.47
+59.6±1.29
+0.72±0.02
+Gate-ABMIL17
+81.0±0.86
+92.2±0.28
+65.7±4.13
+59.7±3.14
+57.9±2.48
+0.68±0.05
+CLAM-SB19
+81.3±1.07
+93.1±0.22
+64.8±6.08
+58.5±4.25
+56.5±3.85
+0.73±0.07
+CLAM-MB19
+85.0±0.68
+95.9±0.21
+74.5±8.42
+65.6±3.72
+63.4±3.06
+0.70±0.08
+DSMIL28
+85.9±3.17
+93.1±2.26
+62.6±5.28
+59.9±3.16
+59.0±1.35
+0.75±0.05
+TransMIL18
+88.5±0.44
+95.2±0.93
+70.4±1.88
+65.7±1.97
+66.1±6.04
+0.78±0.06
+DTFD29
+82.6±0.56
+94.5±0.31
+61.0±4.13
+56.5±4.67
+56.6±5.77
+0.78±0.01
+AMD-MIL27
+86.0±1.12
+94.8±0.13
+73.6±3.45
+68.5±1.14
+66.8±2.55
+0.78±0.03
+WiKG30
+83.1±3.56
+95.0±0.42
+73.3±1.91
+64.6±3.19
+62.6±1.50
+0.68±0.03
+FR-MIL31
+85.0±0.97
+96.0±0.46
+78.3±4.48
+68.0±1.51
+65.4±1.22
+0.70±0.09
+Gigapath7 (WSIs pre-trained)
+Max-MIL
+83.7±2.77
+83.4±3.83
+47.3±0.92
+45.9±0.76
+44.9±1.69
+0.75±0.03
+Mean-MIL
+76.1±4.24
+81.3±0.55
+49.7±3.29
+49.5±0.91
+52.1±1.32
+0.51±0.06
+ABMIL17
+81.4±0.49
+91.8±0.70
+66.6±2.55
+61.6±2.21
+59.8±2.55
+0.75±0.03
+Gate-ABMIL17
+81.4±1.73
+92.7±0.73
+70.6±1.69
+63.2±2.80
+61.1±2.50
+0.72±0.07
+CLAM-SB19
+78.7±2.33
+92.6±0.38
+59.9±2.54
+54.8±1.68
+55.2±4.44
+0.72±0.08
+CLAM-MB19
+84.4±1.92
+96.5±0.44
+81.1±3.75
+68.5±0.39
+65.6±0.30
+0.64±0.09
+DSMIL28
+86.2±0.85
+93.5±0.61
+68.8±4.85
+65.2±3.73
+63.8±3.42
+0.75±0.06
+TransMIL18
+86.2±0.76
+95.6±0.36
+73.4±4.51
+67.9±4.69
+66.5±4.56
+0.80±0.02
+DTFD29
+80.9±1.18
+93.4±0.81
+58.1±2.52
+52.7±1.53
+53.5±1.32
+0.76±0.02
+AMD-MIL27
+84.6±1.20
+95.0±0.41
+72.9±1.31
+66.4±1.12
+64.9±2.85
+0.75±0.07
+WiKG30
+83.8±1.41
+94.4±0.52
+73.8±2.83
+66.0±2.31
+63.8±1.39
+0.74±0.04
+FR-MIL31
+85.9±0.88
+95.4±0.89
+79.7±6.78
+69.2±2.62
+65.7±1.82
+0.72±0.04
+11/14
+Table 3. Benchmark results on Camelyon+ dastaset of the natural images pre-trained domain.
+Methods
+Acc (%)
+AUC (%)
+F1 (%)
+Recall (%)
+Precision (%)
+Kappa
+ResNet-5020 (ImageNet pre-trained32)
+Max-MIL
+70.3±7.53
+66.3±11.07
+33.0±10.65
+28.9±12.06
+30.8±13.43
+0.22±0.30
+Mean-MIL
+73.2±2.87
+70.8±4.14
+38.7±3.35
+37.9±2.67
+41.1±1.77
+0.39±0.08
+ABMIL17
+81.1±1.30
+80.7±3.32
+52.7±1.98
+51.5±1.86
+52.8±1.98
+0.63±0.03
+Gate-ABMIL17
+80.5±1.26
+81.4±3.05
+51.4±2.05
+49.2±3.41
+51.2±2.99
+0.63±0.03
+CLAM-SB19
+80.2±1.78
+81.1±2.93
+52.8±2.07
+50.9±2.03
+51.3±2.51
+0.63±0.02
+CLAM-MB19
+83.5±1.22
+81.7±1.89
+56.2±3.80
+56.1±2.83
+57.9±1.75
+0.65±0.03
+DSMIL28
+79.8±1.05
+80.2±4.10
+48.2±0.70
+46.9±1.67
+49.1±4.71
+0.61±0.01
+TransMIL18
+81.2±4.49
+85.1±1.83
+58.0±3.27
+56.5±4.00
+56.8±5.46
+0.63±0.03
+DTFD29
+80.6±1.94
+81.8±4.04
+51.5±2.22
+49.7±2.57
+51.2±3.36
+0.63±0.03
+AMD-MIL27
+81.1±1.91
+86.7±3.43
+57.9±3.03
+55.8±1.81
+55.8±1.81
+0.63±0.03
+WiKG30
+81.3±3.30
+84.0±3.77
+54.3±3.24
+54.3±3.60
+56.2±3.22
+0.62±0.03
+FR-MIL31
+82.8±0.87
+84.9±2.97
+55.6±2.56
+56.4±1.29
+58.5±1.63
+0.63±0.04
+VIT-S21 (ImageNet pre-trained32)
+Max-MIL
+76.7±5.30
+77.2±1.90
+47.7±1.17
+45.4±1.97
+45.5±6.72
+0.58±0.10
+Mean-MIL
+72.5±4.64
+74.0±4.41
+42.0±3.99
+41.8±4.31
+45.4±7.88
+0.42±0.07
+ABMIL17
+81.4±2.07
+81.6±3.62
+51.0±3.26
+49.7±4.06
+52.9±4.71
+0.65±0.04
+Gate-ABMIL17
+78.9±2.05
+82.3±3.41
+54.0±3.10
+53.0±2.78
+52.7±2.55
+0.61±0.05
+CLAM-SB19
+81.9±1.52
+82.3±3.57
+54.0±3.25
+53.2±3.30
+57.0±5.80
+0.64±0.06
+CLAM-MB19
+81.7±3.08
+84.8±4.11
+57.6±2.34
+56.9±2.07
+59.0±3.74
+0.61±0.09
+DSMIL28
+77.1±3.38
+78.9±3.28
+49.6±2.83
+49.0±2.75
+51.2±1.73
+0.57±0.07
+TransMIL18
+79.7±1.78
+83.9±2.10
+50.8±4.61
+47.1±5.16
+46.7±7.02
+0.63±0.03
+DTFD29
+80.4±1.10
+78.5±2.96
+49.3±2.60
+46.4±3.72
+47.4±7.18
+0.63±0.03
+AMD-MIL27
+81.7±0.72
+83.0±2.83
+53.1±3.69
+51.6±3.35
+55.1±3.60
+0.65±0.04
+WiKG30
+80.8±1.34
+83.2±2.79
+51.6±2.55
+50.1±5.04
+51.0±8.07
+0.62±0.03
+FR-MIL31
+79.2±3.24
+83.1±2.03
+54.5±3.56
+54.5±1.93
+57.4±4.86
+0.57±0.06
+12/14
+Table 4. Benchmark results on Camelyon+ dastaset of the image-text contrastive pre-trained domain.
+Methods
+Acc (%)
+AUC (%)
+F1 (%)
+Recall (%)
+Precision (%)
+Kappa
+PLIP5 (WSIs pre-trained)
+Max-MIL
+79.4±2.49
+78.2±3.44
+43.9±1.87
+47.3±2.13
+41.2±2.01
+0.61±0.03
+Mean-MIL
+73.4±6.31
+75.4±5.08
+43.7±2.48
+43.6±3.44
+48.9±3.82
+0.50±0.05
+ABMIL17
+81.8±1.94
+85.1±4.15
+53.1±5.62
+54.3±4.08
+55.0±5.96
+0.66±0.03
+Gate-ABMIL17
+82.4±0.98
+84.5±3.91
+53.4±1.57
+54.7±2.14
+54.9±1.68
+0.67±0.04
+CLAM-SB19
+81.9±1.81
+84.7±4.43
+52.0±6.23
+53.8±4.15
+51.8±8.51
+0.65±0.04
+CLAM-MB19
+83.9±0.78
+87.2±2.20
+59.8±3.83
+60.4±4.02
+60.9±3.33
+0.67±0.04
+DSMIL28
+81.9±2.78
+84.8±3.58
+54.3±3.03
+54.2±2.74
+56.1±4.73
+0.65±0.02
+TransMIL18
+81.9±1.57
+86.3±3.01
+51.5±7.23
+54.1±5.52
+55.4±10.71
+0.65±0.04
+DTFD29
+81.3±2.22
+84.2±4.23
+48.5±4.74
+51.4±3.52
+49.6±6.55
+0.66±0.03
+AMD-MIL27
+84.9±1.45
+88.1±2.90
+57.7±5.05
+59.1±4.34
+58.9±1.83
+0.69±0.03
+WiKG30
+82.3±2.34
+86.5±4.16
+57.8±3.53
+58.1±3.31
+59.4±3.46
+0.61±0.08
+FR-MIL31
+84.6±0.99
+88.2±3.33
+61.7±5.41
+62.1±5.62
+63.9±7.14
+0.67±0.05
+CONCH9 (WSIs pre-trained)
+Max-MIL
+83.8±3.65
+83.8±5.93
+52.8±8.29
+54.0±6.86
+52.8±10.19
+0.66±0.06
+Mean-MIL
+77.9±2.86
+78.3±4.54
+44.8±2.23
+45.7±2.65
+46.3±3.95
+0.56±0.04
+ABMIL17
+81.8±1.94
+85.1±4.15
+53.1±5.62
+54.3±4.08
+55.0±5.96
+0.66±0.03
+Gate-ABMIL17
+85.7±1.62
+90.8±4.57
+60.4±3.07
+61.4±3.02
+63.0±3.83
+0.70±0.06
+CLAM-SB19
+86.6±2.03
+90.5±4.97
+60.9±1.23
+61.8±2.12
+64.6±8.59
+0.72±0.04
+CLAM-MB19
+88.0±1.95
+91.1±5.02
+65.1±2.62
+66.6±2.78
+66.2±6.34
+0.73±0.06
+DSMIL28
+86.8±1.98
+88.3±4.21
+61.2±1.66
+61.5±1.02
+61.8±3.03
+0.70±0.02
+TransMIL18
+84.7±3.80
+91.6±2.73
+60.9±3.13
+62.6±3.43
+64.8±13.42
+0.71±0.04
+DTFD29
+86.3±2.68
+89.7±4.73
+59.9±2.14
+61.0±2.00
+59.7±3.39
+0.72±0.05
+AMD-MIL27
+84.1±3.30
+93.0±3.21
+64.3±6.73
+66.9±8.02
+66.0±5.91
+0.62±0.17
+WiKG30
+86.2±2.71
+91.1±4.71
+63.8±4.29
+65.0±4.28
+67.5±12.20
+0.73±0.03
+FR-MIL31
+87.3±2.62
+92.3±3.16
+62.7±3.90
+63.7±5.00
+63.1±2.65
+0.70±0.07
+13/14
+Table 5. Benchmark results on Camelyon+ dastaset of the WSIs vision pre-trained domain.
+Methods
+Acc (%)
+AUC (%)
+F1 (%)
+Recall (%)
+Precision (%)
+Kappa
+UNI6 (WSIs pre-trained)
+Max-MIL
+81.1±3.77
+82.1±5.87
+50.1±7.48
+52.1±7.05
+50.1±7.47
+0.63±0.06
+Mean-MIL
+74.1±4.15
+77.8±3.53
+43.5±4.51
+44.4±3.81
+43.8±5.30
+0.49±0.08
+ABMIL17
+84.6±2.28
+90.6±2.94
+59.6±2.12
+60.2±1.62
+60.4±2.97
+0.69±0.06
+Gate-ABMIL17
+84.1±3.13
+90.8±1.01
+59.7±4.00
+60.3±3.41
+63.0±5.87
+0.70±0.04
+CLAM-SB19
+83.5±3.41
+90.8±3.82
+56.4±3.59
+57.5±2.91
+56.8±4.38
+0.68±0.03
+CLAM-MB19
+88.0±1.93
+93.3±3.40
+66.6±5.70
+67.1±6.87
+70.2±5.74
+0.75±0.04
+DSMIL28
+83.0±3.76
+87.6±3.01
+57.7±5.76
+56.7±5.76
+64.7±13.70
+0.65±0.05
+TransMIL18
+85.9±2.32
+91.9±2.59
+60.0±10.56
+62.0±9.04
+66.8±13.03
+0.72±0.03
+DTFD29
+84.4±2.97
+90.4±2.93
+58.6±4.08
+59.6±2.76
+60.0±7.16
+0.72±0.05
+AMD-MIL27
+85.3±1.76
+92.4±1.19
+60.5±6.29
+61.4±6.37
+61.7±6.59
+0.72±0.03
+WiKG30
+85.6±3.36
+91.7±2.31
+62.9±3.13
+64.3±2.39
+64.2±8.35
+0.73±0.03
+FR-MIL31
+85.2±2.81
+93.0±2.20
+65.2±4.46
+64.9±5.57
+70.9±9.53
+0.69±0.05
+Gigapath7 (WSIs pre-trained)
+Max-MIL
+81.4±6.62
+86.6±6.96
+55.4±5.93
+54.6±5.35
+54.9±5.53
+0.65±0.11
+Mean-MIL
+77.4±3.20
+79.1±3.17
+46.3±4.24
+46.3±4.61
+53.6±9.24
+0.53±0.09
+ABMIL17
+79.2±2.43
+92.1±0.27
+65.7±6.11
+58.1±5.31
+58.6±0.99
+0.68±0.03
+Gate-ABMIL17
+84.9±3.00
+89.7±3.41
+59.6±1.61
+58.7±2.70
+59.5±4.52
+0.69±0.04
+CLAM-SB19
+85.4±2.93
+91.2±2.47
+60.8±3.78
+59.8±3.56
+63.7±8.90
+0.72±0.03
+CLAM-MB19
+86.7±3.01
+92.1±2.88
+69.1±8.13
+66.7±5.36
+67.0±3.40
+0.70±0.07
+DSMIL28
+86.5±3.12
+89.7±4.70
+62.1±4.48
+62.3±2.86
+64.2±2.46
+0.68±0.06
+TransMIL18
+88.2±2.77
+92.8±2.44
+67.4±3.54
+66.9±2.68
+75.5±11.95
+0.73±0.07
+DTFD29
+83.7±2.33
+89.4±4.64
+59.4±3.78
+58.0±4.24
+61.3±3.57
+0.68±0.07
+AMD-MIL27
+87.3±1.92
+92.6±3.11
+65.8±4.68
+64.6±4.28
+64.6±4.42
+0.72±0.05
+WiKG30
+85.0±3.89
+91.3±2.93
+59.5±5.13
+59.4±6.88
+68.0±16.12
+0.72±0.06
+FR-MIL31
+86.2±2.01
+90.7±3.11
+63.2±3.54
+63.8±2.40
+75.7±10.20
+0.71±0.06
+14/14

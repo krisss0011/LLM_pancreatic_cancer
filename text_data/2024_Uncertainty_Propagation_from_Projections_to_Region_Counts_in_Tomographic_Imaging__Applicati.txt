@@ -1,0 +1,1351 @@
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2023
+1
+Uncertainty Propagation from Projections to
+Region Counts in Tomographic Imaging:
+Application to Radiopharmaceutical Dosimetry
+Lucas Polson, Sara Kurkowska, Chenguang Li, Pedro Esquinas, Peyman Sheikhzadeh, Mehrshad Abbasi,
+Francois Benard, Carlos Uribe, Arman Rahmim
+Abstract— Radiopharmaceutical
+therapies
+(RPTs)
+present a major opportunity to improve cancer therapy.
+Although many current RPTs use the same injected
+activity
+for
+all
+patients,
+there
+is
+interest
+in
+using
+absorbed dose measurements to enable personalized
+prescriptions. Image-based absorbed dose calculations
+incur uncertainties from calibration factors, partial volume
+effects
+and
+segmentation
+methods.
+While
+previously
+published dose estimation protocols incorporate these
+uncertainties,
+they
+do
+not
+account
+for
+uncertainty
+originating from the reconstruction process itself with
+the propagation of Poisson noise from projection data.
+This effect should be accounted for to adequately estimate
+the total uncertainty in absorbed dose estimates. This
+paper proposes a computationally practical algorithm
+that propagates uncertainty from projection data through
+clinical reconstruction algorithms to obtain uncertainties
+on the total measured counts within volumes of interest
+(VOIs). The algorithm is first validated on 177Lu and 225Ac
+phantom data by comparing estimated uncertainties from
+individual
+SPECT
+acquisitions
+to
+empirical
+estimates
+obtained from multiple acquisitions. It is then applied to (i)
+Monte Carlo and (ii) multi-time point 177Lu-DOTATATE and
+225Ac-PSMA-617 patient data for time integrated activity
+(TIA) uncertainty estimation. The outcomes of this work
+are two-fold: (i) the proposed uncertainty algorithm is
+validated, and (ii) a blueprint is established for how the
+algorithm can be inform dosimetry protocols via TIA
+uncertainty estimation. The proposed algorithm is made
+publicly available in the open-source image reconstruction
+library PyTomography.
+Index Terms— 177-Lutetium, 225-Actinium, SPECT, PET,
+uncertainty, tomography, dosimetry, theranostics
+I. INTRODUCTION
+Manuscript received XX; accepted XX. Date of publication XX; date
+of current version XX. This work was supported by the Natural Sciences
+and Engineering Research Council of Canada (NSERC) CGS D Award
+569711, NSERC Discovery Grants RGPIN-2019-06467 and RGPIN-
+2021-02965, as well as computational resources and services provided
+by Microsoft for Health. (Carlos Uribe and Arman Rahmim contributed
+equally to this work.)
+Lucas Polson, Chenguang Li, and Arman Rahmim are with the
+the Department of Physics& Astronomy at the University of British
+Columbia, Vancouver, Canada (e-mail: lukepolson@outlook.com).
+Sara Kurkowska, Pedro Esquinas, Francois Benard, and Carlos Uribe
+are with the Department of Integrative Oncology, BC Cancer, Vancouver
+Canada.
+Peyman Sh.Zadeh and Mehrshad Abbasi are with the Nuclear
+Medicine Department, IKHC, Faculty of Medicine, Tehran University of
+Medical Science, Tehran, Iran
+R
+ADIOPHARMACEUTICAL
+therapies
+(RPTs)
+are
+rapidly advancing, with widespread use in clinical trials
+and recent approvals for the treatment of several cancers.
+177Lu-based RPTs, for example, have achieved significant
+milestones in recent years. 177Lu-DOTATATE based peptide
+receptor RPT gained food and drug administration approval in
+2018 for the treatment of neuroendocrine tumor patients [1].
+Soon after, 177Lu-PSMA-617 was demonstrated efficacious in
+the treatment of metastatic castration resistant prostate cancer
+(mCRPC) in the VISION [2] and TheraP [3] randomized
+control trials. Numerous other clinical trials that focus on
+other isotopes have also shown positive results. Notably,
+recent studies on mCRPC RPTs have explored the use of
+225Ac to enhance treatment outcomes [4]–[6].
+SPECT imaging can be used to monitor therapy in the
+aforementioned RPTs since photon emissions from direct
+177Lu and indirect 225Ac decay are detectable by SPECT
+cameras. Imaging can be used to perform dosimetry after an
+initial therapeutic dose, with the goal of measuring absorbed
+dose in tumours and critical organs to personalize administered
+activity in later cycles of RPTs [7]. When images are used
+to estimate absorbed dose, however, it may be important to
+consider the impact of limited statistical counts (LSCs) in
+projection data on the uncertainty in voxel values of the
+reconstructed images. While previous protocols have reported
+uncertainty analyses in RPT absorbed dose calculations [8]–
+[10], these protocols do not consider uncertainties propagating
+from LSCs in projection data.
+In general, data obtained with any photon-based imaging
+modality are affected by some (perhaps negligible) amount of
+Poisson noise due to the finite number of photons detected.
+The noise is particularly significant in emission tomography
+due to the small number of photons detected, and it translates
+into corresponding noise and uncertainty in reconstructed
+images. Certain studies have aimed at quantifying these noise
+properties [11], [12], while others have estimated noise via
+modification of filtered back projection (FBP) algorithms [13],
+[14], or bootstrapping (FBP and iterative) [15]. Barrett et al.
+[16] derived an iterative technique to estimate uncertainty
+propagation in the expectation maximization algorithm. Qi
+[17] later presented a more general formalism for uncertainty
+propagation in preconditioned gradient ascent (PGA) algo-
+rithms.
+arXiv:2410.03570v1  [physics.med-ph]  4 Oct 2024
+2
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2023
+These approaches by Barrett et al. and Qi, however, are
+computationally expensive to directly implement on clinical
+data due to large matrix-matrix products. The present work,
+as such, presents an extension of Qi’s algorithm to make uncer-
+tainly estimation computationally efficient by considering the
+particular problem of total count uncertainty estimation within
+volumes of interest (VOIs). In what follows, the theoretical
+formalism is established, and the proposed algorithm is applied
+the specific and important task of absorbed dose uncertainty
+estimation in RPTs [18]. To facilitate the integration of the
+proposed uncertainty estimation technique in such protocols,
+the algorithm was implemented in the open-source image
+reconstruction library PyTomography [19].
+II. METHODS
+This paper consists of three components: (i) derivation
+of the proposed uncertainty algorithm (ii) validation of the
+algorithm on physical 177Lu and 225Ac SPECT/CT phantom
+data, and (iii) application of the algorithm on multiple time
+point SPECT/CT imaging from 177Lu-DOTATATE and 225Ac-
+PSMA-617 RPTs, with further applications in time activity
+curve (TAC) fitting and time integrated activity (TIA) estima-
+tion. All reconstructions and uncertainty estimations in this
+paper were calculated with PyTomography [19].
+A. Theory
+There are a few mathematical conventions used in this paper.
+The following notation is used for random variables: if x is a
+random variable, then ˆx corresponds to an analytically derived
+estimator for x while ˜x corresponds to an empirical estimate
+of x obtained by repetition of experiments. Uncertainties of
+an estimator are also estimators, and may be denoted by ˆu(ˆx),
+ˆu(˜x), ˜u(ˆx), or ˜u(˜x) depending on whether they are analytically
+or empirically obtained. The covariance matrix for a random
+variable x consisting of more than one element is denoted
+Σx. The corresponding percent uncertainties are defined as
+δ(x) ≡u(x)/x·100%, where the carets are omitted here. The
+following notation is used for vectors: · corresponds to the
+dot product, ⊙corresponds to the Hadamard or element-wise
+product, and v◦α corresponds to Hadamard or element-wise
+power of all elements in vector v to the power α. A primed
+linear operator A′ represents the transpose of linear operator
+A.
+1) VOI Uncertainty Estimation Formalism: The random vec-
+tor of the acquired data y can be decomposed into an expec-
+tation value ¯y and zero-mean noise vector n as
+y = ¯y + n
+(1)
+A reconstruction algorithm A uses this projection data to
+obtain an image estimate ˆx via
+ˆx = A(y)
+(2)
+Since y is random vector, so too is ˆx; hence ˆx can be written
+as
+ˆx = ¯ˆx + ϵ
+(3)
+where ϵ is a zero-mean random noise vector. ϵ corresponds
+to an uncertainty resulting solely from uncertainty in the
+projection data. All information about ϵ is contained in Σϵ,
+which depends on A and Σn. Provided Σϵ can be estimated
+using some estimator ˆΣϵ, the uncertainty on the sum of voxel
+values within a volume of interest (VOI) mask ξ can be
+estimated as
+ˆu(ˆx · ξ) =
+q
+ξ′ ˆΣϵξ
+(4)
+When expressed in the form of 4, it is clear that ˆΣϵ can
+be interpreted as an operator (much like the system matrix),
+and thus the individual components need not all be computed
+when operating on a specific VOI mask χ. In what follows,
+the relationship between ˆΣϵ and ˆΣn is established for various
+reconstruction algorithms A.
+2) Covariance Matrix Estimation: The most common linear
+reconstruction algorithm is filtered back projection (FBP). Us-
+ing the distributive property of linear reconstruction algorithms
+and equation 2, the relationship between ϵ and n can be shown
+to be given simply by
+ϵ = An
+(5)
+implying
+ˆΣϵ = AˆΣnA′
+(6)
+Uncertainty estimation for linear reconstruction algorithms
+thus requires (i) an estimate for the covariance of the acquired
+data ˆΣn and (ii) action of the adjoint A′ on ξ in Eq. 4.
+However, the majority of presently used tomographic re-
+construction algorithms for image quantification are iterative
+in nature, and thus propagation of noise estimation is not
+straightforward. Barrett et al. [16] derived an iterative tech-
+nique to estimate uncertainty propagation in the EM algorithm.
+Meanwhile, many presently used iterative algorithms (e.g.
+EM) are actually a particular form of preconditioned gradient
+ascent (PGA) algorithms, and a framework for uncertainty
+propagation in PGA algorithms was in fact proposed by
+Qi [17]. PGA algorithms in image reconstruction have the
+following form:
+ˆxk+1 = ˆxk+diag
+ ˆxk
+D(H)
+
+∇xL
+ y|ˆxk, H, s
+
+−β∇xU
+ ˆxk
+(7)
+where ˆxk is the image estimate of the kth iteration, H
+is the system matrix for the imaging system, D(H) is a
+positive definite matrix, L(y|ˆxk, H) is the likelihood function
+characterizing the projection data y, s is a an additive term
+used to account for scatter (in SPECT) and random/scatter
+(in PET), U(ˆxk) is a regularization function, and β is a
+scaling factor. Using the results from Qi [17] and including
+the estimated scatter uncertainty σ, it follows that
+ϵk+1 ≈V k+1
+y
+n + V k+1
+s
+σ
+(8)
+AUTHOR et al.: PREPARATION OF PAPERS FOR IEEE TRANSACTIONS ON MEDICAL IMAGING
+3
+where, letting z be a placeholder for y and s, it follows that
+V k
+z = Bk−1
+z
++ Qk−1Bk−2
+z
++ Qk−1Qk−2Bk−3
+z
++ ... + Qk−1Qk−2...Q2Q1B0
+z
+(9)
+Qk = 1 + diag
+ Dk¯ˆxk 
+∇xxL(¯y|¯ˆxk, ¯s) −∇xxU(¯ˆxk))
+
++ diag
+ Dk 
+∇xL(¯y|¯ˆxk, ¯s) −∇xU(¯ˆxk))
+
+(10)
+Bk
+z = diag
+ ¯ˆxk
+Dk(H)∇xzL(¯y|¯ˆxk, ¯s)
+(11)
+Using (8) and the fact that n and σ are independent, an
+estimator for the covariance matrix of xk can be derived as
+ˆΣϵk = ˆV k
+y ˆΣn[ ˆV k
+y ]′ + V k
+s ˆΣσ[ ˆV k
+s ]′
+(12)
+where ˆV corresponds to substitution of ˆxk, y, and ˆs for
+¯ˆxk, ¯y, and ¯s respectively in Eqs. 11 and 10. The form
+of ˆBk
+z and ˆQk in for the Poisson likelihood function are
+shown for ordered subset expectation maximization [20] and
+block sequential regularized expectation maximization [21]
+in Tab. I. For uncorrelated Poisson data, representative of
+what is measured in SPECT/PET, the covariance matrix of
+the photopeak is estimated by
+ˆΣn = {y}
+(13)
+In SPECT, the triple energy window method [22] is used to
+estimate scatter via ˆs = Ks[wlsl + wusu] where wl and wu
+are weightings for data acquired in different energy windows
+sl and su, and Ks is a Gaussian smoothing kernel often used
+when scatter data is sparse. In this case
+ˆΣσ = K′
+s
+
+w2
+l sl + w2
+usu
+	
+Ks
+(14)
+Substituting Eqs. 13, 14, and 16 into 12 and combining with
+Eq. 4, it follows that
+ˆu(ˆxk · ξ) =
+
+y ·
+
+[ ˆV k
+y ]′ξ
+◦2
++
+ w2
+l sl + w2
+usu
+
+·
+
+Ks[ ˆV k
+s ]′ξ
+◦21/2
+(15)
+where Vy and Vs are specified by Eq. 9. For PET, where
+the scatter is estimated via single scatter simulation or Monte
+Carlo, and the resulting profile is smooth, the scatter term can
+be neglected.
+Often in low count scenarios, a post-reconstruction filter is
+applied to a reconstructed image to reduce noise. In general, if
+a linear operator Lp is applied to a reconstructed image, then
+ϵ →Lpϵ
+=⇒Σϵ →LpΣϵL′
+p
+(16)
+Based on Eqs. 4 and 15, consideration of this additional
+operation amounts to substitution of ξ with L′
+pξ in Eq. 15.
+In this regard, post-reconstruction image filtering translates to
+pre uncertainty estimation mask filtering.
+Eq. 15 is an extension of Qi’s technique (Eq. 12) that
+that reduces computation time by considering matrix-vector
+products instead of matrix-matrix products. While it yields
+less information than a complete covariance matrix between
+all voxel pairs, it yields information that is particularly well
+suited to estimate the uncertainty of time integrated activity
+(TIA) for dosimetry application.
+3) Time Integrated Activity: This section demonstrates how
+the error estimation technique in the previous section can be
+used for dosimetry: in particular, how to determine uncertain-
+ties in the time integrated activity (TIA) for a specific VOI.
+The TIA in a VOI is defined as
+A =
+Z ∞
+0
+f(t, p)dt
+(17)
+where f(t, p) is a function that describes the time activity
+curve. The TAC curve parameters p = [p1, ..., pq] are esti-
+mated via fitting n data points (ti, Ai) using non-linear re-
+gression techniques to minimize χ2 = P[(Ai −f(ti, p))/σi]2
+where ti is the time, Ai ≡ˆxi·ξ is the voxel sum within a VOI,
+and σi ≡ˆu(ˆxi · ξ) is the estimated uncertainty. The estimated
+TIA is given by
+ˆ
+A = g(ˆp), where g is some function of the fit
+parameters. Since the estimated fit parameters ˆp depend on the
+random variables Ai (with uncertainty characterized by σi), it
+follows that
+ˆ
+A is itself a random variable; its true uncertainty
+can be defined as u( ˆ
+A ).
+The estimated covariance matrix of the fit parameters ˆV is
+assumed implicitly to be a function of the fit ˆp, and can be
+used to obtain an estimate for u( ˆ
+A ) via
+ˆu( ˆ
+A ) = (∇pg)′ ˆV (∇pg)
+
+p=ˆp
+(18)
+The fit functions f, along with the corresponding g and ∇pg
+used for various VOIs in this paper are shown in Tab. II.
+The provided values of σi in curve fitting will impact the
+estimates ˆp and ˆV . There are three different ways to provide
+the σi in curve fitting:
+1) Use of the estimated σi. In the context of TAC fitting,
+this involves using the uncertainties obtained from Eq.
+15. The corresponding curve fit estimates ˆp(est-sig) and
+ˆV (est-sig) yield TIA and TIA uncertainty estimates of
+ˆ
+A (est-sig) and ˆu(est-sig)( ˆ
+A (est-sig)).
+2) Use of “proportional” values σi/c in place of σi where
+c > 0 is an a priori unknown proportionality constant.
+For algorithms insensitive to scaling of χ2, ˆp(prop-sig) =
+ˆp(est-sig), and the covariance matrix can be estimated as
+ˆV (prop-sig)({σi}) =
+ 1
+ˆc2
+
+ˆV (est-sig)({σi/c})
+=
+n −q
+χ2
+
+ˆV (est-sig)({σi/c})
+(19)
+where ˆV ({σi/c}) results from use of σi/c in a curve
+fitting procedure. These yield TIA and TIA uncertainty
+estimates of
+ˆ
+A (prop-sig) and ˆu(prop-sig)( ˆ
+A (prop-sig))
+3) Use σi = 1 for all i. This is equivalent to providing
+equally weighted proportional uncertainties for each data
+point. The corresponding estimates ˆp(no-sig) and ˆV (no-sig)
+yield TIA and TIA uncertainty estimates of
+ˆ
+A (no-sig) and
+ˆu(no-sig)( ˆ
+A (no-sig)) respectively.
+It is demonstrated in the appendix that the count variance
+in mask ξj at different counts is approximately given by
+4
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2023
+Algorithm
+ˆQk
+ˆBk
+y
+ˆBk
+s
+OSEM
+1 +
+(
+ˆxk
+H′
+k1
+) 
+H′
+k
+
+yk
+(Hkˆxk + s)2
+
+Hk
+
++ ˆxk/ˆxk+1
+(
+ˆxk
+H′
+k1
+)
+H′
+k
+
+1
+Hkˆxk + s
+
+−
+(
+ˆxk
+H′
+k1
+)
+H′
+k
+
+y
+(Hkˆxk + s)2
+
+BSREM
+1 +
+ |Sk|ˆxk
+H′1
+ 
+H′
+k
+
+yk
+(Hkˆxk + s)2
+
+Hk
+−∇xxU(ˆxk)
+i
++ ˆxk/ˆxk+1
+ |Sk|ˆxk
+H′1
+
+H′
+k
+
+1
+Hkˆxk + s
+
+−
+ |Sk|ˆxk
+H′1
+
+H′
+k
+
+y
+(Hkˆxk + s)2
+
+TABLE I
+SPECT RECONSTRUCTION ALGORITHMS AND CORRESPONDING OPERATORS REQUIRED FOR COMPUTATION OF V k
+z
+IN EQ. 9. |Sk| IS THE SIZE OF
+SUBSET k DIVIDED BY THE SIZE OF ALL SUBSETS. FOR BSREM, A TRUNCATION IS ALSO TYPICALLY APPLIED AFTER EACH ITERATION TO ENSURE
+THAT ALL VOXEL VALUES ARE GREATER THAN ZERO.
+Organs
+Lesions
+f(t, p)
+p0e−p1t
+p0(e−p1t −e−p2t)
+g(p)
+p0/p1
+p0/p1 −p0/p2
+∇pg
+
+p−1
+1 , −p0p−2
+1
+
+
+p−1
+0 , −p0p−2
+1 , p0p−2
+2
+
+TABLE II
+ACTIVITY FIT FUNCTIONS f(t, p) WITH CORRESPONDING TIA
+ESTIMATES g(p) AND GRADIENTS ∇pg USED FOR VARIOUS VOIS IN
+THIS PAPER.
+σi ≈cj (xi · ξj)1/2
+(20)
+where cj is a proportionality factor for VOI j. In this case,
+ˆu(prop-sig)( ˆ
+A ) can be obtained by using σi/c = (xi · ξ)1/2
+in Eq. 19, and Eq. 15 is not needed. As will be shown in
+the subsequent sections, however, the reliance on ˆc in Eq. 19
+results in significantly reduced precision compared to using of
+the estimated uncertainties. Furthermore, Eq. 19 is unusable
+for any case where n ≤q (e.g. a two time point fit to any curve
+with two or more parameters). In this scenario, estimation of
+u( ˆ
+A ) requires σi directly, so the uncertainties provided by
+Eq. 15 must be used.
+B. Validation and Clinical Application
+1) Phantom-Based Validation of Uncertainty Estimation: In
+what follows, the uncertainty estimation technique is validated
+for SPECT with NEMA phantom data reconstructed using two
+popular reconstruction protocols: (i) OSEM and (ii) BSREM
+with the relative difference penalty (RDP) [23]. OSEM with
+one subset is denoted as maximum likelihood expectation
+maximum (MLEM). In particular, the estimated percent un-
+certainty, given by
+ˆδ(ˆxk · ξ) = ˆu(ˆxk · ξ)
+ˆxk · ξ
+(21)
+is compared to the empirical uncertainty estimator obtained
+by taking multiple acquisitions in sequence:
+˜δ(ˆxk · ξ) =
+q
+Var
+
+wiˆxk
+i · ξ; 1 ≤i ≤N
+	
+Mean(
+
+wiˆxk
+i · ξ; 1 ≤i ≤N
+	
+)
+(22)
+where i is the acquisition index, N is the total number of
+acquisitions taken, and wi is an exponential scalar weighting
+factor used to compensate for activity decay over the course
+of multiple repeated acquisitions.
+For 177Lu, a NEMA phantom with spheres of diameter
+37 mm, 28 mm, 22 mm, 17 mm, 13 mm, and 10 mm was
+filled with a 9:1 source to background ratio with sphere activity
+concentration of 0.89 MBq/mL. Fifty-three SPECT acquisi-
+tions of the phantom were taken in sequence on a Siemens
+Symbia T2 system with the following settings: 128 × 128
+pixels at 4.82 mm×4.82 mm resolution, 96 projection angles,
+medium energy collimators, and 15 s acquisition time per
+projection. Acquired energy windows are shown in Tab. III.
+The data were reconstructed using (i) OSEM with 8 subsets
+and up to 10 iterations, and (ii) BSREM and the relative
+difference penalty (RDP) (β = 0.3, γ = 2) with 8 subsets
+and up to 40 iterations. Eight regions were considered for
+uncertainty estimation: the six spheres in the NEMA phantom,
+a background VOI consisting of two 50 mm diameter spheres
+drawn in the warm region, and the central cold cylinder
+portion of the phantom. Sample reconstructions, estimated
+uncertainties, and true uncertainties for these use cases are
+shown in Fig. 1.
+Experiment
+Photopeak
+Lower Scatter
+Upper Scatter
+177Lu NEMA
+187.2, 228.8
+166.4, 187.2
+228.8, 249.6
+177Lu XCAT
+187.2, 228.8
+169.4, 187.2
+228.8, 252.9
+177Lu Patient
+187.6, 229.2
+166.7, 187.6
+229.2, 250.1
+225Ac Jaszczak
+196.2, 239.8
+163.5, 196.2
+239.8, 272.5
+396.0, 484.0
+352.0, 396.0
+-
+225Ac XCAT
+196.2, 239.8
+163.5, 196.2
+239.8, 272.5
+396.0, 484.0
+352.0, 396.0
+-
+225Ac Patient
+196.2, 239.8
+177.5, 196.1
+239.9, 265.1
+396.0, 484.0
+358.2, 395.9
+-
+TABLE III
+ACQUIRED ENERGY WINDOWS IN UNITS OF KEV. 225AC CONTAINS
+BOTH THE 218 KEV (221FR) PEAK AND THE 440 KEV (213BI) PEAK.
+TEW SCATTER CORRECTION WAS USED IN CASES WHERE BOTH THE
+LOWER AND UPPER WINDOWS WERE OBTAINED, WHILE DUAL ENERGY
+WINDOW (DEW) WAS USED WHEN ONLY THE LOWER WINDOW WAS
+OBTAINED.
+For 225Ac, the cylinder of a Jaszczak phantom was used.
+Spheres of diameters 60 mm, 37 mm, and 28 mm were
+filled at 1.37 kBq/mL and placed in the phantom with a 10:1
+source to background ratio. Thirty-four SPECT acquisitions
+of the phantom were taken in sequence on a Siemens Symbia
+T2 system with the following settings: 128 × 128 pixels at
+4.82 mm × 4.82 mm resolution, 96 projection angles, high
+AUTHOR et al.: PREPARATION OF PAPERS FOR IEEE TRANSACTIONS ON MEDICAL IMAGING
+5
+energy collimators, and 60 s acquisition time per projection
+with energy windows corresponding to gamma emission from
+221Fr and 213Bi as indicated in Tab. III. To create clinically
+realistic scenarios, the projection angles were sub sampled
+to 32 angles post acquisition. In addition to reconstructing
+each photopeak separately, joint dual photopeak (JDP) recon-
+struction was also used, which used a stacked system matrix
+considering both peaks simultaneously (see H. Li in [24]). In
+each case, the data were reconstructed using MLEM for up
+to 100 iterations. The VOIs masking the three spheres were
+considered for uncertainty estimation. Sample reconstructions,
+empirical uncertainties, and analytical uncertainties for these
+use cases are shown in Fig. 2.
+2) Dosimetry Simulation and Validation: The following sec-
+tion considers propagation of uncertainty from VOIs (Eq. 12)
+to TIA (Eq. 18) in both 177Lu and 225Ac imaging. The ex-
+amples consist of using the anthropomorphic XCAT phantom
+[25] in Monte Carlo simulations, where activity dynamics are
+defined to be analogous to the patient examples considered
+later. The true “empirical” variance ˜u( ˆ
+A ) obtained from TIA
+estimates of multiple SPECT noise realizations is compared to
+the estimated “analytical” variances ˆu( ˆ
+A ) derived from single
+noise realizations.
+An XCAT phantom was configured, analogous to the patient
+examples considered later, to have the following important
+regions: background, left kidney, right kidney, liver, a large,
+medium, and small liver lesion, bone lesions in the left and
+right hip bones. The organ biodistribution followed the mono-
+exponential curves in Tab. II, while the liver and bone lesions
+followed the bi-exponential curves in Tab. II. The activity
+concentration ratios between the
+225Ac and
+177Lu XCAT
+phantoms were 1:1000, corresponding to typical differences
+in injected activities between these isotopes.
+Monte Carlo SPECT acquisition was performed in SI-
+MIND [26], where the scanner was representative of a typical
+Siemens Symbia T Series scanner. In particular, it contained
+a 9.5 mm (3/8”) thick NaI scintillator crystal with 3.8 mm
+FWHM intrinsic spatial resolution and 10% energy reso-
+lution at 140 keV (and 1/
+√
+E dependence). For 177Lu, a
+“medium energy” parallel hole collimator with a hole length
+of 40.64 mm and hole diameter of 2.94 mm was used, and
+96 projections were acquired for 15 s each. For 225Ac, a
+“high energy” parallel hole collimator with hole length of
+59.70 mm and hole diameter of 4.00 mm was used, and 32
+projections were acquired for 150 s each. Both simulations
+used a 0.4795 cm pixel size with a projection matrix size of
+128 × 240 in order to capture the full field of view, and a
+constant radial distance of 22 cm. Acquired energy windows
+are shown in Tab. III. Noiseless projections were obtained and
+used to generate 100 independent realizations (177Lu) and 20
+independent realizations (225Ac) for each time point of each
+isotope.
+The time points considered for 177Lu were selected as 4 h,
+28 h, 103 h, and 124 h to be consistent with subsequent
+patient examples; all 400 realizations were reconstructed using
+OSEM (4it8ss). The time points considered for 225Ac were
+6 h, 21 h, 77 h, and 285 h to be consistent with subsequent
+patient examples. Reconstruction used a JDP system matrix;
+the upper peak employed a PSF model derived from SIMIND
+Monte Carlo data with the SPECTPSFToolbox [27], while
+the lower peak used standard Gaussian PSF modeling. All
+80 realizations were reconstructed with MLEM (100it1ss +
+3 cm Gaussian post filtering). The images were scaled by (i)
+calibration factors (CFs) obtained via a point source simulation
+in SIMIND to convert counts to units of activity and (ii) by
+applying partial volume correction using measured recovery
+coefficients (RCs); the RCs were obtained by reconstructing
+corresponding noiseless projection data at each time point and
+computing the ratio of measured to true uptake in each VOI.
+Because many counts were simulated, the RCs and CFs had
+negligible uncertainties; this was done intentionally so that
+uncertainties in the TIA were purely due to Poisson noise in
+the projection data. Analytical uncertainties were estimated in
+all VOIs for each noise realization of each isotope.
+For the following, let j represent the time point index, m
+represent the VOI index, and i represent the noise realization
+index. Each set of four times points {tj, Aj, σj}i,m were fit
+to the functions specified by Tab. II using the Trust Region
+Reflective algorithm available in the “curve fit” function of
+scipy. The curve fitting was performed three separate ways to
+obtain the estimates ˆu(no-sig)( ˆ
+A (no-sig)
+i,m
+), ˆu(prop-sig)( ˆ
+A (prop-sig)
+i,m
+),
+and ˆu(est-sig)( ˆ
+A (est-sig)
+i,m
+) respectively. The distribution of each
+these uncertainties (across i and for each m) was compared
+to the corresponding empirical estimates ˜u(no-sig)( ˆ
+A (no-sig)
+m
+),
+˜u(prop-sig)( ˆ
+A (prop-sig)
+m
+), and ˜u(est-sig)( ˆ
+A (est-sig)
+m
+) of the uncertainty
+obtained by computing the variance of each of the Ai,m across
+the noise realizations i.
+3) Clinical Applications: The uncertainty formalism was ap-
+plied to two use cases on real patient data. In each case, Eq.
+15 was used to obtain uncertainty estimates in VOIs at various
+time points, which were then used to compute the uncertainty
+on the TIA given by Eq. 18.
+The first use case explored reconstruction of multi time
+point 177Lu-DOTATATE RPT data from the University of
+Michigan Deep Blue data sharing repository [28]–[30]. The
+patient considered was imaged on the day of injection, as
+well as 1, 4, and 5 days post-injection. Images were acquired
+on a Siemens Intevo system with a 128 × 128 matrix size
+and 120 projections with 25 s acquisition time per projection;
+acquired energy windows are shown in Tab. III. To study the
+effect of different numbers of acquired counts, the data were
+subsampled into the following three cases: (i) 120 projections
+at 25 s / projection, (ii) 60 projections at 5 s / projection,
+and (iii) 30 projections at 1.2 s / projection. P data were
+reconstructed using OSEM (12it/8ss) for case (i), OSEM
+(24it/4ss) for case (ii), and OSEM (48it/1ss) for case (iii). In
+each case, five VOIs were considered for uncertainty analysis
+the left/right kidney and small/medium/large liver lesions;
+volumes were obtained by drawing VOIs that captured all
+counts from each lesion. Sample reconstructed MIPs and TACs
+are shown in Fig. 5, while explicit TIA and TIA uncertainty
+estimates for each case are shown in 6.
+The second use case explored uncertainty estimation in bone
+metastasis of a patient receiving 225Ac-PSMA-617 therapy.
+The patient received an activity of 8 MBq and was imaged
+6
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2023
+6 h, 20.5 h, 76.5 h, and 284.6 h post injection on a GE
+Discovery 670 Pro SPECT/CT system. 30 projections (15 per
+head) were acquired for 150 s / projection; acquired energy
+windows are shown in Tab. III. A GE high energy general
+purpose collimator was used for image acquisition.
+Reconstruction used a JDP system matrix; the upper peak
+employed a PSF model derived from SIMIND Monte Carlo
+data with the SPECTPSFToolbox [31], while the lower peak
+used standard Gaussian PSF modeling. To account for stray
+radiation-related noise due to the low count rate, a blank
+scan was taken using the same acquisition parameters, and
+the mean background counts in each energy window was
+taken into consideration in reconstruction. Images at each
+time point were reconstructed via MLEM (100it) with a 3 cm
+post-reconstruction filter using (i) the 218 keV peak, (ii) the
+440 keV peak, and (iii) using both peaks simultaneously.
+For (iii), the relative primary rates between the peaks was
+estimated by simulating a point source with a similar imaging
+system in SIMIND.
+Three lesions were segmented by a physician on a pre-
+treatment PET image using the PET Edge+ tool of MIM v7.2.1
+(MIM Software Inc., USA), and were used as VOI masks
+for estimating uncertainty via Eq. 15. The four time points
+were fitted to the lesion activity fit function in Tab. II, and
+the uncertainty on the TIA was estimated using Eq. 18 with
+ˆV (est-sig).
+III. RESULTS
+A. Uncertainty Estimation Validation
+The results of the 177Lu phantom study are shown in Fig.
+1. In all regions, the computed analytical uncertainty were
+consistent with the empirically obtained uncertainty estimates,
+providing support for Eq. 15 in this activity regime. For
+OSEM, the uncertainties increased with more iterations and
+smaller volumes, while for BSREM-RDP, the uncertainties
+tended to converge in all regions after a few iterations, with
+smaller regions yielding larger uncertainties after convergence.
+The uncertainties in BSREM were smaller than OSEM for the
+small spheres after many iterations.
+The results of the 225Ac phantom study are shown in Fig. 2.
+For reconstruction using the 440 keV peak and the dual peak,
+computed analytical uncertainties had little variance between
+different acquisitions, and their estimates were consistent with
+the empirically estimate uncertainties. Reconstruction using
+the 218 keV yielded analytical uncertainties with significant
+variance in the small (±22.8%) and medium (±8.9%) spheres,
+likely due to the smaller count rate in this energy window.
+B. Dosimetry Simulation and Validation
+Figs. 3 and 4 show the results of the Monte Carlo dosimetry
+validation study. For all VOIs considered, use of the uncer-
+tainties given by Eq. 15 in TAC fitting yielded accurate TIA
+uncertainty predictions with significantly improved precision
+relative to use of (i) proportional uncertainties given by Eq. 19
+and (ii) no uncertainties. In both isotopes, the uncertainty on
+the TIA was larger in regions modeled by a bi-exponential. For
+example, although the large lesion had greater activity than the
+Fig. 1.
+Reconstruction and uncertainty estimation of a 177Lu NEMA
+phantom acquired on a Siemens Symbia T2 scanner. Left: axial slices
+of the reconstructed NEMA phantom from a sample acquisition cor-
+responding to 4 iterations (OSEM) and 40 iterations (BSREM). Right:
+uncertainty estimates for eight VOIs as a function of iteration number;
+shown in black is the empirical uncertainty ˜δ(ˆxk · ξ) obtained from all
+noise realizations via Eq. 22 (error bars correspond to the standard error
+of the standard deviation estimator); shown in red is mean and standard
+deviation (error bars) of the analytically obtained uncertainties ˆδ(ˆxk · ξ)
+from Eq. 15
+.
+left kidney at every time point in the 177Lu simulation, it also
+had a larger estimated TIA uncertainty of (0.817 ± 0.014)%
+(vs. (0.404 ± 0.001)%). In the 225Ac case, the covariance on
+the parameters for the right and left hip bone lesions could
+not be estimated using no and proportional uncertainties; this
+is elaborated upon in the discussion section.
+C. Clinical Applications
+Sample reconstructions and TACs for the 177Lu case with
+120 projections and 25 s / projection are shown in Fig. 5. TIA
+and TIA uncertainty plots for all three subsampled acquisition
+times are shown in Fig. 6. The uncertainties in the kidney TIAs
+were small (< 3%), even when the projection time is reduced
+from 25 s / projection to 1.2 s / projection. The uncertainty
+in the three liver lesions increased more substantially as the
+time per projection was reduced, increasing from 1.26% (25 s /
+projection) to 5.11% (1.2 s / projection) in the smallest lesion.
+In general, the TIA error became larger with smaller volumes.
+Despite the large lesion having a TIA three times greater than
+the left kidney, its TIA uncertainty was similar, likely due to
+the larger number of TAC parameters (2 for mono-exponential
+vs. 3 for bi-exponential).
+Sample reconstructions and TACs for the 225Ac case with
+dual peak reconstruction are shown in Fig. 7. TIA and TIA
+uncertainty plots for lesions in the pelvis and sacrum are
+shown in Fig. 8. Though the dual peak TIA uncertainties were
+always smallest, the estimated uncertainties of 9.84%, 23.90%,
+AUTHOR et al.: PREPARATION OF PAPERS FOR IEEE TRANSACTIONS ON MEDICAL IMAGING
+7
+Fig. 2.
+Reconstruction and error estimation for the 225Ac NEMA
+phantom. From top to bottom are reconstructions using 218 keV peak,
+440 keV peak, and the dual peaks. High count (HC) was obtained by
+adding all 33 sets of projection data together and low count (LC) was
+a reconstruction of a sample acquired image. Images correspond to
+axial slices of reconstruction (MLEM 100it) with 3 cm Gaussian post
+filtering used in the LC case. Shown in black is the empirical uncertainty
+obtained via Eq. 22 with error bars corresponding to the standard error
+of this statistic. Shown in red is the analytically obtained uncertainty from
+Eq. 15, with error bars corresponding to the standard deviation across
+estimates for each acquisition.
+Fig. 3.
+Results from 177Lu XCAT simulations. Left: sample maximum
+intensity projections of reconstructions at each of the 4 time points
+(OSEM 4it8ss). Right: Quantities of interest from simulations where
+each column in the plot array corresponds to a particular VOI. Top
+right: true TAC (blue), estimated TAC (dotted red) and data points
+(black). Bottom right: Box plots of predicted TIA uncertainties ˆu( ˆ
+A )
+histogrammed over the 100 trials (red) and empirical uncertainties of TIA
+˜u( ˆ
+A ) evaluated by directly computing the variance in
+ˆ
+A over multiple
+trials (black); the box extends from the first to the third quartile with a line
+at the median, and the whiskers extend to the farthest data point lying
+within the inter quartile range.
+and 13.73% in the three lesions were significantly larger than
+in the 177Lu example.
+IV. DISCUSSION
+The VOI-based uncertainty technique of Eq. 15 was tested
+on 177Lu and 225Ac SPECT phantom data (and 18F PET
+phantom data in the appendix) by comparing uncertainty
+estimations from single acquisitions to empirical uncertainty
+estimates given by the variation across multiple acquisitions.
+The method was validated for both the OSEM and BSREM-
+RDP reconstruction algorithms. It was shown consistent with
+the empirical estimates in nearly all regions, with the exception
+of those with very low activity. Estimated uncertainties from
+Fig. 4.
+Results from 225Ac XCAT simulations. Left: Sample coronal
+slices of reconstructions at each of the 4 time points (MLEM 100it+3 cm
+Gaussian smoothing). Right: Quantities of interest from simulations
+where each column in the plot array corresponds to a particular VOI. Top
+right: true TACs (blue), sample fitted TACs (dotted red) and data points
+(black). Bottom right: Box plots of analytical uncertainties in TIA ˆu( ˆ
+A )
+histogrammed over the 20 trials (black) and empirical uncertainties of
+TIA ˜u( ˆ
+A ) evaluated by directly computing the variance in
+ˆ
+A over
+multiple trials (red); the box extends from the first to the third quartile
+with a line at the median, and the whiskers extend to the farthest data
+point lying within the inter quartile range. No-sig and prop-sig covariance
+matrices could not be estimated for the lesions in the left/right hip:
+uncertainties are thus not shown.
+Fig. 5.
+Reconstructions and TACs of 177Lu-DOTATATE data from the
+SNMMI Dosimetry Challenge (25 s / projection). Top: maximum intensity
+projections with the top left image showing the segmentations of the left
+kidney (orange), right kidney (pink), large lesion (green), medium lesion
+(blue), and small lesion (yellow). Bottom: predicted activity at each time
+point (black) and TACs (red).
+Eq. 15 were then used in TAC fitting from Monte Carlo
+SPECT simulations. It was demonstrated that their use yielded
+accurate TIA uncertainty estimates with far greater precision
+than (i) use of no uncertainty and (ii) use of proportional
+uncertainties of VOI activity. For 177Lu, the TIA uncertainty
+estimates had better precision in regions with biodistributions
+modeled by mono-exponential biokinetics (compared to bi-
+exponential) due to the smaller number of model parameters
+in curve fitting. For 225Ac, TIA uncertainties could only be
+estimated for bone lesions if Eq. 15 was used; since there were
+only slightly more data points than curve fit parameters, the
+under-constrained problem yielded near zero values for χ2 and
+thus unstable estimates in Eq. 19. This further highlights the
+importance of the proposed method, since there may be cases
+where TIA uncertainty cannot be estimated unless the LSC
+uncertainty is known at each time point. Finally, the method
+was applied to real clinical data to demonstrate the range of
+expected TIA uncertainties in 177Lu-DOTATATE and 225Ac-
+PSMA-617 imaging.
+8
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2023
+Fig. 6.
+Predicted TIA and uncertainties (top) and uncertainty only
+(bottom) in left kidney (L Kid), right kidney (R Kid) large lesion (L Les)
+medium lesion (M Les) and small lesion (S Les) for the three different
+subsampled cases of the SNMMI dosimetry challenge data: (i) 25 s /
+projection, (ii) 5 s / projection and (iii) 1.2 s / projection.
+Fig. 7.
+Reconstruction, TACs, and TIA estimation of multi time point
+225Ac-PSMA-617 data using JDP in reconstruction. Top: coronal slices
+of a pre therapy PET image and reconstructed SPECT images at each
+time point. Lesions numbers are marked in red (lesion 2 is directly above
+the annotation). Bottom: TACs for each lesion; TIA and TIA uncertainty
+is printed on each plot.
+There are a few noteworthy observations from the validation
+section. The predicted analytical uncertainties were generally
+consistent with the empirical uncertainties, except in regions
+with low activity such as (i) the small and medium spheres for
+225Ac (218 keV peak) and (ii) the cold cylinder for 18F from
+Fig. 10 in the appendix. In these regions, the variance of the
+analytical uncertainties was large, highlighting that the method
+failed for certain noise realizations. In Fig. 2, the displayed
+225Ac low count 218 keV peak image (which corresponds to
+a particular noise realization) had almost no activity predicted
+in the small sphere: this impacted the uncertainty estimation
+algorithm. These results do not invalidate the theory, however,
+since they are evidently scenarios where use of ˆxk as a proxy
+for ¯ˆxk in Eq. (12) fails. These extreme cases demonstrate the
+limitations of the derived uncertainty technique. For 177Lu and
+18F, OSEM resulted in higher VOI uncertainties than BSREM-
+Fig. 8.
+Predicted TIAs (bars) and uncertainties (red) for the 225Ac-
+PSMA-617 data of Fig. 7 in pevlis and sacrum via reconstruction with
+(i) the 218 keV photopeak, (ii) the 440 keV photopeak and (iii) dual
+photopeak, which uses both peaks simultaneously.
+RDP. Regularized algorithms, however, resulted in VOIs with
+smaller RCs and greater activity leakage from outside regions.
+These larger systematic errors need to be considered against
+the smaller LSC uncertainties.
+A minor limitation of the SPECT phantom experiments is
+that the activity of 177Lu and 225Ac decreased throughout the
+repeated acquisitions that each spanned over 24 hours. While
+the counts in each VOI were scaled by an exponential scalar
+weighting in Eq. 22 to remove the component of variation
+resulting from activity decay, it was assumed that the relative
+uncertainties in each VOI remained approximately constant
+over time. In practice, the uncertainty at later time points
+may be slightly higher due to the reduced number of counts
+measured.
+The curve fitting validation also has limitations that may
+not have been addressed here. In the XCAT simulation, the
+time dependent distribution of activity truly followed mono-
+exponential and bi-exponential distributions before simulation
+of the SPECT acquisition. In a real clinical scenario, there may
+be sources of uncertainty in the true organ activity, perhaps
+related to stochastic biological phenomena. These additional
+sources of uncertainty, which are separate from the imaging
+system, would need to be accounted for when estimating the
+covariance matrix of the TAC parameters. Future research
+might aim to consider these sources of uncertainty in Monte
+Carlo simulations and determine the importance of including
+these uncertainties in TAC fitting.
+While uncertainty propagation in scaling the TIA by the
+system CFs is straightforward since the uncertainties can be
+added in quadrature after TAC fitting, propagation of uncer-
+tainty in RCs may be more nuanced, since each time point may
+have a separate RC dependent on the surrounding activity. In
+this case, each individual time point would need to be scaled
+by a separate RC before curve fitting, and the uncertainty
+would need to be included in the curve fitting procedure. If the
+same RC is used for every time point, however, then recovery
+correction can be applied directly to the TIA after TAC fitting.
+Another potential issue is correlation between VOI segmen-
+tations and estimated uncertainties from SPECT images. If
+VOIs are segmented solely using external images, such as CT
+or PET, then no such correlation would exist. However, if
+activity distributions were used to guide segmentations, then
+SPECT noise realizations (and any associated estimated uncer-
+tainty from Eq. 15) are correlated with VOI segmentation; this
+would need to be accounted for in dose uncertainty protocols.
+While consideration of these factors is beyond the scope of
+AUTHOR et al.: PREPARATION OF PAPERS FOR IEEE TRANSACTIONS ON MEDICAL IMAGING
+9
+this paper, they are of high priority in future studies.
+The application of Eq. 15 for real data TIA uncertainty
+estimation was meant to demonstrate the feasibility of this
+technique in dosimetry use cases. In the 177Lu-DOTATATE
+example, all VOI uncertainties for the standard imaging pro-
+tocol (25 s / projection) are small relative to other uncertainties
+in the dosimetry pipeline, such as those propagating from
+RCs and CFs (8.2% (medium lesion) and 6.6% (Symbia T2)
+respectively in Nuttens et. al. [9]). For the 225Ac-PSMA-617
+RPT use case, it is demonstrated in Fig. 8 that use of dual
+peak reconstruction yields the lowest uncertainty in the TIA.
+It should be emphasized that the TIA estimates in Fig. 8 still
+need to be adjusted based on RCs, which may potentially be
+different for the 218 keV, 440 keV, and dual energy window
+reconstructions separately. Since the estimated uncertainties of
+9.84%, 23.90%, and 13.73% for the three lesions are substan-
+tial compared to RC and CF uncertainties from Nuttens et. al.
+[9], it follows that the uncertainty estimation technique derived
+here is essential to account for all sources of uncertainty in
+225Ac dosimetry.
+Future studies should aim to study the impact of including
+the proposed uncertainty method in a full dosimetry protocol.
+Furthermore, although the TIA uncertainties may be relatively
+insignificant for standard imaging times for 177Lu RPTs, they
+could be used to find patient specific minimum scan time
+requirements. For example, data from the first time point of
+an RPT procedure can be sub-sampled and used to establish
+a relationship between computed uncertainty and projection
+time in relevant VOIs, and used to create a minimum bound
+on the required acquisition time for the patient in subsequent
+scans.
+V. CONCLUSION
+In emission tomography, uncertainty propagates from the
+Poisson-distributed random counts in the projection data to
+reconstructed images. This work proposed a computationally
+efficient algorithm to estimate the uncertainty on measured
+counts from volumes of interest in reconstructed images. The
+algorithm was validated by acquiring repeated
+177Lu and
+225Ac SPECT scans of a physical phantom, and demonstrating
+that the variability of total counts in select volumes of interest
+across multiple acquisitions was consistent with the estimated
+uncertainties obtained from a single acquisition. Monte Carlo
+simulations demonstrated that use of the estimated uncertain-
+ties in time activity curve fitting and time integrated activity
+estimation yield uncertainty estimates that are more accurate
+and precise than conventional methods that use uncertainties
+proportional to square root of counts. For 225Ac-PSMA-617
+patient data, application of the algorithm demonstrated that
+uncertainty in the projection data contributes significantly to
+uncertainty on time integrated activity, and that this uncertainty
+is large relative to other uncertainties attained in dosimetry. In
+summary, this work has provided (i) validation of proposed
+uncertainty algorithm and (ii) a blueprint for how the algorithm
+can be applied in dosimetry protocols. The algorithm has been
+implemented in the open source python library PyTomography
+to maximize outreach to the nuclear medicine community.
+APPENDIX
+A. Regional Count Variability
+To justify the claim made by Eq. 20, the count standard
+deviation in the kidneys and liver lesions for separate noise
+realizations of the
+177Lu-PSMA-617 XCAT simulation is
+plotted as a function of the total VOI counts in Fig. 9. Each set
+of data were fit to the functional form σ = c√ˆx · ξ where c is
+a proportionality factor. As demonstrated, the proportionality
+exists, but is different for each VOI.
+Fig. 9.
+Standard deviation of VOI counts across noise realizations
+vs. VOI counts, in five different organs from 177Lu-PSMA-617 XCAT
+simulations.
+B. PET Application
+The uncertainty method was also validated for PET re-
+constructions using publicly available 18F NEMA phantom
+data [32] acquired on a GE Discovery MI scanner (this
+is a proof-of-concept assessment, and can be extended to
+different applications in PET imaging such as 90Y dosimetry
+). The acquired listmode data were split into 20 equally sized
+sets; each subset was reconstructed, and uncertainties were
+estimated for each of the six NEMA spheres, a VOI in the
+background, and the central cold cylinder portion of the phan-
+tom. Scatter and normalization for each list mode event was
+obtained using the GE vendor software Duetto, while images
+were reconstructed and errors estimated using PyTomography.
+Sample reconstructions, analytical uncertainties, and estimated
+uncertainties for these use cases are shown in Fig. 10. Results
+are elaborated in the discussion.
+REFERENCES
+[1] S. Das et al., “177lu-dotatate for the treatment of gastroenteropancreatic
+neuroendocrine tumors,” Expert Review of Gastroenterology & Hepatol-
+ogy, vol. 13, no. 11, pp. 1023–1031, 2019.
+[2] O. Sartor et al., “Lutetium-177-psma-617 for metastatic castration-
+resistant prostate cancer,” New England Journal of Medicine, vol.
+385, no. 12, pp. 1091–1103, Sep 2021, epub 2021 Jun 23. [Online].
+Available: https://doi.org/10.1056/NEJMoa2107322
+[3] M.
+Hofman
+et
+al.,
+“[177lu]lu-psma-617
+versus
+cabazitaxel
+in
+patients with metastatic castration-resistant prostate cancer (therap): a
+randomised, open-label, phase 2 trial,” The Lancet, vol. 397, no. 10276,
+pp. 797–804, 2021. [Online]. Available: https://www.sciencedirect.com/
+science/article/pii/S0140673621002373
+[4] C.
+Meyer,
+A.
+Stuparu,
+K.
+Lueckerath,
+J.
+Calais,
+J.
+Czernin,
+R. Slavik, and M. Dahlbom, “Tandem isotope therapy with 225ac-
+and
+177lu-psma-617
+in
+a
+murine
+model
+of
+prostate
+cancer,”
+Journal
+of
+Nuclear
+Medicine,
+2023.
+[Online].
+Available:
+https:
+//jnm.snmjournals.org/content/early/2023/10/05/jnumed.123.265433
+[5] C. Kratochwil et al., “225ac-psma-617 for psma-targeted alpha-radiation
+therapy of metastatic castration-resistant prostate cancer,” Journal of
+Nuclear Medicine: Official Publication, Society of Nuclear Medicine,
+vol. 57, no. 12, pp. 1941–1944, 2016.
+10
+IEEE TRANSACTIONS ON MEDICAL IMAGING, VOL. XX, NO. XX, XXXX 2023
+Fig. 10.
+Reconstruction and error estimation for the 18F NEMA
+phantom acquired on a GE Discovery MI scanner. Left: axial slices of
+the reconstructed NEMA phantom from a sample acquisition. Right:
+uncertainty estimates for eight VOIs as a function of iteration number;
+shown in black is the empirical uncertainty ˜δ(ˆxk · ξ) obtained via Eq.
+22 (error bars correspond to the standard error of the standard deviation
+estimator); shown in red is the proposed analytical uncertainty estimate
+ˆδ(ˆxk · ξ) from Eq. 15. Error bars are not visible for the analytically
+obtained uncertainty due to their small magnitude.
+[6] A. P. Bidkar, L. Zerefa, S. Yadav, H. F. VanBrocklin, and R. R. Flavell,
+“Actinium-225 targeted alpha particle therapy for prostate cancer,”
+Theranostics, vol. 14, pp. 2969–2992, 2024. [Online]. Available:
+https://www.thno.org/v14p2969.htm
+[7] J. O’Donoghue, P. Zanzonico, J. Humm, and A. Kesner, “Dosimetry
+in
+radiopharmaceutical
+therapy,”
+Journal
+of
+Nuclear
+Medicine,
+vol. 63, no. 10, pp. 1467–1474, 2022. [Online]. Available: https:
+//jnm.snmjournals.org/content/63/10/1467
+[8] J. I. Gear, M. G. Cox, J. Gustafsson et al., “Eanm practical guidance
+on uncertainty analysis for molecular radiotherapy absorbed dose
+calculations,” European Journal of Nuclear Medicine and Molecular
+Imaging, vol. 45, no. 13, pp. 2456–2474, 2018. [Online]. Available:
+https://doi.org/10.1007/s00259-018-4136-7
+[9] V. Nuttens, G. Schramm, Y. D’Asseler et al., “Comparison of a 3d czt
+and conventional spect/ct system for quantitative lu-177 spect imaging,”
+EJNMMI Physics, vol. 11, no. 1, p. 29, 2024.
+[10] S. Peters, M. Mink, B. Priv´e et al., “Optimization of the radiation
+dosimetry protocol in lutetium-177-psma therapy: toward clinical im-
+plementation,” EJNMMI Research, vol. 13, no. 1, p. 6, 2023.
+[11] T. Mou, J. Huang, and F. O’Sullivan, “The gamma characteristic of
+reconstructed pet images: Implications for roi analysis,” IEEE Transac-
+tions on Medical Imaging, vol. 37, no. 5, pp. 1092–1102, 2018.
+[12] J. Huang, T. Mou, K. O’Regan, and F. O’Sullivan, “Spatial auto-
+regressive analysis of correlation in 3-d pet with application to model-
+based simulation of data,” IEEE Transactions on Medical Imaging,
+vol. 39, no. 4, pp. 964–974, 2020.
+[13] N. M. Alpert, D. A. Chesler, J. A. Correia, R. H. Ackerman, J. Y. Chang,
+S. Finklestein, S. M. Davis, G. L. Brownell, and J. M. Taveras, “Esti-
+mation of the local statistical noise in emission computed tomography,”
+IEEE Transactions on Medical Imaging, vol. 1, no. 2, pp. 142–146,
+1982.
+[14] R. Carson, Y. Yan, M. Daube-Witherspoon, N. Freedman, S. Bacharach,
+and P. Herscovitch, “An approximation formula for the variance of
+pet region-of-interest values,” IEEE Transactions on Medical Imaging,
+vol. 12, no. 2, pp. 240–250, 1993.
+[15] M. Ibaraki et al., “Bootstrap methods for estimating pet image noise:
+experimental validation and an application to evaluation of image
+reconstruction algorithms,” Annals of Nuclear Medicine, vol. 28, no. 2,
+pp. 172–182, 2014.
+[16] H.
+H.
+Barrett,
+D.
+W.
+Wilson,
+and
+B.
+M.
+W.
+Tsui,
+“Noise
+properties of the em algorithm. i. theory,” Physics in Medicine &
+Biology, vol. 39, no. 5, p. 833, may 1994. [Online]. Available:
+https://dx.doi.org/10.1088/0031-9155/39/5/004
+[17] J. Qi, “A unified noise analysis for iterative image estimation,” Physics
+in Medicine and Biology, vol. 48, no. 21, pp. 3505–3519, 2003.
+[18] G. Sgouros, L. Bodei, M. R. McDevitt et al., “Radiopharmaceutical
+therapy in cancer: clinical advances and challenges,” Nature Reviews
+Drug Discovery, vol. 19, pp. 589–608, 2020. [Online]. Available:
+https://doi.org/10.1038/s41573-020-0073-9
+[19] L. Polson, R. Fedrigo, C. Li, M. Sabouri, O. Dzikunu, S. Ahamed,
+N. Karakatsanis, A. Rahmim, and C. Uribe, “Pytomography: A python
+library for quantitative medical image reconstruction,” 2024. [Online].
+Available: https://arxiv.org/abs/2309.01977
+[20] H. Hudson and R. Larkin, “Accelerated image reconstruction using
+ordered subsets of projection data,” IEEE Transactions on Medical
+Imaging, vol. 13, no. 4, pp. 601–609, 1994.
+[21] S. Ahn and J. Fessler, “Globally convergent image reconstruction for
+emission tomography using relaxed ordered subsets algorithms,” IEEE
+Transactions on Medical Imaging, vol. 22, no. 5, pp. 613–626, 2003.
+[22] K. Ogawa, Y. Harata, T. Ichihara, A. Kubo, and S. Hashimoto, “A
+practical method for position-dependent compton-scatter correction in
+single photon emission ct,” IEEE Transactions on Medical Imaging,
+vol. 10, no. 3, pp. 408–412, 1991.
+[23] J. Nuyts, D. Beque, P. Dupont, and L. Mortelmans, “A concave prior pe-
+nalizing relative differences for maximum-a-posteriori reconstruction in
+emission tomography,” IEEE Transactions on Nuclear Science, vol. 49,
+no. 1, pp. 56–60, 2002.
+[24] Annual Congress of the European Association of Nuclear Medicine,
+vol. 45, no. Suppl 1, D¨usseldorf, Germany, October 2018.
+[25] W. P. Segars, G. Sturgeon, S. Mendonca, J. Grimes, and B. M. W.
+Tsui, “4d xcat phantom for multimodality imaging research,” Medical
+Physics, vol. 37, no. 9, pp. 4902–4915, 2010. [Online]. Available:
+https://aapm.onlinelibrary.wiley.com/doi/abs/10.1118/1.3480985
+[26] M. Ljungberg and S.-E. Strand, “A monte carlo program for the
+simulation of scintillation camera characteristics,” Computer Methods
+and Programs in Biomedicine, vol. 29, no. 4, pp. 257–272, 1989.
+[Online]. Available: https://www.sciencedirect.com/science/article/pii/
+0169260789901119
+[27] L. Polson, P. Esquinas, S. Kurkowska, C. Li, P. Sheikhzadeh,
+M. Abbassi, S. Farzanehfar, S. Mirabedian, C. Uribe, and A. Rahmim,
+“Fast
+and
+accurate
+collimator-detector
+response
+compensation
+in
+high-energy spect imaging with 1d convolutions and rotations,” 2024.
+[Online]. Available: https://arxiv.org/abs/2409.03100
+[28] Y. Dewaraja and B. J. Van, “Lu-177 DOTATATE Anonymized
+Patient Datasets: Lu-177 SPECT Projection Data and CT-based
+Attenuation Coefficient Maps,” Data set, 2021. [Online]. Available:
+https://doi.org/10.7302/ctcw-6s13
+[29] C. Uribe et al., “An international study of factors affecting variability
+of dosimetry calculations, part 1: Design and early results of the snmmi
+dosimetry challenge,” Journal of Nuclear Medicine: Official Publication,
+Society of Nuclear Medicine, vol. 62, no. Suppl 3, pp. 36S–47S, 2021.
+[30] J. Brosch-Lenz, S. Ke, H. Wang, E. Frey, Y. K. Dewaraja, J. Sunderland,
+and C. Uribe, “An international study of factors affecting variability of
+dosimetry calculations, part 2: Overall variabilities in absorbed dose,”
+Journal of Nuclear Medicine, vol. 64, no. 7, pp. 1109–1116, 2023.
+[Online]. Available: https://jnm.snmjournals.org/content/64/7/1109
+[31] L. Polson, P. Esquinas, S. Kurkowska, C. Li, P. Sheikhzadeh,
+M. Abbassi, S. Farzanehfar, S. Mirabedian, C. Uribe, and A. Rahmim,
+“Fast
+and
+accurate
+collimator-detector
+response
+compensation
+in
+high-energy spect imaging with 1d convolutions and rotations,” 2024.
+[Online]. Available: https://arxiv.org/abs/2409.03100
+[32] G. Schramm and K. Thielemans, “Parallelproj—an open-source frame-
+work for fast calculation of projections in tomography,” Frontiers in
+Nuclear Medicine, vol. 3, Jan 2024, sec. PET and SPECT.

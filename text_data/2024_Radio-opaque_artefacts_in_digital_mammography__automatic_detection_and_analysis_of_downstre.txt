@@ -1,0 +1,772 @@
+RADIO-OPAQUE ARTEFACTS IN DIGITAL MAMMOGRAPHY:
+AUTOMATIC DETECTION AND ANALYSIS OF DOWNSTREAM EFFECTS
+Amelia Schueppert⋆
+Ben Glocker†
+M´elanie Roschewitz†
+⋆MIT
+†Imperial College London
+ABSTRACT
+This study investigates the effects of radio-opaque artefacts,
+such as skin markers, breast implants, and pacemakers, on
+mammography classification models. After manually anno-
+tating 22,012 mammograms from the publicly available EM-
+BED dataset, a robust multi-label artefact detector was de-
+veloped to identify five distinct artefact types (circular and
+triangular skin markers, breast implants, support devices and
+spot compression structures). Subsequent experiments on two
+clinically relevant tasks −breast density assessment and can-
+cer screening −revealed that these artefacts can significantly
+affect model performance, alter classification thresholds, and
+distort output distributions. These findings underscore the im-
+portance of accurate automatic artefact detection for develop-
+ing reliable and robust classification models in digital mam-
+mography. To facilitate future research our annotations, code,
+and model predictions are made publicly available1.
+Index Terms— Artefact detection, Model robustness,
+Digital mammography, Breast cancer screening
+1. INTRODUCTION
+The integration of machine learning-based clinical decision
+tools into breast cancer screening has rapidly gained traction
+in recent years [1, 2, 3, 4, 5, 6]. These models have demon-
+strated expert-level performance and the potential to alleviate
+clinical workload. However, these models have been shown
+to be sensitive to changes in image characteristics, e.g. scan-
+ner changes [5, 7]. While most studies have investigated the
+impact of global image changes, this study instead focuses
+on the effects of radio-opaque artefacts, which introduce lo-
+calised intensity variations within images.
+We focus on five types of artefacts: (a) circular skin mark-
+ers, (b) triangular skin markers, (c) breast implants, (d) de-
+vices (e.g. pacemakers), (e) compression and special magni-
+fication artefacts. Examples of such artefacts can be found in
+Fig. 1. Circular and triangular skin markers are radio-opaque
+markers placed on the breast skin by radiologists at acquisi-
+tion time [8], indicating locations of moles (circle) or a palpa-
+1Code
+available
+at
+https://github.com/biomedia-mira/
+mammo-artifacts
+ble mass (triangle). Breast implants and devices such as pace-
+makers or metallic sensors appear as large, very high contrast
+structures on the mammograms.
+Similarly, spot compres-
+sion and special magnification devices are large radio-opaque
+structures surrounding the breast area, allowing magnification
+of small, suspicious regions of breast tissue. Despite their
+clear effect on image appearances, the effect of the presence
+of such artefacts in mammograms on downstream task models
+(e.g. breast cancer screening) has −to the best of our knowl-
+edge −not been studied so far. This is largely explained by
+the fact that labels indicating the presence of such artefacts
+within an image are not typically available in current publicly
+available mammography datasets.
+We study this problem in a three step approach, using data
+from the EMory BrEast imaging Dataset (EMBED), a large
+publicly available dataset of breast cancer screening mammo-
+grams [9]. First, we manually label 22,012 images from this
+dataset, recording the presence of each artefact type for every
+annotated image. Secondly, we train and evaluate a multi-
+label convolutional network to predict the presence of arte-
+facts on the remaining images. Thirdly, we train two down-
+stream task classifiers, the first one for breast cancer screen-
+ing and the second one for breast density assessment. We then
+study the effect of individual artefacts on model performance
+and calibration across both tasks.
+Our contributions can be summarised as follows:
+• We manually annotate 22,012 images of the EMBED
+dataset, indicating the presence of five artefact types (cir-
+cular and triangular skin markers, breast implants, support
+devices and compression structures). All annotations are
+made publicly available.
+• We train a multi-label artefact detector able to predict
+the presence of individual artefacts with over .99 average
+ROC-AUC, allowing us to predict presence of artefacts
+for all 398,458 EMBED images.
+• We analyse the effect of artefacts on downstream model
+performance for breast cancer screening and breast den-
+sity assessment. Our results demonstrate that the presence
+of artefacts can strongly affect downstream performance.
+• To facilitate future research, all annotations, code and
+model predictions are made publicly available.
+arXiv:2410.03809v1  [eess.IV]  4 Oct 2024
+(a) Circular marker
+(b) Triangular marker
+(c) Breast implant
+(d) Support devices
+(e) Spot compression
+Fig. 1: Radio-opaque artefacts considered in this study: skin markers (circle and triangles), breast implants, support devices
+(e.g. pacemakers) and spot compression (or magnification) devices. Red arrows highlight artefacts of interest.
+2. METHODS
+2.1. Artefact dataset construction
+We use the publicly available EMBED dataset [9] which is
+composed of a total of 398,458 mammograms, and contains
+full-field digital mammograms (FFDM) as well as so-called
+C-view images (2D projections obtained from breast to-
+mosynthesis images). Images in the dataset were acquired
+on six different scanners, covering a wide-range of image
+characteristics. This dataset does originally not contain any
+indication of the presence of skin markers, breast implants or
+devices. Spot compression tags are available as part of the
+original release. However, our initial analysis showed that
+this provided tag is unreliable, containing many false nega-
+tives. A more accurate detection is required to flag all images
+with special magnification and compression structures.
+We manually labelled artefact presence in 22,012 images
+from the EMBED dataset. In this annotated dataset: 23% of
+images have circular skin markers, 5% have triangular skin
+markers, 8% have breast implants, 1% have support devices
+(such as pacemakers or metallic sensors) and 6% of images
+contain compression structures. Detailed dataset statistics can
+be found in Table 1. We initially labelled a random subset
+of the dataset, which we then expanded in an active learning
+manner, using model predictions to guide selection of addi-
+tional positive and hard negatives samples for each class.
+Artefact
+Images with artefact
+Circles
+4,905 (22%)
+Triangles
+1,186 (5%)
+Implants
+1,815 (8%)
+Devices
+286 (1%)
+Spot compressions
+1,250 (6%)
+Total images
+22,012
+Table 1: Characteristics of labelled artefact dataset.
+2.2. Artefact detection model
+After creating the large, annotated artefact dataset, we trained
+a multi-label classifier to predict the presence of such arte-
+fact on the remainder of the EMBED dataset. Specifically,
+we used a ResNet-50 model [10], initialised with ImageNet
+weights. We use a separate binary classification head for each
+artefact, and the encoder is shared across artefact types. We
+used 65% of the annotated dataset for training, 15% for vali-
+dation, and 25% for testing.
+2.3. Downstream tasks
+To analyse the effects of artefacts on downstream model per-
+formance, we focus on two clinically relevant tasks. First,
+breast cancer screening, where we separate normal images
+from mammograms with non-negative screening results. Pre-
+cisely, a mammogram is said to be ‘normal’ if the BIRADS
+level is 1 (negative class). If the mammogram is labelled as
+BIRADS > 1 (i.e. benign, suspicious or biopsy-proven can-
+cer) or if there is any pathology result confirming the pres-
+ence of cancer for this image, the image is considered non-
+negative (positive class). Our second task is breast density
+assessment (4 density classes), a task of interest in breast can-
+cer screening as breast density is a risk factor for breast can-
+cer. Both downstream classifiers were trained independently,
+using ResNet-18 models, initialised with ImageNet weights.
+For these downstream tasks, we focused on images with valid
+breast density assessment, female subjects, and excluded spot
+compression and C-view images. We used 67.5% of the data
+for training,, 7.5% for validation, and 25% for testing.
+3. RESULTS
+3.1. Artefact detector performance
+We first evaluate the performance of the proposed artefact
+detector on the labelled artefact test set. The model demon-
+strates excellent performance on these artefact detection
+tasks, achieving an average ROC-AUC of .993 on the test
+set and near perfect label-wise detection accuracy, as shown
+0
+1
+0
+1
+99.86%
+(N=4228)
+0.14%
+(N=6)
+1.17%
+(N=14)
+98.83%
+(N=1182)
+Circle marker
+0
+1
+0
+1
+99.22%
+(N=5059)
+0.78%
+(N=40)
+2.11%
+(N=7)
+97.89%
+(N=324)
+Triangle marker
+0
+1
+0
+1
+99.92%
+(N=4977)
+0.08%
+(N=4)
+2.90%
+(N=13)
+97.10%
+(N=436)
+Breast implant
+0
+1
+0
+1
+99.96%
+(N=5377)
+0.04%
+(N=2)
+3.92%
+(N=2)
+96.08%
+(N=49)
+Devices
+0
+1
+0
+1
+99.92%
+(N=5099)
+0.08%
+(N=4)
+1.53%
+(N=5)
+98.47%
+(N=322)
+Compression
+Fig. 2: Artefact detection performance: excellent detection
+performance (balanced accuracy > 98%) for all artefacts.
+in Fig. 2, with a balanced detection accuracy > 98% for all
+artefact types.
+3.2. Artefact distribution on the full EMBED dataset
+The excellent performance of the artefact detector allows to
+confidently predict the artefact tags for the remaining of the
+EMBED dataset (N=398,458). Overall, the model predictions
+suggest that 22% of the images have a least one artefact, indi-
+cating that artefacts affect a substantial portion of the dataset,
+further motivating the need to analyse their effect on down-
+stream model performance. In Table 2, we compare the distri-
+bution of artefacts from images with normal screening results
+versus images with non-negative findings. We observe note-
+worthy correlation between cancer screening result and the
+presence of triangular skin markers, which is expected as tri-
+angle markers are associated with palpable masses and suspi-
+cious areas. Unsurprisingly, nearly all images with spot com-
+pression are associated with a non-negative screening result,
+as spot compression is typically applied to further investigate
+potentially suspicious areas. Finally, our model found 756
+additional images with compression compared to the original
+spot compression tag provided with the dataset.
+3.3. The effect of artefacts on downstream prediction
+tasks: breast cancer screening and density assessment
+In this section, we analyse the effect of artefact presence on
+classification performance for downstream tasks. In Table 3,
+we report the overall test performance along with the per-
+formance on images where particular artefacts are present,
+for both tasks (normal versus non-negative breast cancer
+screening and breast density assessment). We observe that
+the cancer screening model significantly under-performs on
+images with triangular skin markers, breast implants and sup-
+port devices. A similar effect is observed for breast implants
+and support devices for the breast density assessment model.
+Normal images
+Non-negative images
+No artefacts
+251,805 (84%)
+57,699 (59.5%)
+Circles
+31,698 (10%)
+7,148 (7%)
+Triangles
+3,769 (1%)
+7,477 (8%)
+Implants
+8,973 (3%)
+2,111 (2%)
+Devices
+775 (0.3%)
+309 (0.3%)
+Compressions
+6,734 (2%)
+27,370 (28.2%)
+Total images
+301,416
+97,042
+Table 2: Number of images with artefacts on the full EM-
+BED dataset, by cancer screening status, as predicted by
+our artefact detector. There are significantly more images
+with triangles markers and spot compression among images
+with non-negative screening results.
+Next, we analyse the effect of subgroups on the distribu-
+tion of model outputs and threshold choice for the binary
+breast cancer screening task. In Fig. 4, we show the distri-
+bution of model outputs by ground truth for images without
+any markers versus for images with triangular skin markers,
+breast implants and devices. The presence of artefacts in-
+duces a clear shift in the model output distribution, an effect
+similar to what has been previously reported for acquisition
+changes [7, 1]. This shift in model output will in particular
+affect threshold selection for binary classification. We illus-
+trate this in Fig. 3. In this experiment, we fix the classification
+threshold such that the overall sensitivity and specificity are
+equal on the overall test set, and then report the subgroup-
+wise confusion matrices for various artefact subgroups. We
+can see that images with triangle markers are systematically
+predicted as positive, yielding an extremely low specificity
+on this subgroup. Similarly, we can observe substantial drop
+in model specificity for images with breast implants and
+support devices. Similar effects can be observed for breast
+density assessment in Fig. 5, where class-wise accuracies
+vary substantially.
+Cancer screening
+Breast density
+(ROC-AUC)
+(Balanced acc.)
+Overall
+.86
+.80
+No artefacts
+.86
+.80
+Circles
+.86
+.82
+Triangles
+.79
+.78
+Implants
+.72
+.67
+Devices
+.83
+.70
+Table 3: Downstream classification performance across
+artefacts subgroups. The performance on images with tri-
+angle markers, implant and support devices is significantly
+lower than on images without artefacts for both tasks.
+0
+1
+0
+1
+True label
+77.33%
+(N=40002)
+22.67%
+(N=11724)
+22.67%
+(N=2749)
+77.33%
+(N=9376)
+All images
+0
+1
+0
+1
+78.48%
+(N=34313)
+21.52%
+(N=9410)
+23.87%
+(N=2319)
+76.13%
+(N=7396)
+No markers
+0
+1
+0
+1
+81.34%
+(N=4447)
+18.66%
+(N=1020)
+25.66%
+(N=283)
+74.34%
+(N=820)
+Circle markers
+0
+1
+Predicted label
+0
+1
+True label
+14.40%
+(N=54)
+85.60%
+(N=321)
+1.08%
+(N=8)
+98.92%
+(N=736)
+Triangle markers
+0
+1
+Predicted label
+0
+1
+55.37%
+(N=1150)
+44.63%
+(N=927)
+26.07%
+(N=134)
+73.93%
+(N=380)
+Breast implants
+0
+1
+Predicted label
+0
+1
+45.11%
+(N=60)
+54.89%
+(N=73)
+9.46%
+(N=7)
+90.54%
+(N=67)
+Devices
+Fig. 3: Confusion matrices for breast cancer screening,
+per marker subgroup. The classification threshold is fixed
+across all subgroups, chosen such that the global sensitivity
+and specificity are equal. The sensitivity-specificity balance
+on images with triangle markers, breast implants and support
+devices is substantially degraded, where images with those
+artefacts have a very low specificity compared to images with-
+out markers.
+4. CONCLUSION
+In this paper, we developed and validated a multi-label clas-
+sification model for detecting artefacts in digital mammog-
+raphy images. We manually annotated over twenty thousand
+mammograms for the presence of five different types of radio-
+opaque artefacts (circular and triangular skin markers, breast
+implants, devices and compression/magnification structures).
+These annotations are made publicly available, along with the
+developed labelling tools to facilitate further research in this
+space. We additionally release the generated annotations for
+the entire EMBED dataset (398,458 images).
+Our experiments clearly show that these artefacts present
+a challenge for mammography-based machine learning mod-
+els. We notably showed that the presence of some artefacts
+may lead to substantial performance drops, changes in output
+distribution and affect the classification threshold choice.
+Accurately identifying and accounting for artefacts in
+both model evaluation and training is key to uncover impor-
+tant model biases. Our experiments show that care should be
+taken against the presence of radio-opaque artefacts in mam-
+mography datasets and is calling for more research to enhance
+the robustness of existing models against these artefacts. We
+believe that the released artefact annotations and artefact de-
+tector constitute a important step in enabling further research
+in this space.
+0.00
+0.25
+0.50
+0.75
+1.00
+Model output
+0
+2
+4
+6
+8
+Density
+Cancer screening status:
+no finding
+No artefact
+Triangle marker
+0.00
+0.25
+0.50
+0.75
+1.00
+Model output
+0
+2
+4
+6
+8
+Cancer screening status:
+non negative
+No artefact
+Triangle marker
+0.00
+0.25
+0.50
+0.75
+1.00
+Model output
+0
+2
+4
+6
+8
+Density
+No artefact
+Breast implant
+0.00
+0.25
+0.50
+0.75
+1.00
+Model output
+0
+1
+2
+3
+4
+5
+6
+No artefact
+Breast implant
+0.00
+0.25
+0.50
+0.75
+1.00
+Model output
+0
+2
+4
+6
+8
+Density
+No artefact
+Devices
+0.00
+0.25
+0.50
+0.75
+1.00
+Model output
+0
+2
+4
+6
+8
+10
+No artefact
+Devices
+Fig. 4: Effect of artefacts on model output distribution for
+the breast cancer screening model. From top to bottom, ef-
+fect of: triangular skin markers, breast implants and devices.
+0
+1
+2
+3
+0
+1
+2
+3 True label
+88% 12%
+0%
+0%
+19% 71% 10%
+0%
+0%
+13% 77% 10%
+0%
+0%
+17% 83%
+All images
+0
+1
+2
+3
+0
+1
+2
+3
+88% 11%
+0%
+0%
+20% 70% 10%
+0%
+0%
+12% 78% 10%
+0%
+0%
+17% 82%
+No markers
+0
+1
+2
+3
+0
+1
+2
+3
+89% 11%
+0%
+0%
+20% 72%
+8%
+0%
+0%
+14% 79%
+7%
+0%
+0%
+14% 86%
+Circle markers
+0
+1
+2
+3
+Predicted label
+0
+1
+2
+3 True label
+87% 12%
+0%
+1%
+17% 61% 22%
+1%
+0%
+9%
+73% 18%
+0%
+0%
+9%
+91%
+Triangle markers
+0
+1
+2
+3
+Predicted label
+0
+1
+2
+3
+39% 54%
+1%
+6%
+2%
+78% 16%
+4%
+1%
+21% 66% 12%
+0%
+0%
+13% 86%
+Breast implants
+0
+1
+2
+3
+Predicted label
+0
+1
+2
+3
+59% 41%
+0%
+0%
+15% 79%
+7%
+0%
+3%
+29% 65%
+3%
+0%
+0%
+25% 75%
+Devices
+Fig. 5: Confusion matrices for breast density classifica-
+tion, per marker subgroup. Class-wise accuracies are sub-
+stantially shifted on images with breast implants and devices.
+5. COMPLIANCE WITH ETHICAL STANDARDS
+This study uses secondary, fully anonymised data which is
+publicly available and is exempt from ethical approval.
+6. ACKNOWLEDGMENTS
+A.S. received support from MISTI at MIT and the Interna-
+tional Research Opportunities Programme (IROP) at Impe-
+rial College London. B.G. received funding from the Royal
+Academy of Engineering as part of his Kheiron/RAEng Re-
+search Chair in Safe Deployment of Medical Imaging AI.
+M.R. is funded through an Imperial College London Presi-
+dent’s PhD Scholarship.
+7. REFERENCES
+[1] Clarisse F. de Vries, Samantha J. Colosimo, Roger T.
+Staff, Jaroslaw A. Dymiter, Joseph Yearsley, Deirdre
+Dinneen, Moragh Boyle, David J. Harrison, Lesley A.
+Anderson, Gerald Lip, and iCAIRD Radiology Collab-
+oration, “Impact of Different Mammography Systems
+on Artificial Intelligence Performance in Breast Cancer
+Screening,” Radiology. Artificial Intelligence, vol. 5, no.
+3, pp. e220146, May 2023.
+[2] Lan-Anh Dang, Emmanuel Chazard, Edouard Poncelet,
+Teodora Serb, Aniela Rusu, Xavier Pauwels, Cl´emence
+Parsy, Thibault Poclet, Hugo Cauliez, Constance Enge-
+laere, Guillaume Ramette, Charlotte Brienne, Sofiane
+Dujardin, and Nicolas Laurent, “Impact of artificial in-
+telligence in breast cancer screening with mammogra-
+phy,” Breast Cancer, vol. 29, no. 6, pp. 967–977, Nov.
+2022.
+[3] Kristina L˚ang, Magnus Dustler, Victor Dahlblom, Anna
+˚Akesson, Ingvar Andersson, and Sophia Zackrisson,
+“Identifying normal mammograms in a large screening
+population using artificial intelligence,” European Ra-
+diology, vol. 31, no. 3, pp. 1687–1692, Mar. 2021.
+[4] Marthe Larsen, Camilla F. Aglen, Solveig R. Hoff,
+H˚akon Lund-Hanssen, and Solveig Hofvind,
+“Possi-
+ble strategies for use of artificial intelligence in screen-
+reading of mammograms, based on retrospective data
+from 122,969 screening examinations,” European Radi-
+ology, vol. 32, no. 12, pp. 8238–8246, Dec. 2022.
+[5] Nisha Sharma, Annie Y. Ng, Jonathan J. James, Galvin
+Khara, Eva Ambrozay, Christopher C. Austin, G´abor
+Forrai, Georgia Fox, Ben Glocker, Andreas Heindl,
+Edit Karpati, Tobias M. Rijken, Vignesh Venkatara-
+man, Joseph E. Yearsley, and Peter D. Kecskemethy,
+“Multi-vendor evaluation of artificial intelligence as an
+independent reader for double reading in breast cancer
+screening on 275,900 mammograms,”
+BMC Cancer,
+vol. 23, no. 1, pp. 460, May 2023.
+[6] Annie Y. Ng, Cary JG Oberije, ´Eva Ambr´ozay, Endre
+Szab´o, Orsolya Serfozo, Edit Karpati, Georgia Fox, Ben
+Glocker, Elizabeth A. Morris, G´abor Forrai, and Pe-
+ter D. Kecskemethy,
+“Prospective implementation of
+AI-assisted screen reading to improve early detection of
+breast cancer,” Nature Medicine, vol. 29, no. 12, pp.
+3044–3049, 2023, Publisher: Nature Publishing Group
+US New York.
+[7] M´elanie Roschewitz, Galvin Khara, Joe Yearsley, Nisha
+Sharma, Jonathan J. James, Eva Ambrozay, Adam
+Heroux, Peter Kecskemethy, Tobias Rijken, and Ben
+Glocker,
+“Automatic correction of performance drift
+under acquisition shift in medical image classification,”
+Nature Communications, vol. 14, no. 1, pp. 6608, Oct.
+2023, Publisher: Nature Publishing Group.
+[8] Tamara Ortiz-Perez and Alfred B. Watson, “Mammog-
+raphy Techniques, Positioning, and Optimizing Image
+Quality,” in Breast Cancer Screening and Diagnosis:
+A Synopsis, Mahesh K Shetty, Ed., pp. 37–63. Springer,
+New York, NY, 2015.
+[9] Jiwoong J. Jeong, Brianna L. Vey, Ananth Bhimireddy,
+Thomas Kim, Thiago Santos, Ramon Correa, Raman
+Dutt, Marina Mosunjac, Gabriela Oprea-Ilies, Geof-
+frey Smith, Minjae Woo, Christopher R. McAdams,
+Mary S. Newell, Imon Banerjee, Judy Gichoya, and
+Hari Trivedi,
+“The EMory BrEast imaging Dataset
+(EMBED): A Racially Diverse, Granular Dataset of 3.4
+Million Screening and Diagnostic Mammographic Im-
+ages,” Radiology: Artificial Intelligence, vol. 5, no. 1,
+pp. e220047, Jan. 2023, Publisher: Radiological Society
+of North America.
+[10] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian
+Sun, “Deep Residual Learning for Image Recognition,”
+in 2016 IEEE Conference on Computer Vision and Pat-
+tern Recognition (CVPR), Las Vegas, NV, USA, June
+2016, pp. 770–778, IEEE.

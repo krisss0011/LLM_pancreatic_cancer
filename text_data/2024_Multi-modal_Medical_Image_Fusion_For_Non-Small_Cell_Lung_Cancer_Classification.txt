@@ -1,0 +1,664 @@
+MULTI-MODAL MEDICAL IMAGE FUSION FOR NON-SMALL CELL LUNG CANCER
+CLASSIFICATION
+Salma Hassan, Hamad Al Hammadi, Ibrahim Mohammed, Muhammad Haris Khan
+Mohamed Bin Zayed University of Artificial Intelligence, Abu Dhabi, UAE
+ABSTRACT
+The early detection and nuanced subtype classification of
+non-small cell lung cancer (NSCLC), a predominant cause
+of cancer mortality worldwide, is a critical and complex is-
+sue. In this paper, we introduce an innovative integration of
+multi-modal data, synthesizing fused medical imaging (CT
+and PET scans) with clinical health records and genomic
+data. This unique fusion methodology leverages advanced
+machine learning models, notably MedClip and BEiT, for
+sophisticated image feature extraction, setting a new stan-
+dard in computational oncology.
+Our research surpasses
+existing approaches, as evidenced by a substantial enhance-
+ment in NSCLC detection and classification precision. The
+results showcase notable improvements across key perfor-
+mance metrics, including accuracy, precision, recall, and
+F1-score.
+Specifically, our leading multi-modal classifier
+model records an impressive accuracy of 94.04%. We be-
+lieve that our approach has the potential to transform NSCLC
+diagnostics, facilitating earlier detection and more effective
+treatment planning and, ultimately, leading to superior patient
+outcomes in lung cancer care.
+Index Terms— Lung Cancer, NSCLC, Medical Imaging
+Fusion, Multimodal data, CT Scans, PET Scans
+1. INTRODUCTION
+Lung cancer remains a significant health challenge, ranking
+as the second most prevalent cancer and the foremost cause
+of cancer-related mortality in both men and women [1]. Char-
+acteristically, lung cancer symptoms often remain undetected
+until the disease has progressed to an advanced stage, com-
+plicating treatment efforts. In this context, image screening
+emerges as a critical tool, particularly for asymptomatic in-
+dividuals. Studies underscore the efficacy of imaging tech-
+niques such as CT and MRI in early lung cancer detection
+among high-risk groups, including smokers and individuals
+with genetic predispositions, significantly enhancing survival
+prospects [2, 3]. However, existing methods for NSCLC clas-
+sification, such as those utilizing standalone CT or PET imag-
+ing [4], often face limitations in terms of sensitivity and speci-
+ficity, and they may not fully capture the complexity of tumor
+heterogeneity. Additionally, existing approaches may lack the
+integration of comprehensive clinical and genetic data, which
+are crucial for a more precise diagnosis. These limitations
+underscore the need for more advanced diagnostic method-
+ologies that can accurately pinpoint and characterize cancer-
+ous tissues, providing a strong motivation for our innovative
+multi-modal image fusion approach.
+This paper aims to refine lung cancer diagnosis, particu-
+larly for non-small cell lung cancer (NSCLC), by integrating
+multi-modal data beyond traditional imaging scans.
+Our
+proposed method fuses CT and PET scans to leverage the
+strengths of both modalities.
+CT scans provide detailed
+anatomical information, while PET scans offer insights into
+metabolic activity, often indicative of tumor presence. By
+combining these scans, our fusion method creates a more
+comprehensive image that captures both structural and func-
+tional aspects of the lung.
+Such fusion techniques have
+shown promise in improving diagnostic accuracy in other
+organ scans and in combining CT with MRI [2].
+Our approach addresses the limitations of existing diag-
+nostic techniques that rely solely on single-modality imaging.
+CT or PET scans alone may not sufficiently differentiate be-
+tween malignant and benign lesions, leading to diagnostic in-
+accuracies. Additionally, the standalone use of these modal-
+ities may only partially capture the tumor’s complexity and
+heterogeneity. Therefore, our method begins with the denois-
+ing of scans using a deep CNN auto-encoder for more precise
+image reconstruction. This step is followed by the fusion of
+CT and PET scans through wavelet decomposition and accu-
+rate image registration to create a fused image that provides
+a richer, dual perspective of both functional and anatomical
+information. Specifically, fusing PET and CT images facili-
+tates the precise localization of abnormal metabolic activities
+within the lung’s structural framework [5]. This precise local-
+ization is crucial for identifying and characterizing cancerous
+tissues accurately. To complement this, we undertake rigor-
+ous pre-processing of both tabular and genetic data, encom-
+passing missing value estimation, encoding, class balancing,
+scaling, and feature selection. The image processing phase
+includes optimal contrast enhancement and normalization.
+By integrating multi-modal imaging with advanced ma-
+chine learning techniques, we aim to enhance the overall di-
+agnostic performance, leading to earlier and more accurate
+detection of NSCLC, ultimately improving patient outcomes.
+arXiv:2409.18715v1  [eess.IV]  27 Sep 2024
+Leveraging advanced models like MedClip and BEiT, we en-
+hance feature extraction and diagnostic accuracy. Addition-
+ally, incorporating clinical health records and genetic data al-
+lows for a more personalized diagnosis and treatment plan.
+This integration not only improves the sensitivity and speci-
+ficity of NSCLC detection but also paves the way for earlier
+diagnosis and better patient outcomes.
+This paper makes several key contributions to the field of
+oncological diagnostics, particularly in lung cancer:
+• Innovative Multi-Modal Data Fusion: Introduces an
+advanced multi-modal data fusion approach that blends
+CT and PET imaging with clinical and genetic data.
+This methodology, relatively unexplored in lung can-
+cer diagnostics, offers a more comprehensive diagnos-
+tic view, potentially leading to earlier and more accu-
+rate detection of NSCLC.
+• Novel Application of Deep Denoising CNN Auto-
+Encoders: Presents a novel application of deep CNN
+auto-encoders for the denoising of medical images, set-
+ting a new precedent for image clarity and diagnostic
+precision.
+• Effective Integration of Diverse Data Types: Demon-
+strates the effectiveness of integrating multiple data
+types through the use of diverse and sophisticated
+analytical models, significantly enhancing diagnostic
+accuracy.
+Ultimately, the paper’s core goal is to substantially im-
+prove the precision of NSCLC diagnosis by merging cutting-
+edge medical imaging with exhaustive patient data. By har-
+nessing the complementary strengths of CT and PET scans,
+we aspire to generate a comprehensive, unified image that de-
+lineates lung anomalies more effectively. The fusion of this
+imaging data with clinical and genetic information forms the
+cornerstone of our NSCLC classification strategy, aiming to
+transform and refine diagnostic procedures in oncology.
+2. RELATED WORK
+Recent advancements in AI for diagnosing and treating
+NSCLC have significantly transformed patient outcomes
+in oncology [6]. Recent advancements in AI for diagnosing
+and treating NSCLC have significantly transformed patient
+outcomes in oncology [6]. The application of AI in NSCLC
+diagnosis encompasses several key research domains: med-
+ical imaging analysis, survival prediction, recurrence ana-
+lytics, and multi-modal data integration. These fields have
+been instrumental in advancing the diagnosis and treatment
+of NSCLC.
+In the realm of medical imaging analysis, significant
+strides have been made in tumor detection and classification
+using AI algorithms applied to CT scans, as evidenced by
+the works of Feng and Khoirunnisa [7, 8]. These advance-
+ments have facilitated earlier and more precise diagnoses,
+consequently improving patient outcomes. Additionally, AI
+analysis of patient data has enhanced survival and recurrence
+prediction, offering valuable insights into patient prognosis
+[9].
+Recent research has also explored novel AI architectures
+for improving detection accuracy. Studies have investigated
+the potential of fully automated pipelines and advanced model
+architectures, such as CRNN, ViTs, AlexNet, and 3D recon-
+struction techniques, in enhancing diagnostic accuracy [2, 3].
+However, the highest accuracy achieved to date in these stud-
+ies was 84.1% using the VGG16 model on medical imaging
+data alone [10].
+The integration of multi-modal data represents a bur-
+geoning area of research. This includes both image multi-
+modality, combining MRI and CT scans, and data multi-
+modality, integrating tabular and imaging data [7, 8]. Studies
+by Feng have underscored the potential of combining imag-
+ing modalities like CT and MRI scans with patient genomics
+data to enhance diagnostic accuracy. The fusion of diverse
+data types, such as imaging modalities with patient genomic
+data, has shown promise in improving diagnostic accuracy.
+Our paper builds upon these foundational studies, aiming to
+pioneer the combination of multi-modal fused imaging with
+clinical and genomic data for NSCLC subtype classification.
+No work combines multi-modal fused imaging with clinical
+data and genomics sequences for the classification of both
+NSCLC subtypes, which is the scope and aim of this paper.
+Our paper contributes to this growing body of knowledge
+by not only applying these established techniques but also in-
+novating in the way we integrate and process multi-modal
+data. The fusion of CT and PET scans, as proposed in our
+methodology, builds upon the foundational work of [11], who
+illustrated the benefits of CT and MRI image fusion in en-
+hancing the clarity and informational value of medical scans
+for oncological application. Furthermore, our use of advanced
+models like MedClip and BEiT for image feature extraction
+extends the work of [12], who highlighted the strengths of
+these models in handling high-resolution medical images.
+In summary, this paper stands at the intersection of sev-
+eral key research areas within the field of medical imaging
+and cancer diagnosis. By synthesizing these diverse method-
+ologies and building upon them, our work aims to contribute
+a novel approach to the early detection and classification of
+NSCLC, addressing some of the limitations identified in pre-
+vious studies.
+3. PROPOSED METHODOLOGY
+Our methodology introduces several novel contributions to
+the field of NSCLC diagnosis through multi-modal data in-
+tegration and advanced deep learning techniques. These con-
+tributions can be categorized into four key areas: comprehen-
+sive pre-processing, advanced image fusion, innovative model
+architectures, and holistic data integration.
+3.1. Comprehensive Pre-processing
+Our approach to data pre-processing is a significant contribu-
+tion with practical benefits. We address four key data modal-
+ities: clinical tabular data, genetic data, CT scans, and PET
+scans. For tabular and genetic data, we implement a series of
+rigorous pre-processing steps, including missing value impu-
+tation, categorical encoding, class balancing using SMOTE,
+and standardization. Feature importance is evaluated using
+XGBoost, ensuring that only the most relevant features are
+used in subsequent analyses. For imaging data, we develop a
+deep CNN auto-encoder trained on a clean PET scan dataset
+to de-noise PET scans, effectively reducing noise and enhanc-
+ing image quality. CT scans undergo normalization and con-
+trast enhancement. We also employ 3D Slicer software for
+precise image registration of CT and PET scans, ensuring
+accurate anatomical and functional alignment.
+These pre-
+processing steps are crucial for maximizing the performance
+of our fusion and classification models, leading to more accu-
+rate diagnoses and treatment plans in healthcare analytics.
+3.2. Advanced Image Fusion
+One of the primary contributions of our methodology is
+the development of an advanced image fusion technique
+that combines the strengths of CT and PET scans.
+After
+all the prepossessing of the scans was done, the new clean
+input was fed into our VGG19 fusion model.
+The fusion
+algorithm decomposes the CT and PET scans into four co-
+efficients, each using the discrete wavelet transform.
+The
+coefficients are the coefficient LL1 and three detail coeffi-
+cients: LH1(horizontal), LV1(vertical), LD1(diagonal). After
+the fusion of the four pairs, inverse wavelet transform was
+applied to the four bands to obtain the fused image, results
+shown in Figure 2. The CT scan offers clear structural de-
+tails of the lung tissues and surrounding areas, but it lacks
+metabolic information. The PET scan reveals areas of high
+metabolic activity indicative of tumor presence, but it lacks
+precise anatomical context. By merging these two modali-
+ties, the fused image not only overcomes the limitations of
+each modality but also provides a comprehensive view that is
+invaluable in medical imaging, highlighting both the detailed
+structures of the lung tissues and the areas of high metabolic
+activity.
+3.3. Baseline Models
+The next stage involved implementing different baseline mod-
+els to evaluate the effectiveness of the multi-modal approach.
+SVM and logistic regression were chosen for their robustness
+and simplicity in handling tabular and genetic data, provid-
+ing reliable benchmarks for structured data analysis. For im-
+age classification, we selected 2D CNN, 3D CNN, VGG16,
+ResNet18, Inception, and Xception due to their proven effi-
+cacy in medical imaging tasks and their diverse architectures.
+These models represent a wide range of complexity and fea-
+ture extraction capabilities. Testing these models on both CT
+images alone and fused PET and CT images offers a compre-
+hensive evaluation, allowing us to demonstrate the advantages
+of our multi-modal approach over single-modality methods.
+3.4. Multi-modal Classification Model
+For the multi-modal classification model, we introduced two
+sophisticated model architectures: MedClip and BEiT (Bidi-
+rectional Encoder representation from Image Transformers).
+MedClip employs a dual encoder structure for visual and tex-
+tual data, using cross-modal contrastive learning to align these
+representations in a unified feature space. This approach is
+particularly novel and crucial as it facilitates the seamless in-
+tegration of medical images with clinical and genetic data,
+enhancing the model’s ability to draw comprehensive insights
+from diverse data types [12]. The dual encoder structure al-
+lows MedClip to effectively capture the complementary in-
+formation from both image and text data, making it a pow-
+erful tool for multi-modal medical diagnostics. BEiT, based
+on the Vision Transformer (ViT) architecture, leverages bidi-
+rectional context modeling and masked image modeling to
+develop robust representations from images. This model is
+pre-trained on medical images, which enhances its capability
+to detect and classify tumors accurately [13]. The use of bidi-
+rectional context modeling allows BEiT to consider the entire
+context of an image, providing a more thorough understand-
+ing of the visual information. Masked image modeling, on the
+other hand, trains the model to predict missing parts of the im-
+age, which improves its ability to generalize and perform well
+on unseen data. These models were tested with three different
+image input combinations: CT alone, CT and PET separately,
+and the fused CT and PET image, allowing us to evaluate the
+efficacy of our fusion method thoroughly. By doing so, we
+can determine the effectiveness of the proposed method and
+fusion model. The architecture of the best multi-modal model
+BEiT-based is shown in Figure 1.
+4. EXPERIMENTAL DETAILS
+4.1. Datasets
+This paper utilized three distinct datasets to optimize the
+analysis of NSCLC. The primary dataset was the NSCLC
+Radiogenomic collection from the Cancer Imaging Archive
+[14]. This comprehensive dataset includes 285,411 scan im-
+ages from 303 studies of 211 NSCLC patients, encompassing
+both CT and PET lung images. It also provides extensive
+clinical data, covering variables such as age, smoking status,
+histology, treatment history, and cancer recurrence. Addition-
+Fig. 1. Multi-modal BEiT model showing model architecture that starts with pre-processing the CT and PET scan and then
+fusing them into a single scan that is then fused with the other data modalities, such as clinical and genetic, before applying
+feature selection and passing it to the BEiT model for classification.
+Fig. 2. Example of CT, PET images, and resulting fused im-
+age
+ally, it includes RNA sequencing data from biopsied tumor
+tissues, linking genetic information with imaging.
+Given the primary dataset’s imbalance, predominantly
+featuring the Adenocarcinoma class, it was supplemented
+with the NSCLC Radiomics dataset [15], which contains im-
+ages of 422 NSCLC patients. Notably, both datasets were
+generated using the same scanner, ensuring consistency in
+data quality.
+The Radiomics dataset was exclusively used
+to augment the training data, while validation was performed
+solely on the primary dataset. The third dataset employed was
+a Large-Scale CT and PET dataset [16], featuring de-noised
+PET scans. These scans were used to train a deep CNN auto-
+encoder with added noise to enhance the model’s robustness.
+Post-training, this model was applied to our primary dataset
+for PET scan de-noising, thereby improving the quality of our
+input data for subsequent analysis.
+4.2. Implementation Detail and Result Analysis
+For the hardware requirement, computers equipped with
+NVIDIA Quadro RTX6000 were used to train the models,
+and the multi-core processors were used for efficient data
+processing and analysis.
+Powerful GPUs are necessary to
+speed up the computations significantly. Finally, given the
+large size of medical imaging datasets, storage solutions like
+cloud storage were used. In terms of software, 3D Slicer was
+used to view and pair the CT and PET DICOM scans and to
+register the image between the two scans. Moreover, several
+Python libraries were needed to aid in working with imaging
+scans, namely pydicom, pynrrd, skimage, lungmask [17],
+and SimpleITK, to name a few. Besides these, we used deep
+learning frameworks such as PyTorch, TensorFlow, and Keras
+to develop and train the models for image classification. Also,
+the library Optuna was used to facilitate the hyperparameters
+search [18].
+4.3. Model Training
+For the deep learning models, the key hyperparameters in-
+cluded a learning rate of 0.001, a batch size of 96, a dropout
+of 0.5, and the Adam optimizer held constant across all mod-
+els for fair comparison. For the XGBoost model for feature
+selection, the learning rate was set to 0.1, with a maximum
+depth of 5 for trees and 100 estimators. We employed a 5-fold
+cross-validation approach for testing and model evaluation.
+The baseline methods included a standard logistic regression
+model and support vector machine for tabular data com-
+parison and several image classifiers such as 2D CNN, 3D
+CNN, VGG16, ResNet, Inception, and Xception. The opti-
+mal parameters for the tabular baseline models were achieved
+through GridSearch. The image baseline models were fed the
+CT images alone as well as the fused CT and PET, serving as
+a comparison point to assess the performance improvements
+offered by the more complex multi-modal models proposed.
+The assessment metrics focused on accuracy, precision, re-
+call, and f1-score.
+4.4. Evaluation Metrics
+For the classification task, we prioritized evaluation metrics
+crucial for medical diagnostics: accuracy, precision, recall,
+and F1-score. Accuracy measures the overall correctness of
+the model, while precision assesses the proportion of true
+positives among positive predictions. Recall, or sensitivity,
+quantifies the model’s ability to identify true positives cor-
+rectly. The F1-score, a balance of precision and recall, pro-
+vides a holistic view of the model’s performance. Addition-
+ally, we analyzed the confusion matrix to scrutinize false pos-
+itives and negatives, which are particularly critical in medical
+applications. These metrics were integral not only for assess-
+ing model performance but also for comparing the effective-
+ness of different imaging inputs, such as standalone CT scans
+versus integrated fused scans.
+5. RESULTS AND DISCUSSION
+5.1. Quantitative Analysis
+Our experimental analysis comprehensively evaluated various
+machine learning models, spanning tabular, image-based, and
+multi-modal approaches both separately and in a fused imag-
+ing modality. Key findings, detailed in Table 1, reveal distinct
+performance patterns across these models, evaluated on accu-
+racy, precision, recall, and F1-score.
+Baseline tabular models, specifically SVM and Logistic
+Regression, exhibited solid performance with an accuracy of
+77.0%. Image classifiers using solely CT scans showed varied
+effectiveness; 2D CNNs achieved a 70.0% accuracy, whereas
+Inception models reached up to 79.0%. Notably, the incorpo-
+ration of fused CT and PET scans markedly boosted model
+performance. For instance, VGG16, using fused images, at-
+tained an 87.1% accuracy and an 82.5% F1-score, underlining
+the value of fused imaging.
+The standout results were observed in multi-modal mod-
+els. The MedClip model, integrating tabular, genetic, and
+fused imaging data, achieved an 84.9% accuracy.
+The
+BEiT-based model, also utilizing a multi-modal approach,
+demonstrated a remarkable accuracy of 94.04% with fused
+data.
+This represents a significant advancement over the
+performances achieved using separate CT and PET scans,
+underscoring the efficacy of our multi-modal, fused imaging
+methodology. These results not only highlight the potential
+of advanced AI models in medical diagnostics but also em-
+phasize the transformative impact of integrating diverse data
+modalities.
+Model
+Accuracy
+(%)
+Precision
+(%)
+Recall
+(%)
+F1-Score
+(%)
+Tabular Models
+SVM
+77.0 ± 1.7 76.5 ± 1.3 76.5 ± 1.8 76.0 ± 1.6
+Logistic Reg.
+77.0 ± 1.6 79.5 ± 1.6 74.5 ± 1.9 75.0 ± 1.7
+Image Classifier with CT images
+2D CNN
+70.0 ± 2.7 64.0 ± 1.8 64.5 ± 2.1 64.0 ± 2.2
+3D CNN
+55.5 ± 2.8 44.0 ± 3.1 48.5 ± 2.8 40.0 ± 2.9
+VGG16
+75.0 ± 0.7 70.0 ± 0.9 71.5 ± 1.1 70.5 ± 0.5
+ResNet
+74.0 ± 1.9 74.1 ± 2.6 73.7 ± 1.7 71.6 ± 1.8
+Inception
+79.0 ± 1.3 76.0 ± 1.0 68.0 ± 0.8 70.0 ± 0.9
+Xception
+78.0 ± 1.2 74.0 ± 0.8 70.0 ± 0.6 71.0 ± 0.7
+Image Classifier with Fused CT + PET images
+2D CNN
+75.0 ± 2.1 73.0 ± 2.6 65.0 ± 2.2 66.5 ± 2.4
+3D CNN
+60.0 ± 2.6 79.0 ± 2.3 55.0 ± 2.4 45.0 ± 2.5
+VGG16
+87.1 ± 0.8 83.0 ± 2.1 82.5 ± 1.9 82.5 ± 2.0
+ResNet
+82.0 ± 1.5 86.8 ± 2.2 81.9 ± 1.5 81.3 ± 1.3
+Inception
+81.8 ± 0.9 86.5 ± 1.2 82.0 ± 1.1 81.0 ± 0.8
+Xception
+81.8 ± 1.1 86.5 ± 1.0 82.0 ± 0.9 81.0 ± 1.1
+Multi-modal MedClip Model (CT+PET+EHR+Genetic)
+CT only
+78.2 ± 1.9 79.0 ± 1.8 77.5 ± 2.3 78.0 ± 2.1
+Separate CT/PET 76.0 ± 1.7 76.0 ± 2.1 75.5 ± 1.3 75.5 ± 1.5
+Fused CT/PET
+84.9 ± 0.9 89.5 ± 1.1 83.0 ± 1.3 83.5 ± 1.5
+Multi-modal BEiT Model (CT+PET+EHR+Genetic)
+CT only
+85.6 ± 1.7 85.5 ± 2.1 85.5 ± 2.3 85.5 ± 2.6
+Separate CT/PET 76.0 ± 1.4 76.0 ± 2.5 75.5 ± 1.7 75.5 ± 1.9
+Fused CT/PET
+94.0 ± 0.7 95.0 ± 1.2 94.0 ± 1.0 94.0 ± 1.1
+Table 1. Comparison of all models evaluated with varied in-
+put of CT alone versus fused CT/PET.
+Fig. 3. F1-score comparison of different models using fused
+PET/CT images versus CT images alone.
+5.2. Qualitative Analysis
+Throughout all the assessments, the implementation of fused
+imaging data notably improved model performance metrics
+across the board, underscoring the value of integrating multi-
+ple imaging modalities for enhanced diagnostic inference, as
+illustrated in Figure 3. The deep learning models, particularly
+the one based on the BEiT architecture, effectively leveraged
+the rich, multi-modal data, translating into superior quanti-
+tative outcomes. It is also important to note that the multi-
+modal model surpasses the imaging and tabular model in per-
+formance, justifying the need to integrate data from different
+modalities to enhance the diagnosis accuracy. Moreover, even
+when trying the same multi-modal model but processing the
+CT and PET scans separately through feature extraction and
+then combining the results always performed worse than us-
+ing the fused image generated by the VGG19 fusion model,
+as it can be concluded that the fusion process is necessary
+and aids in the improved performance of the overall model.
+Regarding the pre-processing of the imaging scans, the deep
+CNN auto-encoder helped a lot in de-noising the PET scan,
+and the results were very noticeable. Similarly, for the CT
+scans, the pre-processing was applied to filter only the slices
+containing lung pixels, and masking and improving the con-
+trast helped improve the results.
+5.3. Discussion
+The quantitative leap in performance metrics with fused
+imaging data suggests that models benefit from the comple-
+mentary information available in different imaging modal-
+ities.
+It can be inferred that the spatial resolution of CT
+images combined with the metabolic information from PET
+scans provides a more holistic view of the pathology, which is
+effectively exploited by the more complex architectures like
+VGG16, Inception, and the BEiT models. This illustrates that
+although the BEit model uses fewer parameters than MedClip
+and VGG16, it had a better performance.
+The SVM and Logistic Regression models, while less ef-
+fective than image classifiers, offer competitive performance
+on tabular data, indicating that traditional machine learning
+models remain valuable for structured data analysis.
+The
+lower performance of 3D CNNs across all metrics suggests
+that for the dataset at hand, the additional complexity in-
+troduced by 3D convolution may not capture the essential
+features as effectively as other architectures, possibly due to
+overfitting or the need for more training data.
+The superior results of the BEiT-based model highlight
+the potential of transformer architectures in handling com-
+plex, multi-modal datasets. Transformers’ ability to model
+long-range dependencies and integrate disparate data sources
+is particularly beneficial for medical imaging tasks, where the
+context and subtlety of features are crucial for accurate diag-
+nosis.
+6. LIMITATIONS
+The primary limitation of our multi-modal approach is the
+constrained dataset size, as comprehensive data across all
+modalities (clinical, imaging, and genomic) was available for
+only a limited subset of patients. This reduction in dataset size
+potentially affects the generalizability and robustness of our
+models and necessitates the use of supplemental data from
+a secondary source to address class imbalances. Addition-
+ally, the complexity of integrating diverse data sources, while
+beneficial for performance, leads to the ’black box’ issue, di-
+minishing the interpretability of the model’s decision-making
+process. This aspect is particularly critical in clinical settings
+where transparency is essential for clinician trust and model
+applicability. Future efforts might focus on enhancing model
+transparency through explainable AI techniques.
+7. CONCLUSION
+In conclusion, this paper made significant strides in NSCLC
+diagnostics by integrating fused CT and PET scans with ge-
+nomics and clinical data. Our key contributions include the
+development of a novel image fusion technique that com-
+bines anatomical and metabolic information, the innovative
+application of advanced models like MedClip and BEiT for
+multi-modal data analysis, and the implementation of sophis-
+ticated pre-processing and denoising techniques for CT and
+PET scans. These contributions led to a substantial improve-
+ment in NSCLC classification, achieving a remarkable accu-
+racy of 94.04%. This success demonstrates the transformative
+potential of integrating diverse data sources and leveraging
+state-of-the-art transformer-based architectures in medical di-
+agnostics. The high accuracy achieved underscores the criti-
+cal importance of fused imaging and comprehensive data in-
+tegration in providing a more detailed and accurate lung can-
+cer analysis. These findings mark a significant leap forward
+in the field, setting a new standard for future research to de-
+velop even more sophisticated models and richer datasets, ul-
+timately leading to more precise and reliable diagnostic tools
+in oncology.
+Future Work. Future work will focus on expanding data
+sources by incorporating additional modalities such as pro-
+teomics and metabolomics, conducting longitudinal studies
+to track tumor progression, and validating model perfor-
+mance through real-world clinical trials. Enhancing model
+interpretability for clinical use, integrating our approach into
+existing clinical workflows, and optimizing for scalability
+and computational efficiency are also key areas for further
+research. These efforts aim to build on our findings to create
+more robust, accurate, and clinically applicable diagnostic
+tools. The ultimate goal is to improve patient outcomes in
+NSCLC and other cancers, a significant and impactful direc-
+tion for future research.
+8. REFERENCES
+[1] WHO,
+“World health organization:
+Lung can-
+cer fact sheet,” https://www.who.int/news-room/fact-
+sheets/detail/lung-cancer.
+[2] Shubham Dodia, B Annappa, and Padukudru A Mahesh,
+“Recent advancements in deep learning based lung can-
+cer detection: A systematic review,” Engineering Appli-
+cations of Artificial Intelligence, vol. 116, pp. 105490,
+2022.
+[3] Iftikhar Naseer, Tehreem Masood, Sheeraz Akram, Ar-
+fan Jaffar, Muhammad Rashid, and Muhammad Amjad
+Iqbal, “Lung cancer detection using modified alexnet
+architecture and support vector machine.,” Computers,
+Materials & Continua, vol. 74, no. 1, 2023.
+[4] Tafadzwa L Chaunzwa, Ahmed Hosny, Yiwen Xu, An-
+drea Shafer, Nancy Diao, Michael Lanuti, David C
+Christiani, Raymond H Mak, and Hugo JWL Aerts,
+“Deep learning classification of lung cancer histology
+using ct images,” Scientific reports, vol. 11, no. 1, pp.
+1–12, 2021.
+[5] Mehdi Amini, Mostafa Nazari, Isaac Shiri, Ghasem
+Hajianfar, Mohammad Reza Deevband, Hamid Ab-
+dollahi, Hossein Arabi, Arman Rahmim, and Habib
+Zaidi, “Multi-level multi-modality (pet and ct) fusion
+radiomics: prognostic modeling for non-small cell lung
+carcinoma,” Physics in Medicine & Biology, vol. 66, no.
+20, pp. 205017, 2021.
+[6] Yaser Alduais, Haijun Zhang, Fan Fan, Jing Chen, and
+Baoan Chen,
+“Non-small cell lung cancer (nsclc):
+A review of risk factors, diagnosis, and treatment,”
+Medicine, vol. 102, no. 8, pp. e32899, 2023.
+[7] Jianxin Feng, Jun Jiang, et al., “Deep learning-based
+chest ct image features in diagnosis of lung cancer,”
+Computational and Mathematical Methods in Medicine,
+vol. 2022, 2022.
+[8] Azka Khoirunnisa, Didit Adytia, et al., “Implementa-
+tion of crnn method for lung cancer detection based on
+microarray data,” JOIV: International Journal on Infor-
+matics Visualization, vol. 7, no. 2, pp. 600–605, 2023.
+[9] Jianjun Zhang, Kathryn A Gold, Heather Y Lin,
+Stephen G Swisher, Yan Xing, J Jack Lee, Edward S
+Kim, and William N William Jr, “Relationship between
+tumor size and survival in non–small-cell lung cancer
+(nsclc): an analysis of the surveillance, epidemiology,
+and end results (seer) registry,” Journal of Thoracic On-
+cology, vol. 10, no. 4, pp. 682–690, 2015.
+[10] Yong Han, Yuan Ma, Zhiyuan Wu, Feng Zhang, De-
+qiang Zheng, Xiangtong Liu, Lixin Tao, Zhigang Liang,
+Zhi Yang, Xia Li, et al., “Histologic subtype classifica-
+tion of non-small cell lung cancer using pet/ct images,”
+European journal of nuclear medicine and molecular
+imaging, vol. 48, pp. 350–360, 2021.
+[11] Ramesh
+Paudyal,
+Akash
+D
+Shah,
+Oguz
+Akin,
+Richard KG Do, Amaresha Shridhar Konar, Vaios Hat-
+zoglou, Usman Mahmood, Nancy Lee, Richard J Wong,
+Suchandrima Banerjee, et al., “Artificial intelligence in
+ct and mr imaging for oncological applications,” Can-
+cers, vol. 15, no. 9, pp. 2573, 2023.
+[12] Zifeng Wang, Zhenbang Wu, Dinesh Agarwal, and
+Jimeng Sun,
+“Medclip:
+Contrastive learning from
+unpaired medical images and text,”
+arXiv preprint
+arXiv:2210.10163, 2022.
+[13] Hangbo Bao, Li Dong, Songhao Piao, and Furu Wei,
+“Beit: Bert pre-training of image transformers,” arXiv
+preprint arXiv:2106.08254, 2021.
+[14] Shaimaa Bakr, Olivier Gevaert, Sebastian Echegaray,
+Kelsey Ayers, Mu Zhou, Majid Shafiq, Hong Zheng,
+Jalen Anthony Benson, Weiruo Zhang, Ann NC Leung,
+et al., “A radiogenomic dataset of non-small cell lung
+cancer,” Scientific data, vol. 5, no. 1, pp. 1–9, 2018.
+[15] HJWL Aerts, E Rios Velazquez, RT Leijenaar, Chintan
+Parmar, Patrick Grossmann, S Cavalho, Johan Bussink,
+Ren´e Monshouwer, Benjamin Haibe-Kains, Derek Ri-
+etveld, et al., “Data from nsclc-radiomics,” The cancer
+imaging archive, 2015.
+[16] Ping Li, S Wang, T Li, J Lu, Y HuangFu, and D Wang,
+“A large-scale ct and pet/ct dataset for lung cancer diag-
+nosis [dataset],” The cancer imaging archive, 2020.
+[17] Johannes Hofmanninger, Forian Prayer, Jeanny Pan, Se-
+bastian R¨ohrich, Helmut Prosch, and Georg Langs, “Au-
+tomatic lung segmentation in routine imaging is primar-
+ily a data diversity problem, not a methodology prob-
+lem,” European Radiology Experimental, vol. 4, no. 1,
+Aug. 2020.
+[18] Takuya Akiba, Shotaro Sano, Toshihiko Yanase, Takeru
+Ohta, and Masanori Koyama,
+“Optuna:
+A next-
+generation hyperparameter optimization framework,” in
+Proceedings of the 25th ACM SIGKDD international
+conference on knowledge discovery & data mining,
+2019, pp. 2623–2631.

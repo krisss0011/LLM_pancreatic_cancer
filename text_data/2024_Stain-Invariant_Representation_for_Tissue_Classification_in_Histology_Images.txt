@@ -1,0 +1,310 @@
+242
+27th Conference on Medical Image Understanding and Analysis 2023
+frontiersin.org
+Stain-invariant representation for  
+tissue classification in histology 
+images
+Author
+Manahil Raza, Saad Bashir, Talha Qaiser, Nasir Rajpoot – Tissue Image Analytics 
+Centre, Department of Computer Science, University of Warwick, Coventry CV4 
+7AL, U.K.
+Citation
+Raza, M., Bashir, S., Qaiser, T., Rajpoot, N., Stain-invariant representation for tissue 
+classification in histology images.
+Abstract 
+The process of digitizing histology slides involves multiple factors that can 
+affect a whole slide image’s (WSI) final appearance, including the staining 
+protocol, scanner, and tissue type. This variability constitutes a domain shift 
+and results in significant problems when training and testing deep learning 
+(DL) algorithms in multi-cohort settings. As such, developing robust and 
+generalizable DL models in computational pathology (CPath) remains an 
+open challenge. In this regard, we propose a framework that generates stain-
+augmented versions of the training images using stain matrix perturbation. 
+Thereafter, we employed a stain regularization loss to enforce consistency 
+between the feature representations of the source and augmented images. 
+Doing so encourages the model to learn stain-invariant and consequently, 
+domain-invariant feature representations. We evaluated the performance of 
+the proposed model on cross-domain multi-class tissue type classification 
+of colorectal cancer images and have achieved improved performance 
+compared to other state-of-the-art methods.
+27th Conference on Medical Image Understanding and Analysis 2023
+243
+frontiersin.org
+Introduction 
+The advent of Deep Learning (DL) has revolutionised the field of 
+Computational Pathology (CPath) and has enabled the automated and 
+quantitative analysis of histology images [1,2]. Despite the success of DL 
+methods, they are vulnerable to domain-specific variations [3]. Some 
+major sources of variations include staining and scanning processes, where 
+distinct institutions may employ different staining protocols and use various 
+scanners, resulting in differences in the visual appearance of whole slide 
+images (WSIs). This variability poses a significant challenge known as domain 
+shift for training robust DL models and encumbers their ability to generalise 
+well across diverse histology datasets. Addressing the domain shift problem 
+has been a focal point for CPath researchers, leading to several efforts in 
+stain normalisation [4-6], augmentation and adaptation. Stain augmentation 
+(SA) aims to mitigate the effects of domain shift by generating augmented 
+variations of the source images to mimic the stain variations present in the 
+target domain for improving the model’s generalisability on unseen data 
+[7-9]. Tellez et al. [24] has stressed upon the importance of using stain 
+augmentations for histopathology images for a more robust classification 
+performance. Abbet et al. [11] proposed a novel domain adaptation (DA) 
+method, Self-Rule to Multi-Adapt (SRMA), for single-source and muti-source 
+tissue classification with multiple datasets by using in-domain and cross-
+domain losses. Unlike in DA, domain generalisation (DG) methods cannot 
+leverage unlabelled data from the target domain [10]. To this effect, Vuong 
+et al. [12] adopted a self-supervised contrastive learning approach using a 
+combination of encoders and momentum encoders for colorectal cancer 
+classification using patch shuffling augmentations. Our proposed method, 
+inspired by [14] uses stain augmentations to help extract domain-invariant 
+feature representations for colorectal cancer tissue images, thus ensuring 
+that the class labels assigned to an image remain consistent in the face of 
+staining variability.
+Methodology 
+The proposed framework comprises of two modules, one for classification 
+and the other for stain augmentation, as shown in Fig. 1. Each image x 
+244
+27th Conference on Medical Image Understanding and Analysis 2023
+frontiersin.org
+with label y is passed through ResNet-18 based feature extractor fe for 
+extracting the feature representation as 
+. This feature representation 
+is then passed onto an MLP-based classifier fc for a classification decision, 
+ as 
+During the training process, we also employ the stain 
+augmentation network, which generates stain-altered version(s) of the 
+source image as 
+. For this purpose, we use the Vahadane 
+[18] method for extracting the stain matrix. The stain concentrations are 
+perturbed to create the stain-altered images using [15]. These images are 
+then passed onto the same feature extractor 
+ to extract 
+feature representations of the stain-altered images. Two loss functions are 
+employed in the proposed workflow. We use the cross-entropy loss as the 
+primary classification loss Lc between the predicted label  and the ground-
+truth label y. Additionally, we employed a mean squared error (MSE) loss 
+as a stain regularisation loss, 
+, which measures the distance 
+between the extracted feature representations of the source and augmented 
+images. The MSE loss acts as a strong penalisation factor, enforcing 
+FIGURE 1
+Overview of the proposed method and sample patches from the target domain.
+27th Conference on Medical Image Understanding and Analysis 2023
+245
+frontiersin.org
+consistency in the face of stain augmentations. The overall loss function 
+combines the two loss functions, 
+.
+Results and Discussions 
+We have employed two datasets to validate the proposed framework 1). 
+Kather-19 (K19) [16], which contains 100,000 images (224×224 pixels) from 
+9 tissue classes and 2). Kather-16 (K16) [17], which consists of 5,000 images 
+(150×150 pixels) from 8 classes. Since there are discrepancies between the 
+class labels of the two datasets, we followed the strategy for relabelling 
+[11] and grouped the data into seven classes, namely adipose, background, 
+debris, lymphocytes, normal colon mucosa, stroma and colorectal 
+adenocarcinoma epithelium. Sample images from K16 are shown in Fig.1. 
+The results of the experiments are reported in Table 1, where ImageNet 
+Upper Bound denotes an experiment where both the training and testing are 
+performed with the same dataset (K16). The degradation in performance in 
+ImageNet Lower bound is due to the presence of a domain shift when the 
+model is trained and tested on different source (K19) and target domains 
+(K16). We observe that the proposed method which generated 6 augmented 
+images for each input image, outperforms the ImageNet baseline by 22% in 
+terms of accuracy. Whereas it performed 20% and 12% better as compared 
+to MocoV2 [22] and InfoMin [23]. IMPaSh [12] is a combination of InfoMin [23] 
+and PatchShuffling augmentations, and our methods still outperform it by 
+1% while being less computationally expensive. To summarise, the proposed 
+workflow leveraged stain augmentations to encourage the DL model to learn 
+stain and domain-invariant feature representations and outperformed other 
+state-of-the-art methods which begs the question “Is Stain Augmentation 
+really all you need for Domain Generalisation?” Our future work will include 
+automating the selection of the optimal number of augmentations.
+246
+27th Conference on Medical Image Understanding and Analysis 2023
+frontiersin.org
+TABLE 1: Experimental Results between source (K19) and target (K16) domains
+Method
+Training 
+Dataset 
+Accura-
+cy
+Recall
+Precision
+F1-
+Score
+ImageNet - Upper 
+Bound
+K16 (Target)
+0.942
+0.942
+0.941
+0.941
+ImageNet - Lower 
+Bound
+K19
+0.654
+0.654
+0.741
+0.626
+SN Macenko [19]
+K19
+0.660
+0.660
+0.683
+0.645
+SN Vahadane [18]
+K19
+0.683
+0.683
+0.696
+0.656
+InsDis [20]
+K19
+0.694
+0.694
+0.766
+0.659
+PIRL [21]
+K19
+0.818
+0.818
+0.853
+0.812
+MocoV2 [22]
+K19
+0.675
+0.675
+0.816
+0.642
+InfoMin [23]
+K19
+0.750
+0.750
+0.824
+0.752
+IMPaSh [12]
+K19
+0.868
+0.868
+0.887
+0.865
+Proposed Method
+K19
+0.878
+0.878
+0.887
+0.877
+References
+[1]  Wu, Y., Cheng, M., Huang, S., Pei, Z., Zuo, Y., Liu, J., Yang, K., Zhu, Q., 
+Zhang, J., Hong, H. and Zhang, D., 2022. Recent advances of deep learning 
+for computational histopathology: Principles and applications. Cancers, 14(5), 
+p.1199.
+[2]  Echle, A., Rindtorff, N.T., Brinker, T.J., Luedde, T., Pearson, A.T. and 
+Kather, J.N., 2021. Deep learning in cancer pathology: a new generation of 
+clinical biomarkers. British journal of cancer, 124(4), pp.686-696.
+[3]  Stacke, K., Eilertsen, G., Unger, J. and Lundström, C., 2020. Measuring 
+domain shift for deep learning in histopathology. IEEE journal of biomedical 
+and health informatics, 25(2), pp.325-336.
+27th Conference on Medical Image Understanding and Analysis 2023
+247
+frontiersin.org
+[4]  Shaban, M.T., Baur, C., Navab, N. and Albarqouni, S., 2019, April. 
+Staingan: Stain style transfer for digital histological images. In 2019 Ieee 16th 
+international symposium on biomedical imaging (Isbi 2019) (pp. 953-956). 
+IEEE.
+[5]  Jia, Q., Guo, J., Du, F., Yang, P. and Yang, Y., 2022, December. 
+A Fast Texture-to-Stain Adversarial Stain Normalization Network for 
+Histopathological Images. In 2022 IEEE International Conference on 
+Bioinformatics and Biomedicine (BIBM) (pp. 2294-2301). IEEE.
+[6]  Zhao, B., Han, C., Pan, X., Lin, J., Yi, Z., Liang, C., Chen, X., Li, B., Qiu, W., 
+Li, D. and Liang, L., 2022. RestainNet: a self-supervised digital re-stainer for 
+stain normalization. Computers and Electrical Engineering, 103, p.108304.
+[7]  Jahanifar, M., Shepard, A., Zamanitajeddin, N., Bashir, R.S., Bilal, M., 
+Khurram, S.A., Minhas, F. and Rajpoot, N., 2022. Stain-robust mitotic figure 
+detection for the mitosis domain generalization challenge. In Biomedical 
+Image Registration, Domain Generalisation and Out-of-Distribution Analysis: 
+MICCAI 2021 Challenges: MIDOG 2021, MOOD 2021, and Learn2Reg 2021, 
+Held in Conjunction with MICCAI 2021, Strasbourg, France, September 
+27–October 1, 2021, Proceedings (pp. 48-52). Cham: Springer International 
+Publishing.
+[8]  Yamashita, R., Long, J., Banda, S., Shen, J. and Rubin, D.L., 2021. 
+Learning domain-agnostic visual representation for computational pathology 
+using medically-irrelevant style transfer augmentation. IEEE Transactions on 
+Medical Imaging, 40(12), pp.3945-3954.
+[9]  Chang, J.R., Wu, M.S., Yu, W.H., Chen, C.C., Yang, C.K., Lin, Y.Y. and 
+Yeh, C.Y., 2021. Stain mix-up: Unsupervised domain generalization for 
+histopathology images. In Medical Image Computing and Computer Assisted 
+Intervention–MICCAI 2021: 24th International Conference, Strasbourg, 
+France, September 27–October 1, 2021, Proceedings, Part III 24 (pp. 117-
+126). Springer International Publishing.
+248
+27th Conference on Medical Image Understanding and Analysis 2023
+frontiersin.org
+[10]  Ghifary, M., Balduzzi, D., Kleijn, W.B. and Zhang, M., 2016. Scatter 
+component analysis: A unified framework for domain adaptation and 
+domain generalization. IEEE transactions on pattern analysis and machine 
+intelligence, 39(7), pp.1414- 1430.
+[11]  Abbet, C., Studer, L., Fischer, A., Dawson, H., Zlobec, I., Bozorgtabar, 
+B. and Thiran, J.P., 2022. Self-rule to multi-adapt: Generalized multi-source 
+feature learning using unsupervised domain adaptation for colorectal cancer 
+tissue detection. Medical image analysis, 79, p.102473.
+[12]  Vuong, T.T.L., Vu, Q.D., Jahanifar, M., Graham, S., Kwak, J.T. and 
+Rajpoot, N., 2023, February. IMPaSh: A Novel Domain-Shift Resistant 
+Representation for Colorectal Cancer Tissue Classification. In Computer 
+Vision–ECCV 2022 Workshops: Tel Aviv, Israel, October 23–27, 2022, 
+Proceedings, Part III (pp. 543-555). Cham: Springer Nature Switzerland.
+[13]  Raipuria, G., Shrivastava, A. and Singhal, N., 2022, September. Stain-
+AgLr: Stain Agnostic Learning for Computational Histopathology Using 
+Domain Consistency and Stain Regeneration Loss. In Domain Adaptation 
+and Representation Transfer: 4th MICCAI Workshop, DART 2022, Held in 
+Conjunction with MICCAI 2022, Singapore, September 22, 2022, Proceedings 
+(pp. 33-44). Cham: Springer Nature Switzerland
+[14]  Pakzad, A., Abhishek, K. and Hamarneh, G., 2023, February. CIRCLe: 
+Color Invariant Representation Learning for Unbiased Classification of Skin 
+Lesions. In Computer Vision–ECCV 2022 Workshops: Tel Aviv, Israel, October 
+23–27, 2022, Proceedings, Part IV (pp. 203-219). Cham: Springer Nature 
+Switzerland.
+[15]  Pocock, J., Graham, S., Vu, Q.D., Jahanifar, M., Deshpande, S., 
+Hadjigeorghiou, G., Shephard, A., Saad Bashir, R.M., Bilal, M., Lu, W. and 
+Epstein, D., 2021. TIAToolbox: an end-to-end toolbox for advanced tissue 
+image analytics. bioRxiv, pp.2021-12
+27th Conference on Medical Image Understanding and Analysis 2023
+249
+frontiersin.org
+[16]  Kather, J.N., Krisam, J., Charoentong, P., Luedde, T., Herpel, E., 
+Weis, C.A., Gaiser, T., Marx, A., Valous, N.A., Ferber, D. and Jansen, L., 
+2019. Predicting survival from colorectal cancer histology slides using 
+deep learning: A retrospective multicenter study. PLoS medicine, 16(1), 
+p.e1002730.
+[17]  Kather, J.N., Weis, C.A., Bianconi, F., Melchers, S.M., Schad, L.R., Gaiser, 
+T., Marx, A. and Zöllner, F.G., 2016. Multi-class texture analysis in colorectal 
+cancer histology. Scientific reports, 6(1), pp.1-11.
+[18]  Vahadane, A., Peng, T., Sethi, A., Albarqouni, S., Wang, L., Baust, 
+M., Steiger, K., Schlitter, A.M., Esposito, I. and Navab, N., 2016. Structure-
+preserving color normalization and sparse stain separation for histological 
+images. IEEE transactions on medical imaging, 35(8), pp.1962-1971.
+[19]  Macenko, M., Niethammer, M., Marron, J.S., Borland, D., Woosley, 
+J.T., Guan, X., Schmitt, C. and Thomas, N.E., 2009, June. A method 
+for normalizing histology slides for quantitative analysis. In 2009 IEEE 
+international symposium on biomedical imaging: from nano to macro (pp. 
+1107-1110). IEEE.
+[20]  Wu, Z., Xiong, Y., Yu, S.X. and Lin, D., 2018. Unsupervised feature 
+learning via non-parametric instance discrimination. In Proceedings of the 
+IEEE conference on computer vision and pattern recognition (pp. 3733-
+3742).
+[21]  Misra, I. and Maaten, L.V.D., 2020. Self-supervised learning of pretext-
+invariant representations. In Proceedings of the IEEE/CVF conference on 
+computer vision and pattern recognition (pp. 6707-6717).
+[22]  Chen, X., Fan, H., Girshick, R. and He, K., 2020. Improved baselines 
+with momentum contrastive learning. arXiv preprint arXiv:2003.04297.
+[23]  Tian, Y., Sun, C., Poole, B., Krishnan, D., Schmid, C. and Isola, P., 2020. 
+What makes for good views for contrastive learning?. Advances in neural 
+information processing systems, 33, pp.6827-6839.
+250
+27th Conference on Medical Image Understanding and Analysis 2023
+frontiersin.org
+[24]  Tellez, D., Litjens, G., Bándi, P., Bulten, W., Bokhorst, J.M., Ciompi, F. 
+and Van Der Laak, J., 2019. Quantifying the effects of data augmentation and 
+stain color normalization in convolutional neural networks for computational 
+pathology. Medical image analysis, 58, p.101544.

@@ -1,0 +1,3771 @@
+Multi-Omic and Quantum Machine Learning Integration for Lung Subtypes
+Classification
+Mandeep Kaur Saggi1,∗Amandeep Singh Bhatia1,2,† Mensah Isaiah3, Humaira Gowher3,‡ and Sabre Kais2§
+1 Department of Chemistry and Purdue Quantum Science and Engineering Institute, Purdue University, IN, USA
+2 Department of Electrical and Computer Engineering, North Carolina State University, NC, USA and
+3 Department of Biochemistry, Purdue University, IN, USA
+Quantum Machine Learning (QML) is a red-hot field that brings novel discoveries and exciting
+opportunities to resolve, speed up, or refine the analysis of a wide range of computational problems.
+In the realm of biomedical research and personalized medicine, the significance of multi-omics in-
+tegration lies in its ability to provide a thorough and holistic comprehension of complex biological
+systems. This technology links fundamental research to clinical practice. The insights gained from
+integrated omics data can be translated into clinical tools for diagnosis, prognosis, and treatment
+planning. The fusion of quantum computing and machine learning holds promise for unraveling
+complex patterns within multi-omics datasets, providing unprecedented insights into the molecular
+landscape of lung cancer. Due to the heterogeneity, complexity, and high dimensionality of multi-
+omic cancer data, characterized by the vast number of features (such as gene expression, micro-RNA,
+and DNA methylation) relative to the limited number of lung cancer patient samples, our prime mo-
+tivation for this paper is the integration of multi-omic data, unique feature selection, and diagnostic
+classification of lung subtypes: lung squamous cell carcinoma (LUSC-I) and lung adenocarcinoma
+(LUAD-II) using quantum machine learning. We developed a method for finding best differentiating
+features between LUAD and LUSC datasets, which has the potential for biomarker discovery. In this
+paper, we show the efficacy of Quantum Neural Networks (QNNs) with three dimensions of feature
+encoding for the classification of multi-Omics human lung data from The Cancer Genome Atlas,
+comparing the framework to a variety of classical machine learning methods. Our results indicate
+that the Multi-omic Quantum Machine Learning Lung Subtype Classification (MQML-LungSC)
+framework offers superior classification performance with smaller training datasets as significant
+and non-significant based on p-value, thus providing compelling empirical evidence for the potential
+future application of unconventional computing approaches in the biomedical sciences. In comparing
+the performance of our proposed models based on the number of encoded features (256, 64, 32), it
+is evident that the model with 256 encoded features exhibits superior results across several metrics.
+It achieves a training accuracy of 0.95 and a testing accuracy of 0.90, which are higher than those
+of the models with 64 and 32 encoded features. Specifically, the model with 64 encoded features
+scores 0.92 for training accuracy and 0.86 for testing accuracy, while the model with 32 encoded
+features scores 0.88 for training accuracy and 0.85 for testing accuracy. The analyses of large-scale
+molecular data are beneficial for many aspects of oncology research, including the classification of
+possible subtypes, stages, and grades of cancer.
+I.
+INTRODUCTION
+Quantum machine learning is pioneering a new era in
+computational biology, unleashing powerful tools that
+redefine the possibilities for tackling intricate biological
+challenges.
+The analyses of large-scale molecular data
+are beneficial for many aspects of oncology research, in-
+cluding the classification of possible subtypes, stages, and
+grades of cancer. Several approaches have been proposed
+to train networks using quantum computing technology
+more accurately, robustly, and efficiently [1] [2]. However,
+hybrid strategies have recently emerged given the current
+limitations of quantum machines and the constrained
+number of available qubits.
+These strategies leverage
+∗drmandeepsaggi@gmail.com, msaggi@purdue.edu
+† drasinghbhatia@gmail.com
+‡ hgowher@purdue.edu
+§ skais@ncsu.edu; Corresponding author1: skais@ncsu.edu; Corre-
+sponding author2: hgowher@purdue.edu
+existing technology to achieve practical and usable so-
+lutions [3]. Quantum-enhanced AI and machine learn-
+ing methods are gaining attention as promising solutions
+to medical challenges.
+Recent advancements in quan-
+tum computing and quantum AI have demonstrated their
+wide-ranging applicability in healthcare.
+These meth-
+ods have shown promise in various healthcare and drug-
+discovery domains and predicting ADME-Tox properties
+in drug discovery [4] [5] [6], including rapid genome anal-
+ysis [7] and sequencing [8], disease detection [9], reference
+crop evapotranspiration classification [10], for chemistry
+and electronic structure calculations [11], [12] [13] [14].
+Moreover, quantum computing models play a significant
+role in predicting gene mutations critical for the patho-
+genesis and diagnosis of specific cancer types, such as the
+Glioma Tumor Classification [15]. Cancer sub-type clas-
+sification is crucial for understanding cancer pathogen-
+esis and developing targeted treatments that can ben-
+efit patients the most [16].
+Lung cancer is the most
+commonly diagnosed malignant tumor and is a leading
+cause of cancer-associated mortality.
+It is the second
+arXiv:2410.02085v1  [cs.LG]  2 Oct 2024
+2
+highest cause of new cancer cases in both genders in the
+United States and is the second leading cause of cancer
+deaths in females globally. The most common subtypes
+of lung cancers are lung squamous cell carcinoma (LUSC)
+and lung adenocarcinoma (LUAD), classified together as
+non-small cell lung cancer (NSCLC). The GDC-TCGA
+dataset provides diverse omic data crucial for cancer re-
+search and subtype classification. Specifically, for LUSC
+and LUAD cancer subtype the dataset includes DNA
+Methylation (DNAme): This dataset, derived from
+the Illumina Human Methylation 450 platform, provides
+beta values indicating DNA methylation levels across var-
+ious genes. This data helps identify methylation patterns
+that are specific to LUAD and LUSC subtypes, reveal-
+ing regulatory changes associated with each cancer type
+(which means DNA methylation features are present (in-
+dicative of significant regulatory changes) or absent (no
+significant changes) in each subtype to understand their
+role in tumor biology). Each sample in this dataset repre-
+sents tumor tissue from an individual patient, with data
+formatted as rows of gene identifiers and columns of sam-
+ple beta values. RNA Sequencing (RNA-seq): Mea-
+sures gene expression levels by analyzing RNA from tu-
+mor tissues using the HTSeq platform, helping to iden-
+tify genes with differential expression between LUAD and
+LUSC subtypes.
+The RNA-seq data are presented as
+log2(count + 1) values, reflecting the relative expression
+of genes.
+MicroRNA Sequencing (miRNA-seq):
+This dataset quantifies microRNA expression levels us-
+ing stem-loop expression technology.
+The miRNA-seq
+data are also transformed into log2(RPM + 1) values,
+providing insights into the regulatory roles of microR-
+NAs in LUAD and LUSC. Each sample represents tumor
+tissue from an individual patient, and the data are or-
+ganized into rows of miRNA identifiers and columns of
+expression values. For LUAD vs. LUSC subtype clas-
+sification, the dataset includes primary tumor and solid
+tissue normal samples from which these multiomic fea-
+tures are derived. This approach allows for a thorough
+examination of molecular differences between the lung
+subtypes, and enhancing diagnostic accuracy.
+Traditional studies often analyze individual omic fea-
+tures in isolation, focusing on discrete datasets such as
+DNA Methylation patterns [17], gene expression profiles
+[18], or microRNA levels. In these contexts, a ”sample”
+refers to a biological specimen collected from a patient,
+such as a piece of tumor tissue or a blood sample. Each
+sample provides specific molecular data representing that
+patient’s unique biological characteristics. This isolated
+approach, which examines data from each sample sepa-
+rately, can miss valuable insights from the interactions
+and correlations between molecular features across dif-
+ferent samples.
+In contrast, our MQML-LungSC framework integrates
+DNA-Methylation, RNA-seq, and miRNA-seq data to ex-
+plore the interconnectedness of molecular features across
+a wide range of tumor samples. By examining the re-
+lationships between gene expression levels, methylation
+patterns, and microRNA profiles both within individual
+samples and across a population of samples, we can iden-
+tify complex interactions and patterns that differentiate
+LUAD from LUSC. This integrated analysis allows for
+a more comprehensive understanding of the molecular
+mechanisms underlying these lung subtypes, potentially
+leading to more accurate classification and the discovery
+of significant features.
+In Fig. 1, the development of lung cancer is illustrated
+by comparing normal cells to tumor cells. However, re-
+cent studies have suggested that LUAD and LUSC should
+be classified and treated as different cancers [19]. Pre-
+vious studies have utilized traditional feature selection
+and machine learning methods for cancer diagnosis, de-
+tection, and classification, but few have extended them
+to study potential features and biological pathways to
+discriminate between LUAD and LUSC [20]. To improve
+cancer classification accuracy, novel machine learning and
+feature selection methods have been developed. However,
+few studies have used overlapping features from different
+methods for classification, gene expression analysis, and
+molecular features [21] [22].
+This work proposes a novel lung sub-type classification
+method that integrates classical feature selection tech-
+niques with a quantum classifier. This hybrid approach
+aims to enhance the accuracy and robustness of sub-type
+classification, thereby potentially contributing to the de-
+velopment of more effective cancer therapies. We propose
+a set of hybrid quantum computing and advanced ma-
+chine learning approaches to apply machine learning on
+small datasets, such as (primary tumor and normal) sam-
+ple types in The Cancer Genome Atlas (TCGA). These
+approaches aim to address the well-known ”big n, small
+m” problem in multi-cancer analysis (Lung subtype diag-
+nosis or classification), including (LUSC) and (LUAD).
+The cancer datasets named (LUSC) and (LUAD)
+are taken from the Multi-Omics Cancer Benchmark
+TCGA
+(http://cancergenome.nih.gov/)
+Pre-processed
+Data, publicly available at the Multi-Omics Cancer
+Benchmark repository.
+For our study we employed
+omics datasets for transcriptome profiling by RNA-seq
+and miRNA-seq (micro-RNA) DNA methylation analy-
+sis by Methylation Array, , and associated clinical out-
+comes using associated patient information. These multi-
+omics data were extracted for a case study of LUSC
+and LUAD. To the best of our knowledge, this study is
+the first to utilize GDC-TCGA data within a Quantum-
+Classical framework using combination of omics data
+(DNA methylation, transciptome profiling from RNA-
+seq, and miRNA-seq, and clinical outcomes) data for lung
+subtype classification and molecular features identifica-
+tion.
+Problem Formulation and Motivation: Accurate di-
+agnostic classification of subtypes can greatly help physi-
+cians to choose surveillance and treatment strategies for
+patients. Following the explosive growth of huge amounts
+of biological data, the shift from traditional bio-statistical
+methods to computer-aided means has made machine-
+3
+learning methods an integral part of today’s cancer prog-
+nosis and diagnosis. Integration of multi-omics data al-
+lows more advanced comprehensive and systematic anal-
+ysis of biological changes, providing a new biomarkers for
+the early diagnosis of diseases. However, there are sev-
+eral challenges in integrating and analyzing cancer multi-
+omics data on a large scale.
+TGCA database consists
+of several cancer omics datasets, including transciptome
+and proteome profiling, copy number variable, somatic
+structural, and DNA methylation. Mostly, multi-omics
+is characterized by high noise, high multidimensionality,
+and multidimensional heterogeneity, such as (big “n” and
+small “m”) affecting the efficiency of classification tasks,
+where “n” refers to the number of features/genes and
+“m” samples ((i) DNA: 503 samples and 485,577 genes,
+(ii) RNA: 585 samples and 60,488 genes, (iii) miRNA:
+564 samples and 1,881 genes) for LUAD. (i) DNA: 412
+samples and 485,577 genes, (ii) RNA: 550 samples and
+60,488 genes, (iii) miRNA: 523 samples and 1,881 genes)
+for LUSC.
+Main contributions: This study introduces a hybrid
+quantum classification model for distinguishing between
+LUSC-I tumor and LUAD-II tumor subtypes of lung
+datasets.
+In the classical section, we aim to identify
+the most important combination of multi-omic molecu-
+lar markers using the feature selection technique. The
+multi-omic integrated features are encoded in the quan-
+tum section with different dimensions to find the best
+combination and hit list using quantum-classical model
+weights for tumor classification in LUAD.
+To summarize, this paper makes the following contri-
+butions:
+• Developed a pipeline for data pre-processing, fea-
+ture engineering based on p-value t-test employs
+significant and non-significant using high dimen-
+sions of omic datasets which include DNAme,
+miRNA-seq and RNA-seq in LUAD and LUSC sub-
+type dataset.
+• Proposed a classical machine learning and filter
+methods for feature selection using random forest,
+mutual information, chi-square, and PCA on single
+omics and select top 85-85-86 features from each
+omic for further integration and selection of clinical
+attributes such as age, gender, pathological stage,
+survival status etc using GDC TCGA dataset.
+• Developed the quantum neural network algorithm
+to encode the 32 features, 64 features, and 256 fea-
+tures with amplitude encoding for subtype-I and
+subtype-II classification and find the top-hit fea-
+tures with the qnn layer/dense layer for further vi-
+sualization plots such as violin, dot plot, heatmap
+clustering, and PCA.
+• Evaluated the accuracy and strength of the pro-
+posed quantum machine learning framework using
+three encoding structures of dimensions with fewer
+parameters and many epochs.
+The remainder of the article is organized as follows.
+Section II presents the Materials and Methods, including
+the dataset, processes, and methods.
+Section III out-
+lines the proposed methodology of our framework, de-
+tailing the implementation process and describing the
+multi-omic quantum machine learning approach.
+Sec-
+tion IV provides the results and performance analysis,
+including experimental results on multi-omic integrations
+across three dimensions, comparisons with classical clas-
+sifiers, and single-omic datasets. Section V discusses the
+findings and outcomes. Finally, Section VI concludes the
+paper and explores future research directions.
+II.
+MATERIAL AND METHODS
+This section provides a comprehensive overview of the
+methods utilized in our study. We describe the feature
+engineering process, feature selection methods, and pro-
+posed quantum neural network model for diagnosing lung
+dataset subtypes LUAD and LUSC. Each subsection be-
+low elaborates on these methods in detail.
+A.
+Study Population
+TCGA is a cancer multi-omics database generated by
+the National Institutes of Health Our proposed frame-
+work comprises four types of omics datasets: Gene ex-
+pression, miRNA expression, DNA methylation, and
+Clinical patient information of lung squamous cell carci-
+noma. The number of samples acquired for selecting fea-
+tures that distinguish between LUSC and LUAD datasets
+is presented in Fig 1 and well detailed in Algorithm 1.
+The original dataset comprised genomic data from
+various modalities, including DNAme, miRNA-seq, and
+RNA-seq,
+obtained from a cohort of patients with
+(LUAD) and (LUSC) lung. Specifically, the DNAme ar-
+ray dataset consisted from 503 patients with 485,577 fea-
+tures; the miRNA dataset contained samples from 564
+patients with 1,881 features, and the RNA dataset en-
+compassed samples from 585 patients with 60,488 fea-
+tures of the lung dataset. A summary of their clinical
+information is provided in Fig 1, with more comprehen-
+sive details available on the GDC-TCGA website.
+As
+described in Algorithm 1, We have selected three omics
+modalities for this study, and a summary of clinical
+samples is shown in Fig 1.
+The original dataset com-
+prised genomic data from various modalities, including
+DNAme, miRNA-seq, and RNA-seq, obtained from a co-
+hort of patients with (LUAD) and (LUSC) lung. Specif-
+ically, the DNAme array dataset consisted from 503 pa-
+tients with 485,577 features; the miRNA dataset con-
+tained samples from 564 patients with 1,881 features, and
+the RNA dataset encompassed samples from 585 patients
+with 60,488 features of the lung dataset. A summary of
+their clinical information is provided in Fig 1, with more
+comprehensive details available on the GDC-TCGA web-
+4
+FIG. 1. Summary of Multi-Omic Modalities and Clinical information (a) Development of Non-small cell lung
+cancer (NSCLC) lung cancer. Overview of Non-Small Cell Lung Cancer (NSCLC) subtypes, highlighting the three main
+subtypes: adenocarcinoma (LUAD), squamous cell carcinoma (LUSC), and large cell carcinoma. This study focuses on two
+NSCLC subtypes, LUAD and LUSC. (b) Summary of Clinical information of subtypes diagnosis class with gender, sample type.
+Also combined subtypes patient’s age, Pathological stages, ethnicity, and race (c) information from GDC-TCGA with each
+entry indicating lung dataset subtype-I (LUSC) and subtype II (LUAD) 915 patient samples and high dimensional features of
+each omic
+site. As described in Algorithm 1, We have selected three
+omics modalities for this study, and a summary of clinical
+samples is shown in Fig 1.
+B.
+Data Loading and Data Pre-processing
+In the First phase, MQML takes any number of omic
+measures such as genomic, epigenomic, and transcrip-
+tomic datasets as input. Due to the inherent complexity
+and size of the dataset, pre-processing steps were nec-
+essary to ensure data quality and reduce computational
+burden. The LUAD and LUSC, Lung datasets are ac-
+quired from the Multi-Omics Cancer Benchmark GDC-
+TCGA Pre-processed Data, It consists of four types of
+omics datasets for a case study of lung squamous cell
+carcinoma.: RNA-seq, miRNA-seq, DNAme, and Clini-
+cal patient information. In the second phase, each omic
+has several gene features column-wise and patient sam-
+ples row-wise. The raw data of each Omic1Subtype−I and
+Omic1Subtype−II is combined column-wise, with patient
+samples row-wise. Then, features that contain a sum of 0
+are removed. To extract and select the survival/clinical
+attributes of both subtypes, combine the survival and
+clinical attributes based on sample type, i.e., diagnostic
+subtype-I and subtype-II.
+C.
+Feature Engineering
+Then, the selected clinical samples of subtype-I and
+subtype-II are used to split each omic into two parts,
+i.e., Omic1.1Subtype−I and Omic1.2Subtype−II. Each omic
+data is processed through a feature engineering process,
+including a statistical t-test, to determine if there is a sig-
+nificant difference between the means of the two groups.
+This process involves analyzing two omic data frames,
+Omic1.1Subtype−I
+and Omic1.2Subtype−I,
+to compare
+their mean values and compute statistical significance.
+First, the mean values for each column in both data
+frames are calculated.
+Then, a t-test is conducted for
+each column to determine the p-values, which assess the
+statistical significance of the differences between the two
+datasets.
+The mean values and p-values are then ap-
+pended to their respective data frames.
+Finally, the
+updated data frames contain the original data mean
+values and p-values.
+This process integrates multiple
+omic datasets using minimum patient samples of Omic
+(Omic1, Omic2, and Omic3) for the subtypes separately
+using a join operation. The integrated dataset combines
+each Omic1-2-3Subtype−I and Omic1-2-3Subtype−II mean
+values and p-values at the bottom of the row.
+Then,
+the entire dataset is sorted based on p-values for each
+Omic1-3Subtype−I and Omic1-3Subtype−II to identify the
+most and least significant values in the data frame. Com-
+mon significance levels include α = 0.05 (most commonly
+used, indicating a 5% risk of a Type I error), α = 0.01
+(more stringent, indicating a 1% risk), and α = 0.10 (less
+stringent, indicating a 10% risk). Then, each omic com-
+bined Omic1-2-3Subtype data frame is isolated into inde-
+pendent Omic1Subtype, Omic2Subtype, and Omic3Subtype
+data frame datasets for data analysis steps. Finally, the
+prepared clinical and survival attributes are combined
+with each OmicSubtype as shown in Fig. 2. The t-test is
+a statistical method used to determine if there is a sig-
+nificant difference between the means of two groups. In
+this context, it analyzes multi-omic data from two lung
+dataset subtypes, LUSC and LUAD. By calculating the
+5
+t-statistic, we can identify significant features that dif-
+ferentiate the two dataset subtypes.
+The t-statistic is
+calculated as:
+tstatistic =
+¯XLUSC −¯XLUAD
+sLUSC + sLUAD
+(1)
+where ¯XLUSC is the mean of the LUSC group, ¯XLUAD
+is the mean of the LUAD group, sLUSC is the standard
+deviation of the LUSC group, and sLUAD is the standard
+deviation of the LUAD group.
+Clinical Data (Patient Info)
+Gene Expression
+RNA (FPKM)
+MiRNA
+(RPM)
+DNA-Methylation
+(Beta-value)
+Survival Data
+Subtype-I LUSC
+Subtype-II LUAD
+Join operation with each omics
+Omic 1: RNA-Seq
+Omic 2: MiRNA
+Omic 3: DNA-Methylation
+Calculate the mean of each column and T-test to compare
+the means of two independent samples of scores.
+Omic 1: RNA-Seq
+Omic 2: MiRNA
+Omic 3: DNA-Methylation
+Sort Rank wise columns based on t-test P-Value of each omics Most Significant and Less Significant
+Omic 1: RNA-Seq
+Omic 2: MiRNA
+Omic 3: DNA-Methyl
+Integrate (by Join operation) on three omics dataset with minimum sample of omics data
+Omic 1: RNA-Seq
+Omic 3: DNA-Methylation
+Omic 2: MiRNA
+Separated all omics into independent
+Omic 2: MiRNA
+Omic 1: RNA-Seq
+Omic 3: DNA-Methyl
+Clinical Data
+Survival Data
+FIG. 2. Flowchart of Data Engineering process. This
+diagram illustrates the steps involved in analyzing and inte-
+grating multiple omic datasets, including mean value calcula-
+tion, statistical t-tests, integration of datasets, and combina-
+tion with clinical and survival attributes.
+D.
+Feature Selection
+In the third phase, each omic is divided into three sub-
+sets of samples: OmicS1, OmicS2, and OmicS3, based on
+p-values as shown in Table IV and Algorithm 1.
+We
+employed three steps in the feature selection process.
+In the first step, we determined the important features
+using four methods (two filter methods, one supervised
+method, and one unsupervised method) with the Select
+K Best function. Using a Venn diagram, we selected the
+unique features by identifying common and uncommon
+features. In the second step, we employed a random for-
+est to classify the selected features from each selection
+process. We then combined the features based on AUC-
+ROC analysis to choose the best features with an AUC
+greater than 0.80. In the third step, each omic’s com-
+bined and reduced subset is further processed to reduce
+the features using hierarchical clustering based on dis-
+tance.
+1.
+Feature Selection Process
+In this section, we detail the feature selection process
+steps to identify the most relevant features for our anal-
+ysis and benchmark the performance.
+Model 1 Mu-
+tual Information (M33I): measures the amount of in-
+formation obtained about one random variable through
+another random variable. In feature selection, it quanti-
+fies the dependency between each feature and the target
+variable. Features with high mutual information scores
+are considered more informative for predicting the target
+variable. Equation 2 [23] defines the mutual information
+I(Xi; Y ) as follows:
+I(Xi; Y ) =
+X
+xi∈Xi
+X
+y∈Y
+p(xi, y) log
+ p(xi, y)
+p(xi)p(y)
+
+(2)
+where Xi is the i-th feature, Y is the target variable,
+p(xi, y) is the joint probability distribution function of
+Xi and Y , p(xi) and p(y) are the marginal probability
+distribution functions of Xi and Y , respectively.
+Model 2 Chi-Square: The test measures the indepen-
+dence between categorical variables.
+Feature selection
+quantifies the association between each categorical fea-
+ture and the target variable.
+Features with high chi-
+square scores indicate a strong association with the target
+variable. The Chi-square value mathematical equation of
+joint probability genes can be calculated according to (3)
+[24]
+χ2(Xi, Y ) =
+X
+xi∈Xi
+X
+y∈Y
+(Oxi,y −Exi,y)2
+Exi,y
+(3)
+where Xi is the i-th feature, Y is the target variable,
+Oxi,y is the observed frequency of occurrence of Xi and
+Y , and Exi,y is the expected frequency of occurrence of
+Xi and Y under the null hypothesis of independence be-
+tween them.
+Model 3 Random Forest Model:
+is an ensemble
+learning method that constructs multiple decision trees
+during training and outputs the mode of the classes (clas-
+sification) or mean prediction (regression) of the individ-
+ual trees. It calculates feature importance based on how
+much the model’s accuracy decreases when each feature
+is randomly shuffled. Features with higher importance
+scores contribute more to the predictive power of the ran-
+dom forest model. For classification, with the majority
+vote, the predicted class ˆy is given by [25]:
+ˆy = mode
+ {Tb(x)}B
+b=1
+
+6
+where B is the total number of trees in the forest, and
+Tb(x) is the prediction of the b-th tree for input x.
+Feature Importance Calculation in RF can be mea-
+sured by evaluating how much the model’s prediction er-
+ror increases when the values of a feature are permuted
+while keeping the other features unchanged. The feature
+importance for feature j, FIj, can be computed as:
+FIj = 1
+B
+B
+X
+b=1
+X
+t∈Tb
+∆it · 1(j ∈t)
+where: B is the total number of trees in the forest, Tb is
+the b-th tree, t represents a node in the tree, ∆it is the
+decrease in impurity at node t (e.g., reduction in Gini
+impurity or entropy), 1(j ∈t) is an indicator function
+that is 1 if feature j is used in node t. To select the top k
+features based on their importance scores: (i) Compute
+the feature importances {FI1, FI2, . . . , FIp}. (ii) Sort the
+features by their importance scores in descending order.
+(iii) Select the top k features with the highest importance
+scores.
+Model 4 Principal Component Analysis (PCA):
+reduces the dimensionality of a dataset while retain-
+ing most of the variance by transforming original fea-
+tures into principal components [26].
+The process in-
+volves standardizing the data (zij =
+xij−µj
+σj
+), comput-
+ing the covariance matrix (C =
+1
+n−1ZT Z), and perform-
+ing eigenvalue decomposition (Cei = λiei) to obtain
+eigenvalues and eigenvectors. Principal components are
+formed by projecting standardized data onto eigenvec-
+tors (PC = ZE). The top k components that explain
+the most variance are then selected. This transformation
+preserves essential data variability while reducing dimen-
+sionality.
+2.
+AUC-ROC Analysis
+Further, we applied the second feature selection pro-
+cess step to identify the best features using AUC-ROC
+analysis for each feature. This approach was combined
+with the first feature selection process, where we obtained
+features from RF, MI, PCA, and Chi. We set a threshold
+(Th) and selected features if their AUC-ROC scores for
+both the training and testing datasets exceeded 0.80(Th).
+Best features = {Xi | AUCtrain
+i
+> Th ∧AUCtest
+i
+> Th}
+combined features =
+[
+method
+best featuresmethod
+unique features = unique(combined features)
+Sunique = {x | x ∈Sall}
+(4)
+• Sall represents the set of all selected features.
+• Sunique represents the set of selected features with
+duplicates removed.
+The Best features are selected from different methods,
+combined into a single list, and remove any duplicate
+features from the combined list. The combined features
+denote
+the
+combined
+list
+of
+best
+features.
+The
+unique features denote the list of unique features after
+removing duplicates.
+3.
+Hierarchical Clustering
+Further, we have applied the third feature selection
+process step i.e.
+hierarchical clustering in two ways.
+Where one approach is based on the dendrogram clusters
+to select the best features using clusters and second ap-
+proach is to compute the pairwise distance between fea-
+tures with distance to select the features. The approaches
+are: 1. Dendrogram Clusters. Given a dataset rep-
+resented by OMICSubset1 to 3, where each column rep-
+resents a feature, we perform hierarchical dendrogram
+clustering to identify clusters of similar features. We cre-
+ate a dendrogram from the linkage matrix L and Assign
+cluster IDs to the features using the function.
+D = dendrogram(L)Ci = fcluster(L, t)
+(5)
+In order to extract features by each cluster, we store fea-
+tures in a dictionary called clusters, where each key is a
+cluster label Ci, and the corresponding value is a list of
+features belonging to that cluster. For each cluster Ci,
+we compute the feature importance I(Ci) by summing
+the absolute values of the features in the cluster.
+I(Ci) =
+X
+f∈F (Ci)
+|f|
+(6)
+selected features with cluster =
+[
+i
+TopK(I(Ci))
+(7)
+best features unique = set(selected features with cluster)
+(8)
+Then, selected the top K important features from each
+cluster to form selected features with cluster and merge
+the selected features to get a unique set of best features.
+2.
+Pairwise Distances In the second approach, the
+hierarchical clustering is performed on the pairwise dis-
+tance matrix D using the Ward linkage method, which
+aims to minimize the variance when forming clusters.
+We compute the pairwise distance matrix D using the
+Euclidean metric between the transpose of the scaled
+feature matrix OMICSUBSET [S unique]. The Euclidean
+distance between two points p and q in n- dimensional
+space and set a distance threshold θ to a specific value
+i.e. θ = 3.5. is given by:
+Euclidean distance(p, q) =
+v
+u
+u
+t
+n
+X
+i=1
+(qi −pi)2
+(9)
+7
+The Ward linkage criterion is calculated as [27]:
+Z = linkage(D, method =′ ward′)
+d(u, v) =
+s
+|v| + |s|
+|T|
+d(v, s)2 + |v| + |t|
+|T|
+d(v, t)2 −|v|
+|T|d(s, t)2
+(10)
+where, d(u, v) represents the distance between clusters
+u and v, and |v|, |s|, |t|, and |T| denote the number of
+points in clusters and subclusters, and d(v, s), d(v, t), and
+d(s, t) are the distances between clusters and subclusters.
+E.
+Diagnostic Classical and Quantum Classifiers
+In the fourth phase, we define the machine learning
+and quantum machine learning methods employed for
+subtype-I and subtype-II lung datasets diagnostic clas-
+sification.
+In our experimental analysis, we used four
+distinct machine-learning algorithms. This section com-
+prehensively overviews these classifiers and their respec-
+tive theoretical implementations.
+Logistic Regression (LR) is a linear model used for
+binary classification problems. Using the logistic func-
+tion, it estimates the probability that an instance belongs
+to a particular class. The model is based on the linear
+combination of input features [28].
+Logistic Function :
+σ(z) =
+1
+1 + e−z
+Prediction:
+ˆy = σ(wT x + b)
+Log loss: −1
+N
+N
+X
+i=1
+[yi log(ˆyi) + (1 −yi) log(1 −ˆyi)]
+(11)
+Where w represents the weights, x the input features,
+b the bias term, ˆy the predicted probability, and y the
+actual label. Regularization can be applied to prevent
+overfitting, and in this case, L2 regularization is used
+with a penalty parameter C = 0.1.
+Multi-Layer Perceptron (MLP) for a MLP with L
+layers, the activation a(l)
+j
+of neuron j in layer l is com-
+puted recursively from the input layer l = 1 to the output
+layer l = L [29]:
+a(l)
+j
+= f
+
+
+n(l−1)
+X
+i=1
+w(l)
+ij a(l−1)
+i
++ b(l)
+j
+
+
+where:a(l)
+j : Activation of neuron j in layer l, w(l)
+ij : Weight
+connecting neuron i in layer l −1 to neuron j in layer
+l, a(l−1)
+i
+: Activation of neuron i in the previous layer
+l −1,b(l)
+j : Bias term for neuron j in layer l, f: Activation
+function applied element-wise to the linear combination.
+Support Vector Machine (SVM) is a supervised
+learning model used for classification tasks. It finds the
+optimal hyperplane that maximizes the margin between
+different classes. The kernel trick allows SVMs to per-
+form non-linear classification by mapping input features
+into higher-dimensional space [30]
+Decision Function:
+f(x) = wT ϕ(x) + b
+Optimization Problem:
+min
+w,b
+1
+2∥w∥2 + C
+N
+X
+i=1
+max(0, 1 −yi(wT ϕ(xi) + b))
+(12)
+Where ϕ is the feature mapping function (RBF kernel
+in this case), w the weight vector, b the bias term, C is
+the regularization parameter, and y the actual label.
+Random
+Forest
+(RF) is an ensemble learning
+method that constructs multiple decision trees during
+training and outputs the class that is the mode of the
+classes (classification) or mean prediction (regression) of
+the individual trees [25]. It is robust to over-fitting and
+performs well on many datasets.
+Prediction:
+ˆy = 1
+T
+T
+X
+t=1
+ht(x)
+(13)
+Where, T is the number of trees, and ht is the prediction
+of the t-th tree. Parameters such as the number of esti-
+mators (trees), criterion (e.g., entropy), max depth, and
+others can be tuned for optimal performance.
+Quantum Neural Network (QNN): In this section,
+we will provide an overview of the hybrid quantum neu-
+ral network model, detailing the methodology used for
+three different models. Each model varies in the num-
+ber of features (256, 64, and 32) and the corresponding
+number of qubits (8, 6, and 5) used for encoding, respec-
+tively. The models are named as QNN1 for 256 features,
+QNN2 for 64 features and QNN3 for 32 features. The
+summary of hybrid models is given in Table I. The hy-
+brid model leverages a combination of QNNs and classical
+neural networks (CNN).
+Feature Encoding: The initial step involves encoding a
+classical vector into a quantum state. To efficiently simu-
+late quantum circuits, each feature vector N-dimensional
+x is normalized and embedded into a quantum state |ψ⟩
+using amplitude encoding as
+|ψx⟩=
+1
+∥x ∥
+N
+X
+j=1
+xj |j⟩
+(14)
+TABLE I. Summary of hybrid quantum-classical models
+Models Features Qubits Depth
+Gates
+Dense
+QNN1
+256
+8
+5
+8 Rot, 7 CZ
+256
+QNN2
+64
+6
+5
+6 Rot, 5 CZ
+64
+QNN3
+32
+5
+5
+5 Rot, 4 CZ
+32
+Quantum Layer Ansatz: Subsequently, a sequence of
+parameterized quantum gates, denoted as U(θ), is ap-
+plied to the quantum state. This unitary transformation
+8
+U(θ) consists of several local quantum gates, such as two-
+qubit unitaries. The entire quantum circuit U is made
+up of n unitary blocks, expressed as U(−→θ ) = U1U2...Un,
+where ith unitary block is:
+Ui(θi) = exp(−iθiP)
+(15)
+where P consists of Pauli operators, and θi denotes a gate
+parameter vector of Ui(θi).
+Algorithm 1 MQML-LungSC: Multi-Omic Quantum
+Machine
+Learning
+for
+Lung
+Subtype
+Classification
+Framework Analysis Workflow
+1: Input:
+GDC-TCGA dataset Type:
+LUSC and LUAD Lung
+dataset, 915 patients
+2:
+DNA-OMIC 1:
+DNAS1, DNAS2, DNAS3, RNA-OMIC 2:
+RNAS1, RNAS2, RNAS3, miRNA-OMIC 3: miRNAS1, miRNAS2
+3:
+Dataset Patients: (i) DNA: 503 samples & 485,577 genes, (ii)
+RNA: 585 samples & 60,488 genes, (iii) miRNA: 564 samples &
+1,881 genes.
+4:
+Feature Selection: (i) Mutual Information(MI), (ii) Chi-square,
+(iii) Principal Component Analysis(PCA), (iv) Random Forest(RF)
+5:
+Expressions: X′ is the resulting matrix.
+x represents a row
+vector in X. xi represents the ith element of the row vector x. n
+is the number of elements in each row vector x.
+6: PHASE 1- Data Acquisition and Data Preprocessing:
+7:
+Multi-Omics: (i) DNA: 503 samples & 485,577, (ii) RNA: 585
+samples & 60,488 genes, (iii) miRNA: 564 samples & 1,881 genes.
+8:
+Pre-processing:
+Combined LUAD and LUSC: Concatenate
+Raw Omics OMIC-DataLUSC ∪OMIC-DataLUAD
+9:
+Remove rows where the sum of elements is less than or equal
+to 0: X′ = {x ∈X | Pn
+i=1 xi > 0}
+10: PHASE 2- Feature Engineering: t-test Statistics
+11: for Each OMIC (DNA1, RNA2, miRNA3) do
+12:
+Combine Patient Attributes: Combine clinical-survival patient
+data with OMIC[1]LUSC and OMIC[1]LUAD
+13:
+Subset Splitting and Join Operation: Rank the clinical data
+order based on sample sub-type and isolate LUAD and LUSC into
+separate data frames. SubsetLUSC-I ∪SubsetLUAD-II
+14:
+Mean Calculation: Calculate the mean for each column feature,
+i.e., column-wise genes:
+¯
+X = 1
+n
+Pn
+i=1 Xi
+15:
+Calculate t-test: t =
+¯
+XLUSC−¯
+XLUAD
+sLUSC+sLUAD
+16:
+Sorting rank-wise features (P-value) to make significant and
+non-significant features
+17:
+Integrate (by join operation) with the minimum sample of
+omic: Join Operation:(OMIC-Data1, OMIC-Data2, OMIC-Data3)
+18:
+Separate all omics into independent sets of data, i.e., row-
+wise TCGA-ID samples and column-wise features
+19:
+Combine: (Omic Dataset, Clinical Features, Survival Features)
+of LUAD and LUSC subtypes
+20: end for
+21: PHASE 3-Feature Selection: PROCESS 1-ML methods
+22: for
+Each
+OMIC
+(DNALUSC−LUAD,
+RNALUSC−LUAD,
+miRNALUSC−LUAD) do
+23:
+Divide into subsets (Omic1: S1, S2, S3) based on the p-value
+and drop the features with unnamed GENE
+24:
+Apply the K-best selection method with a different no of fea-
+tures: MI, Chi, PCA, and RF on each subset.
+25:
+Split
+data
+into
+training
+and
+test-
+ing
+sets:
+Xtrain, Xtest, ytrain, ytest
+←
+train test split(Xscaled, ylabel, 0.2, seed = 42)
+26:
+Define
+selected
+features:
+selected features
+←
+[selected MI, selected PCA, selected Chi, selected RF]
+27:
+Define
+selected
+scores:
+selected scores
+←
+[scores MI, scores PCA, scores Chi, scores RF]
+28:
+Initialize dictionary:
+best features ←{} and Initialize list:
+selected features all ←[]
+29:
+The number of unique features and common across all the meth-
+ods is given by:
+|SUnique| = |SMI ∪SPCA ∪Sχ2| −|SCommon|
+|SCommon| = |SMI ∩SPCA ∩Sχ2|
+30: end for
+Algorithm 2 MQML-LungSC: (Contd.)
+1: PROCESS 2- Perform AUC-ROC analysis with RF clas-
+sifier: Apply RF classifier (n-estimator=250) with conditions on
+each feature to obtain the best features.
+2: for i in {0, 1, 2, 3} do
+3:
+Get method, features, and scores: method, features, scores ←
+methods[i], best selected features[i], selected scores[i]
+4:
+Sort features by scores
+5:
+for each feature in sorted features do
+6:
+Evaluate ROC AUC for feature of TR and TS
+7:
+if ROC AUC > 0.80 then
+8:
+Append feature to best selected features[method]
+9:
+end if
+10:
+end for
+11: end for
+12: Calculate total count of features, Combine best features and Re-
+move duplicate features.
+13: PROCESS 3- Hierarchical Clustering Selection:
+14: (1)pairwise distances
+←
+pdist(XT , metric
+=
+’euclidean’) and
+distance threshold = Max number
+15: (2)Z ←linkage(pairwise distances, method = ’ward’)
+16: (3)cluster
+←
+fcluster(Z, t
+=
+distance threshold, criterion
+=
+’maxclust’)
+17: (4)Split Cluster Group:(i)No. of clusters, (ii)Select top clusters
+18: (5) Apply heatmap and dendrogram analysis for clustering
+19: PROCESS 4- Apply UMAP for Dimensionality Reduction:
+20: Xreduced
+←
+UMAP(n components
+=
+2, min dist
+=
+0.1, n neighbors = 15)
+21: PROCESS 5- Apply Quantum Machine Learning: Train the
+QML model on the selected features for subtype classification and
+calculate accuracy metrics.
+In quantum ansatz, we have applied parameterized ro-
+tations R(θ, ϕ, λ), and Controlled-Z (CZ) gates for entan-
+glement between adjacent qubits. Each qubit undergoes
+a rotation defined by three parameters, θ, ϕ, and λ. The
+rotation operation R(θ, ϕ, λ) can be expressed as:
+R(θ, ϕ, λ) = Rz(λ)Ry(θ)Rz(ϕ)
+(16)
+The controlled-Z gates introduce entanglement between
+adjacent qubits, which a phase flip if both qubits are
+in the |1⟩state. For instance, a single layer of ansatz
+applies the following unitary transformation on the 8-
+qubit system as:
+U(W) =
+7
+Y
+i=0
+R(θi, ϕi, λi)
+6
+Y
+i=0
+CZi,i+1
+(17)
+Measurement: Finally, a quantum measurement ( ˆO) is
+applied using the expectation value of the Pauli-Z oper-
+ator for each qubit
+˜yi = ⟨ψi|U(θ)⊺ˆOU(θ)|ψi⟩
+(18)
+The measurement results from the quantum circuit are
+then fed into a layer of a classical neural network, which
+is used to predict the label of the input state.
+Ob-
+jective Function: In diagnostic classification, a binary
+classification task distinguishing between Subtype-I and
+Subtype-II using multi-omic data aims to minimize the
+binary cross-entropy loss. The binary cross-entropy loss
+function is defined as follows:
+L = −1
+N
+N
+X
+i=1
+[yi log(ˆyi) + (1 −yi) log(1 −ˆyi)]
+(19)
+9
+FIG. 3. Workflow of multi-omics integration and classification using quantum neural networks. (a) Schematic
+representation of the overall pipeline of MQML-QNN framework. (b) Data acquisition from GDC-TCGA, including (i) DNAme,
+(ii) RNA-seq, (iii) miRNA-seq, and (iv) clinical and survival attributes of patients.
+(c) Data preprocessing and feature
+engineering using t-test p-values for each omic data type to differentiate between subtypes I and II. (d)-(e) Feature selection
+process involving: (i) Four feature selection models: Random Forest (RF), Mutual Information (MI), Principal Component
+Analysis (PCA), and Chi-Squared (Chi). (ii) AUC-ROC analysis with thresholding for feature selection. (iii) Hierarchical
+clustering based on sample vs. feature and pairwise feature similarity using distance metrics. (f) Integration of multi-omic
+data resulting in 256 features from 915 common patients. (g) Quantum amplitude encoding with three feature dimensions: 32,
+64, and 256, and the quantum circuit with a dense layer for diagnostic classification of LUAD versus LUSC lung datasets. (h)
+Visualization of features through violin plots, confusion matrices, and heatmaps.
+where N is the number of samples (915 in our case),
+yi is the true label for the i-th sample (yi ∈{0, 1})
+with (0) representing LUSCSubtype−I and (1) represent-
+ing LUADSubtype−II, and ˆyi is the predicted probability
+for the i-th sample.
+F.
+Multi-Omic Integration and Development
+In the last phase, the subsets of OmicS1, OmicS2, and
+OmicS3 are combined. The multi-omic integration pro-
+cess is then followed to integrate all the Omic data to
+train the quantum neural network model using differ-
+ent feature dimensions with amplitude encoding, such as
+Multi-Omic256, Multi-Omic64, and Multi-Omic32.
+10
+TABLE II. Range of p-values used for selecting most significant and less significant features.
+OMIC1: DNAme
+OMIC2: RNA-seq
+OMIC3: miRNA-seq
+SetP-value
+Index
+P-value
+Index
+P-value
+Index
+1
+8.42e-25
+to
+4.99e-02
+140000 - 299885
+5.19e-24 to 4.99e-02
+7000 - 36900
+1.17e-25 to 4.99e-02
+100-821
+2
+2.89e-06
+to
+4.99e-02
+241000 - 299885
+2.53e-05 to 4.99e-02
+22300 - 36900
+2.35e-03 to 9.93e-01
+600-1586
+3
+4.99e-02
+to
+9.99e-01
+299885 - 344344
+4.99e-02 to 9.99e-01
+36900 - 58324
+-
+-
+TABLE III. Feature Selection Process using P-value based data
+OMIC1: DNA
+OMIC2: RNA
+OMIC3: miRNA
+Set Features
+FS Methods
+FS Clt
+Features
+FS Methods
+FS Clt
+Features
+FS Methods
+FS Clt
+1
+159885
+40
+10
+29900
+39 (37)
+20
+721
+70(63)
+35
+2
+44459
+70 (68)
+50
+14600
+58 (51)
+32
+986
+76 (63)
+50
+3
+58885
+47 (46)
+25
+21424
+97(71)
+34
+-
+-
+-
+III.
+METHODOLOGY
+A.
+Overview of MQML framework
+We present a pioneering framework of multi-omic-
+quantum machine learning (MQML-LungSC) tailored
+for integrating data, selecting unique features, classify-
+ing diagnostics, and identifying features associated with
+two distinct subtypes of lung datasets: LUSC primary
+tumor type-I and LUAD primary tumor type-II. Due
+to the datasets’ inherent heterogeneity, complexity, and
+high dimensionality, our study aims to assess the effi-
+cacy of hybrid-QML in selecting, reducing, encoding fea-
+tures, and classifying diagnostics between subtype-I and
+subtype-II patients across integrated multi-omic subtype
+datasets. The whole process is divided into a few phases
+as described in Fig 3. (i) Data loading, (ii) Data Pre-
+processing- Feature engineering, (iii) Feature Selection-
+split into three steps, (iv) quantum data encoding and
+circuit, (v) quantum-classical hybrid model development
+phase, testing phase and (vi) identification of molec-
+ular top-hit features genes.
+MQML processes various
+omic datasets (epigenomic and transcriptomic) by pre-
+processing to ensure data quality and reduce the compu-
+tational burden. Omic features are columns, and patient
+samples are rows. In the first data pre-processing phase,
+(Omic[1]Subtype−I and Omic[1]Subtype−II) are combined
+and patient survival and clinical attributes are extracted
+based on the diagnostic subtype i.e. sample-type. In the
+second phase, we conducted a feature engineering pro-
+cess using the statistical t-test method to identify signifi-
+cant and non-significant features within each omic. Then,
+we split each Omic[1]subset1 to Omic[1]subset3 subset into
+three parts based on p-values: two subsets with p-values
+less than 0.05 and one subset with p-values greater than
+0.05. Table IV shows the features selected using a fea-
+ture selection process based on p-value for further di-
+agnostic classification in multi-omic modalities. In the
+third phase, we applied a feature selection process on
+each Omic[1]subset1−3 into three steps: (i) four machine
+learning feature selection methods, (ii) AUC-ROC anal-
+ysis, and (iii) hierarchical clustering with distance-based
+methods to obtain the most optimal and unique features
+for each omic subset.
+In the first selection, we applied four feature selection
+methods: (MI), Chi-square, (PCA), and (RF). Each sub-
+set of omics/modality was then analyzed to select the
+best features using the four selection methods, consid-
+ering both common and uncommon features.
+In the
+second step of feature selection, the total selected fea-
+tures were further processed based on a random for-
+est classifier, considering only features with AUC-ROC
+scores higher than 0.80 in both training and testing
+datasets for further analysis.
+In the third step, then
+we applied the hierarchical clustering approach, selecting
+additional features based on two criteria: (i) Pearson-
+Euclidean distance between features and (ii) Euclidean
+distance using the ward method of clustering. The top
+cluster features were obtained on each OmicSubset. Fi-
+nally, the selected features based on distances were pro-
+cessed to visualize each modality heatmap and other vi-
+sualization plots.
+Further, this feature selection pro-
+cess was ap- plied to select the best and unique fea-
+tures from each omic modality (DNA-me, RNA-Seq,
+miRNA-Seq) based on their subsets. Then, each subset
+of modality was combined among single omic, such as
+three subsets for OmicDNA−Single and OmicRNA−Single,
+and two subsets for OmicmiRNA−Single.
+Further,
+TABLE IV. List of P-value Based Conducted Encoding and
+Simulations
+Set
+P-value
+DNAme RNA-seq miRNA-seq
+S1
+< 0.05
+10
+20
+35
+S2
+< 0.05
+25
+32
+-
+S3
+> 0.05
+50
+34
+-
+S4
+< 0.05
+-
+-
+51
+Multi-Omic Data
+85
+86
+85
+in the third phase, the multi-omic integration pro-
+cess is followed to combine each subset of Omic1 =
+Omic[1]subset1+Omic[1]subset2+Omic[1]subset3 and then
+integrate all the single Omic such as Omic1, Omic2, and
+Omic3 to train the QNN model using different dimen-
+sions of features with amplitude encoding such as (Multi-
+Omic256, Multi-Omic64 and Multi-Omic32). In this step,
+all the single omics were integrated using hierarchical
+11
+integration column-wise among 915 patient samples of
+LUAD and LUSC. This combined integrated dataset con-
+sists of 85 features for OmicDNA, 86 for OmicRNA, and
+85 for OmicmiRNA, totaling 256 features for multi-omic
+analysis. Now, to evaluate the performance of the quan-
+tum model, we evaluate three QNN models on three
+sets of datasets. We randomly selected features to cre-
+ate datasets with 32 and 64 features, forming integrated
+multi-omic data. This allowed us to perform the QNN
+model classification across three data dimensions: 32, 64,
+and 256.
+In the Fourth Phase, we developed a MQML-QNN
+model for the diagnostic classification of lung subtype-
+I and subtype-II. We compared the quantum model with
+classical machine learning classifiers to evaluate the per-
+formance as depicted in Table X (LR, MLP, and SVM ).
+We benchmarked the performance of the best results with
+Quantum neural network and Random Forest and evalu-
+ated the comparison with all existing classical models for
+the 256, 64, and 32 features of integrated multi-omics as
+shown in Table X and Figure 13.
+Additionally, In the last phase, we extracted top-hit
+multi-omic molecular features’ importance features us-
+ing the QNN model weights for further analysis.
+The
+workflow of the proposed (MQML-LungSC) framework
+is shown in Fig. 3.
+IV.
+RESULTS AND PERFORMANCE
+In this section, we will present the performance of our
+proposal MQML-LungSC framework in detail. The per-
+formance of MQML was designed to compare with three
+dimensions of QNN models that perform diagnostic sub-
+type classification.
+The metrics used to compare the
+classification performance of (MQML-LungSC) were ac-
+curacy (ACC), loss, precision, recall, and F1-score (F1).
+The F1 score was calculated by the mean F1 score of
+each class, weighted by the size of that class. Diagnostic
+and Identification of LUSC and LUAD subtypes related
+gene after the omic data integration. For each dataset
+subtype, RNA-seq, DNAme and miRNA-seq are used for
+data integration with common patients.
+A.
+Experimental Hardware and Software
+We implemented the experiments on the Gilbreth GPU
+cluster at Purdue University’s Research Computing and
+Data Systems (RCAC) with a single server, one GPU
+node, 8 cores per node, an A10 GPU, and 512 GB mem-
+ory per node [31]. The experiments were performed using
+TensorFlow 2.7.0 in Python 2.8.0. The quantum machine
+learning library PennyLane (version 0.28.0) by Xanadu
+Inc.
+was employed, with dependencies including ap-
+pdirs, autograd, autoray, cachetools, networkx, numpy,
+pennylane-lightning, requests, retworkx, scipy, semantic-
+version, and toml. Additionally, the fundamental array
+computing package NumPy (version 1.20.3), the Python
+plotting package Matplotlib (version 3.4.3), the machine
+learning and data mining library scikit-learn (version
+1.4.2), the statistical data visualization library Seaborn
+(version 0.11.2), and the data analysis package pandas
+(version 1.3.4) were utilized in the study.
+B.
+Performance of Feature Engineering Process
+Statistical analyses were conducted using a t-test to
+calculate the p-value significant and in-significant values
+for LUSC and LUAD subtypes.
+Then, each modality
+was divided into subsets, meaning features were divided
+into subsets column-wise based on the obtained p-values.
+For high-dimensional features in DNAme and RNA-seq
+modalities, the datasets were divided into three subsets
+based on the significance level: two subsets with p-values
+less than 0.05 and one subset with p-values greater than
+0.05.
+However, the miRNA-seq modality was divided
+into two subsets: one included p-values less than 0.05
+and the second subset had p-values greater than 0.05 to
+0.9. The process of data engineering is shown in Fig 2.
+Table II depicts the range of p-values used for selecting
+the most significant and least significant features across
+three omics. Table III presents the feature selection pro-
+cess using p-value-based data across DNAme (OMIC1),
+RNA-seq (OMIC2), and miRNA-seq (OMIC3) omics, de-
+tailing the number of features selected, feature selection
+methods employed, and significance thresholds (Feature
+cluster) (FS Clt). Table IV provides a summary of p-
+value-based encoding and simulations conducted across
+different omic sets: DNAme, RNA-seq, and miRNA-seq
+. Each set (denoted as S1, S2, S3, and S4) shows the
+threshold p-value used for feature selection and the corre-
+sponding number of features selected for each omic type.
+The table also includes aggregated results for multi-omic
+data integration, highlighting the total number of fea-
+tures retained across all omics.
+C.
+Performance of Feature Selection Process with
+RF Classifier
+Further, this process is applied to discover the best
+and unique features from each omic modality (DNAme,
+RNA-seq,
+and miRNA-seq) based on their subsets.
+The applied feature selection process based on p-value,
+the OMICDNAme, OMICRNA−seq, and OMICmiRNA−seq
+was divided into three subsets.
+The initial two sub-
+sets represent less than 0.05 and the third subset rep-
+resents a greater than 0.05 p-value.
+The four ma-
+chine learning models are applied to select the features.
+(DNAme subset combined Total 85= DNAmeSubset1(10)
++ DNAmeSubset2(50) + DNAmeSubset3(25) features are
+combined to concatenate the final subset of OMICDNA.
+RNA subset combined Total 85= RNA-seqSubset1(20)
++ RNA-seqSubset2(32) + RNA-seqSubset3(34) features
+12
+(a)
+(b)
+c)
+FIG. 4. Visualization of Venn Diagram and Represents the Feature Importance Plot with score
+Represent the
+visualization through venn diagram for the features selection process using four machine learning methods on DNA methylation
+(DNAme), RNA transcript level (RNA-seq), and miRNA-seq levels (miRNA) modalities. (a) DNA Sample1 to Sample3, (b)
+RNA Sample1 to Sample3 and (c) miRNA Sample1 to Sample2, Visualization of feature selection using four models i.e. i)
+Mututal information, (ii) Chi-square, (iii) Principal component (iv) Random forest of three modalities (d) DNA S1 to S3, (e)
+RNA S1 to S3, and (f) miRNA S1 to S2
+FIG. 5. Represents the Hierarchical Clustering Dendogram based pairwise feature selection and distance-based
+selection of features of each omic subsets based on (a)-(c) DNA S1 to S3, (d)-(f) RNA S1 to S3, and (g)-(h)
+miRNA S1 to S3,
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+(g)
+(h)
+FIG. 6. Represents the Hierarchical Clustering Heatmap of selected features of each omic subsets (a)-(c) DNA
+S1 to S3, (d)-(f) RNA S1 to S3, and (g)-(h) miRNA S1 to S3,
+are
+combined
+to
+concatenate
+the
+final
+subset
+of
+OMICRNA.
+miRNA-seq subset combined Total 85=
+13
+FIG. 7. Hierarchical representation of single omics and integrated multi-omic hierarchical clustering analyses and
+top-hit feature importance plot. Hierarchical clustering of emerging data results in the effective separation of patients’ groups.
+(A), whereas for DNAme (B) miRNA-seq (C) RNA-seq data and (D) Integrated all omics as Multi-Omic256.
+Heatmaps
+illustrate DNA methylation, gene expression, miRNA, and patterns of lung feature specific-related genes in the LUAD subtype-
+II compared to the LUSC subtype-I lung dataset. In each heatmap, the cell lines were organized by hierarchical clustering,
+with labels colored in purple (subtype-I) and yellow for (subtype-II) highlighting LUSC and LUAD patients, respectively. (E)
+Outcome of top molecular features of integrated multi-omic256 using the QNN1256 model
+miRNA-seqSubset1(35) + miRNA-seqSubset2(51) features
+are
+combined
+to
+concatenate
+the
+final
+subset
+of
+OMICmiRNA. These four methods were used to select
+the features and then classified with a random forest clas-
+sifier to see the performance of selected features by each
+method as shown in Table V. This table presents the
+performance metrics (Accuracy, Precision, Recall, and
+F1-Score) of four feature selection models—MI, PCA,
+Chi-sq, and RF—applied to different subsets of DNAme,
+RNA-seq, and miRNA-seq data.
+The Random Forest
+(RF) model consistently shows the highest performance
+across most subsets, particularly in DNA, where it nearly
+achieves perfect scores.
+MI demonstrates competitive
+performance across all omics data types and subsets, es-
+pecially in re- call and F1-Score. Chi-sq generally per-
+forms moderately well, while PCA tends to have the low-
+est performance across the board.
+D.
+Performance of Multi-Omic
+(DNAme/RNA-seq/miRNA-seq) Integration of
+Subtype-I and Subtype-II with MQML-QNN
+In this MQML-LungSC QNN framework, we inte-
+grated multi-omic DNA-seq/RNA-seq/miRNA-seq co-
+horts for lung subtype-I and subtype-II diagnostic clas-
+14
+TABLE V. Performance Comparison of Different Feature Selection Methods Across Omics Data Types and Subsets with RF
+Classifier
+DNAme-Subset1
+RNA-seq-Subset1
+miRNA-seq-Subset1
+Subset1
+MI
+PCA
+Chi-sq
+RF
+MI
+PCA
+Chi-sq
+RF
+MI
+PCA
+Chi-sq
+RF
+ACC
+0.99
+0.841
+0.968
+0.998
+0.9
+0.75
+0.79
+0.84
+0.84
+0.77
+0.76
+0.87
+Precision
+1.99
+0.843
+0.9677
+0.99
+0.91
+0.75
+0.76
+0.84
+0.88
+0.79
+0.77
+0.9
+Recall
+2.99
+0.874
+0.97
+0.998
+0.916
+0.82
+0.89
+0.86
+0.82
+0.8
+0.81
+0.86
+F1-Score
+3.99
+0.857
+0.97
+0.99
+0.91
+0.78
+0.82
+0.85
+0.85
+0.79
+0.79
+0.88
+DNAme-Subset2
+RNA-seq-Subset2
+miRNA-seq-Subset2
+Subset2
+MI
+PCA
+Chi-sq
+RF
+MI
+PCA
+Chi-sq
+RF
+MI
+PCA
+Chi-sq
+RF
+ACC
+0.998
+0.75
+0.94
+0.99
+0.85
+0.78
+0.69
+0.88
+0.77
+0.66
+0.63
+0.8
+Precision
+0.99
+0.76
+0.95
+0.99
+0.86
+0.7
+0.73
+0.89
+0.79
+0.68
+0.61
+0.81
+Recall
+0.99
+0.8
+0.93
+0.998
+0.88
+0.78
+0.71
+0.91
+0.78
+0.72
+0.88
+0.82
+F1-Score
+0.99
+0.78
+0.94
+0.99
+0.87
+0.74
+0.72
+0.9
+0.79
+0.7
+0.72
+0.81
+DNAme-Subset3
+RNA-seq-Subset3
+Subset3
+MI
+PCA
+Chi-sq
+RF
+MI
+PCA
+Chi-sq
+RF
+ACC
+0.996
+0.881
+0.942
+0.995
+0.79
+0.68
+0.56
+0.85
+-
+-
+-
+-
+Precision
+0.997
+0.879
+0.952
+0.996
+0.78
+0.66
+0.55
+0.85
+-
+-
+-
+-
+Recall
+0.995
+0.908
+0.942
+0.996
+0.87
+0.84
+0.99
+0.88
+-
+-
+-
+-
+F1-Score
+0.996
+0.893
+0.947
+0.996
+0.82
+0.74
+0.71
+0.87
+-
+-
+-
+-
+sification with three different dimensions of features and
+n qubits encoding. The QNN models are named QNN1,
+QNN2 and QNN3 based on different settings and hyper-
+parameters as shown in Table I.
+Among these models, in the QNN1256 model, we have
+used qubit8 to encode 256 features using amplitude en-
+coding.
+Then, a layer is repeated consisting of single-
+qubit gates (Rz, Ry, Rz) Parameterized rotations 8
+R(θ, ϕ, λ) = Rz(λ)Ry(θ)Rz(ϕ)
+on each qubit, followed by a linear entanglement of 7
+Controlled-Z (CZ) gates between adjacent qubits.
+Fi-
+nally, the measurement is performed on all qubits, fol-
+lowed by classical neurons and a dense layer for the
+classification using ADAM optimizer.
+This QNN1256
+model, provided the highest classification performance,
+with an accuracy score of 0.90.
+In this model, for
+the LUADSubtype−II class, the precision, recall, and F1
+scores were 0.89, 0.94, and 0.92, respectively, whereas
+for the LUSCSubtype−I class, the precision, recall, and
+F1 score were 0.92, 0.85, and 0.88 respectively for the
+testing multi-omic dataset.
+TABLE VI. Performance of QNN models on differentiating
+LUAD vs LUSC with different number of features.
+Models
+QNN-256
+QNN-64
+QNN-32
+Metrics
+LUSC
+LUAD
+LUSC
+LUAD
+LUSC
+LUAD
+Precision
+0.92
+0.89
+0.85
+0.86
+0.83
+0.88
+Recall
+0.85
+0.94
+0.81
+0.89
+0.85
+0.87
+F1-Score
+0.88
+0.92
+0.83
+0.88
+0.84
+0.87
+Class
+80
+103
+79
+104
+79
+104
+Accuracy
+0.9
+0.9
+0.86
+0.86
+0.85
+0.85
+The QNN264 model demonstrated secondary predic-
+tive performance with an accuracy of 0.86.
+In the
+QNN264 model circuit, qubit6 used to encode 64 features
+with amplitude encoding are employed within the fea-
+ture map and apply 6 rotation gates with 5 CZ gates and
+a classical dense layer.
+In the context of the QNN264
+model, the precision, recall, and F1 score values for the
+LUADSubtype−II class were 0.86, 0.89, and 0.88, respec-
+tively. In contrast, for the LUSCSubtype−I class, the cor-
+FIG. 8. Compairson of QNN models with different en-
+coding features on integrated multi-omic data based
+on different classification metrics.
+responding precision, recall, and F1 scores are 0.85, 0.81,
+and 0.83, respectively.
+Similarly, the QNN332 model exhibited improved per-
+formance with an accuracy of 0.85. In the QNN332 model
+circuit qubit5 is used to encode 32 features with am-
+plitude encoding and apply 5 rotation gates with 4 CZ
+gates using a classical dense layer. In the context of the
+QNN332 model, the precision, recall, and F1 score values
+for the LUADSubtype−II class were 0.88, 0.87, and 0.87 re-
+spectively. In contrast, for the LUSCSubtype−I class, the
+corresponding values for precision, recall, and F1 score
+are 0.83, 0.85, and 0.84 respectively.
+Each subset of modality was combined to make a
+feature of the Multi-Omic dataset (DNA subset com-
+bined Total 85= DNAmeSubset1(10) +DNAmeSubset2(50)
++ DNAmeSubset3(25), RNA-seq subset combined 86=
+RNA-seqSubset1(20)
++
+RNA-seqSubset2(32)
++
+RNA-
+seqSubset3(34) and (miRNA-seq subset combined total =
+85 miRNA-seqSubset1(35) + miRNA-seqSubset2(51).
+15
+LUSC
+LUAD
+Predicted Class
+LUSC
+LUAD
+True Class
+300
+(0.90)
+32
+(0.10)
+6
+(0.01)
+394
+(0.98)
+Multiomic Features= 256
+0.2
+0.4
+0.6
+0.8
+
+
+
+
+
+
+
+
+LUSC
+LUAD
+Predicted Class
+LUSC
+LUAD
+True Class
+281
+(0.84)
+52
+(0.16)
+34
+(0.09)
+365
+(0.91)
+Multiomic Features= 32
+0.2
+0.4
+0.6
+0.8
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+False Positive Rate (1-Specificity)
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+True Positive Rate (Sensitivity)
+QNN-32 (AUC=0.9506)
+QNN-64 (AUC=0.9768)
+QNN-256 (AUC=0.9912)
+Random guess
+FIG. 9. Represents the performance of QNN model on (a) 256, (b) 64, (c) 32 features, (d) AUC-ROC on the
+training dataset respectively Visualization of Confusion Matrix on training dataset respectively
+LUSC
+LUAD
+Predicted Class
+LUSC
+LUAD
+True Class
+68
+(0.85)
+12
+(0.15)
+6
+(0.06)
+97
+(0.94)
+Multiomic Features= 256
+0.2
+0.4
+0.6
+0.8
+   93
+(0.89)
+   11
+(0.11)
+LUSC
+LUAD
+Predicted Class
+LUSC
+LUAD
+True Class
+67
+(0.85)
+12
+(0.15)
+14
+(0.13)
+90
+(0.87)
+Multiomic Features= 32
+0.2
+0.4
+0.6
+0.8
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+False Positive Rate (1-Specificity)
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+True Positive Rate (Sensitivity)
+QNN-32 (AUC=0.9124)
+QNN-64 (AUC=0.9216)
+QNN-256 (AUC=0.9644)
+Random guess
+FIG. 10. Represents the performance of QNN model on (a) 256, (b) 64, (c) 32 features (d) AUC-ROC on
+testing dataset respectively Visualization of Confusion Matrix on testing dataset respectively
+Thus, the integration of three types of molecular data
+(RNA-seq, DNAme, and miRNA-seq) can achieve better
+results for the patients’ subtype- prediction.
+MQML-
+LungSC achieves superior performance when integrating
+a variable number of modalities while including a smaller
+number of samples. Our results indicate that the Multi-
+Omic Quantum Machine Learning Lung Subtype Classi-
+fication (MQML-LungSC) framework offers superior clas-
+sification performance with smaller training datasets as
+significant and non-significant based on p-value, thus pro-
+viding compelling empirical evidence for the potential fu-
+ture application of unconventional computing approaches
+in the biomedical sciences. We observed that as we in-
+creased the number of features, we achieved superior per-
+formance in diagnostic classification and improved sig-
+nificance in distinguishing between significant and non-
+significant p-subtypes.
+Additionally, we identified the
+best features within the 32 and 64-feature datasets to
+highlight the top-hit multi-omic features for further in-
+vestigations. Fig 7. presents the hierarchical representa-
+tion and clustering analysis of single omics and integrated
+multi-omic data. Heatmaps illustrate DNAme, RNA-seq,
+16
+TABLE VII. Top 40 features identified by the QNN256 model,
+including their gene names, P-values, feature importance (FI),
+Feature-specific based on their mean levels in LUAD and
+LUSC (i.e.
+Luad-Tumor, Luad-Normal, Lusc-Tumor and
+Lusc-Normal)
+Features
+P-values
+FI
+Gene
+Feat. Specific
+ENSG00000248144.4
+0.8082
+2.08
+ADH1C
+LUSC Normal
+hsa-mir-632
+0.1245
+2.007
+MIR632
+LUAD Tumor
+hsa-mir-3690-1
+0.00013
+1.768
+MIR3690-1
+LUSC Normal
+cg09439093
+6.21E-05 1.625
+ECI2,
+LUAD Tumor
+hsa-mir-147b
+9.10E-06 1.518
+MIR147b
+LUAD Tumor
+ENSG00000214189.7
+0.0736
+1.487
+ZNF788
+LUSC Normal
+hsa-mir-4442
+0.2897
+1.485
+MIR4442
+LUAD Tumor
+ENSG00000084070.10
+0.0014
+1.450
+SMAP2
+LUSC Normal
+ENSG00000115307.15
+1.97E-22 1.449
+AUP1
+LUSC Tumor
+cg07727233
+1.39E-10 1.448
+GSS
+LUAD Normal
+hsa-mir-4999
+0.5929
+1.421
+MIR4999
+LUSC Normal
+cg09297514
+0.5230
+1.395
+CAMKK2
+LUAD Tumor
+ENSG00000138109.9
+0.0157
+1.378
+CYP2C9
+LUSC Tumor
+ENSG00000099810.17
+0.2798
+1.365
+MTAP
+LUSC Normal
+cg19273074
+0.06963
+1.357
+PDZRN4
+LUSC Normal
+ENSG00000134184.11
+0.0026
+1.301
+GSTM1
+LUSC Tumor
+hsa-mir-138-2
+0.03246
+1.295
+MIR138-2
+LUSC Normal
+cg19343088
+0.7102
+1.286
+AIM1
+LUSC Tumor
+cg18441041
+0.1053
+1.283
+CUX1
+LUAD Tumor
+hsa-mir-181a-2
+1.12E-16 1.269
+MIR181a-2
+LUSC Normal
+cg14336879
+2.42E-23 1.260
+SEZ6,PIPOXLUAD Tumor
+ENSG00000075945.11
+0.0014
+1.257
+KIFAP3
+LUSC Normal
+ENSG00000117834.11
+1.24E-20 1.239
+SLC5A9
+LUSC Normal
+ENSG00000258947.5
+0.00020
+1.174
+TUBB3
+LUAD Tumor
+hsa-mir-320b-2
+7.68E-20 1.166
+MIR320b-2 LUSC Tumor
+ENSG00000104365.12
+0.8046
+1.163
+IKBKB
+LUSC Normal
+cg23424800
+0.00233
+1.161
+C8orf74
+LUAD Normal
+ENSG00000185201.15
+6.68E-18 1.158
+IFITM2
+LUSC Normal
+cg08703522
+0.1377
+1.151
+WNT3
+LUAD Tumor
+ENSG00000136842.12
+0.00057
+1.134
+TMOD1
+LUSC Normal
+ENSG00000177853.13
+0.2412
+1.099
+ZNF518A
+LUSC Normal
+ENSG00000100359.19
+0.00232
+1.070
+SGSM3
+LUSC Normal
+cg18070562
+6.01E-20 1.042
+ALOXE3
+LUAD Normal
+cg18575209
+3.68E-06 1.022
+ZNF586
+LUSC Tumor
+ENSG00000115896.14
+0.000327 1.006
+PLCL1
+LUSC Normal
+ENSG00000022556.14
+0.24421
+1.002
+NLRP2
+LUSC Normal
+hsa-mir-193a
+0.10296
+0.989
+MIR193a
+LUSC Normal
+cg12304599
+0.19903
+0.967
+RERG
+LUAD Tumor
+cg24041269
+2.72E-24 0.967
+HLTF
+LUAD Tumor
+miRNA-seq, and important features patterns in LUAD
+subtype-II compared to LUSC subtype-I lung datasets.
+Hierarchical clustering organizes cell lines, with labels in
+purple (subtype-I) and yellow (subtype-II) highlighting
+LUSC and LUAD patients, respectively. (A) DNAme,
+(B) miRNA-seq, (C) RNA-seq, (D) Integrated (A, B, C)
+omics as Multi-Omic256 features. (E) Outcome of Top
+32 molecular features of integrated Multi-Omic256 fea-
+tures using QNN1256 model.
+We discovered sev- eral
+novel features inDNA-me , miRNA-Seq and RNA-Seq
+which have a unique diagnostic potential to differentiate
+LUSC and LUAD subtypes. Fig 8. presents a compar-
+ison of QNN models with different encoding features on
+integrated multi-omic data based on various classification
+metrics through a boxplot.
+Fig (9-10) represents the performance evaluation of the
+QNN model using various feature sets. Fig 9. depict the
+visualization of confusion matrices for training datasets
+with 256, 64, and 32 features, respectively. Similarly, Fig
+10. displays confusion matrices for testing datasets with
+the same feature configurations. Additionally, Fig 9 il-
+lustrates the visualization of the Area Under the Curve
+(AUC-ROC) visualization for the QNN model trained on
+256, 64, and 32 features, showcasing performance metrics
+across training and testing datasets. Table VI presents
+the performance metrics of QNN models in distinguishing
+between LUAD and LUSC , using different numbers of
+features. The table compares precision, recall, F1-score,
+and accuracy for QNN models trained with 256, 64, and
+32 features, respectively. Each metric is reported sepa-
+rately for both LUSC and LUAD classes, demonstrating
+the model’s ability to classify between these lung dataset
+subtypes across varying feature dimensions.
+E.
+Performance of Multi-Omic Model1:QNN-256
+and Important Features Identification
+MQML-QNN256 Model achieves superior performance
+when integrating three modalities while including 915
+samples.
+A Multi-Omic integration final Classifica-
+tion results with all visualizations with a dimension of
+256 features shown in Fig.
+9.
+In the integration of
+QNN256, we integrated OMICDNA=85, OMICRNA=86,
+and
+OMICmiRNA=85 features with
+915 sample of
+subtype-I and subtype-II. Similar parameter metrics re-
+sults have also been reported that the MQML-QNN256
+model provided slightly better accuracy results in the
+training dataset than in testing results. As evident from
+Table VI and Table X, the MQML-QNN256 provided
+the best performance for the diagnostic subtype-I and
+subtype-II Loss= (0.1475 and 0.2527), Accuracy= (0.95
+and 0.90), AUC-ROC= (0.94 and 0.96) in training and
+testing respectively.
+Research Process for Distinguishing LUAD and
+LUSC Subtypes for QNN256 model:
+We
+identified
+the
+32
+Top-hit
+features
+with
+sig-
+nificant and insignificant features by the proposed
+MQML-QNN256 model1: ADH1C, MIR632, MIR3690-
+1 ECI2, RP3-400B16.4, MIR147b, ZNF788, MIR4442,
+SMAP2, AUP1, GSS, MIR4999, CAMKK2, CYP2C9,
+MTAP, PDZRN4, RP11-413B19.2, GSTM1, MIR138-2,
+MIR3174, AIM1, CUX1, MIR181a-2, SEZ6, PIPOX, KI-
+FAP3, SLC5A9, TUBB3, MIR320b-2, IKBKB, C8orf74,
+RP1L1, IFITM2, WNT3, TMOD1 and many more.A de-
+tailed summary of the information on top-hit features
+is provided in Table VII. Identification of novel molec-
+ular features such as ADH1C, MIR632, and MIR3690-
+1 is crucial for advancing cancer research, particularly
+in distinguishing between different subtypes like LUAD
+and LUSC in lung subtypes. These features, identified
+through the MQML-QNN256 model, offer significant in-
+sights into disease mechanisms and treatment responses.
+ADH1C [32] MiR-632 [33] [34] [35], IFITM2 [36], [37]
+GSTM1, TMOD1 [38], Wnt3 [39], miR-147b [40] [41],
+miR-4442 [42] PDZRN4 [43], CUX1 [44] [45].
+Given a trained MQML-QNN model for classifying
+lung dataset subtypes (LUAD and LUSC), the most im-
+portant features for classification can be identified by cal-
+culating feature importance scores from model weights
+and associating features with LUAD or LUSC based on
+17
+their mean expression levels.
+(i) Identify Significant Features: Let {Xi} be the
+set of features used in the (MQML-LungSC) model for
+classifying LUAD and LUSC.
+(ii) Compute Feature Importance: For each feature
+i, calculate the feature importance score Importancei as
+the average of absolute weights:
+Importancei = 1
+n
+Pn
+j=1 |wij|
+where wij is the weight for feature i in instance j, and
+n is the number of instances.
+(iii) Calculate Mean Expression Levels: Let µLUAD
+i
+and µLUSC
+i
+represent the mean expression levels of fea-
+ture i in LUAD and LUSC samples, respectively:
+µLUAD
+i
+=
+1
+nLUAD
+P
+j∈LUAD Xij
+µLUSC
+i
+=
+1
+nLUSC
+P
+j∈LUSC Xij
+where Xij is the expression level of feature i in sample
+j, and nLUAD and nLUSC are the numbers of LUAD and
+LUSC samples, respectively.
+(iv) Determine Feature Association: Classify fea-
+ture i based on its mean expression levels:
+Associationi =
+(
+LUAD
+if µLUAD
+i
+> µLUSC
+i
+LUSC
+otherwise
+(iv) Integrate Results: Combine the feature impor-
+tance, mean expression levels, and association results into
+a final table for features identification (BI):
+BIi =
+ Importancei, µLUAD
+i
+, µLUSC
+i
+, Associationi
+
+By calculating the feature importance scores and com-
+paring the mean expression levels of features in LUAD
+and LUSC, we can systematically identify the key fea-
+tures for classifying these subtypes. This thorough anal-
+ysis allows for a clearer understanding of the differences
+between LUAD and LUSC, enhancing diagnostic and
+therapeutic strategies.
+F.
+Performance of Multi-Omic Model2: QNN-64
+and Important Features Identification
+In
+the
+integration
+of
+QNN64,
+we
+integrated
+OMICDNA=22, OMICRNA=21, and OMICmiRNA=21
+features with 915 samples of subtype-I and subtype-II.
+A multi-omic integration final classification results with
+all visualizations with a dimension of 64 features are
+shown in Fig. 9-10. The MQML-QNN64 model provided
+slightly better accuracy results than MQML-QNN32 in
+testing results. As evident from Table VI and Table X,
+the MQML-QNN64 provided the best performance for
+the diagnostic subtype-I and subtype-II Loss= (0.21108
+and 0.28467), Accuracy= (0.92 and 0.86), AUC-ROC=
+(0.97 and 0.92) in training and testing respectively. We
+identified the 32 Top-hit features with significant and
+insignificant features by the proposed MQML-QNN64
+model2: TYR, MIR323a, MIR193b, PDIA3, MIR6718,
+HLTF, HLTF-AS1, MIR1258, HRAS, LRRC56, PRRG3,
+TABLE VIII. List of 32 top-hit features and their P-values
+on using QNN-64 model2.
+Feature
+Gene Name
+P-Value
+cg14705695
+TYR
+0.2329
+hsa-mir-323a
+MIR323a
+8.52E-10
+hsa-mir-193b
+MIR193b
+2.32E-23
+ENSG00000167004.11
+PDIA3
+0.00584
+hsa-mir-6718
+MIR6718
+0.01123
+cg02398045
+HLTF,HLTFAS1
+0.00509
+hsa-mir-1258
+MIR1258
+0.8056
+cg25016127
+HRAS,LRRC56
+0.4157
+ENSG00000130032.14
+PRRG3
+1.48E-23
+hsa-mir-3174
+MIR3174
+0.01899
+ENSG00000138109.9
+CYP2C9
+0.01577
+hsa-mir-519a-2
+MIR519a-2
+0.09878
+hsa-mir-6815
+MIR6815
+0.49621
+cg06808983
+G6PC3
+0.4518
+ENSG00000258947.5
+TUBB3
+0.00020
+hsa-mir-552
+MIR552
+3.86E-21
+hsa-mir-182
+MIR182
+0.0068
+ENSG00000177570.12
+SAMD12
+0.01211
+ENSG00000166770.9
+ZNF667-AS1
+0.4329
+cg01025842
+FBXL8,TRADD
+1.41E-05
+ENSG00000114378.15
+HYAL1
+0.00010
+hsa-mir-6868
+MIR6868
+0.0387
+cg21035368
+ERCC1
+0.7402
+ENSG00000143248.11
+RGS5
+1.85E-19
+cg08842508
+PABPC1P2
+0.2452
+ENSG00000169660.14
+HEXDC
+4.13E-05
+cg02665570
+LYPLAL1
+0.01026
+hsa-mir-4685
+MIR4685
+0.0471
+hsa-mir-4665
+MIR4665
+1.41E-24
+cg25208969
+ARHGAP23
+1.24E-09
+cg06676119
+PDE1A
+0.09512
+ENSG00000213949.7
+ITGA1
+4.22E-23
+FIG. 11. Top-Hit Comparison features Visualization of
+(b) 64 QNN model 2
+MIR3174,
+CYP2C9,
+MIR519a-2,
+MIR6815,
+G6PC3,
+TUBB3, MIR552, MIR182, SAMD12, ZNF667-AS1,
+FBXL8, TRADD, HYAL1, MIR6868, ERCC1, RGS5,
+PABPC1P2,
+HEXDC,
+LYPLAL1,
+LYPLAL1-AS1,
+MIR4685, MIR4665, ARHGAP23, PDE1A, ITGA1 and
+many more.
+A detailed summary of top-hit features
+information is provided in Table VIII and Fig 11.
+18
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+Top-Hit 32 Multiomic Feature Importance Score and Pvalue using 32-encoding and 5-qubit
+cg20676542
+ENSG00000123999.4
+ENSG00000109511.9
+cg18441041
+cg08301941
+hsa-mir-4777
+ENSG00000103152.10
+cg16306190
+hsa-mir-3942
+cg06808983
+hsa-mir-92b
+hsa-mir-514a-3
+hsa-mir-3917
+hsa-mir-182
+hsa-mir-6837
+cg27496650
+ENSG00000197951.7
+ENSG00000117602.10
+ENSG00000141510.14
+hsa-mir-548aw
+hsa-mir-1255a
+cg07449645
+cg25208969
+cg20573396
+ENSG00000075945.11
+ENSG00000084070.10
+ENSG00000100532.10
+ENSG00000130032.14
+hsa-mir-193b
+cg20548765
+cg26137478
+ENSG00000171862.8
+Multiomic Quantum Neural Network-Selected Biomarkers
+4.91e-01
+7.33e-01
+2.91e-04
+1.05e-01
+2.96e-02
+2.09e-01
+3.20e-01
+1.03e-05
+1.11e-06
+4.52e-01
+8.65e-19
+1.48e-06
+1.26e-01
+6.88e-03
+2.14e-02
+1.56e-04
+2.80e-01
+7.79e-01
+3.03e-05
+9.32e-01
+7.78e-02
+1.22e-05
+1.24e-09
+1.37e-05
+1.40e-03
+1.46e-03
+1.99e-04
+1.48e-23
+2.32e-23
+2.53e-23
+5.76e-02
+1.39e-01
+2.61
+RP11-670E13.6,TRIM25
+2.41
+INHA
+2.35
+ANXA10
+2.15
+CUX1
+1.88
+G6PC3
+1.79
+MIR4777
+1.76
+MPG
+1.72
+LRRC34
+1.72
+MIR3942
+1.70
+G6PC3
+1.69
+MIR92b
+1.68
+MIR514a-3
+1.65
+MIR3917
+1.64
+MIR182
+1.62
+MIR6837
+1.55
+RP11-25K19.1,TOX
+1.53
+ZNF71
+1.40
+RCAN3
+1.38
+TP53
+1.30
+MIR548aw
+1.13
+MIR1255a
+1.11
+ZNF510
+0.97
+ARHGAP23
+0.93
+RBBP8,RP11-739L10.1
+0.89
+KIFAP3
+0.86
+SMAP2
+0.86
+CGRRF1
+0.82
+PRRG3
+0.77
+MIR193b
+0.54
+DPF3
+0.28
+OSR2
+0.14
+PTEN
+QNN Top-Hit Molecular Multiomic Biomarkers with Identifier, Gene, Score and P-values
+FIG. 12. Top-Hit Comparison features Visualization of
+(c) 32 of QNN model
+TABLE IX. List of 32 top-hit features and their P-values on
+using QNN-32 model3.
+Feature
+Gene Name
+P-Value
+cg20676542
+TRIM25
+0.4906
+ENSG00000123999.4
+INHA
+0.7333
+ENSG00000109511.9
+ANXA10
+0.00029
+cg18441041
+CUX1
+0.10537
+cg08301941
+G6PC3
+0.02957
+hsa-mir-4777
+MIR4777
+0.2086
+ENSG00000103152.10
+MPG
+0.32002
+cg16306190
+LRRC34
+1.03E-05
+hsa-mir-3942
+MIR3942
+1.11E-06
+cg06808983
+G6PC3
+0.4518
+hsa-mir-92b
+MIR92b
+8.65E-19
+hsa-mir-514a-3
+MIR514a-3
+1.48E-06
+hsa-mir-3917
+MIR3917
+0.12600
+hsa-mir-182
+MIR182
+0.0068
+hsa-mir-6837
+MIR6837
+0.02140
+cg27496650
+TOX
+0.000156
+ENSG00000197951.7
+ZNF71
+0.2799
+ENSG00000117602.10
+RCAN3
+0.7790
+ENSG00000141510.14
+TP53
+3.03E-05
+hsa-mir-548aw
+MIR548aw
+0.9316
+hsa-mir-1255a
+MIR1255a
+0.0777
+cg07449645
+ZNF510
+1.22E-05
+cg25208969
+ARHGAP23
+1.24E-09
+cg20573396
+RBBP8
+1.37E-05
+ENSG00000075945.11
+KIFAP3
+0.00140
+ENSG00000084070.10
+SMAP2
+0.0014
+ENSG00000100532.10
+CGRRF1
+0.0001
+ENSG00000130032.14
+PRRG3
+1.48E-23
+hsa-mir-193b
+MIR193b
+2.32E-23
+cg20548765
+DPF3
+2.53E-23
+cg26137478
+OSR2
+0.0575
+ENSG00000171862.8
+PTEN
+0.1390
+G.
+Performance of Multi-Omic Model3: QNN-32
+and Important Features Identification
+A multi-omic integration final classification results
+with all visualizations with a dimension of 32 fea-
+tures are shown in Fig.
+9-10.
+In the integration of
+QNN32, we integrated OMICDNA=11, OMICRNA=10,
+and
+OMICmiRNA=11 features with 915 sample of
+subtype-I and subtype-II. The MQML-QNN32 model
+provided slightly better confusion matrix subtype clas-
+sification i.e.
+close to QNN256 but slightly better
+than QNN64 in testing results than training results.
+As evident from Table X, the MQML-QNN32 provided
+the best performance for the diagnostic subtype-I and
+subtype-II. Loss= (0.21108 and 0.28467), Accuracy=
+(0.92 and 0.86), AUC-ROC= (0.97 and 0.92) in train-
+ing and testing respectively. We identified the 32 Top-
+hit features with significant and insignificant features by
+the proposed MQML-QNN32 model3: RP11-670E13.6,
+TRIM25 INHA, ANXA10, CUX1, G6PC3, MIR4777,
+MPG, LRRC34, MIR3942, G6PC3, MIR92b, MIR514a-
+3, MIR3917, MIR182, MIR6837, RP11-25K19.1,TOX,
+ZNF71, RCAN3, TP53, MIR548aw, MIR1255a, ZNF510,
+ARHGAP23, RBBP8,RP11-739L10.1, KIFAP3, SMAP2,
+CGRRF1, PRRG3, MIR193b, DPF3, OSR2, PTEN and
+many more.
+A detailed summary of the information on top-hit fea-
+tures is provided in Table IX and Fig 12. Fig 14 shows
+the visualization representation with a violin plot, box
+plot, dot plot, and swarm plot of QNN-256 model top-12
+molecular multi-omic features.
+H.
+Comparison with Classical Machine Learning
+Models with using Multi-Omic Datasets
+In this study, with the aim of enhancing diagnostic
+lung subtype performance using GDC-TCGA datasets, a
+novel hybrid-QNN feature selection and diagnostic clas-
+sification method was first proposed. Subsequently, four
+machine-learning models were employed to investigate
+the impact of feature selection methods on classification
+performance. The classification performance of (MQML-
+LungSC) was compared to classical classifier algorithms
+as well as benchmark classification algorithms namely;
+MLP, SVM, and LR as shown in Fig 13. Training and
+testing set performance of classical machine learning al-
+gorithms and proposed QNN on subtype diagnostic clas-
+sification.
+Table X shows that (MQML-LungSC) out-
+performs all benchmark classification algorithms when
+trained on different dimensional representations of mul-
+tiple modalities. This demonstrates the predictive power
+of the Hybrid Classical QNN learning architecture.
+This study compares the performance of our proposed
+QNN models with classical machine learning models LR,
+MLP, and SVM—at different dimensions (256, 64, and
+32) on a multi-omic dataset.
+Key metrics include ac-
+curacy, loss, and AUC. The performance of QNN mod-
+els, specifically QNN256, QNN64, and QNN32, was com-
+pared against classical machine learning models such as
+(LR), (MLP), and (SVM) across different dimensions
+(256, 64, and 32). The evaluation metrics included Accu-
+racy, Loss, and AUC for both training and testing phases.
+Performance of QNN256: QNN256 achieved superior
+performance with a training accuracy of 0.95 and test-
+ing accuracy of 0.905. It also outperformed others with
+a lower loss of 0.1475 during training and 0.2527 during
+testing. The AUC was notably high at 0.99 for train-
+19
+TABLE X. Performance comparison with different classical
+machine learning models on multi-omic.
+Training
+Testing
+Models
+Accuracy Loss
+AUC
+Accuracy
+Loss
+AUC
+LR256
+0.748
+0.5752
+0.9
+0.748
+0.5869
+0.89
+LR64
+0.844
+0.5032
+0.91
+0.797
+0.5181
+0.89
+LR32
+0.76
+0.5112
+0.86
+0.78
+0.5121
+0.86
+MLP256 0.89
+0.376
+0.96
+0.874
+0.4101
+0.95
+MLP64
+0.78
+0.5696
+0.88
+0.77
+0.5787
+0.84
+MLP32
+0.75
+0.5591
+0.82
+0.74
+0.5715
+0.81
+SVM256 0.93
+0.2235
+0.96
+0.87
+0.2658
+0.96
+SVM64
+0.88
+0.3131
+0.93
+0.84
+0.3545
+0.92
+SVM32
+0.83
+0.4215
+0.89
+0.8
+0.4704
+0.87
+QNN256 0.95
+0.1475
+0.99
+0.905
+0.2527
+0.96
+QNN64
+0.92
+0.21108
+0.97
+0.86
+0.3849
+0.92
+QNN32
+0.88
+0.2846
+0.95
+0.86
+0.3863
+0.92
+ing and 0.96 for testing, indicating excellent classifica-
+tion capability. These metrics indicate that QNN256 not
+only classifies data with high accuracy but also main-
+tains a low error rate and a high capability to distin-
+guish between classes.
+Compared to the best classical
+model, SV M256, which achieved an accuracy of 0.93, loss
+of 0.2235, and AUC of 0.96, QNN256 outperforms it in
+all aspects. This highlights the superiority of QNN in
+handling complex datasets with greater precision and ef-
+ficiency.
+LR
+SVM
+NN
+RF
+QNN
+Models
+0.75
+0.80
+0.85
+0.90
+0.95
+ Training Accuracy
+32 Features
+64 Features
+256 Features
+LR
+SVM
+NN
+RF
+QNN
+Models
+0.75
+0.80
+0.85
+0.90
+0.95
+Testing Accuracy
+32 Features
+64 Features
+256 Features
+FIG. 13. Training and testing set performance of clas-
+sical machine learning algorithms and proposed QNN
+on subtype diagnostic classification.
+Performance of QNN64:
+showed strong performance
+with a training accuracy of 0.92 and a testing accuracy
+of 0.86. The training loss was 0.21108, while the test-
+ing loss was higher at 0.3849. The AUC values were also
+competitive, with 0.97 for training and 0.92 for testing.
+These results are competitive with the SV M64, which
+has an accuracy of 0.88, a loss of 0.3131, and an AUC
+of 0.93. While SV M64 performs well, QNN64 surpasses
+it in accuracy and AUC, although the loss is relatively
+higher. The comparison underscores that QNN64 main-
+tains a significant edge over classical models in terms of
+classification accuracy and the ability to distinguish be-
+tween classes.
+Performance of QNN32:
+For the QNN32 model, the
+performance metrics were still superior to many classical
+models. QNN32 achieved an with a training accuracy of
+0.88 and a testing accuracy of 0.86. The training loss
+was 0.2846, and the testing loss was 0.3863. The AUC
+values were 0.95 for training and 0.92 for testing, indi-
+cating reliable performance. In comparison, the SV M32
+model obtained an accuracy of 0.83, a loss of 0.4215,
+and an AUC of 0.89. The results indicate that even at
+a lower dimensional configuration, QNN32 outperforms
+traditional models, particularly in accuracy and AUC,
+though the loss metric indicates a slightly higher error
+rate compared to its higher-dimensional counterparts.
+Across all configurations, the QNN consistently out-
+performed traditional classifiers. QNN256 was the most
+effective, followed by QNN64 and QNN32.
+Tradi-
+tional models like SVM and MLP showed competitive
+performance, especially SV M256 with a high AUC of
+0.96. However, the logistic regression models consistently
+lagged behind, with LR64 achieving an accuracy of 0.748,
+a loss of 0.5752, and an AUC of 0.9, underscoring their
+limitations in complex data scenarios. The MLP mod-
+els, while showing reasonable performance, were not able
+to match the accuracy and AUC of the QNN models,
+particularly in lower dimensions.
+The dimension-wise analysis further reveals the effec-
+tiveness of quantum neural networks. QNN256 emerged
+as the best performer with the highest accuracy (0.95),
+the lowest loss (0.1475), and the highest AUC (0.99).
+This model outshined all other models across every met-
+ric. Among the 64-dimensional models, QNN64 was su-
+perior with an accuracy of 0.92 and an AUC of 0.97,
+although SV M64 showed a slightly lower loss (0.3131 vs.
+0.21108).
+In the 32-dimensional category, QNN32 led
+with an accuracy of 0.88 and an AUC of 0.95, proving its
+robustness even at lower dimensions. These results affirm
+the potential of QNNs to provide high-performance clas-
+sification across various dimensions, outperforming clas-
+sical counterparts consistently.
+V.
+DISCUSSION
+In this paper, we have proposed a (MQML-LungSC)-
+QNN framework based on quantum neural networks us-
+ing three different dimensions. With the development of
+bio-informatics methods, researchers have been able to
+cover interesting features for LUAD and LUSC, and sev-
+eral relevant papers have been published. To detect bio-
+logically relevant markers, numerous studies have aimed
+to enhance traditional machine-learning algorithms or
+develop new ones for molecular feature discovery. How-
+ever, few have employed overlapping machine learning
+20
+FIG. 14. Visualization of Multi-Omic-Molecular features Top-16 hit features visualization representation with a violin
+plot, box plot, dot plot, and swarm plot of QNN-256 model for diagnostic subtype-I (LUSC) and subtype-II(LUAD) lung
+classification with identifier name, gene/feature name and P-value
+or feature selection methods for cancer classification,
+best features identification, or gene expression analy-
+sis.
+The author [7] the study proposed using overlap-
+ping traditional feature selection for cancer classifica-
+tion and biomarker discovery. The genes selected by the
+overlapping method were then validated using random
+forest. Gene expression analysis was subsequently per-
+formed to further investigate biological differences be-
+tween LUAD and LUSC and identified 18 potentially
+novel features with high discriminating values between
+LUAD and LUSC. The application of (MQML-LungSC)
+has been benchmarked on Lung subtype datasets from
+the GDC-TCGA, namely; LUAD and LUSC. Cancer
+is widely regarded as a highly heterogeneous disease
+however, (MQML-LungSC) was able to accurately clas-
+sify lung dataset sub-types from integrated omic data.
+(MQML-LungSC) identified the optimal combination of
+modalities which resulted in greater patient coverage
+while maintaining a state-of-the-art classification perfor-
+mance compared to its different dimensions of features
+as shown in Fig 4-5-6-7. We identified the top 32 fea-
+tures from model 1 QNN256 features, another top 32
+features from model 2 QNN64 features, and the top 32
+features from model 3 QNN32 features using feature se-
+lection method and QNN diagnostic classifier that have
+potential to differentiate the subtype-I and subtype-II.
+In comparing the performance of our proposed mod-
+els, QNN256, QNN64, and QNN32, it is evident that
+QNN256 exhibits superior results across several metrics
+both in training and testing phases. Overall, the QNN
+models, particularly QNN256, outperformed the classical
+models across most evaluation metrics. QNN256 demon-
+21
+ENSG00000115307.15
+ENSG00000167004.11
+ENSG00000171862.8
+ENSG00000176393.9
+ENSG00000100359.19
+ENSG00000153914.14
+cg14577373
+ENSG00000117602.10
+ENSG00000140688.15
+ENSG00000141295.12
+ENSG00000108465.13
+cg18668836
+ENSG00000084070.10
+ENSG00000172661.16
+ENSG00000142330.18
+ENSG00000068001.12
+ENSG00000103152.10
+cg17054691
+hsa-mir-182
+cg21052958
+ENSG00000169241.16
+ENSG00000185201.15
+hsa-let-7f-1
+ENSG00000177570.12
+ENSG00000090097.19
+ENSG00000075945.11
+ENSG00000099810.17
+ENSG00000177853.13
+cg23834494
+ENSG00000167797.6
+ENSG00000111077.16
+hsa-mir-151a
+hsa-mir-1307
+cg21197233
+ENSG00000204389.9
+ENSG00000189334.7
+ENSG00000167705.10
+ENSG00000100532.10
+ENSG00000169660.14
+hsa-mir-148b
+Multiomic QNN-Top 40 Feature, Gene Biomarkers with P-value
+0.675
+0.700
+0.725
+0.750
+0.775
+0.800
+0.825
+0.850
+Accuracy Metric
+AUP1
+2.0e-22
+PDIA3
+0.006
+PTEN
+0.139
+RNPEP
+0.361
+SGSM3
+0.002
+SREK1
+0.477
+CYP20A1
+0.046
+RCAN3
+0.779
+C16orf58
+0.273
+SCRN2
+0.677
+CDK5RAP3
+0.127
+AC115115.4
+0.082
+SMAP2
+0.001
+FAM21C
+0.960
+CAPN10
+0.059
+HYAL2
+2.7e-04
+MPG
+0.320
+P4HB
+0.007
+MIR182
+0.007
+ZNF572
+0.330
+SLC50A1
+3.1e-05
+IFITM2
+6.7e-18
+MIRLET-7f-1
+1.8e-22
+SAMD12
+0.012
+PCBP4
+4.3e-05
+KIFAP3
+0.001
+MTAP
+0.280
+ZNF518A
+0.241
+CNOT2
+2.0e-04
+CDK2AP2
+5.3e-15
+TNS2
+1.5e-19
+MIR151a
+0.077
+MIR1307
+2.6e-23
+ARHGAP20
+0.378
+HSPA1A
+6.4e-05
+S100A14
+0.008
+RILP
+1.0e-19
+CGRRF1
+2.0e-04
+HEXDC
+4.1e-05
+MIR148b
+0.122
+Lung Subtype
+TP Accuracy
+TN Accuracy
+FIG. 15. Visualization of Multi-omic Molecular features with QNN256 Predictions Left Side: First row depicts the
+metric performance comparison of (LUAD)-TP and (LUSC)-TN, Right side: Visualization representation of 40 features via
+Violin, Box, and Swarm plots of Multi-omic expression values for LUAD and LUSC subtypes. In the Second Row: (a) Pca
+representation of QNN256 model with 256 features before predictions, (b) After selecting 40-features for QNN256 with PCA, (c)
+After selecting the top-best representation of 10-features for QNN256 with PCA and (d) TSNE representation that separated
+the LUAD and LUSC group of subtypes very well.
+strated the highest accuracy, lowest loss, and superior
+AUC, making it the most robust model in this compar-
+ison. QNN-64 and QNN-32 also showed strong results,
+particularly in terms of AUC, validating the effectiveness
+of quantum neural networks for multi-omic data classifi-
+cation tasks.
+A.
+Simulation Analysis on QNN256 Model to Find
+the Best Features Based on Performance Metrics
+In this study, we aimed to identify key features (genes)
+that contribute to the accurate classification of lung
+dataset subtypes (LUAD and LUSC). With the help of
+QNN256 model, we employed a comprehensive approach
+to identifying the top 40 best features from multi-omic
+data by leveraging performance metrics of a predictive
+model.
+The process began by predicting test samples
+and evaluating the model’s performance using a confu-
+sion matrix, from which we derived key metrics such as
+accuracy, precision, recall, and F1-score for true posi-
+tive (TP) and true negative (TN) cases. We then calcu-
+lated the mean feature values for TP and TN samples,
+followed by deviations from the overall mean. We com-
+puted aggregate scores by normalizing and combining TP
+and TN metrics to rank features. This led to identify-
+22
+FIG. 16. Visualization of 256-feature classification using a Random Forest model on multi-omic molecular features (ML256
+predictions). Top section: (a) The first row shows a PCA plot of the 256 features, displaying the training and testing datasets.
+(b) The second row presents the confusion matrix for both the training and testing datasets. (c) Bottom section: A visualization
+of the 20 best features identified by the Random Forest model, distinguishing between LUAD-tumor, LUAD-normal, LUSC-
+tumor, and LUSC-normal subtypes.
+TABLE XI. List of 21 top-hit features and their P-values on using QNN-256 and RF model analysis
+Identifier Names
+Gene
+Pvalue
+Feature-specific
+FI
+Outcome
+ENSG00000140688.15
+C16orf58
+0.2731
+LUAD-Tumor
+0.1029
+Less Significant
+ENSG00000108465.13
+CDK5RAP3
+0.12661
+LUAD-Tumor
+0.1369
+Less Significant
+ENSG00000103152.10
+MPG
+0.3200
+LUAD-Tumor
+0.039
+Less Significant
+cg21052958
+ZNF572
+0.330273
+LUAD-Tumor
+0.1258
+Less Significant
+hsa-mir-151a
+MIR151a
+0.07682
+LUAD-Tumor
+0.097
+Less Significant
+hsa-mir-148b
+MIR148b
+0.12183
+LUAD-Tumor
+0.1413
+Less Significant
+hsa-mir-153-2
+MIR153-2
+0.1332
+LUAD-Tumor
+0.09582
+Less Significant
+ENSG00000142330.18
+CAPN10
+0.05855
+LUAD-Tumor
+0.1578
+Most Significant
+ENSG00000169241.16
+SLC50A1
+3.07E-05
+LUAD-Tumor
+0.0363
+Most Significant
+ENSG00000169660.14
+HEXDC
+4.13E-05
+LUAD-Tumor
+0.137
+Most Significant
+hsa-mir-147b
+MIR147b
+9.10E-06
+LUAD-Tumor
+1.51868
+Most Significant
+ENSG00000257842.4
+NOVA1-AS1
+0.0378
+LUAD-Tumor
+0.11304
+Most Significant
+ENSG00000132744.6
+ACY3
+5.57E-24
+LUAD-Tumor
+0.15902
+Most Significant
+hsa-mir-182
+MIR182
+0.00688
+LUSC-Tumor
+0.09
+Most Significant
+ENSG00000204389.9
+HSPA1A
+6.38E-05
+LUSC-Tumor
+0.0848
+Most Significant
+ENSG00000189334.7
+S100A14
+0.0077
+LUSC-Tumor
+0.10036
+Most Significant
+ENSG00000134184.11
+GSTM1
+0.00261
+LUSC Tumor
+1.3014
+Most Significant
+ENSG00000171862.8
+PTEN
+0.13904
+LUSC Tumor
+0.88
+Less Significant
+cg21035368
+ERCC1
+0.740247569 LUSC Tumor
+0.67
+Less Significant
+cg20474370
+PIK3R1
+0.678445797 LUSC Tumor
+0.62
+Less Significant
+cg25016127
+HRAS
+0.415771079 LUSC Tumor
+0.86
+Less Significant
+ing the top features with the highest deviations and best
+performance metrics. The final selection of the top 40
+features was based on these aggregate scores, providing
+a robust set of best features for further analysis. This
+methodology ensures a balanced consideration of feature
+performance in distinguishing between LUAD and LUSC
+labels. Fig 15. illustrates the results of QNN256 predic-
+tions on multi-omic-molecular features. The left side dis-
+plays a performance comparison between LUAD-TP and
+LUSC-TN metrics, while the right side shows the visual-
+ization of 40 important features through violin, box, and
+swarm plots for LUAD and LUSC subtypes. The second
+row includes: (a) PCA representation of QNN256 with
+256 features before predictions; (b) PCA after selecting
+40 features; (c) PCA with the top 10 features; and (d)
+t-SNE representation effectively separating LUAD and
+LUSC subtypes. In this analysis 40 features genes along
+with their performance metrics in distinguishing between
+LUAD (True Positive) and LUSC (True Negative) cases.
+Each gene is evaluated based on its p-value, accuracy,
+precision, recall, and F1-score for LUAD and LUSC clas-
+sifications. This comprehensive overview highlights the
+effectiveness of each features, with emphasis on those
+showing both high statistical significance and strong clas-
+sification performance, providing valuable insights into
+their potential utility in cancer diagnostics.
+Table XI
+23
+a
+a
+b
+b
+c
+d
+FIG. 17. Visualization of 21 out of 256 most and least significant genes based on p-values for LUAD and LUSC
+cohorts, distinguishing between tumor and normal samples. (a) depicts the most significant LUAD-specific genes with
+a yellow outline, (b) depicts the least significant LUAD-specific genes with a blue outline, and (c) depicts the most significant
+LUSC-specific genes with a pink outline, (d) depicts the less significant LUSC-specific genes with a purple outline. Box plots
+show multiomic level values for LUAD-tumor, LUAD-normal, LUSC-tumor, and LUSC-normal subtypes.
+presents based on the above QNN256 analysis and ran-
+dom forest (RF) model analysis, a total of 21 biomarkers
+were identified for LUAD and LUSC tumors.
+Among
+them, 7 biomarkers were found to be less significant in
+LUAD tumors, while 6 biomarkers were classified as most
+significant for LUAD. For LUSC tumors, 4 biomarkers
+were identified as most significant and 4 biomarkers were
+identified as less significant.
+This distribution under-
+scores the differing levels of biomarker relevance in LUAD
+and LUSC, suggesting potential targets for further in-
+vestigation in both cancer types. In the LUAD dataset,
+the most significant genes include SLC50A1 (p-value =
+3.07E-05), HEXDC (p-value = 4.13E-05), MIR147b (p-
+value = 9.10E-06), and ACY3 (p-value = 5.57E-24), all
+of which exhibit strong associations with LUAD tumors.
+On the other hand, less significant genes in LUAD include
+24
+C16orf58 (p-value = 0.2731), CDK5RAP3 (p-value =
+0.12661), and MPG (p-value = 0.320029). In the LUSC
+dataset, significant genes such as MIR182 (p-value =
+0.00688) and GSTM1 (p-value = 0.002615542) stand out,
+while genes like PTEN (p-value = 0.13904) and ERCC1
+(p-value = 0.740247569) are among the less significant.
+In Fig. 16, the analysis involved combining RNA, DNA,
+and miRNA data, resulting in a dataset of 831 samples
+and 256 (selected features). Labels for the sample types
+(LUAD and LUSC, tumor and normal) were encoded into
+numeric classes for model training. Before applying ma-
+chine learning, PCA was performed to visualize the vari-
+ance in the dataset. The data was then split into training
+(80%) and testing (20%) sets, with 664 samples used for
+training and 167 for testing. A Random Forest classifier
+was trained using class-balanced weights, yielding a high
+testing accuracy of 98.8%.
+The model performed well
+for LUAD and LUSC tumor classes, but had difficulty
+with LUSC normal due to the small sample size, reflected
+in zero recall for that class. Feature importance analy-
+sis revealed the top 20 most significant features, which
+were visualized. Multiple plots, including PCA scatter
+plots, confusion matrices, and box plots, were generated
+to assess model performance and the distribution of key
+features across the sample types.
+B.
+Model Compilation Parameters
+In
+this
+paper,
+we
+have
+created
+the
+function
+MetricsCallback to evaluate the performance of a ma-
+chine learning model during training.
+The evaluation
+metrics include accuracy, precision, recall, and F1-score.
+These metrics are widely used in classification tasks to as-
+sess the model’s ability to classify instances belonging to
+different classes correctly. All methods use the Adaptive
+Moment Estimation (Adam) optimizer; the learning rate
+is set to 0.01, and the batch size is 16. The experiments
+are conducted using the Pennylane quantum program-
+ming framework (version 0.28.0) in Python 2.8.0. The
+details of the classification metrics are given
+Accuracy: It is used to evaluate how often the pre-
+dictions match the actual labels and defined as the ratio
+of correctly predicted instances to the total instances:
+Accuracy = 1
+N
+N
+X
+i=1
+1(ˆyi = yi)
+(20)
+where 1(·) is the indicator function that returns 1 if the
+condition inside is true and 0 otherwise.
+Precision Score: It is defined as the ratio of true
+positive predictions to the total number of positive pre-
+dictions made by the model as
+Precision =
+PN
+i=1 TPi
+PN
+i=1(TPi + FPi)
+(21)
+where TPi represents the number of true positive predic-
+tions for class i and FPi represents the number of false
+positive predictions for class i.
+Recall Score: It is also known as sensitivity, and mea-
+sures the ability of the model to correctly identify positive
+instances out of all actual positive instances. Mathemat-
+ically, it is represented as:
+Recall =
+PN
+i=1 TPi
+PN
+i=1(TPi + FNi)
+(22)
+where FNi represents the number of false negative pre-
+dictions for class i.
+F1-score: It is the harmonic mean of precision and
+recall, providing a balance between the two metrics. It
+is calculated using the formula:
+F1 = 2 × Precision × Recall
+Precision + Recall
+(23)
+VI.
+CONCLUSION
+To the best of our knowledge, this study is the first to in-
+vestigate the difference between LUSC and LUAD using
+the GDC-TCGA data within a hybrid classical-quantum
+classification model. In the classical part of the study, a
+feature selection method was used to determine the best
+and unique subset of multi-omic molecular features using
+the GDC-TCGA dataset. The proposed model involves
+applying a QNN with classical dense layers for diagnosing
+lung subtype-I and subtype-II. This model’s performance
+was compared with various classical machine learning
+classifiers, including Logistic Regression, Support Vec-
+tor Machine, and Random Forest. Bench-marking with
+Quantum neural network (QNN256), and the compari-
+son included all existing models using 256, 64 and 32
+features of integrated multi-omics data.
+The empiri-
+cal results demonstrate that Quantum Neural Networks,
+particularly QNN256, offer significant improvements over
+classical machine learning models. The superior perfor-
+mance in terms of accuracy, loss, and AUC suggests that
+QNNs are highly effective in handling complex data and
+providing accurate classifications. The QNN256 model,
+with its exceptional metrics, stands out as the most
+promising, indicating the potential of quantum-based ap-
+proaches to revolutionize machine learning. The overall
+comparison highlights the potential of quantum machine
+learning to surpass traditional methods, providing a com-
+pelling case for further exploration and development in
+this field. The dimension-wise analysis reaffirms the ro-
+bustness and efficacy of QNNs, particularly at higher di-
+mensions, where they consistently outperform classical
+models across all metrics. We employed two approaches
+to identify best features.
+First, we trained QNN256,
+QNN64, and QNN32 models separately and determined
+the top 32 features for each model based on the QNN
+model weights. Also, we visualized the top-12 hit features
+using various plots. This included violin, box, dot, and
+25
+swarm plots from the QNN256 model for diagnostic clas-
+sification of lung subtypes (LUSC and LUAD). Each plot
+displayed the identifier name, gene/feature name, and P-
+value for effective comparison. In the second approach,
+the QNN256 model was used to predict labels for 183 test
+samples, followed by evaluation using confusion matrices
+to derive key metrics like accuracy, precision, recall, and
+F1-score for true positive (TP) and true negative (TN)
+cases. We calculated mean feature values and deviations
+for TP and TN samples, then ranked features based on
+normalized aggregate scores. The top 40 features were
+selected from these scores, ensuring a comprehensive as-
+sessment of feature performance for distinguishing LUAD
+and LUSC subtypes. In this research, we distinguished
+between LUAD and LUSC subtypes by integrating fea-
+ture importance with mean expression levels. First, we
+extracted feature importance from the model by averag-
+ing the absolute weights of each feature. Next, we cal-
+culated the mean expression levels of features in LUAD
+and LUSC samples using the equations.
+In the future, we aim to enhance our work by fo-
+cusing on deeper biological insights as well as quantum.
+In Phase 1, we will identify LUAD-specific and LUSC-
+specific genes by first applying a p-value t-test between
+tumor and normal samples, followed by differential analy-
+sis to further distinguish LUAD-specific genes and LUSC-
+specific genes. This will help identify additional biomark-
+ers with potential prognostic value for cancer-specific be-
+tween two subtypes. Phase 2 will involve developing a
+quantum classifier to distinguish between tumor and nor-
+mal samples, as well as between LUAD type-1 and LUSC
+type-2 tumors. This will classify the four sample groups
+and identify the top hit biomarkers specific to each cancer
+subtype. This approach will also highlight the significant
+p-values for LUAD- and LUSC-specific genes, enabling a
+clearer distinction between the two cancer types. Addi-
+tionally, we will demonstrate the quantum advantage in
+a biologically meaningful context. Also, we plan to use
+these biomarkers for survival analysis to identify high-
+risk and low-risk clinical patients. We will also explore bi-
+ological implications through Gene Ontology (GO) anal-
+ysis and Kaplan-Meier survival curves. Additionally, we
+aim to compare correlations between classical and quan-
+tum analysis methods to understand their effectiveness
+in cancer research.
+Data availability
+All
+data
+generated
+and/or
+analyzed
+during
+the
+current
+study
+are
+included
+in
+this
+article.
+The
+data in this paper were obtained from The Can-
+cer
+Genome
+Atlas
+(GDC-TCGA)
+Research
+Net-
+work.https://www.cancer.gov/tcga)
+The
+underlying
+code for this study is not publicly available but may be
+made available to qualified researchers on reasonable
+request from the corresponding author.
+Single Omics: (1) DNA-Methylation (2) MicroRNA-
+seq (3) RNA-seq Source name and link: UCSC XENA
+GDC-TCGA Dataset UCSC Xena: GDC Xena Hub. The
+hub hosts v18.0 release from the GDC Data Portal.
+Open and Select OMICs for Download: Github Link
+download: https://xenabrowser.net/datapages/
+(1) DNA: Illumina Human Methylation 450 (n=503)
+GDC Hub, unit= beta value Download: (2) miRNA-seq:
+stem-loop expression miRNA Expression Quantification
+(n=564) GDC Hub, unit= log2(RPM+1) (3) RNA-seq:
+gene expression RNAseq, HTSeq - Counts (n=585) GDC
+Hub, unit= log2(count+1) (4) Phenotype and clinical
+data Download Phenotype clinical: TCGA-LUAD GDC
+phenotype Download Survival data: TCGA-LUAD sur-
+vival
+CONFLICT OF INTEREST
+The authors declare that they have no conflicts of inter-
+est.
+ACKNOWLEDGEMENTS
+We would like to acknowledge the financial support of
+Purdue Quantum Science and Engineering Institute and
+U.S. Department of Energy (Office of Basic Energy Sci-
+ences) under Award No. DE-SC0019215.
+AUTHOR CONTRIBUTIONS
+S.K. and H.G. conceived and supervised the project.
+M.K.S and A.S.B. designed the framework, and per-
+formed the simulations.
+M.K.S. wrote the initial
+manuscript and contributed to the development and vi-
+sualization. The Data feature engineering phase was con-
+ducted by M.I. and M.K.S. Resources and Funding ac-
+quisition by S.K. All authors contributed to analyzing
+the results and finalizing the manuscript.
+DATA AND SOFTWARE AVAILABILITY
+The authors confirm that the data supporting the find-
+ings of this study are available from the corresponding
+author, upon reasonable request.
+[1] P. Board, Non-small cell lung cancer treatment (pdq),
+PDQ Cancer Information Summaries [Internet] (2024).
+[2] J. Biamonte, P. Wittek, N. Pancotti, P. Rebentrost,
+N. Wiebe, and S. Lloyd, Quantum machine learning, Na-
+26
+ture 549, 195 (2017).
+[3] D. Rist`e, M. P. D. Silva, C. A. Ryan, A. W. Cross, A. D.
+C´orcoles, J. A. Smolin, J. M. Gambetta, J. M. Chow,
+and B. R. Johnson, Demonstration of quantum advan-
+tage in machine learning, npj Quantum Information 3,
+16 (2017).
+[4] A. S. Bhatia, M. K. Saggi, and S. Kais, Quantum machine
+learning predicting adme-tox properties in drug discov-
+ery, Journal of Chemical Information and Modeling 63,
+6476 (2023).
+[5] A. S. Bhatia, S. Kais, and M. A. Alam, Federated quan-
+volutional neural network: a new paradigm for collabora-
+tive quantum learning, Quantum Science and Technology
+8, 045032 (2023).
+[6] A. S. Bhatia, S. Kais, and M. Alam, Handling privacy-
+sensitive clinical data with federated quantum machine
+learning, in APS March Meeting Abstracts, Vol. 2023
+(2023) pp. T70–007.
+[7] K. Prousalis and N. Konofaos, A quantum pattern recog-
+nition method for improving pairwise sequence align-
+ment, Scientific reports 9, 7226 (2019).
+[8] A. S. Boev, A. S. Rakitko, S. R. Usmanov, A. N.
+Kobzeva, I. V. Popov, V. V. Ilinsky, E. O. Kiktenko,
+and A. K. Fedorov, Genome assembly using quantum
+and quantum-inspired annealing, Scientific Reports 11,
+13183 (2021).
+[9] E. H. Houssein, Z. Abohashima, M. Elhoseny, and W. M.
+Mohamed, Hybrid quantum-classical convolutional neu-
+ral network model for covid-19 prediction using chest x-
+ray images, Journal of Computational Design and Engi-
+neering 9, 343 (2022).
+[10] A. S. Bhatia, M. K. Saggi, A. Kumar, and S. Jain, Matrix
+product state–based quantum classifier, Neural computa-
+tion 31, 1499 (2019).
+[11] R. Xia and S. Kais, Quantum machine learning for elec-
+tronic structure calculations, Nature Communications 9,
+4195 (2018).
+[12] J. Biamonte, P. Wittek, N. Pancotti, P. Rebentrost,
+N. Wiebe, and S. Lloyd, Quantum machine learning, Na-
+ture 549, 195 (2017).
+[13] M. Sajjan,
+S. H. Sureshbabu, and S. Kais, Quan-
+tum machine-learning for eigenstate filtration in two-
+dimensional materials, Journal of the American Chemical
+Society 143, 18426 (2021).
+[14] M. Sajjan, J. Li, R. Selvarajan, S. H. Sureshbabu, S. S.
+Kale, R. Gupta, V. Singh, and S. Kais, Quantum machine
+learning for chemistry and physics, Chemical Society Re-
+views 51, 6475 (2022).
+[15] E. Akpinar and M. Oduncuoglu, Beyond limits: Chart-
+ing new horizons in glioma tumor classification through
+hybrid quantum computing with the cancer genome atlas
+(tcga) data, in press (2024).
+[16] J. W. Chen and J. Dhahbi, Lung adenocarcinoma
+and lung squamous cell carcinoma cancer classification,
+biomarker identification, and gene expression analysis us-
+ing overlapping feature selection methods, Scientific re-
+ports 11, 13323 (2021).
+[17] M. Esteller, Cancer epigenomics: Dna methylomes and
+histone-modification maps, Nature Reviews Genetics 8,
+286 (2007).
+[18] C. Network and Others, Comprehensive genomic charac-
+terization of squamous cell lung cancers, Nature 489, 519
+(2012).
+[19] V. Relli, M. Trerotola, E. Guerra, and S. Alberti, Aban-
+doning the notion of non-small cell lung cancer, Trends
+In Molecular Medicine 25, 585 (2019).
+[20] Z. Huang, L. Chen, and C. Wang, Classifying lung ade-
+nocarcinoma and squamous cell carcinoma using rna-seq
+data, Cancer Stud Mol Med Open J 3, 27 (2017).
+[21] Z. Cai, D. Xu, Q. Zhang, J. Zhang, S. M. Ngai, and
+J. Shao, Classification of lung cancer using ensemble-
+based feature selection and machine learning methods,
+Molecular BioSystems 11, 791 (2015).
+[22] X. Y. Liu, S. B. Wu, W. Q. Zeng, Z. J. Yuan, and H. B.
+Xu, Logsum+ l 2 penalized logistic regression model for
+biomarker selection and cancer classification, Scientific
+reports 10, 22125 (2020).
+[23] W. Li, Mutual information functions versus correlation
+functions, Journal of Statistical Physics 60, 823 (1990).
+[24] Y. Yang and J. O. Pedersen, A comparative study on
+feature selection in text categorization, in ICML, Vol. 97
+(1997) pp. 412–420.
+[25] L. Breiman, Random forests, Machine Learning 45, 5
+(2001).
+[26] I. T. Jolliffe, Principal component analysis for special
+types of data (Springer, 2002).
+[27] D. M¨ullner, Modern hierarchical, agglomerative cluster-
+ing algorithms, arXiv preprint arXiv:1109.2378 (2011).
+[28] T. Hastie, R. Tibshirani, and J. H. Friedman, The ele-
+ments of statistical learning: data mining, inference, and
+prediction, Vol. 2 (Springer, 2009).
+[29] K. D. Toennies, 7 multi-layer perceptron for image
+classification, in An Introduction to Image Classifica-
+tion:
+From Designed Models to End-to-End Learning
+(Springer, 2024) pp. 139–167.
+[30] V. Vapnik, The nature of statistical learning theory
+(Springer Science & Business Media, 2013).
+[31] P. University, Gilbreth high-performance computing clus-
+ter (2023), [Accessed: Jan. 2023].
+[32] V. Bagnardi, M. Rota, E. Botteri, L. Scotti, M. Jenab,
+R. Bellocco, I. Tramacere, C. Pelucchi, E. Negri, C. L.
+Vecchia, et al., Alcohol consumption and lung cancer risk
+in never smokers: a meta-analysis, Annals of oncology
+22, 2631 (2011).
+[33] J. Pu, J. Wang, Z. Xu, Y. Lu, X. Wu, Y. Wu, Z. Shao, and
+Q. Tang, mir-632 functions as oncogene in hepatocellular
+carcinoma via targeting myct1, Human Gene Therapy
+Clinical Development 30, 67 (2019).
+[34] Z. Z. Zhou, Z. P. Zhang, Z. T. Tao, and T. T. Zhao,
+mir-632 promotes laryngeal carcinoma cell proliferation,
+migration, and invasion through negative regulation of
+gsk3β, Oncology Research 28, 21 (2020).
+[35] A. Mitra, J. W. Rostas, D. L. Dyess, L. A. Shevde, and
+R. S. Samant, Micro-rna-632 downregulates dnajb6 in
+breast cancer, Laboratory Investigation 92, 1310 (2012).
+[36] Y. Liu, X. Li, J. Huang, J. Huang, Q. Zhu, J. Wang,
+and M. Luo, High expression of ifitm2 in gastric cancer
+is related to poor prognosis, in press (2022).
+[37] C. A. Acevedo, L. A. Qui˜nones, J. Catal´an, D. D.
+C´aceres, J. A. Full´a, and A. M. Roco, Impact of cyp1a1,
+gstm1, and gstt1 polymorphisms in overall and specific
+prostate cancer survival, Urologic Oncology: Seminars
+and Original Investigations 32, 280 (2014).
+[38] T. Guo, H. Ma, and Y. Zhou, Bioinformatics analysis of
+microarray data to identify the candidate biomarkers of
+lung adenocarcinoma, PeerJ 7, e7313 (2019).
+27
+[39] N. Nakashima, D. Liu, C. Huang, M. Ueno, X. Zhang,
+and H. Yokomise, Wnt3 gene expression promotes tumor
+progression in non-small cell lung cancer, Lung Cancer
+76, 228 (2012).
+[40] L. Yi, X. Zhong, Z. Chen, Q. Wang, Y. Yan, J. Wang, and
+X. Deng, Microrna-147b promotes proliferation and inva-
+sion of human colorectal cancer by targeting ras oncogene
+family (rap2b), Pathobiology 86, 173 (2019).
+[41] D. Ke, Q. Guo, T. Y. Fan, and X. Xiao, Analysis of the
+role and regulation mechanism of hsa-mir-147b in lung
+squamous cell carcinoma based on the cancer genome
+atlas database, Cancer Biotherapy & Radiopharmaceu-
+ticals 36, 280 (2021).
+[42] J. Shibamoto, T. Arita, H. Konishi, S. Kataoka, H. Fu-
+ruke, W. Takaki, J. Kiuchi, H. Shimizu, Y. Yamamoto,
+and S. Komatsu, Roles of mir-4442 in colorectal can-
+cer: Predicting early recurrence and regulating epithelial-
+mesenchymal transition, Genes 14, 1414 (2023).
+[43] P. Jin,
+L. Wu,
+G. Zhang,
+B. Yang, and B. Zhu,
+Pdzrn4 suppresses tumorigenesis and androgen therapy-
+resistance in prostate cancer, Journal of Cancer 13, 2293
+(2022).
+[44] X. Wu, F. Feng, C. Yang, M. Zhang, Y. Cheng, Y. Zhao,
+Y. Wang, F. Che, J. Zhang, and X. Heng, Upregu-
+lated expression of cux1 correlates with poor prognosis
+in glioma patients: a bioinformatic analysis, Journal of
+Molecular Neuroscience 69, 527 (2019).
+[45] S. A. El-Aarag, A. Mahmoud, M. H. Hashem, H. A. Elka-
+der, A. E. Hemeida, and M. ElHefnawi, In silico identi-
+fication of potential key regulatory factors in smoking-
+induced lung cancer, BMC Medical Genomics 10, 1
+(2017).

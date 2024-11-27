@@ -1,0 +1,2137 @@
+Iterative algorithms for the reconstruction of
+early states of prostate cancer growth
+Elena Beretta1
+e-mail: eb147@nyu.edu
+Cecilia Cavaterra2
+e-mail: cecilia.cavaterra@unimi.it
+Matteo Fornoni3
+e-mail: matteo.fornoni01@universitadipavia.it
+Guillermo Lorenzo4
+e-mail: guillermo.lorenzo.gomez@sergas.es
+Elisabetta Rocca5
+e-mail: elisabetta.rocca@unipv.it
+1Division of Science, New York University Abu Dhabi, Saadiyat Island, Abu Dhabi, United Arab Emirates
+2Department of Mathematics “F. Enriques”, University of Milan, 20133 Milan, Italy
+& IMATI-C.N.R., 27100 Pavia, Italy
+3Department of Mathematics “F. Casorati”, University of Pavia, 27100 Pavia, Italy
+4Health Research Institute of Santiago de Compostela, 15706 Santiago de Compostela, Spain & Oden Institute
+for Computational Engineering and Sciences, The University of Texas at Austin, Austin, Texas 78712 USA
+5Department of Mathematics “F. Casorati”, University of Pavia, 27100 Pavia, Italy
+& IMATI-C.N.R., 27100 Pavia, Italy
+Abstract
+The development of mathematical models of cancer informed by time-resolved measurements
+has enabled personalised predictions of tumour growth and treatment response. However,
+frequent cancer monitoring is rare, and many tumours are treated soon after diagnosis with
+limited data. To improve the predictive capabilities of cancer models, we investigate the
+problem of recovering earlier tumour states from a single spatial measurement at a later
+time. Focusing on prostate cancer, we describe tumour dynamics using a phase-field model
+coupled with two reaction-diffusion equations for a nutrient and the local prostate-specific
+antigen. We generate synthetic data using a discretisation based on Isogeometric Analysis.
+Then, building on our previous analytical work, [5], we propose an iterative reconstruction
+algorithm based on the Landweber scheme, showing local convergence with quantitative rates
+and exploring an adaptive step size that leads to faster reconstruction algorithms. Finally,
+we run simulations demonstrating high-quality reconstructions even with long time horizons
+and noisy data.
+Key words: prostate cancer; phase field; non-linear parabolic system; inverse problems;
+Landweber scheme; isogeometric analysis; mathematical oncology.
+AMS (MOS) Subject Classification: 35K51, 35R30, 35Q92, 65M32, 92C50.
+1
+Introduction
+Mathematical modelling of cancer dynamics during growth and treatment contributes to gaining
+insight into the biophysical mechanisms underlying these phenomena [38,45,69]. Some of these
+models have also been shown to enable the calculation of personalised tumour forecasts that
+can assist physicians in clinical decision-making [30, 44, 45, 63, 64].
+Towards this end, these
+models employ the clinical and imaging data that are regularly collected from patients according
+to cancer management protocols in order to inform diagnosis, prognosis, patient triaging, and
+arXiv:2409.12844v1  [math.AP]  19 Sep 2024
+2
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+treatment selection [30,38,44,45,50,64]. In particular, personalised tumour forecasting requires
+data at several time points to initialise the model, calibrate its parameters, and then produce the
+patient-specific prediction [30, 44, 45, 63, 64]. In some clinical scenarios, these longitudinal data
+are available because they are currently used to assess tumour changes that correlate with clinical
+endpoints of interest (e.g., progression to higher-risk disease, treatment failure, survival) [25,59].
+For example, longitudinal tumour measurements are leveraged to identify progression to more
+malignant stages of newly diagnosed untreated prostate cancer during active surveillance [44],
+as well as to assess therapeutic response during neoadjuvant chemotherapy of breast cancer [64]
+and chemoradiation of high-grade glioma [30].
+Despite the increased information on tumour dynamics provided by longitudinal cancer moni-
+toring, follow-up strategies may not include sufficiently frequent tests to accurately assess changes
+in tumour status and inform mathematical models [10, 38, 44, 45]. Additionally, some tumours
+are only diagnosed once they have developed sufficiently to produce symptoms or enable detec-
+tion with standard-of-care screening methods [10,38,44,45]. In these situations, the estimation
+of recent patient-specific tumour dynamics from a single dataset could provide physicians with
+more accurate estimations of prognosis to guide clinical decision-making. This highly-coveted
+computational capability could further contribute to reduce treatment excesses and deficiencies,
+which can respectively affect the patients’ quality of life and life expectancy [26,51,70]. Despite
+the inherent difficulty in estimating previous tumour dynamics from a single dataset, model-
+constrained reconstruction algorithms are a viable methodology to address this computational
+challenge and crucial clinical demand [5,58]. For example, following the collection of a medical
+imaging measurement to characterise the tumour morphology (e.g., at diagnosis, after treat-
+ment), a reconstruction algorithm based on an adequate mathematical model can identify the
+tumour status at an earlier time [5,10,45,58]. The resulting reconstruction of tumour dynamics
+can then be used to better estimate biomarkers of progression or therapeutic response, as well as
+to locate the region of the host organ where the tumour originated. Indeed, the latter information
+can have important relevance for some tumours, for instance, in the brain and the prostate [3,36].
+Furthermore, the reconstruction of early tumour states is also useful in some preclinical scenarios,
+for example, before the onset of experimental procedures or in sparse data collection regimens
+with large changes in tumour dynamics in between consecutive measurements [38,40,67].
+Here, we investigate model-constrained reconstruction algorithms informed by a single spatial
+measurement (e.g., via medical imaging), and we apply them to the estimation of early stages
+of newly diagnosed prostate cancer. The detection of these tumours relies on a multiparametric
+magnetic resonance imaging scan, which is motivated by increasing values of the serum prostate-
+specific antigen (PSA; the main blood biomarker of prostate cancer) and guides the ensuing
+biopsy to confirm the disease histopathologically [44, 50]. The clinical management options for
+newly diagnosed prostate cancer include active surveillance for lower-risk disease (i.e., monitoring
+of indolent cases with longitudinal MRI, PSA, and biopsies until therapeutic intervention is
+needed) and treatment for higher-risk tumours (e.g., surgery, radiotherapy) [50].
+Therefore,
+the accurate identification of the clinical risk of prostate cancer at diagnosis is fundamental to
+guide the management of the disease, and reconstruction of earlier disease dynamics prior to
+diagnosis can help in this crucial triaging step [5, 25, 44]. Towards this end, our reconstruction
+algorithms employ a mathematical model of prostate cancer growth that relies on the phase-
+field method, and that has been studied analytically and computationally in our previous works
+[5,13,14]. Phase-field models constitute an established spatiotemporal continuous formulation of
+the dynamics of the tumour geometry, which has also been used in the context of optimal control
+problems [9,12,20–23,48]. Thus, our model relies on a continuous phase field φ, such that φ ≈0
+in healthy prostatic tissue and φ ≈1 in the tumour. The tumour-healthy tissue interface exhibits
+a smooth and steep profile, in which the tumour phase field rapidly varies between 0 and 1. Our
+model further assumes that tumour growth is driven by a generic nutrient σ (e.g., oxygen or
+glucose), whose concentration follows reaction-diffusion dynamics. Moreover, another reaction-
+diffusion equation describes the local dynamics of tissue PSA p, which represents the PSA leaked
+Reconstructing early states of prostate cancer
+3
+to the bloodstream per unit volume of prostatic tissue [48].
+More specifically, the problem we want to address is a backward inverse problem for a nonlin-
+ear system of parabolic equations. Following the notation used in [5], we call R : (φ0, σ0, p0) 7→
+(φ(T), σ(T), p(T)) the nonlinear solution operator which associates to any initial data (φ0, σ0, p0)
+the value of the solution at the final time (φ(T), σ(T), p(T)).
+Then, given some measure-
+ments (φmeas, σmeas, pmeas), we can formulate our inverse problem as that of finding initial data
+(φ0, σ0, p0) such that the solution (φ, σ, p) to our model satisfies φ(T) = φmeas, σ(T) = σmeas
+and p(T) = pmeas. For our theoretical discussion, we consider measurements of all three vari-
+ables φmeas, σmeas and pmeas at the terminal time. However, in our simulations, we focus only
+on φmeas as a specific case where the datum comes from the MRI at diagnosis. This would be
+the most common use of this procedure in a practical scenario. We mention that, even in the
+linear case, backward inverse problems of this kind, are well-known to be severely ill-posed, with
+very weak conditional logarithmic stability from the data, see for example [28, 32, 39, 53]. As
+such, while being interesting problems to study, due to the underlying ill-posedness, in the con-
+text of tumour growth models the literature on backward inverse problems of this kind is quite
+lacking. We mention for instance [34], where the authors also use a similar Landweber-type
+method to recover the initial datum in a Fisher–Kolmogorov model for brain tumour growth.
+Albeit getting some good reconstruction results in 3D, the authors do not address the analyt-
+ical questions related to the inverse problem, as was done in [5], even if the model is simpler.
+Another approach is followed in [57, 58], where the authors still consider a Fisher–Kolmogorov
+model (with some additional couplings) and regularise the unknown initial data by assuming it is
+representable by a sum of Gaussians centred in some points belonging to a lattice. They further
+use a Tikhonov-like regularisation approach, by additionally enforcing sparsity, to reconstruct
+not only the initial datum but also some model coefficients. With our contributions, we aim to
+show that a good reconstruction can be guaranteed both theoretically and numerically without
+assuming restrictive hypotheses on the initial data, even for more complex models.
+As a preliminary step, it is of paramount importance to regularise the problem, by establishing
+physically relevant a priori assumptions on the unknown initial data that lead to better, possibly
+Lipschitz, dependence of the initial data on the measurements. Following similar ideas, in [5] the
+authors applied this procedure to the above-introduced inverse problem, proving a quantitative
+Lipschitz stability estimate for the reconstruction of the initial data. Starting from these results,
+we now propose an iterative algorithm to solve the identification problem numerically. Such
+reconstruction algorithm is based on the Landweber iteration scheme, a widely used method in
+approximating and regularising solutions to inverse problems [18,27,37]. It is well-known that,
+when good stability estimates are available, this kind of iterative scheme is locally convergent
+and acts as a regularisation method in the presence of noise on the measurements [37]. Indeed, in
+our case, we are able to prove local convergence of the Landweber algorithm (Theorem 4.5) both
+with a constant step size and an adaptive one, based on the steepest descent. However, since the
+problem is ill-posed and all stability constants depend exponentially on the final time, such step
+size choices do not work well enough if T is too large. In such scenarios, we employ a different step
+size recently introduced in [49], which, despite lacking a comprehensive theoretical guarantee, has
+proven to be surprisingly accurate in the reconstruction. Hence, by using the Landweber scheme
+with this new choice of the step size, we are even able to get good reconstruction results when the
+terminal time T reaches one year within a low number of iterations. Under this setup, we conduct
+various numerical experiments to validate the analytical results and explore the behaviour of the
+reconstruction algorithm.
+For the numerical discretisation, we employ Isogeometric Analysis
+(IGA) in space [16] and the generalised α-method in time [11]. We then implement the above-
+mentioned Landweber scheme with different step-size choices, depending on the chosen time
+horizon. All our experiments are conducted considering a tumour growing in a square tissue patch
+and using synthetic ground truth data generated by the forward phase-field model. In particular,
+we focus only on the reconstruction of the tumour variable, even though reconstructions of the
+other variables are also possible within our framework. Through our simulation study, we show
+4
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+that, if T is relatively small (i.e., less than a month), the Landweber scheme with the steepest
+descent adaptive step size produces high-quality reconstructions and matches the theoretical
+results on the order of convergence. Noticing that the number of iterations quickly rises if T
+grows larger, we switched to the adaptive step size introduced in [49] to conduct experiments for
+longer time horizons (e.g., several months to a year). Thus, by applying some additional care in
+the selection of the initial guess, we also were able to get good reconstructions even in this much
+more challenging case. Moreover, we additionally assessed the performance of our algorithms in
+the presence of Gaussian noise on the terminal data, getting faithful reconstructions also in this
+case.
+The paper is organised as follows. In Section 2 we thoroughly introduce our mathematical
+model, by referring to [13]. Section 3 is devoted to the recollection of the theoretical results
+obtained in [5] on the analysis of the inverse problem. Section 4 addresses the problem of the
+approximation of the solution through the use of a Landweber iteration scheme, by also proving
+some rigorous results on its convergence properties. In Section 5 we present our computational
+methods and, then, in Section 6 we show and comment on some representative simulations.
+Finally, in Section 7 we discuss our results, possible limitations, and future research directions.
+2
+Mathematical model
+We leverage the phase-field model of prostate cancer growth that was presented and analysed
+in Refs. [5, 13, 14].
+The interested reader is referred to these previous works for a detailed
+presentation of the biological phenomena included in the model. The only difference with respect
+to the original formulation in [13] is that we have eliminated the terms describing cytotoxic and
+antiangiogenic treatment effects. The rationale for this modification is that here we are interested
+in reconstructing early stages of prostate cancer growth before diagnosis and, thus, before the
+onset of treatments. In the following, we briefly present the main equations of the model and
+outline their components.
+Let Ω⊂RN, N = 2, 3, be an open and bounded domain with
+C2 boundary and outward unit normal vector n. Let T > 0 be a time horizon, and denote
+Qt := Ω× (0, t) and Σt = ∂Ω× (0, t) for any t ∈(0, T]. Then, the prostate cancer model can be
+formulated as
+∂tφ = λ∆φ −F ′(φ) + m(σ)h′(φ)
+in QT ,
+(2.1)
+∂tσ = η∆σ + Sh(1 −φ) + Scφ −(γh(1 −φ) + γcφ) σ
+in QT ,
+(2.2)
+∂tp = D∆p + αh(1 −φ) + αcφ −γpp
+in QT ,
+(2.3)
+φ = 0,
+∂nσ = 0,
+∂np = 0
+on ΣT ,
+(2.4)
+φ(0, x) = φ0,
+σ(0, x) = σ0,
+p(0, x) = p0
+in Ω.
+(2.5)
+The differential operators in these equations are defined as follows: the subscript t denotes partial
+differentiation with respect to time, ∆is the Laplace operator with respect to the space variables,
+F ′ denotes the derivative of F, and the subscript n indicates the outward normal derivative to
+the domain boundary ∂Ω.
+In Eqs. (2.1)-(2.5), φ is a phase field that identifies the spatial regions occupied by healthy
+tissue (φ ≈0) and the tumour (φ ≈1). In the context of cancer phase-field models, λ = Mℓ2
+is the tumour cell diffusion coefficient, F(φ) = Mφ2(1 −φ)2 is a regular double-well potential,
+h(φ) = Mφ2(3 −2φ) is an interpolation function, M is a positive constant associated with
+tumour cell mobility, and ℓis a positive constant denoting the interface length scale [61, 66].
+Additionally, the spatiotemporal dynamics of the tumour phase field in Eq. (2.1) is driven by
+a nutrient field σ via the tilting function m(σ), which represents net tumour cell proliferation.
+This function is defined as
+m(σ) = mref
+ρ + A
+2
++ ρ −A
+π
+arctan
+σ −σl
+σr
+
+,
+(2.6)
+Reconstructing early states of prostate cancer
+5
+where mref, ρ, and A are constants that respectively represent a positive scaling factor and two
+non-dimensional indices associated with tumour cell proliferation and death. We further define
+ρ = Kρ
+Kρ and A = −KA
+KA , where Kρ and KA are the tumour cell proliferation and death rates while
+Kρ and KA are their corresponding scaling reference values. The constants Kρ, Kρ, KA, and KA
+are all positive. Moreover, in Eq. (2.6), the positive constants σl and σr denote a reference and a
+threshold value for the nutrient concentration in describing the dependence of the proliferation
+activity of the tumour on the nutrient availability.
+The nutrient follows reaction-diffusion dynamics according to Eq. (2.2), where η denotes the
+nutrient diffusivity. The first two reaction terms in the right-hand side of Eq. (2.2) represent the
+nutrient supply to healthy and cancerous tissue governed by the rates Sh and Sc. Similarly, the
+last two reaction terms in this equation model nutrient consumption in healthy and cancerous
+tissue mediated by the rates γh and γc. In Eq. (2.3), we also choose reaction-diffusion dynamics
+for the tissue PSA p [48]. The tissue PSA diffusivity is denoted by D. The first two reaction terms
+in the right-hand side of Eq. (2.3) describe the production of tissue PSA in healthy and cancerous
+tissue at rates αh and αc, respectively. The last reaction term in this equation represents the
+natural decay of tissue PSA with rate γp. Hence, to recover the serum PSA value Ps used in
+clinical practice, it suffices to integrate the tissue PSA over the spatial domain (i.e., Ps =
+R
+Ωp dx).
+Of note, all the parameters in Eqs. (2.2) and (2.3) are positive and constant in this work.
+Furthermore, for simplicity of exposition, we sometimes adopt the compact notation
+γch := γc −γh,
+Sch := Sc −Sh,
+αch := αc −αh.
+Finally, Eqs. (2.4) define the boundary conditions and Eqs. (2.5) provide the initial conditions
+of the model. In particular, we choose no-flux boundary conditions for the nutrient and the
+tissue PSA, while we define zero-valued Dirichlet boundary conditions for the tumour phase
+field. Hence, we assume that the tumour is confined within the domain, which aligns with the
+organ-confined stage of the majority of newly-diagnosed prostate cancer cases [50]. Additionally,
+the functions φ0, σ0, and p0 are spatial maps at t = 0.
+3
+Analytical results
+We first define the following spaces:
+H = L2(Ω),
+V0 = H1
+0(Ω),
+V ∗
+0 = (H1
+0(Ω))∗,
+V = H1(Ω),
+V ∗= (H1(Ω))∗,
+W0 = H2(Ω) ∩H1
+0(Ω),
+W =
+
+u ∈H2(Ω) | ∂nu = 0
+	
+.
+By standard results, we know that, if H is identified with its dual, the following compact and
+dense embeddings hold:
+W0 ,→V0 ,→H ,→V ∗
+0
+and
+W ,→V ,→H ,→V ∗.
+Additionally, we recall that, by elliptic regularity, we can use the equivalent norms:
+∥u∥2
+W0 := ∥u∥2
+H + ∥∆u∥2
+H,
+∥u∥2
+W := ∥u∥2
+H + ∥∆u∥2
+H.
+We further define the following spaces:
+H = H × H × H,
+V = V0 × V × V.
+Regarding the parameters of the system, we assume the following hypotheses:
+A1. λ, η, γh, γc, Sh, Sc, D, γp, αh, αc > 0.
+A2. F(s) = Ms2(1 −s)2 and h(s) = Ms2(3 −2s), with M > 0, for any s ∈R. In particular,
+we observe that F, h ∈C∞(R).
+6
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+A3. m(s) = mref
+
+ρ+A
+2
++ ρ−A
+2
+arctan
+
+s−σl
+σr
+
+, with mref, ρ, A, σl, σr > 0.
+In particular, we
+observe that m and m′ are Lipschitz continuous on R and m, m′, m′′ ∈L∞(Ω).
+In what follows, we use the symbol C > 0, which may also change from line to line, to denote
+positive constants depending only on the fixed parameters of the system. In some cases, we will
+use a subscript to highlight some particular dependence of these constants.
+In this section, we briefly recall the main analytical results proved in [5].
+We refer the
+interested reader to the cited article for a more detailed exposition, as well as the proofs of the
+corresponding results. We first introduce the set of admissible initial data as follows:
+Iad =
+
+(φ0, σ0, p0) ∈V | 0 ≤φ0 ≤1, 0 ≤σ0 ≤σmax,
+0 ≤p0 ≤pmax and ∥(φ0, σ0, p0)∥V ≤C
+	
+,
+(3.1)
+where σmax, pmax ∈L∞(Ω) and C > 0 are given. Note that Iad is a closed and convex subset of
+V∩L∞(Ω)3. Next, we consider the forward operator R : Iad →H which associates to any initial
+data (φ0, σ0, p0) ∈Iad the corresponding solution (φ(T), σ(T), p(T)) to (2.1)–(2.5), evaluated at
+the final time, that is
+R : Iad →H,
+R((φ0, σ0, p0)) = (φ(T), σ(T), p(T)).
+(3.2)
+By [13, Theorem 3.2] and [5, Proposition 2.3], we know that the forward map R is well-defined
+and Lipschitz continuous.
+Moreover, by [5, Theorem 2.5], R is also continuously Fréchet differentiable in an open subset
+IR of V ∩L∞(Ω)3, containing Iad. In particular, its derivative can be fully characterised in the
+following way. Indeed, we introduce the linearised system:
+∂tY −λ∆Y + F ′′(φ)Y −m(σ)h′′(φ)Y −m′(σ)h′(φ)Z = 0
+in QT ,
+(3.3)
+∂tZ −η∆Z + γhZ + (γc −γh)(σY + φZ) −(Sc −Sh)Y = 0
+in QT ,
+(3.4)
+∂tP −D∆P + γpP = (αc −αh)Y
+in QT ,
+(3.5)
+Y = 0,
+∂nZ = ∂nP = 0
+on ΣT ,
+(3.6)
+Y (0) = h,
+Z(0) = k,
+P(0) = w
+in Ω,
+(3.7)
+where h, k, w ∈L2(Ω). It is shown in [5, Proposition 2.4] that the linearised system (3.3)–(3.7)
+is well-posed, both in terms of weak and strong solutions.
+Then, we can write the explicit expression of the Fréchet derivative of the operator R as follows:
+DR(φ0, σ0, p0)[(h, k, w)] = (Y (T), Z(T), P(T)).
+(3.8)
+We stress that R being of class C1 means that the Fréchet derivative DR is Lipschitz continuous
+as a function from IR to the space L(V ∩L∞(Ω)3, H). More precisely, the following estimate
+holds:
+∥DR((φ1
+0, σ1
+0, p1
+0)) −DR((φ2
+0, σ2
+0, p2
+0))∥2
+L(V∩L∞(Ω)3,H) ≤C0∥(φ1
+0, σ1
+0, p1
+0) −(φ2
+0, σ2
+0, p2
+0)∥2
+H,
+(3.9)
+for some constant C0 > 0 depending only on the parameters of the system.
+The above regularity of the forward map opens the possibility to rigorously address the
+inverse problem of reconstructing the initial data, given a measurement at the final time. Indeed,
+through a logarithmic convexity approach, in [5] the authors proved two key stability results for
+the inverse problem, which we recall below. Call M > 0 and M1 > 0 the minimal constants such
+that
+∥(φ, σ, p)∥C0([0,T];H) ≤M
+and
+∥(φ, σ, p)∥H1(0,T;H) ≤M1
+(3.10)
+uniformly for (φ0, σ0, p0) ∈Iad. We recall that such estimates hold due to the well-posedness
+results in [13, Theorem 3.2]. Then, we have the following result.
+Reconstructing early states of prostate cancer
+7
+Theorem 3.1. Assume hypotheses A1–A3. Let (φ1, σ1, p1) and (φ2, σ2, p2) be two solutions of
+(2.1)–(2.5) corresponding to two triples of initial data (φi
+0, σi
+0, pi
+0) ∈Iad for i = 1, 2. Let M > 0,
+M1 > 0 be as above. Moreover, let
+ε := ∥(φ1(T), σ1(T), p1(T)) −(φ2(T), σ2(T), p2(T))∥H
+M
+and assume that
+ε ≤exp
+
+
+−
+ 
+min
+(
+1, 4
+√
+3MC3/2
+1
+9M1
+)!−1
+
+,
+where C1 = C1(T) > 0 is the constant appearing in the Hölder stability estimate of [5, Proposition
+3.1]. Then, there exists a constant C2 > 0 such that
+∥(φ1
+0, σ1
+0, p1
+0) −(φ2
+0, σ2
+0, p2
+0)∥2
+H ≤
+C2
+p
+|log ε|
+,
+(3.11)
+where we can quantify the constant as
+C2 = 2M1MC1/2
+1
+β1/2
++ 3M2
+1
+4βC1
+,
+with β =
+γ
+eγT −1 > 0,
+where γ > 0 is a constant depending only on the parameters of the system, but not on T.
+Proof. See [5, Theorem 3.5 and Proposition 3.1].
+We observe that this type of logarithmic estimate (3.11) can be impractical in applications, as
+the error actually gets small only if the final data are very close to each other. Moreover, it
+can be easily seen that the stability constant C2 deteriorates exponentially with the final time
+T, making this stability estimate even more unreliable. Nevertheless, this is expected since we
+are dealing with a backward problem for a parabolic system, which is known to be severely
+ill-posed as T gets larger. However, in view of numerical applications, it is important to prove
+quantitative Lipschitz stability estimates, possibly under additional a priori hypotheses on the
+initial data. Indeed, this was achieved as the main result of [5], by assuming to be reconstructing
+initial data lying in a finite-dimensional subspace of V, for instance, one of the discrete spaces
+used in numerical approximations. We recall such a theorem below.
+Theorem 3.2. Assume hypotheses A1–A3. Let Λ be a finite-dimensional subspace of V and
+K ⊆Λ be a compact subset. Assume further that
+(φ0, σ0, p0) ∈K ∩Iad.
+Then, there exists a constant Cs > 0 such that for any choice of (φ1
+0, σ1
+0, p1
+0) and (φ2
+0, σ2
+0, p2
+0) in
+K ∩Iad the following stability estimate holds
+∥(φ1
+0, σ1
+0, p1
+0) −(φ2
+0, σ2
+0, p2
+0)∥H ≤Cs∥(φ1(T), σ1(T), p1(T)) −(φ2(T), σ2(T), p2(T))∥H,
+(3.12)
+where the constant Cs can be quantified as
+Cs = max
+(
+2C
+M e
+16C2
+0 C2
+m0
+, 2
+m0
+)
+, with m0 = L
+CΛ
+e−Q2
+2 and CΛ =
+sup
+h∈Λ\{0}
+∥h∥V
+∥h∥H
+,
+where C0 is the Lipschitz constant of the Fréchet-derivative, given by (3.9), L > 0 is a uniform
+bound on the solutions to the linearised system and Q2 > 0 is the logarithmic stability constant
+for the linearised system (see [5, Theorem 3.8]).
+8
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+Proof. See [5, Theorem 3.10].
+We finally point out that the constant Cs blows up exponentially as the dimension of Λ goes to
+infinity. Indeed, Cs has a direct exponential proportionality to the constant CΛ, which is finite
+only if Λ has a finite dimension and blows up as it becomes higher. Additionally, one can also
+notice that the dependence of Cs on the final time is even worse, namely Cs depends doubly
+exponentially on T. This means that, even if we have some kind of Lipschitz stability, we have
+to be very careful when designing numerical algorithms to approximate the solution.
+4
+Landweber iteration scheme
+Given a measurement (φmeas, σmeas, pmeas) ∈H at the final time, assuming the existence of a
+(unique) initial configuration (φ0, σ0, p0), we now address the problem of approximating this
+solution. By Theorem 3.2, we know that we have a Lipschitz stability estimate if we restrict the
+initial data in
+K = {u ∈Λ | ∥u∥V ≤C},
+(4.1)
+where Λ is a finite-dimensional subspace of V. Therefore, it makes sense to consider the minimi-
+sation problem:
+arg min
+(φ0,σ0,p0)∈K∩Iad
+J ((φ0, σ0, p0))
+=
+arg min
+(φ0,σ0,p0)∈K∩Iad
+κ1
+2 ∥φ(T) −φmeas∥2
+H + κ2
+2 ∥σ(T) −σmeas∥2
+H + κ3
+2 ∥p(T) −pmeas∥2
+H,
+(4.2)
+where (φ(T), σ(T), p(T)) = R((φ0, σ0, p0)) is the solution to (2.1)–(2.5), evaluated at the time T.
+Here κ1, κ2, κ3 are positive parameters that can be chosen depending on which target is the most
+interesting in experiments and on the relative order of magnitude of the variables. Clearly, since
+K ∩Iad is compact and J is continuous, (4.2) admits at least a solution in K ∩Iad. Moreover,
+if a (unique) solution to the inverse problem exists in K ∩Iad, then it trivially minimises J .
+We recall that the finite-dimensional set K can be chosen for instance as a closed and bounded
+subset of a discrete space used for numerical methods, therefore what we propose can be easily
+implemented.
+Remark 4.1. From a practical point of view, it could not be entirely feasible to have a pointwise
+value for the PSA concentration p, even if some ideas are given in [48]. Thus, a better term in
+the minimisation functional could be κ3
+ R
+Ωp dx −Pmeas
+
+, where Pmeas would be the global
+measured PSA level, which is what can be usually measured in practice. Of course, one can also
+consider this kind of term from a theoretical point of view and see that the minimisation of such
+a functional would lead to some optimality conditions that can then be discretised (cf. [14]).
+However, the corresponding iterative approximation method would not fit in the Landweber
+framework any longer. Hence, we would not have at our disposal all the theoretical guarantees
+that are shown below for the Landweber scheme.
+For this reason, we stick to the proposed
+functional J , also because in practice (cf. Sections 5 and 6) we put κ2 = κ3 = 0, as the most
+important datum to reconstruct is the tumour phase field.
+As previously anticipated, to find such a solution, we use a Landweber iteration method,
+which is a common technique to approximate solutions to inverse problems.
+A similar idea
+was used for a simpler model of tumour growth in [34]. Indeed, starting from an initial guess
+(φ0
+0, σ0
+0, p0
+0) ∈K ∩Iad, we approximate the solution (φ0, σ0, p0) by using a gradient descent
+algorithm of the following form:
+ψj+1
+0
+= ψj
+0 −µDR(ψj
+0)∗[κ · (R(ψj
+0) −ψmeas)],
+(4.3)
+Reconstructing early states of prostate cancer
+9
+where we used the compact notation ψj
+0 = (φj
+0, σj
+0, pj
+0), ψmeas = (φmeas, σmeas, pmeas), κ =
+(κ1, κ2, κ3) and DR(·)∗[·] is the adjoint operator of the Fréchet-derivative of R. The parameter
+µ, instead, is a step size that has to be chosen suitably.
+In our case, it is easy to find the
+adjoint system associated with the minimisation problem (4.2), for instance by using the formal
+Lagrangian method. Indeed, by also looking at [14], the adjoint system associated to a generic
+state ( ˜φ, ˜σ, ˜p) is:
+−∂tq −λ∆q + F ′′( ˜φ)q −m(˜σ)h′′( ˜φ)q
++ (γc −γh)˜σz −(Sc −Sh)z −(αc −αh)r = 0
+in QT ,
+(4.4)
+−∂tz −η∆z + γhz + (γc −γh) ˜φz −m′(˜σ)h′( ˜φ)q = 0
+in QT ,
+(4.5)
+−∂tr −D∆r + γpr = 0
+in QT ,
+(4.6)
+q = 0,
+∂nz = ∂nr = 0
+in ΣT ,
+(4.7)
+q(T) = κ1( ˜φ(T) −φmeas), z(T) = κ2(˜σ(T) −σmeas),
+r(T) = κ3(˜p(T) −pmeas)
+in Ω,
+(4.8)
+therefore we can say that
+DR∗(ψj
+0)[κ · (R(ψj
+0) −ψmeas)] = (qj(0), zj(0), rj(0)),
+where (qj, zj, rj) is the solution to the adjoint system (4.4)–(4.8) with ( ˜φ, ˜σ, ˜p) solution corre-
+sponding to the initial data (φj
+0, σj
+0, pj
+0). Regarding the well-posedness of the adjoint system, we
+can state the following result.
+Proposition 4.2. Assume hypotheses A1–A3 and let (φmeas, σmeas, pmeas) ∈H. Assume further
+that ( ˜φ0, ˜σ0, ˜p0) ∈Iad and that ( ˜φ, ˜σ, ˜p) is the corresponding solution of (2.1)–(2.5). Then, (4.4)–
+(4.8) admits a unique weak solution (q, z, r) ∈H1(0, T; V∗) ∩C0([0, T]; H) ∩L2(0, T; V), which
+solves the system in variational formulation and satisfies the estimate:
+∥(q, z, r)∥2
+H1(0,T;V∗)∩C0([0,T];H)∩L2(0,T;V)
+≤C
+ κ2
+1∥˜φ(T) −φmeas∥2
+H + κ2
+2∥˜σ(T) −σmeas∥2
+H + κ2
+3∥˜p(T) −pmeas∥2
+H
+
+,
+with C > 0 depending only on the parameters of the system.
+Proof. Using the transformation t 7→T −t, we can rewrite (4.4)–(4.8) as a linear parabolic
+system with initial conditions in H, coefficients in L∞(QT ) (due to [13, Theorem 3.2]) and
+without sources. Therefore, we can apply standard results on the existence of weak solutions of
+linear parabolic systems to deduce the thesis.
+We now establish convergence for the Landweber method and quantify its convergence rate, by
+using a general result proved in [18, Theorem 3.2], which we recall below.
+Lemma 4.3. Let X and Y be two Hilbert spaces and G : D(G) ⊆X →Y be a continuous and
+locally Fréchet-differentiable operator. Let y ∈Y and assume that there exists x ∈D(G) such
+that G(x) = y. Consider the Landweber iteration scheme
+xj+1 = xj −µDG(xj)∗(G(xj) −y),
+with starting point x0. Let ρ > 0 and assume that x ∈Bρ(x0) and B = Bρ′(x0) ⊆D(G) for some
+ρ′ > ρ. Moreover, let the following conditions be satisfied:
+(i) The Fréchet-derivative DG of G is Lipschitz continuous locally in B, i.e.
+∥DG(x) −DG(˜x)∥L(X,Y ) ≤L∥x −˜x∥X
+∀x, ˜x ∈B.
+(ii) G is weakly sequentially closed.
+10
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+(iii) The inversion has a uniform Lipschitz-type stability, i.e. there exists CG such that
+∥x −˜x∥X ≤CG∥G(x) −G(˜x)∥Y
+∀x, ˜x ∈B.
+(iv) There exists ˆL > 0 such that ∥DG(x)∥L(X,Y ) ≤ˆL for any x ∈B.
+(v) The step-size µ is such that
+µ < 1
+ˆL2
+and
+µ(1 −µˆL2) < 2C2
+G.
+Then, if
+ρ = (2LˆLC2
+G)−2
+and
+∥x0 −x∥2
+X ≤ρ,
+the iterates satisfy
+∥xj −x∥2
+X ≤ρ
+∀xj ∈N
+and
+xj →x in X as j →+∞.
+Moreover, if
+c = 1
+2µ(1 −µˆL2)C−2
+G ,
+0 < c < 1,
+the convergence rate is given by
+∥xj −x∥2
+X ≤ρ(1 −c)j.
+(4.9)
+Remark 4.4. Observe that (4.9) means that at every step the error ∥xj −x∥X gets reduced by a
+factor √1 −c. Then, the order of convergence of the Landweber scheme as an iterative method
+is at most linear.
+We can now apply Lemma 4.3 to our case, to prove convergence of the Landweber iteration (4.3).
+This should guarantee a fine numerical reconstruction of the initial distribution of the tumour,
+as long as the initial guess is chosen close enough to the actual solution.
+Theorem 4.5. Assume hypotheses A1–A3. Assume also that there exists ψ0 ∈K ∩Iad such
+that R(ψ0) = ψmeas. Then, there exist ρ > 0, 0 < c < 1 and µ∗> 0, which depend only on the
+parameters of the system and can be determined as in Lemma 4.3, such that if ψ0
+0 ∈H, κ ∈R3
+and µ > 0 are chosen such that
+∥ψ0
+0 −ψ0∥2
+H ≤ρ
+and
+µ|κ| < µ∗,
+then the iterates {ψj
+0}j∈N of (4.3) satisfy
+∥ψj
+0 −ψ0∥2
+H ≤ρ(1 −c)j for any j ∈N and ψj
+0 →ψ0 as j →+∞.
+Proof. We just need to apply Lemma 4.3 with X = Λ, Y = H and G = R. Indeed, hypothesis
+(i) on Lipschitz-continuity of the Fréchet-derivative DR is verified even globally by the Fréchet-
+differentiability result in [5, Theorem 2.5]. Then, condition (ii) on weak sequential closedness
+follows immediately by the well-posedness result in [13, Theorem 3.2], which implies continuity
+of R, and by the fact that Λ is finite-dimensional, so weak and strong topologies coincide.
+Moreover, hypothesis (iii) is exactly Theorem 3.2, giving Lipschitz stability of the inverse map,
+and condition (iv) follows easily by [5, Proposition 2.4] on well-posedness of the linearised system.
+Regarding the correspondence of the constants appearing in Lemma 4.3, we have that in our case
+L = C0 given by (3.9), CG = Cs given by (3.12) and ˆL is related to the well-posedness of the
+linearised system (3.3)–(3.7). In particular, ˆL should be such that
+∥DR(φ0, σ0, p0)∥L(Λ,H) =
+sup
+∥(h,k,w)∥H=1
+∥(Y (T), Z(T), P(T))∥H ≤ˆL,
+Reconstructing early states of prostate cancer
+11
+for any choice of (φ0, σ0, p0) ∈Λ. Additionally, we recall that, in our formulation (4.3) of the
+algorithm, we also added the weights κ, which can be also factored out of the adjoint operator,
+since it is linear. This means that we actually have to impose a smallness condition like (v)
+above on µ|κ|, i.e.
+µ|κ| < 1
+ˆL2
+and
+µ|κ|(1 −µ|κ|ˆL2) < 2C2
+s.
+Then µ∗can be deduced by the previous inequalities and we can define
+ρ = (2C0 ˆLC2
+s)−2
+and
+c = 1
+2µ|κ|(1 −µ|κ|ˆL2)C−2
+s .
+Therefore Lemma 4.3 can be applied, and the proof is concluded.
+Remark 4.6. Observe that, by Theorem 4.5, the scheme (4.3) converges if the initial guess ψ0
+0
+is chosen such that ∥ψ0
+0 −ψ0∥2
+H < ρ. However, theoretically, the Lipschitz stability estimate
+(3.12) gives us an explicit condition to choose our starting guess. Indeed, by Theorem 3.2, we
+know that, if we assume ψ0 ∈K ∩Iad, we can expect that
+∥ψ0
+0 −ψ0∥H ≤Cs∥R(ψ0
+0) −ψmeas∥H,
+where the term on the right-hand side is explicitely computable in practice. Then, with a similar
+reasoning as in [2, Lemma 2], we just need to find ψ0
+0 ∈K such that
+∥R(ψ0
+0) −ψmeas∥H ≤
+√ρ
+Cs
+.
+(4.10)
+This would immediately imply that ∥ψ0
+0 −ψ0∥2
+H < ρ.
+Since K is compact, (4.10) can be
+guaranteed for example by covering K with a fine enough finite lattice or by random sampling
+until one finds a starting point close enough. Clearly, this is not efficient and often unpractical
+when working with high-dimensional discretisations and long final times T, since, by its definition,
+the bound in (4.10) decays at least exponentially with both dimension and final time. Due to
+these reasons, for our experiments in Section 6, we choose the initial guess through physical
+considerations.
+While being an interesting result in theory, Theorem 4.5 requires highly restrictive hypotheses
+to be verified in practice. In particular, the convergence radius ρ becomes almost immediately
+too small when increasing the final time or the dimension of the discrete spaces. Moreover, the
+bound on the constant step-size µ is not easily computable. To overcome these issues, one usually
+tries to set up an adaptive choice of the step-size, thus considering algorithms of the form:
+ψj+1
+0
+= ψj
+0 −µjDR(ψj
+0)∗[κ · (R(ψj
+0) −ψmeas)].
+(4.11)
+There are many possible choices of the adaptive step-size, due to the extensive literature on
+general gradient descent methods. One of the most commonly used is the steepest descent, which
+essentially amounts to choosing the step that gives the biggest reduction along the direction of
+the gradient. Following [37, Section 3.4], in case of our Landweber iteration this choice becomes
+µj|κ| =
+∥DR(ψj
+0)∗[κ · (R(ψj
+0) −ψmeas)]∥2
+H
+∥DR(ψj
+0)[DR(ψj
+0)∗[κ · (R(ψj
+0) −ψmeas)]]∥2
+H
+=
+∥(qj(0), zj(0), rj(0))∥2
+H
+∥(Y j(T), Zj(T), P j(T))∥2
+H
+,
+(4.12)
+where (qj, zj, rj) is the solution to the adjoint system (4.4)–(4.8) with ( ˜φ, ˜σ, ˜p) = (φj, σj, pj)
+solution corresponding to the initial data (φj
+0, σj
+0, pj
+0) as before, and (Y, Z, P) is the solution to
+12
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+the linearised system (3.3)–(3.7) with initial data (h, k, w) = (qj(0), zj(0), rj(0)) and (φ, σ, p) =
+(φj, σj, pj) solution corresponding to the initial data (φj
+0, σj
+0, pj
+0), namely
+∂tY −λ∆Y + F ′′(φj)Y −m(σj)h′′(φj)Y −m′(σj)h′(φj)Z = 0
+in QT ,
+∂tZ −η∆Z + γhZ + (γc −γh)(σjY + φjZ) −(Sc −Sh)Y = 0
+in QT ,
+∂tP −D∆P + γpP = (αc −αh)Y
+in QT ,
+Y = 0,
+∂nZ = ∂nP = 0
+on ΣT ,
+Y (0) = qj(0),
+Z(0) = zj(0),
+P(0) = rj(0)
+in Ω.
+It is shown in [37, Theorems 3.21 and 3.22] that this method converges to the exact solution
+(φ0, σ0, p0), under the validity of the tangential cone condition on R and the choice of a suitable
+stopping criterion for the number of iterations, via a discrepancy principle.
+For the sake of
+completeness, we recall that the operator R satisfies the tangential cone condition if there exist
+r > 0 and η < 1
+2 such that
+∥R(ψ0) −R(eψ0) −DR(ψ0)[ψ0 −eψ0]∥H ≤η∥R(ψ0) −R(eψ0)∥H
+∀ψ0, eψ0 ∈B2r(ψ0
+0). (4.13)
+In our case, since R is Fréchet-differentiable with a Lipschitz continuous derivative and the
+stability estimate (3.12) holds, it is easy to see that this local condition holds.
+Indeed, by
+straight-forward computations, it follows that
+∥R(ψ0) −R(eψ0) −DR(ψ0)[ψ0 −eψ0]∥H ≤C0∥ψ0 −eψ0∥2
+H
+= C0∥ψ0 −eψ0∥H∥ψ0 −eψ0∥H ≤C0Cs4r ∥R(ψ0) −R(eψ0)∥H,
+where η = C0Cs4r <
+1
+2, if r > 0 is small enough.
+As said above (cf. [37]), this condition
+guarantees local convergence of the adaptive Landweber method (4.11). We further comment
+that the Landweber method, both with the fixed step size and the steepest descent version, is
+known to be a reliable regularisation method in the presence of noisy data (cf. [37]). Indeed,
+if paired with a suitable stopping rule for the number of iterations, the method reconstructs
+a regularised version of the initial data and converges to the exact solution if the noise level
+goes to zero. The reason why the number of iterations has to be stopped accordingly in the
+presence of noise is to avoid the amplification of errors, as the Landweber scheme shows a typical
+semi-convergence behaviour. This will be clearer by looking at the simulation results in Section
+6.
+However, due to its slow convergence, the proposed Landweber schemes may still be not
+enough to have convergence when the final time T is too large, since all the stability constants
+blow up exponentially. For this reason, when doing numerical simulations, we are forced to adopt
+more efficient adaptive step-size choices than those mentioned above. The literature on methods
+for accelerating Landweber iterations or, more in general, gradient descent schemes is definitely
+vast, we cite for example [4,19,31,52] and references therein. In particular, upon many trial and
+error procedures, we especially mention [49], since the method proposed there proved particularly
+useful to our situation. Indeed, they propose a new choice of the adaptive step size for a general
+gradient descent method and they show its convergence, both theoretically and numerically, for
+a convex function in Rn with locally Lipschitz gradient. Their proposed choice for the step size
+is particularly easy to implement and in our case takes the following form
+µj|κ| = min
+(p
+1 + θj−1 µj−1|κ|,
+∥ψj
+0 −ψj−1
+0
+∥H
+2∥((qj −qj−1)(0), (zj −zj−1)(0), (rj −rj−1)(0))∥H
+)
+,
+where θj =
+µj
+µj−1 for any j ∈N and µ0 > 0, θ0 = +∞are given as inputs.
+(4.14)
+Heuristically, the first term inside the minimum assures that some kind of discrete Lyapunov
+energy associated to the scheme keeps decreasing, while the second one is an approximation of
+Reconstructing early states of prostate cancer
+13
+the reciprocal of the Lipschitz constant of the descent direction. Despite the lack of analysis
+in infinite-dimensional spaces with non-convex operators, this method still proved powerful in
+tackling our problem. More details will be given when speaking about numerical results in the
+next sections. To distinguish the two proposed variants of the choice of the adaptive step size,
+in what follows we will denote (4.11) with the steepest descent choice (4.12) as the Landweber
+scheme and (4.11) with the second choice (4.14) as the Adaptive Gradient Descent scheme. Keep
+in mind, however, that both schemes fit into the Landweber framework, even if we call them
+differently.
+5
+Numerical methods
+5.1
+Spatial discretisation
+We use Isogeometric Analysis (IGA) to discretise in space the forward, linearised, and adjoint
+problems. IGA is a recent, rapidly-growing technique that can be regarded as a generalisation of
+the classical Finite Element Method [16]. In particular, we use a standard isogeometric Bubnov-
+Galerkin method based on a C1-continuous quadratic B-spline space (see Ref. [16] for further
+detail). Hence, our spatial discretisation requires the definition of the weak forms of the forward,
+linearised, and adjoint problems. Let us first consider the forward problem in Eqs. (2.1)-(2.3),
+whose weak form can be written as: find φ ∈V0, σ ∈V , and p ∈V such that
+Bχ
+1 (χ1, φ, σ, p) = 0
+for all
+χ1 ∈V0,
+(5.1)
+Bχ
+2 (χ2, φ, σ, p) = 0
+for all
+χ2 ∈V,
+(5.2)
+Bχ
+3 (χ3, φ, σ, p) = 0
+for all
+χ3 ∈V,
+(5.3)
+where
+Bχ
+1 (χ1, φ, σ, p) =
+Z
+Ω
+χ1
+
+∂tφ + F ′(φ) −m(σ)h′(φ)
+
+dx +
+Z
+Ω
+λ∇χ1 · ∇φ dx,
+(5.4)
+Bχ
+2 (χ2, φ, σ, p) =
+Z
+Ω
+χ2 [∂tσ + γhσ + γchσφ −Sh −Schφ] dx +
+Z
+Ω
+η∇χ2 · ∇σ dx,
+(5.5)
+Bχ
+3 (χ3, φ, σ, p) =
+Z
+Ω
+χ3 [∂tp + γpp −αh −αchφ] dx +
+Z
+Ω
+D∇χ3 · ∇p dx.
+(5.6)
+We also introduce the weak form of the linearised problem defined by Eqs. (3.3)-(3.5), which is
+stated as: find Y ∈V0, Z ∈V , and P ∈V such that
+Bζ
+1(ζ1, Y, Z, P) = 0
+for all
+ζ1 ∈V0,
+(5.7)
+Bζ
+2(ζ2, Y, Z, P) = 0
+for all
+ζ2 ∈V,
+(5.8)
+Bζ
+3(ζ3, Y, Z, P) = 0
+for all
+ζ3 ∈V,
+(5.9)
+where
+Bζ
+1(ζ1, Y, Z, P) =
+Z
+Ω
+ζ1
+
+∂tY + F ′′(φ)Y −m(σ)h′′(φ)Y −m′(σ)h′(φ)Z
+
+dx
+(5.10)
++
+Z
+Ω
+λ∇ζ1 · ∇Y dx,
+Bζ
+2(ζ2, Y, Z, P) =
+Z
+Ω
+ζ2 [∂tZ + γhZ + γch(σY + φZ) −SchY ] dx +
+Z
+Ω
+η∇ζ2 · ∇Z dx,
+(5.11)
+Bζ
+3(ζ3, Y, Z, P) =
+Z
+Ω
+ζ3 [∂tP + γpP −αchY ] dx +
+Z
+Ω
+D∇ζ3 · ∇P dx.
+(5.12)
+14
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+Likewise, we express the weak form of the adjoint problem given by Eqs. (4.4)-(4.6) as follows:
+find q ∈V0, z ∈V , and r ∈V such that
+Bψ
+1 (ψ1, q, z, r) = 0
+for all
+ψ1 ∈V0,
+(5.13)
+Bψ
+2 (ψ2, q, z, r) = 0
+for all
+ψ2 ∈V,
+(5.14)
+Bψ
+3 (ψ3, q, z, r) = 0
+for all
+ψ3 ∈V,
+(5.15)
+where
+Bψ
+1 (ψ1, q, z, r) =
+Z
+Ω
+ψ1
+
+−∂tq + F ′′(φ)q −m(σ)h′′(φ)q + γchσz −Schz −αchr
+
+dx
+(5.16)
++
+Z
+Ω
+λ∇ψ1 · ∇q dx,
+Bψ
+2 (ψ2, q, z, r) =
+Z
+Ω
+ψ2
+
+−∂tz + γhz + γchφz −m′(σ)h′(φ)q
+
+dx +
+Z
+Ω
+η∇ψ2 · ∇z dx,
+(5.17)
+Bψ
+3 (ψ3, q, z, r) =
+Z
+Ω
+ψ3 [−∂tr + γpr] dx +
+Z
+Ω
+D∇ψ3 · ∇r dx.
+(5.18)
+The spatial discretisation of the weak forms defined above further relies on defining finite-
+dimensional spaces V h ⊂V and V h
+0 ⊂V0. We construct these discrete spaces leveraging the
+aforementioned C1-continuous quadratic B-spline space [16]. For example, the space V h can be
+defined in terms of a spline basis as V h = span {NA(x)}A=1,...,nf , where nf is the number of
+basis functions (i.e., nf = dim(V h)) and NA(x) represents each multivariate spline basis func-
+tion. We also utilise the superscript h to denote finite-dimensional approximations to the exact
+solution of the forward, linearised, and adjoint problems. For instance, the finite-dimensional
+approximation to the tumour phase field is given by φh(t, x) = Pnf
+A=1 φA(t)NA(x), where the
+time-dependent coefficients φA(t) are called control variables. The functions σh, ph, Y h, Zh, P h,
+qh, zh, and rh are defined analogously. Importantly, the functions that belong to V h
+0 will have
+some control variables constrained to ensure that the Dirichlet boundary conditions are satisfied.
+Furthermore, the Neumann boundary conditions that are relevant to the forward, linearised, and
+adjoint problems are naturally enforced within the weak form. We finally mention that the space
+Vh := V h
+0 × V h × V h can then be considered as an example of the finite-dimensional subspace
+Λ ⊆V in Theorem 3.2. Actually, in the following, we will tacitly assume Λ = Vh.
+5.2
+Time discretisation
+We use the generalized-α method to integrate in time [11,16,33]. This method is applied to the
+spatially-discretised version of the weak forms of the forward, linearised, and adjoint problems
+introduced in Section 5.1.
+Let us first consider the forward problem.
+We define φ as the
+global vector of control variables associated with the unknown field φh, i.e., φ = {φA}A=1,...,nf .
+Similarly, we further define the vectors σ = {σA}A=1,...,nf and p = {pA}A=1,...,nf . We can now
+introduce the residual vector of the forward problem as
+ResF = {Rφ, Rσ, Rp}
+(5.19)
+where Rφ = {Rφ
+A}A=1,...,nf , Rσ = {Rσ
+A}A=1,...,nf , and Rp = {Rp
+A}A=1,...,nf , such that
+Rφ
+A = Bχ
+1 (NA, φ, σ, p),
+(5.20)
+Rσ
+A = Bχ
+2 (NA, φ, σ, p),
+(5.21)
+Rp
+A = Bχ
+3 (NA, φ, σ, p).
+(5.22)
+Let us further define U n = {φn, σn, pn} as the time-discrete approximation to the control
+variables of the forward problem at time tn. Then, in the forward problem we calculate U n+1
+Reconstructing early states of prostate cancer
+15
+from U n by enforcing the equation
+ResF( ˙U n+αm, U n+αf ) = 0,
+(5.23)
+where
+U n+1
+= U n + (tn+1 −tn) ˙U n + γ(tn+1 −tn)( ˙U n+1 −˙U n),
+(5.24)
+˙U n+αm= ˙U n + αm( ˙U n+1 −˙U n),
+(5.25)
+U n+αf = U n + αf(U n+1 −U n).
+(5.26)
+In Eqs. (5.23)-(5.26), we define tn+1 −tn = ∆tn > 0 as the time step, while αm, αf and γ are
+real-valued parameters that define the accuracy and stability of the time integration algorithm.
+Similarly, for the linearised problem, we introduce the global vectors Y = {YA}A=1,...,nf ,
+Z = {ZA}A=1,...,nf and P = {PA}A=1,...,nf corresponding to the discrete functions Y h, Zh, and
+P h. We further define the residual vector for the linearised problem as
+ResL = {RY , RZ, RP }
+(5.27)
+where RY = {RY
+A}A=1,...,nf , RZ = {RZ
+A}A=1,...,nf and RP = {RP
+A}A=1,...,nf , such that
+RY
+A = Bζ
+1(NA, Y , Z, P ),
+(5.28)
+RZ
+A = Bζ
+2(NA, Y , Z, P ),
+(5.29)
+RP
+A = Bζ
+3(NA, Y , Z, P ).
+(5.30)
+Now, we can redefine U n = {Y n, Zn, P n} using the time-discrete approximation to the control
+variables of the linearised problem at time tn.
+Then, the time integration of the linearised
+problem consists of calculating U n+1 from U n by requiring
+ResL( ˙U n+αm, U n+αf ) = 0,
+(5.31)
+and using the expressions for U n+1, U n+αm, and U n+αf provided by Eqs. (5.24)-(5.26).
+For the adjoint problem, we make the same initial definitions as we did for the forward and
+linearised problem. Hence, we introduce the global vectors q = {qA}A=1,...,nf , z = {zA}A=1,...,nf
+and r = {rA}A=1,...,nf , which correspond to the discrete functions qh, zh, and rh. Furthermore,
+we define the residual vector for the adjoint problem as
+ResA = {Rq, Rz, Rr}
+(5.32)
+where Rq = {Rq
+A}A=1,...,nf , Rz = {Rz
+A}A=1,...,nf , and Rr = {Rr
+A}A=1,...,nf , such that
+Rq
+A = Bψ
+1 (NA, q, z, r),
+(5.33)
+Rz
+A = Bψ
+2 (NA, q, z, r),
+(5.34)
+Rr
+A = Bψ
+3 (NA, q, z, r).
+(5.35)
+Let us now redefine U n = {qn, zn, rn} using the time-discrete approximation to the control
+variables of the adjoint problem at time tn. A fundamental difference of the adjoint problem
+with respect to the forward and linearised problems is that the former is solved backwards in
+time starting at t = T, so we need to redefine ∆tn = tn −tn+1 < 0. Then, the time integration
+of the adjoint problem consists of computing U n from U n+1 by imposing
+ResA( ˙U n+αm, U n+αf ) = 0,
+(5.36)
+16
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+where
+U n
+= U n+1 + (tn −tn+1) ˙U n+1 + γ(tn −tn+1)( ˙U n −˙U n+1),
+(5.37)
+˙U n+αm= ˙U n+1 + αm( ˙U n −˙U n+1),
+(5.38)
+U n+αf = U n+1 + αf(U n −U n+1).
+(5.39)
+Note that we have redefined U n+1, U n+αm, and U n+αf in Eqs. (5.37)-(5.39) with respect to their
+former expressions used for the time integration of the forward and linearised problems provided
+by Eqs. (5.24)-(5.26) in order to accommodate the backwards nature of the adjoint problem.
+As shown in Ref. [33], A-stability and second-order accuracy can be obtained with the
+generalized-α method if ρ∞∈[0, 1] and
+αm = 1
+2
+3 −ρ∞
+1 + ρ∞
+
+,
+αf =
+1
+1 + ρ∞
+,
+γ = 1
+2 + αm −αf.
+(5.40)
+All the simulations presented in this work were carried out by using ρ∞= 1/2 and leveraging
+the definitions provided in Eq. (5.40). Additionally, we used the Newton-Raphson method [16]
+to solve the algebraic systems given by Eqs. (5.23)-(5.26) for the forward problem, Eqs. (5.31)
+and (5.24)-(5.26) for the linearised problem, and Eqs. (5.36)-(5.39) for the adjoint problem.
+For each problem, the convergence criterion to advance from one time step to the next one
+consists of reducing the individual residuals to εNR of its initial value (i.e., Rφ, Rσ, and Rp
+for the forward problem; RY , RZ, and RP for the linearised problem; and Rq, Rz, and Rr for
+the adjoint problem). Then, the linear systems that result after the application of the Newton-
+Raphson method are solved using GMRES [54] with a diagonal preconditioner up to a predefined
+tolerance εGMRES or a maximum number of iterations.
+5.3
+Iterative algorithms for the identification of initial data
+In the simulation study conducted in this work (see Section 6), we will focus on reconstructing
+the initial tumour phase field φ0. The rationale for this choice is that knowledge on the tumour
+burden (e.g., volume, extension) is a central piece of information in clinical decision-making for
+prostate cancer management [15,50]. Additionally, clinical imaging techniques that are currently
+used to diagnose, monitor and plan treatments for prostate cancer patients could be leveraged
+to obtain measurements of the spatial map of the tumour phase field (e.g., multiparametric
+magnetic resonance imaging) [15, 44, 45, 50], including φmeas at time t = T for the purposes of
+the present work. Then, given a reconstruction of φ0, for every step we can approximate the
+initial data σ0 and p0 by using linear phenomenological laws, as already done in [13,14]:
+σ0 = c0,σ + c1,σφ0,
+p0 = c0,p + c1,pφ0,
+(5.41)
+where c0,σ, c1,σ, c0,p, c1,p ∈R are explicit coefficients. In this context, we set κ1 = 1, κ2 = κ3 = 0
+in the general objective functional provided by Eq. (4.2), such that the minimisation problem
+becomes
+arg min
+(φ0,σ0,p0)∈K∩Iad
+J (φ(T)) =
+arg min
+(φ0,σ0,p0)∈K∩Iad
+1
+2∥φ(T) −φmeas∥2
+H,
+(5.42)
+and such that σ0 and p0 are estimated from φ0 according to Eq. (5.41)
+5.3.1
+Short time horizon
+For short time horizons (e.g. T = 10 days), we will use the Landweber iteration scheme (4.11)
+with the steepest descent step size choice (4.12) presented in Section 4.
+Thus, given a final
+measurement φmeas, an initial guess φ0
+0 and a maximum number of iterations j∗, for any j =
+0, . . . , j∗we follow the following algorithm:
+Reconstructing early states of prostate cancer
+17
+1. Given φj
+0, set σj
+0 = c0,σ + c1,σφj
+0 and pj
+0 = c0,p + c1,pφj
+0.
+2. Run the forward system
+∂tφ −λ∆φ + F ′(φ) −m(σ)h′(φ) = 0
+in QT ,
+∂tσ −η∆σ = Sh + Schφ −γhσ −γchσφ
+in QT ,
+∂tp −D∆p + γpp = αh + αchφ
+in QT ,
+φ = 0,
+∂nσ = ∂np = 0
+on ΣT ,
+φ(0) = φj
+0,
+σ(0) = σj
+0,
+p(0) = pj
+0
+in Ω,
+and call the corresponding solution (φj, σj, pj).
+3. Run the adjoint system
+−∂tq −λ∆q + F ′′(φj)q −m(σj)h′′(φj)q + γchσjz −Schz −αchr = 0
+in QT ,
+−∂tz −η∆z + γhz + γchφjz −m′(σj)h′(φj)q = 0
+in QT ,
+−∂tr −D∆r + γpr = 0
+in QT ,
+q = 0,
+∂nz = ∂nr = 0
+on ΣT ,
+q(T) = φj(T) −φmeas,
+z(T) = 0,
+r(T) = 0
+in Ω,
+and call the corresponding solution (qj, zj, pj).
+4. Run the linearised system
+∂tY −λ∆Y + F ′′(φj)Y −m(σj)h′′(φj)Y −m′(σj)h′(φj)Z = 0
+in QT ,
+∂tZ −η∆Z + γhZ + γchσjY + γchφjZ −SchY = 0
+in QT ,
+∂tP −D∆P + γpP = αchY
+in QT ,
+Y = 0,
+∂nZ = ∂nP = 0
+on ΣT ,
+Y (0) = qj(0),
+Z(0) = zj(0),
+P(0) = rj(0)
+in Ω.
+and call the corresponding solution (Y j, Zj, P j).
+5. Compute the adaptive steepest descent step-size as in (4.12) with κ1 = 1, κ2 = κ3 = 0:
+µj =
+∥qj(0)∥2
+L2(Ω)
+∥Y j(T)∥2
+L2(Ω)
+(5.43)
+6. Do the Landweber step as in (4.11) with κ1 = 1, κ2 = κ3 = 0:
+φj+1
+0
+= φj
+0 −µjqj(0).
+(5.44)
+Check that the updated tumour phase field at t = 0 verifies 0 ≤φj+1
+0
+≤1; otherwise
+truncate φj+1
+0
+accrodingly to ensure that this iterate is admissible.
+7. Check if the following two convergence criteria are satisfied:
+Criterion 1: ∥qj
+0∥2
+L2(Ω) ≤εSD∥q0
+0∥2
+L2(Ω) or ∥qj
+0 −qj−1
+0
+∥2
+L2(Ω) ≤εSD∥qj−1
+0
+∥2
+L2(Ω),
+Criterion 2: J (φj(T)) ≤εSDJ (φ0(T)) or J (φj(T)) −J (φj−1(T)) ≤εSDJ (φj−1(T)).
+Notice that these two criteria control for convergence of φ0 and φT , respectively. If these
+convergence criteria are not satisfied, then restart from the top in a new iteration.
+18
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+5.3.2
+Long time horizon
+Unfortunately, the steepest descent step size (4.12) often becomes very small as the end-time T
+grows larger, therefore it does not seem the best choice overall, even if we have a good theoretical
+basis. In our case, this can be easily inferred from the results of the simulation study conducted
+in the next Section 6. Thus, for longer time horizons (e.g. T = 100 days), we will use the
+adaptive gradient descent choice proposed in (4.14) for the step size µj (see Algorithm 1 in [49]).
+We recall that we are still dealing with a Landweber scheme, but with a different choice for the
+step size. However, in the following we will refer to the algorithm below as the adaptive gradient
+descent method, to differentiate it from the previous one. Hence, this method requires a final
+measurement of the tumour phase field φmeas, an initial guess φ0
+0, initial values for the internal
+parameters µ0 and θ0, and a maximum number of iterations j∗. Then, for j = 0, . . . , j∗we
+proceed as follows:
+1. Given φj
+0, set σj
+0 = c0,σ + c1,σφj
+0 and pj
+0 = c0,p + c1,pφj
+0.
+2. Run the forward system
+∂tφ −λ∆φ + F ′(φ) −m(σ)h′(φ) = 0
+in QT ,
+∂tσ −η∆σ = Sh + Schφ −γhσ −γchσφ
+in QT ,
+∂tp −D∆p + γpp = αh + αchφ
+in QT ,
+φ = 0,
+∂nσ = ∂np = 0
+in ΣT ,
+φ(0) = φj
+0,
+σ(0) = σj
+0,
+p(0) = pj
+0
+in Ω,
+and call the corresponding solution (φj, σj, pj).
+3. Run the adjoint system
+−∂tq −λ∆q + F ′′(φj)q −m(σj)h′′(φj)q + γchσjz −Schz −αchr = 0
+in QT ,
+−∂tz −η∆z + γhz + γchφjz −m′(σj)h′(φj)q = 0
+in QT ,
+−∂tr −D∆r + γpr = 0
+in QT ,
+q = 0,
+∂nz = ∂nr = 0
+in ΣT ,
+q(T) = φj(T) −φmeas,
+z(T) = 0,
+r(T) = 0
+in Ω,
+and call the corresponding solution (qj, zj, pj).
+4. If j = 0, set µ0 = 0.2/qM where qM is calculated from the global maximum and minimum
+control variables for qj
+0 (see Section 5.1) as
+qj
+M = max
+
+max
+A=1,...,nf(qj
+A(0)),
+
+min
+A=1,...,nf(qj
+A(0))
+
+
+.
+Otherwise, for j ≥1, calculate the next adaptive step size µj as
+µj = min
+(p
+1 + θj−1µj−1, ∥φj
+0 −φj−1
+0
+∥L2(Ω)
+2∥qj
+0 −qj−1
+0
+∥L2(Ω)
+)
+.
+(5.45)
+5. If j = 0, set θ0 = +∞, otherwise update the internal parameter θ as
+θj =
+µj
+µj−1 .
+Reconstructing early states of prostate cancer
+19
+6. Calculate the new iterate of the initial tumour phase field as
+φj+1
+0
+= φj
+0 −µjqj
+0.
+Check that the updated tumour phase field at t = 0 verifies 0 ≤φj+1
+0
+≤1; otherwise
+truncate φj+1
+0
+accordingly to ensure that this iterate is admissible.
+7. Check if the same two convergence criteria used for the Landweber iteration scheme in
+Section 5.3.1 are satisfied. Otherwise, restart from the top in a new iteration.
+6
+Simulation study
+In this section, we perform a simulation study to explore the behaviour of the algorithms de-
+scribed in Sections 5.3.1 and 5.3.2 to reconstruct the initial tumour phase field considering short
+and long time horizons respectively. The simulations of the forward prostate cancer model, the
+linearised problem, and the adjoint problem are carried out using the spatial and temporal dis-
+cretisation schemes introduced in Sections 5.1 and 5.2. For simplicity of notation and unless
+otherwise indicated, in the simulation results provided herein, we drop the superindex h that
+was introduced in Section 5.1 to denote finite-dimensional approximations.
+6.1
+Computational scenario and setup
+6.1.1
+Model parameters
+We consider an aggressive case of prostate cancer, as detailed in Refs. [13,14]. This scenario could
+correspond to a tumour exhibiting an intermediate or high Gleason score, which is a fundamental
+histopathological metric associated with prostate cancer aggressiveness [44,50]. In the clinic, it is
+key to early identify these tumours to ensure adequate monitoring and treatment [24,25,44,50].
+In the context of the reconstruction of the initial conditions of the cancer model considered
+herein, the aggressive case is also the most interesting: this tumour scenario leads to geometric
+changes of the tumour over time due to restricted access to the nutrients (see Ref. [13, 48]),
+which pose a challenge for the estimation of the initial tumour phase-field map. We use the same
+parameters of the model as in Ref. [14] for the simulations presented in this work, which are
+based on previous studies in the literature [6,13,24,25,43,44,46,48,50,55,66].
+6.1.2
+Numerical implementation details
+The numerical algorithms described in Section 5 to solve the forward, linearised, and adjoint
+problems as well as to reconstruct the initial tumour phase field were implemented using our
+in-house isogeometric codes to simulate prostate cancer growth [13, 14, 43, 46, 48]. These codes
+were developed following the general directions and algorithms provided in Ref. [16].
+The numerical simulations for the reconstruction algorithms considered in this work are
+performed in a square tissue patch with side length Ld =3000 µm. This computational domain
+is discretised using 256 C1-continuous quadratic B-spline elements per side. We further consider
+a constant time step, which is set to ∆tn = 0.1 days for the forward and linearised problems. As
+the adjoint problem runs backwards in time, we set ∆tn = −0.1 days for its time discretisation.
+We set the tolerance of the Newton-Rapshon method to εNR = 10−3. The convergence of
+the GMRES method is set to a tolerance of εGMRES = 10−3 and a maximum of 500 iterations.
+The convergence of the Landweber iteration scheme and the adaptive gradient descent algorithm
+used to reconstruct the initial tumour phase field is fixed at a tolerance of εSD = 10−4 and a
+maximum of 500 iterations for both methods.
+20
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+6.1.3
+Ground truth
+To assess the performance of the tumour phase field reconstruction methods described in Sec-
+tions 5.3.1 and 5.3.2, we consider a reference simulation of the prostate cancer model. This in
+silico ground truth is generated with a finer mesh within the same spline space defined above.
+In particular, we use twice the number of elements along each spatial direction (i.e., 512 × 512
+elements). We consider an initial phase field configuration consisting of an ellipsoidal tumour
+placed in the centre of the computational domain (i.e., (xc, yc) = (Ld/2, Ld/2)) and with semi-
+axes a =150 µm and b =200 µm parallel to the sides of the domain. We implement this initial
+condition via the L2-projection of the hyperbolic tangent function
+φ0(x1, x2) = 1
+2 −1
+2 tanh
+ 
+10
+ r
+(x1 −xc/2)2
+a2
++ (x2 −yc/2)2
+b2
+−1
+!!
+(6.1)
+over the C1-continuous quadratic B-spline space supporting our spatial discretisation. This op-
+eration provides the control variables φ0,A = φA(0), A = 1, . . . , nf, for the spline representation
+of the phase-field initial condition, i.e., φh
+0(x) = φh(0, x) = Pnf
+A=1 φ0,ANA(x) (see Section 5.1).
+In particular, this ground truth simulation also provides the terminal measurement φmeas. Ad-
+ditionally, we analyse the performance of the reconstruction algorithms in the presence of noise.
+Towards this end, we affected the tumour measurement at the time horizon φmeas with 10% Gaus-
+sian noise, which was applied to the control variables φmeas,A > 0.001. This implementation fol-
+lows the usual thresholding segmentation approaches used in the construction of tumour-defining
+spatial maps from imaging data for their ensuing use in biophysical modelling [1,44].
+6.1.4
+Initial guess
+To start the reconstruction algorithms, the initial guess φ0
+0 consists of a small spherical tumour
+implemented using Eq. (6.1) with radius a = b =100 µm and centre coordinates (xc, yc) matching
+the centre of mass of the tumour phase field map φmeas measured at t = T, which is used to
+define the objective functional of the minimisation problem (see Eq. (5.42)). The rationale for
+this choice is having a sufficiently small tumour aligned with the observed tumour configuration
+at t = T as a reasonable starting point to facilitate the iterative reconstruction of φ0
+0.
+6.1.5
+Metrics to assess the reconstruction of the tumour phase field
+We assess the tumour phase field at t = 0 and t = T in terms of a panel of four metrics that are
+commonly used in the literature of mathematical models of cancer [30, 35, 44, 45, 63]. First, we
+use the relative error in tumour volume Vφ. The latter is calculated via spatial integration of the
+tumour phase field over the volume enclosed by the isosurface φ = 0.5, which we denote by Ωφ.
+This isosurface implicitly tracks the interface between healthy and tumour tissue [13,14,46,48].
+Thus, we calculate Vφ as
+Vφ =
+Z
+Ωφ
+dx,
+and the relative error in tumour volume as
+eV,t = eV (t) = V ref
+φ
+(t) −V rec
+φ
+(t)
+V ref
+φ
+(t)
+,
+where V ref
+φ
+is the volume of the tumour calculated from the tumour phase field of the reference
+(i.e., ground truth) simulation φref and V rec
+φ
+is the volume of the tumour calculated from the
+reconstructed tumour phase field φrec. Second, we use the Sørensen-Dice similarity coefficient
+(DSC) to assess whether the volume of the reconstructed tumour phase field matches the one
+Reconstructing early states of prostate cancer
+21
+Figure 1: Reconstruction of the initial tumour phase field from a measurement at T = 15 days using the
+Landweber iteration scheme. The first two columns compare the tumour phase field from the reference
+simulation and the corresponding reconstruction at t = 0 and t = T. The plot in the last column provides
+the values of the four metrics used to assess the reconstruction of the tumour phase field in each iteration
+of the Landweber algorithm.
+from the reference configuration at the same time [30,44,63]. Towards this end, we calculate the
+DSC at time t as
+DSCt = DSC(t) =
+2V int
+φ (t)
+V rec
+φ
+(t) + V ref
+φ
+(t)
+,
+where V int
+φ
+is the volume of the intersection of the tumour phase fields from the ground truth
+and resulting from the reconstruction procedure. The volumes to calculate the DSC are also cal-
+culated with respect to the corresponding isosurfaces φ = 0.5 for the reference and reconstructed
+tumour phase fields. Third, we use the relative L2 error of the reconstructed tumour phase field
+with respect to its counterpart in the reference simulation. Hence, the L2 error is calculated as
+eL2,t = eL2(t) = ∥φref(t) −φrec(t)∥L2(Ω)
+∥φref(t)∥L2(Ω)
+Finally, we also calculate the concordance correlation coefficient (CCC) [30,35,41,44] to assess
+the pointwise agreement between the reference and reconstructed tumour phase fields as
+CCCt = CCC(t) =
+2Cov(φref(t), φrec(t))
+Var(φref(t)) + Var(φrec(t)) + (Mean(φref(t)) −Mean(φrec(t)))2 ,
+where the covariance, variances, and means of the reference and reconstructed tumour phase
+fields are calculated over the volume enclosed by the corresponding φ = 0.5 isosurfaces.
+6.2
+Reconstruction of the tumour phase field for short time horizons
+We analyse the performance of the Landweber iteration scheme in a computational scenario with
+a short time horizon of T = 15 days. Figure 1 provides the reconstruction of the tumour phase
+field at t = 0 and at the time horizon t = T, as well as a comparison of these results to the
+ground truth simulation at the same time points. Qualitatively, we observe that the Landweber
+method yields a very good reconstruction of the tumour phase field at t = 0, and that this results
+22
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+Figure 2: Convergence of the Landweber algorithm for T = 15 days. This figure provides the changes
+of the relative L2 error of the reconstructed tumour phase field at t = 0 and t = T. For eL2,0, we also
+plot a straight dotted line with the same slope as the linear portion of the trajectory of the relative L2
+error. The value of this slope is -9.47·10−2, which corresponds to a value of parameter c of 1.96·10−1 in
+Theorem 4.5. Thus, the convergence in all scenarios is infralinear, as it was found theoretically.
+in an excellent match to the measurement of the tumour phase field from the ground truth at
+t = T, which was used to drive the inverse problem. Figure 1 also provides the values of the
+metrics used to assess the reconstruction of the tumour phase field at both t = 0 and t = T in
+each iteration of the Landweber scheme until reaching convergence. These quantitative results
+demonstrate that this method achieves an accurate reconstruction of the tumour phase field at
+both t = 0 and t = T. Indeed, these quantitative results show a minimal error at t = T, thereby
+confirming that the reconstruction algorithm yields a perfect match to the available measurement
+of the tumour phase field at the time horizon. Furthermore, we also obtain a very small error
+in the tumour volume and a high DSC for the reconstructed tumour phase field at t = 0, which
+indicate an excellent reconstruction of the geometry of the initial tumour. While the CCC and
+the L2 error at t = 0 reveal some mismatch between the reconstructed tumour and the ground
+truth at t = 0, these results still represent a successful recovery of the tumour phase field as
+compared with the corresponding values of these metrics obtained in the assessment of model
+calibration and forecasting in the literature [30,44,63,64]. Moreover, the trajectory of the values
+of all assessment metrics during the iterations plateaus towards the end of the reconstruction
+procedure, which suggests the achievement of sufficient convergence for the chosen tolerance.
+In Figure 2 we provide more detail of the convergence rate of the Landweber iteration scheme
+according to the relative L2 error. In particular, the slope of the linear part of the trajectory
+of the relative L2 error of the reconstructed initial tumour phase field along the Landweber
+iterations is -9.47·10−2. This slope also corresponds to a value of parameter c in Theorem 4.5
+of 1.96·10−1. Thus, Figure 2 shows that the convergence rate of the Landweber reconstruction
+algorithm is infralinear in accordance with Theorem 4.5.
+To further understand the reconstruction procedure with the Landweber iteration scheme,
+Figure 3 shows the tumour phase field and its associated dual variable (q, which is used to update
+the iterates of the initial tumour phase field) at t = 0 and t = T during several iterations of the
+Landweber algorithm. The results depicted in Figure 3 show how this reconstruction method
+progressively updates the starting guess of the initial tumour phase field to optimally match
+the measurement of the tumour at the time horizon. We observe that the initial guess of the
+tumour is first increased in size in all directions of space. Once the iterates of φ0 approach the
+size of the smallest axis of the ellipsoidal tumour in the ground truth at t = 0, the algorithm
+then continues enlarging φ0 in the direction of the longest axis. Then, as the reconstruction
+Reconstructing early states of prostate cancer
+23
+(a) j = 0
+(b) j = 11
+(c) j = 22
+(d) j = 33
+Figure 3: Reconstruction of the initial tumour phase field from a measurement at T = 15 days using
+the Landweber iteration scheme. In each panel, the first two rows represent the tumour phase field and
+its corresponding adjoint variable at t = 0 (i.e, φ0 and q0), while the last two rows provide the same
+quantities at t = T (i.e, φT and qT ).
+procedure approaches convergence, the updates of the initial tumour phase field are increasingly
+focused along the interface between tumour and healthy tissue. We note that these updates
+are obtained by solving the dual problem, which is initialised using the mismatch between the
+tumour phase field and its corresponding measurement at time t = T. Hence, the spatial map
+of qT in the computational scenarios considered herein initially shows values between -1 and 0,
+in which the negative values indicate regions that need to be occupied by the tumour. Towards
+this end, solving the dual problem maps this mismatch at time t = T into precise updates of
+the tumour phase field at t = 0. As the reconstruction method proceeds, the mismatch between
+the tumour measurement and model reconstruction at the time horizon progressively diminishes,
+which progressively reduces the range of values of qT towards zero. This results in a parallel
+contraction of the value range and increased localisation of q0 to update the initial tumour phase
+24
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+Figure 4: Reconstruction of the initial tumour phase field from a measurement at T = 90 days using
+the adaptive gradient descent algorithm. The first two columns compare the tumour phase field from
+the reference simulation and the corresponding reconstruction at t = 0 and t = T. The plot in the last
+column provides the values of the four metrics used to assess the reconstruction of the tumour phase field
+in each iteration of the adaptive gradient descent algorithm.
+field. Additionally, the Landweber adaptive step size exhibits a median (range) of 3.53·10−2
+(2.70·10−2, 9.09·10−2). Hence, the product of these step size values by the increasingly lower
+values of q0 during the iterations of the Landweber algorithm results in a progressively smaller
+update to the initial tumour phase field, which further translates into minimal changes to φT as
+the algorithm approaches convergence.
+6.3
+Reconstruction of the tumour phase field for long time horizons
+We study the performance of the adaptive gradient descent algorithm in two computational
+scenarios with a long time horizon of T = 90 and 365 days. Figure 4 shows that this method can
+reconstruct the earlier state of the tumour considering a time horizon of T = 90 days efficiently
+and accurately. Additionally, the results in Figure 5 confirm that the adaptive gradient descent
+method can reconstruct the tumour state a year before acquiring the spatial measurement (i.e.,
+T = 365 days). Nevertheless, for this last scenario, we increased the tolerance εSD to 0.1 and we
+had to change the initial guess from a small round tumour (as indicated in Section 6.1.4) to an
+ellipsoidal tumour with larger vertical axis (a =100 µm, b =150 µm). The tolerance increment
+is implemented based on the results of a first simulation with the original value indicated in
+Section 6.1, which showed that it was too strict for this case. This issue could be motivated by
+the drastic geometric changes of the tumour phase field at t = T, which may accumulate small
+local reconstruction errors over a large tumour volume. The rationale for adapting the initial
+guess is that the round tumour used in previous simulations led to a failure of the reconstruction
+algorithm, whereby the size of φ0 progressively decreases in each iteration of the adaptive gradient
+descent method until vanishing. We believe that this issue stems from a choice of an initial guess
+that is too far from the ground truth in this computational scenario. Thus, we opted to change
+the initial guess according to the known dynamics of the model. In particular, the simulations
+of the model presented in [13] show that the horizontal tumour branches observed at t = T
+come from an ellipsoidal tumour with a longer axis in the orthogonal direction to the branches
+at time t = 0, as observed in the simulation used to generate the ground truth in this work.
+After adjusting the initial guess to match this knowledge from the model dynamics, we observe
+Reconstructing early states of prostate cancer
+25
+Figure 5: Reconstruction of the initial tumour phase field from a measurement at T = 365 days using
+the adaptive gradient descent algorithm. The first two columns compare the tumour phase field from
+the reference simulation and the corresponding reconstruction at t = 0 and t = T. The plot in the last
+column provides the values of the four metrics used to assess the reconstruction of the tumour phase field
+in each iteration of the adaptive gradient descent algorithm.
+an excellent performance of the adaptive gradient descent. We would like to remark that the
+logic leveraged to adjust the initial guess can also be followed in actual clinical scenarios: given
+a spatial tumour measurement and a known model, one can choose the initial guess of the
+early state of the tumour phase field that favours a model prediction of the tumour morphology
+observed in the measurement.
+Figures 4 and 5 demonstrate that the adaptive gradient descent method achieves a high qual-
+itative and quantitative agreement between the reconstructed tumour phase field and the ground
+truth both at t = 0 and t = T in the two computational scenarios considered in this section. As
+observed for the Landweber method, the reconstruction yields very good results at time t = T
+according to all metrics. While the DSC and relative error in the tumour volume at t = 0 show
+that the reconstructed tumour at t = 0 is practically identical to the ground truth, the CCC and
+the relative L2 error suggest that there is a certain mismatch. Nevertheless, the values of these
+metrics at time t = 0 still represent a successful reconstruction of the initial tumour morphol-
+ogy, and they are also comparable to prediction errors obtained in the computational tumour
+forecasting studies in the literature [30,44,63,64]. For the T = 90 day scenario, the plateauing
+trend in all metrics at t = 0 and t = T suggests that the adaptive gradient descent method has
+already reached convergence for the tolerance considered in the simulation. Thus, these results
+further support the use of a larger tolerance to obtain equally acceptable reconstruction results
+in these scenarios and, hence, facilitate convergence in more demanding cases. Indeed, this is the
+case of the T = 365 day scenario, in which we observe a progressive improvement of the metrics
+over the iterations of the adaptive gradient descent algorithm to satisfactory values according
+to computational oncology literature [30,44,63,64]. In this computational scenario, only DSC0,
+DSCT , CCC0, and eV,T start to reach a plateau towards the end of the simulation. The lack
+of a generalised plateauing trend results from the earlier termination of the adaptive gradient
+descent algorithm caused by the increase in convergence tolerance εSD.
+Figures 6 and 7 further show the changes in the tumour phase field φ and the dual variable
+q at times t = 0 and t = T obtained in four iterations of the reconstruction procedure in the
+two computational scenarios in this section. The results for T = 90 days are similar to those
+26
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+(a) j = 0
+(b) j = 5
+(c) j = 9
+(d) j = 13
+Figure 6: Reconstruction of the initial tumour phase field from a measurement at T = 90 days using the
+adaptive gradient descent algorithm. In each panel, the first two rows represent the tumour phase field
+and its corresponding adjoint variable at t = 0 (i.e, φ0 and q0), while the last two rows provide the same
+quantities at t = T (i.e, φT and qT ).
+obtained with the Landweber method: the updates of the initial tumour phase field φ0 obtained
+from q0 initially enlarge the tumour in both directions of space, then modify the tumour shape
+in the direction with larger mismatch with respect to the ground truth (i.e., in the vertical
+direction), and finally adjust the morphology of φ0 along the interface. In the T = 365 day
+scenario, we observe that the initial ellipsoidal tumour progressively adjusts its shape while
+increasing its size until the algorithm reaches convergence. Additionally, for both computational
+scenarios in this section, we observe that the absolute values and range of the dual variable q
+at both t = 0 and t = T decrease globally as the reconstruction advances and the mismatch
+between the tumour reconstruction and the ground truth diminishes, as we had also observed
+with the Landweber method. Figures 6 and 7 also show that the values of q0 increase as we
+consider a higher time horizon T. To ensure a stable update of the initial tumour phase field,
+Reconstructing early states of prostate cancer
+27
+(a) j = 0
+(b) j = 2
+(c) j = 4
+(d) j = 6
+Figure 7: Reconstruction of the initial tumour phase field from a measurement at T = 365 days using
+the adaptive gradient descent algorithm. In each panel, the first two rows represent the tumour phase
+field and its corresponding adjoint variable at t = 0 (i.e, φ0 and q0), while the last two rows provide the
+same quantities at t = T (i.e, φT and qT ).
+the adaptive gradient descent algorithm produces a median (range) value of the adaptive step
+size of 1.51·10−6 (9.76·10−7, 1.96·10−6) and 1.02·10−25 (4.24·10−26, 1.58·10−25) for T = 90 and
+365 days, respectively.
+6.4
+Reconstruction of the tumour phase field using ground truth affected by
+noise
+In this section, we analyse the performance of the Landweber iteration scheme and the adaptive
+gradient descent algorithm in the presence of noise.
+Figure 8 shows the results for a time
+horizon T = 15 days using the Landweber iteration scheme, including the tumour reconstruction
+at t = 0 and t = T along with the evolution of the metrics to assess the quality of the tumour
+reconstruction. Additionally, Figures 9 and 10 provide the corresponding results for time horizon
+28
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+Figure 8: Reconstruction of the initial tumour phase field from a measurement at T = 15 days affected
+by 10% Gaussian noise using the Landweber iteration scheme. The first two columns compare the tumour
+phase field from the reference simulation without noise and the corresponding reconstruction at t = 0 and
+t = T. The plot in the last column provides the values of the four metrics used to assess the reconstruction
+of the tumour phase field in each iteration of the Landweber algorithm.
+Figure 9: Reconstruction of the initial tumour phase field from a measurement at T = 90 days affected by
+10% Gaussian noise by leveraging the adaptive gradient descent algorithm. The first two columns compare
+the tumour phase field from the reference simulation without noise and the corresponding reconstruction
+at t = 0 and t = T. The plot in the last column provides the values of the four metrics used to assess the
+reconstruction of the tumour phase field in each iteration of the adaptive gradient descent algorithm.
+T = 90 and 365 days using the adaptive gradient descent algorithm. Similarly to the long-time
+horizon results presented in Section 6.3, for the latter scenario we adjusted the initial guess to
+an ellipsoid (a =100 µm, b =150 µm) and we further increased the tolerance εSD to 0.1 in order
+to achieve convergence.
+In Figures 8-10, the values of the metrics at t = T and t = 0 are
+calculated with respect to the ground truth without noise to enable comparison with respect
+to the results in Sections 6.2 and 6.3. Moreover, Figures 11, 12, and 13 show the changes in
+Reconstructing early states of prostate cancer
+29
+Figure 10: Reconstruction of the initial tumour phase field from a measurement at T = 365 days affected
+by 10% Gaussian noise by leveraging the adaptive gradient descent algorithm. The first two columns
+compare the tumour phase field from the reference simulation without noise and the corresponding
+reconstruction at t = 0 and t = T. The plot in the last column provides the values of the four metrics
+used to assess the reconstruction of the tumour phase field in each iteration of the adaptive gradient
+descent algorithm.
+the tumour phase field and the dual variable q at t = 0 and t = T during the initial tumour
+reconstruction with the Landweber iteration scheme (T = 15 days) and the adaptive gradient
+descent algorithm (T = 90 and 365 days). The results in Figures 8-10 are analogous to those
+presented in Figures 1, 4, and 5 respectively. Indeed, the values of the reconstruction metrics at
+t = 0 and t = T are virtually the same as those obtained in the corresponding scenarios without
+noise. The presence of noise only impacts in a small increase in the number of iterations for
+convergence in the scenarios with T = 15 and 90 days. Additionally, the spatial maps obtained
+for φ0, q0, φT , and qT during the tumour reconstruction in the scenarios with a noisy φmeas
+align with those calculated in the corresponding scenarios without noise (see Figures 3, 6, and 7,
+respectively). The main difference is observed for qT , since the noisy φmeas affects its calculation
+in each iteration of the reconstruction algorithms. We further observe that the presence of noise
+only impacts q0 when the difference between φmeas and φT is in the neighbourhood of the value of
+the added noise. In this situation, qT essentially consists of noisy values that ultimately render an
+asymmetric or irregular q0 map. However, given that the update of the initial tumour phase field
+towards the end of the algorithm is minimal, these irregularities in q0 do not impact the tumour
+reconstruction. Thus, the qualitative and quantitative accuracy of the tumour reconstruction
+at time t = 0 and t = T is virtually the same despite the noise added to φmeas. These results
+demonstrate the robustness of the Landweber iteration scheme and the adaptive gradient descent
+method in recovering the initial ground truth under noisy measurements.
+7
+Discussion
+In this work, we studied the inverse problem of reconstructing an earlier state of prostate cancer
+from a given spatial measurement collected at a certain time of interest T. Within the inverse
+problem formulation, this instant becomes the time horizon and we used our previously pre-
+sented phase-field model to recover prostate cancer growth before the measurement [5, 13, 14].
+From a mathematical perspective, the inverse problem consists of reconstructing the initial data
+30
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+(a) j = 0
+(b) j = 11
+(c) j = 22
+(d) j = 37
+Figure 11: Reconstruction of the initial tumour phase field from a measurement at T = 15 days affected
+by 10% Gaussian noise by leveraging the Landweber iteration scheme. In each panel, the first two rows
+represent the tumour phase field and its corresponding adjoint variable at t = 0 (i.e, φ0 and q0), while
+the last two rows provide the same quantities at t = T (i.e, φT and qT ).
+(φ0, σ0, p0) starting from a single measurement (φmeas, σmeas, pmeas) at the end-time T. We stress
+that such a problem is generally known to be severly ill-posed, in particular the larger the fi-
+nal time T grows. Leveraging the quantitative Lipschitz stability estimate on finite-dimensional
+subspaces found in [5], we motivated the use of a Landweber iteration scheme to approximate
+the solution of the inverse problem. We proved some theoretical convergence results of such a
+method in both its variants with a fixed and an adaptive steepest descent step size. With the idea
+of accelerating its convergence, especially for the most challenging case of large time horizons T,
+we also employed a different choice of the step size, proposed in [49]. Even if lacking theoretical
+guarantees, due to the heavy use of convexity assumptions in [49], this second method proved
+very powerful in tackling such challenging cases.
+To better understand the performance of the reconstruction algorithms, we conducted a sim-
+Reconstructing early states of prostate cancer
+31
+(a) j = 0
+(b) j = 5
+(c) j = 9
+(d) j = 14
+Figure 12: Reconstruction of the initial tumour phase field from a measurement at T = 90 days affected
+by 10% Gaussian noise by employing the adaptive gradient descent algorithm. In each panel, the first
+two rows represent the tumour phase field and its corresponding adjoint variable at t = 0 (i.e, φ0 and
+q0), while the last two rows provide the same quantities at t = T (i.e, φT and qT ).
+ulation study considering a tumour growing in a square tissue patch and using synthetic ground
+truth data generated by the phase-field model.
+Our results show that the Landweber itera-
+tion scheme yields a high-quality reconstruction of the initial tumour conditions for short time
+horizons (e.g., a few weeks).
+These results also confirmed the infralinear convergence of the
+Landweber method that was derived analytically in Theorem 4.5. Furthermore, the computa-
+tional study presented in this work demonstrated the capability of the adaptive gradient descent
+method to enable the reconstruction of tumours for longer time horizons (e.g., several months
+to one year). Nevertheless, to achieve convergence in the longest time horizon considered in the
+study (T = 365 days) we needed to adapt the initial guess to a closer geometry to the ground
+truth and reduce the convergence tolerance used in the other time horizon scenarios. Of note,
+this last choice was supported by the results for shorter T cases since they show that conver-
+32
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+(a) j = 0
+(b) j = 2
+(c) j = 4
+(d) j = 6
+Figure 13: Reconstruction of the initial tumour phase field from a measurement at T = 365 days affected
+by 10% Gaussian noise by employing the adaptive gradient descent algorithm. In each panel, the first
+two rows represent the tumour phase field and its corresponding adjoint variable at t = 0 (i.e, φ0 and
+q0), while the last two rows provide the same quantities at t = T (i.e, φT and qT ).
+gence is achieved before the reconstruction algorithm reaches the preset tolerance. Additionally,
+the results obtained for the T = 365 demonstrate an excellent reconstruction of the tumour,
+which are comparable to the results obtained with the adaptive gradient descent algorithm for
+T = 90 and the preset tolerance. To complete our simulation study, we further analysed the
+performance of both reconstruction methods under a noisy measurement at the time horizon.
+Our simulation results in this situation show that both reconstruction algorithms can recover
+the initial conditions of the tumour with sufficiently high quality. Thus, our simulation study
+suggests that (i) the Landweber iteration scheme might be preferred for the reconstruction of
+recent stages of a tumour (i.e., short T) due to the existence of robust convergence analytical
+guarantees, and (ii) the adaptive gradient descent algorithm can be alternatively leveraged to
+efficiently handle longer temporal reconstructions, although it may require using initial guesses
+Reconstructing early states of prostate cancer
+33
+closer to the ground truth and higher tolerances for convergence.
+We believe that we have obtained encouraging results, especially considering that we treated
+a complex system in full generality, differently from the partial results obtained in the previously
+mentioned works [34, 57, 58]. Nevertheless, this work also presents some limitations that can
+be addressed in future studies.
+First, we only considered a particular phase-field model for
+tumour growth [5, 13, 14]. A more complete analysis of the reconstruction algorithms studied
+herein should also consider different kinds of phase-field models or models based on Fisher-
+Kolmogorov and biomechanical formulations, which are also commonly used in computational
+oncology [30, 45, 56, 60, 63, 64]. Additionally, we only considered untreated growth, which can
+be of interest for newly-diagnosed tumours [44], but future studies could also address tumour
+reconstruction including treatment effects [13,30,45,64], which can be of interest when imaging
+data are acquired during therapy. Second, the model parameters governing tumour growth were
+assumed to be known. This might be feasible in preclinical cases (e.g., in vitro and in vivo
+animal studies) leveraging cancer cell lines with previously characterised dynamic features (e.g.,
+proliferation and invasion rates) [8, 40, 67]. However, the application of tumour reconstruction
+methods in clinical scenarios will require the recovery of not only the initial conditions of the
+tumour, but also the main parameters governing its growth dynamics [45, 58].
+Of note, for
+such a challenging mathematical problem, it might be necessary to first perform a sensitivity
+analysis and a parameter identifiability study to find a small set of significant parameters that
+can be effectively reconstructed [17, 47]. Third, our simulation study focused on a 2D square
+tissue patch. Although this computational setup facilitated the analysis of the reconstruction
+algorithms, future studies should also investigate their performance in 3D scenarios and consider
+patient-specific organ anatomies extracted from the reference imaging measurement at the time
+horizon [30, 43, 44, 48, 62, 63, 66]. Finally, we used synthetic data generated via simulation of
+our phase-field model to generate the ground truth. While this approach enables preliminary
+confirmation that the proposed reconstruction methods can recover spatiotemporal tumour maps
+matching the model dynamics, their ultimate validation needs to employ real-world data (e.g.,
+magnetic resonance imaging, computerised tomography) [45].
+Despite the formidable mathematical and computational challenges involved in the recon-
+struction of early tumour stages from a unique spatial measurement, the advances in the under-
+standing of this problem could ultimately have a profound impact on the use of computational tu-
+mour forecasts in clinical scenarios. In particular, the accurate personalised prediction of tumour
+growth from a single imaging dataset at diagnosis is a long-standing challenge in the field of com-
+putational oncology, which could dramatically improve treatment planning for better therapeutic
+outcomes [14, 35, 42, 45] as well as patient triaging to adequate management options [7, 44, 68].
+Thus, efficient and robust tumour reconstruction methods can be a key computational asset
+in the design of digital twins to optimise cancer monitoring and treatment [29, 65, 68], thereby
+contributing towards a more predictive and personalised paradigm in clinical oncology.
+Acknowledgements. C. Cavaterra, M. Fornoni and E. Rocca have been partially supported
+by the MIUR-PRIN Grant 2020F3NCPX “Mathematics for industry 4.0 (Math4I4)”.
+C. Ca-
+vaterra has been partially supported by the MIUR-PRIN Grant 2022 “Partial differential equa-
+tions and related geometric-functional inequalities”. C. Cavaterra, M. Fornoni and E. Rocca
+are members of GNAMPA (Gruppo Nazionale per l’Analisi Matematica, la Probabilità e le loro
+Applicazioni) of INdAM (Istituto Nazionale di Alta Matematica). The research of C. Cavaterra
+is part of the activities of “Dipartimento di Eccellenza 2023-2027” of Università degli Studi di
+Milano. Elena Beretta’s research has been partially supported by NYUAD Science Program
+Project Fund AD364. E. Rocca also acknowledges the support of Next Generation EU Project
+No.P2022Z7ZAJ (A unitary mathematical framework for modelling muscular dystrophies). G.
+Lorenzo acknowledges the support of a fellowship from “la Caixa” Foundation (ID 100010434).
+The fellowship code is LCF/BQ/PI23/11970033. We also thank the Texas Advanced Computing
+Center (TACC) for providing high-performance computational resources that contributed to the
+34
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+results presented in this work.
+References
+[1] A. Agosti, C. Giverso, E. Faggiano, A. Stamm, and P. Ciarletta, A personalized mathematical tool for neuro-
+oncology: A clinical case study, International Journal of Non-Linear Mechanics 107 (2018), 170–181.
+[2] G. S. Alberti and M. Santacesaria, Infinite-dimensional inverse problems with finite measurements, Arch.
+Ration. Mech. Anal. 243 (2022), 1–31.
+[3] A. Ali, T. Elumalai, B. Venkatesulu, L. Hekman, H. Mistry, et al., Tale of two zones: investigating the clinical
+outcomes and research gaps in peripheral and transition zone prostate cancer through a systematic review and
+meta-analysis, BMJ Oncology 3 (2024), e000193.
+[4] H. H. Bauschke, J. Bolte, and M. Teboulle, A descent lemma beyond Lipschitz gradient continuity: first-order
+methods revisited and applications, Math. Oper. Res. 42 (2017), 330–348.
+[5] E. Beretta, C. Cavaterra, M. Fornoni, G. Lorenzo, and E. Rocca, Mathematical analysis of a model-
+constrained inverse problem for the reconstruction of early states of prostate cancer growth, arXiv preprint
+arXiv:2404.12198, to appear in SIAM J. Appl. Math. (2024).
+[6] R. R. Berges, J. Vukanovic, J. I. Epstein, M. CarMichel, L. Cisek, D. E. Johnson, R. W. Veltri, P. C. Walsh,
+and J. T. Isaacs, Implication of cell kinetic changes during the progression of human prostatic cancer., Clin.
+Cancer Res. 1 (1995), 473–480.
+[7] R. Brady-Nicholls, J. D. Nagy, T. A. Gerke, T. Zhang, A. Z. Wang, J. Zhang, R. A. Gatenby, and H. Enderling,
+Prostate-specific antigen dynamics predict individual responses to intermittent androgen deprivation, Nat.
+Commun. 11 (2020), 1750.
+[8] A. Burbanks, M. Cerasuolo, R. Ronca, and L. Turner, A hybrid spatiotemporal model of PCa dynamics and
+insights into optimal therapeutic strategies, Math. Biosci. 355 (2023), 108940.
+[9] C. Cavaterra, E. Rocca, and H. Wu, Long-time dynamics and optimal control of a diffuse interface model for
+tumor growth, Appl. Math. Optim. 83 (2021), 739–787.
+[10] A. Chaudhuri, G. Pash, D. A. Hormuth, G. Lorenzo, M. Kapteyn, C. Wu, E. A. Lima, T. E. Yankeelov, and
+K. Willcox, Predictive digital twin for optimizing patient-specific radiotherapy regimens under uncertainty in
+high-grade gliomas, Frontiers in Artificial Intelligence 6 (2023), 1222612.
+[11] J. Chung and G. Hulbert, A time integration algorithm for structural dynamics with improved numerical
+dissipation: The generalized-α method, J. Appl. Mech. 60 (1993), 371–375.
+[12] P. Colli, G. Gilardi, E. Rocca, and J. Sprekels, Optimal distributed control of a diffuse interface model of
+tumor growth, Nonlinearity 30 (2017), 2518–2546.
+[13] P. Colli, H. Gomez, G. Lorenzo, G. Marinoschi, A. Reali, and E. Rocca, Mathematical analysis and simulation
+study of a phase-field model of prostate cancer growth with chemotherapy and antiangiogenic therapy effects,
+Math. Models Methods Appl. Sci. 30 (2020), 1253–1295.
+[14] P. Colli, H. Gomez, G. Lorenzo, G. Marinoschi, A. Reali, and E. Rocca, Optimal control of cytotoxic and
+antiangiogenic therapies on prostate cancer growth, Math. Models Methods Appl. Sci. 31 (2021), 1419–1468.
+[15] P. Cornford, R. C. van den Bergh, E. Briers, T. Van den Broeck, M. G. Cumberbatch, et al., EAU-
+EANM-ESTRO-ESUR-SIOG guidelines on prostate cancer. part II—2020 update: treatment of relapsing and
+metastatic prostate cancer, Eur. Urol. 79 (2021), 263–282.
+[16] J. A. Cottrell, T. J. Hughes, and Y. Bazilevs, Isogeometric analysis: toward integration of CAD and FEA,
+John Wiley & Sons, 2009.
+[17] M. Craig, J. L. Gevertz, I. Kareva, and K. P. Wilkie, A practical guide for the generation of model-based
+virtual clinical trials, Front. Syst. Biol. 3 (2023), 1174647.
+[18] M. V. de Hoop, L. Qiu, and O. Scherzer, Local analysis of inverse problems: Hölder stability and iterative
+reconstruction, Inverse Problems 28 (2012), 045001, 16 pp.
+[19] J. Duchi, E. Hazan, and Y. Singer, Adaptive subgradient methods for online learning and stochastic optimiza-
+tion, J. Mach. Learn. Res. 12 (2011), 2121–2159.
+[20] M. Ebenbeck and P. Knopf, Optimal control theory and advanced optimality conditions for a diffuse interface
+model of tumor growth, ESAIM Control Optim. Calc. Var. 26 (2020), Paper No. 71, 38.
+[21] M. Fornoni, Maximal regularity and optimal control for a non-local Cahn-Hilliard tumour growth model, J.
+Differential Equations 410 (2024), 382–448.
+[22] S. Frigeri, K. F. Lam, and A. Signori, Strong well-posedness and inverse identification problem of a non-local
+phase field tumour model with degenerate mobilities, European J. Appl. Math. 33 (2022), 267–308.
+Reconstructing early states of prostate cancer
+35
+[23] H. Garcke, K. F. Lam, and E. Rocca, Optimal control of treatment time in a diffuse interface model of tumor
+growth, Appl. Math. Optim. 78 (2018), 495–544.
+[24] F. Giganti, C. M. Moore, S. Punwani, C. Allen, M. Emberton, and A. Kirkham, The natural history of
+prostate cancer on MRI: lessons from an active surveillance cohort, Prostate Cancer Prostatic Dis. 21 (2018),
+556–563.
+[25] F. Giganti, A. Stabile, V. Stavrinides, E. Osinibi, A. Retter, et al., Natural history of prostate cancer on
+active surveillance: stratification by MRI using the PRECISE recommendations in a UK cohort, Eur. Radiol.
+31 (2021), 1644–1655.
+[26] R. K. Gupta, A. M. Roy, A. Gupta, K. Takabe, A. Dhakal, M. Opyrchal, P. Kalinski, and S. Gandhi,
+Systemic therapy de-escalation in early-stage triple-negative breast cancer: dawn of a new era?, Cancers 14
+(2022), 1856.
+[27] M. Hanke, A. Neubauer, and O. Scherzer, A convergence analysis of the Landweber iteration for nonlinear
+ill-posed problems, Numer. Math. 72 (1995), 21–37.
+[28] D. N. Hào and N. V. Duc, Stability results for backward parabolic equations with time-dependent coefficients,
+Inverse Problems 27 (2011), 025003, 20.
+[29] T. Hernandez-Boussard, P. Macklin, E. J. Greenspan, A. L. Gryshuk, E. Stahlberg, T. Syeda-Mahmood,
+and I. Shmulevich, Digital twins for predictive oncology will be a paradigm shift for precision cancer care, Nat.
+Med. 27 (2021), 2065–2066.
+[30] D. A. Hormuth, K. A. Al Feghali, A. M. Elliott, T. E. Yankeelov, and C. Chung, Image-based personalization
+of computational models for predicting response of high-grade glioma to chemoradiation, Sci. Rep. 11 (2021),
+8520.
+[31] S. Hubmer and R. Ramlau, Convergence analysis of a two-point gradient method for nonlinear ill-posed
+problems, Inverse Problems 33 (2017), 095004.
+[32] V. Isakov, Inverse problems for partial differential equations, third ed., Applied Mathematical Sciences, vol.
+127, Springer, Cham, 2017.
+[33] K. E. Jansen, C. H. Whiting, and G. M. Hulbert, A generalized-α method for integrating the filtered Navier–
+Stokes equations with a stabilized finite element method, Comput. Methods Appl. Mech. Eng. 190 (2000),
+305–319.
+[34] R. Jaroudi, G. Baravdish, B. T. Johansson, and F. Åström, Numerical reconstruction of brain tumours,
+Inverse Probl. Sci. Eng. 27 (2019), 278–298.
+[35] A. M. Jarrett, D. A. Hormuth, S. L. Barnes, X. Feng, W. Huang, and T. E. Yankeelov, Incorporating
+drug delivery into an imaging-driven, mechanics-coupled reaction diffusion model for predicting the response
+of breast cancer to neoadjuvant chemotherapy: theory and preliminary clinical results, Phys. Med. Biol. 63
+(2018), 105015.
+[36] C. Jungk, R. Warta, A. Mock, S. Friauf, B. Hug, et al., Location-dependent patient outcome and recurrence
+patterns in idh1-wildtype glioblastoma, Cancers 11 (2019), 122.
+[37] B. Kaltenbacher, A. Neubauer, and O. Scherzer, Iterative regularization methods for nonlinear ill-posed
+problems, Walter de Gruyter, Berlin, 2008.
+[38] A. S. Kazerouni, M. Gadde, A. Gardner, D. A. Hormuth, A. M. Jarrett, et al., Integrating quantitative assays
+with biologically based mathematical modeling for predictive oncology, Iscience 23 (2020), 101807.
+[39] M. M. Lavrent’ev, V. G. Romanov, and S. P. Shishat·ski˘ı, Ill-posed problems of mathematical physics and
+analysis, Translations of Mathematical Monographs, vol. 64, American Mathematical Society, Providence, RI,
+1986, Translated from Russian by J. R. Schulenberger.
+[40] E. A. Lima, R. A. Wyde, A. G. Sorace, and T. E. Yankeelov, Optimizing combination therapy in a murine
+model of her2+ breast cancer, Comput. Methods Appl. Mech. Eng. 402 (2022), 115484.
+[41] L. I.-K. Lin, A concordance correlation coefficient to evaluate reproducibility, Biometrics (1989), 255–268.
+[42] J. Lipková, P. Angelikopoulos, S. Wu, E. Alberts, B. Wiestler, et al., Personalized radiotherapy design for
+glioblastoma: integrating mathematical tumor models, multimodal scans, and Bayesian inference, IEEE Trans.
+Med. Imaging 38 (2019), 1875–1884.
+[43] G. Lorenzo, M. Scott, K. Tew, T. Hughes, and H. Gomez, Hierarchically refined and coarsened splines for
+moving interface problems, with particular application to phase-field models of prostate tumor growth, Comput.
+Methods Appl. Mech. Eng. 319 (2017), 515–548.
+[44] G. Lorenzo, J. S. Heiselman, M. A. Liss, M. I. Miga, H. Gomez, T. E. Yankeelov, A. Reali, and T. J. Hughes,
+A pilot study on patient-specific computational forecasting of prostate cancer growth during active surveillance
+using an imaging-informed biomechanistic model, Cancer Res. Commun. 4 (2024), 617–633.
+36
+Beretta – Cavaterra – Fornoni – Lorenzo – Rocca
+[45] G. Lorenzo, D. A. Hormuth II, A. M. Jarrett, E. A. Lima, S. Subramanian, G. Biros, J. T. Oden, T. J. Hughes,
+and T. E. Yankeelov, Quantitative in vivo imaging to enable tumour forecasting and treatment optimization,
+Cancer, Complexity, Computation, Springer, 2022, pp. 55–97.
+[46] G. Lorenzo, T. J. Hughes, P. Dominguez-Frojan, A. Reali, and H. Gomez, Computer simulations suggest that
+prostate enlargement due to benign prostatic hyperplasia mechanically impedes prostate cancer growth, Proc.
+Natl. Acad. Sci. U.S.A. 116 (2019), 1152–1161.
+[47] G. Lorenzo, A. M. Jarrett, C. T. Meyer, J. C. DiCarlo, J. Virostko, V. Quaranta, D. R. Tyson, and T. E.
+Yankeelov, A global sensitivity analysis of a mechanistic model of neoadjuvant chemotherapy for triple negative
+breast cancer constrained by in vitro and in vivo imaging data, Eng. Comput. (2023), 1–31.
+[48] G. Lorenzo, M. A. Scott, K. Tew, T. J. Hughes, Y. J. Zhang, L. Liu, G. Vilanova, and H. Gomez, Tissue-
+scale, personalized modeling and simulation of prostate cancer growth, Proc. Natl. Acad. Sci. U.S.A. 113
+(2016), E7663–E7671.
+[49] Y. Malitsky and K. Mishchenko, Adaptive gradient descent without descent, arXiv preprint arXiv:1910.09529
+(2019), 22 pp.
+[50] N. Mottet, R. C. van den Bergh, E. Briers, T. Van den Broeck, M. G. Cumberbatch, et al., EAU-EANM-
+ESTRO-ESUR-SIOG guidelines on prostate cancer—2020 update. part 1: screening, diagnosis, and local
+treatment with curative intent, Eur. Urol. 79 (2021), 243–262.
+[51] D. E. Neal, C. Metcalfe, J. L. Donovan, J. A. Lane, M. Davis, et al., Ten-year mortality, disease progression,
+and treatment-related side effects in men with localised prostate cancer from the protect randomised controlled
+trial according to treatment received, European Urology 77 (2020), 320–330.
+[52] Y. Nesterov, Introductory lectures on convex optimization: A basic course, Applied Optimization, vol. 87,
+Springer Science & Business Media, 2013.
+[53] L. E. Payne, Improperly posed problems in partial differential equations, Regional Conference Series in Applied
+Mathematics, vol. No. 22, Society for Industrial and Applied Mathematics, Philadelphia, PA, 1975.
+[54] Y. Saad and M. H. Schultz, GMRES: A generalized minimal residual algorithm for solving nonsymmetric
+linear systems, SIAM J. Sci. Stat. Comput. 7 (1986), 856–869.
+[55] H.-P. Schmid, J. E. McNeal, and T. A. Stamey, Observations on the doubling time of prostate cancer. The use
+of serial prostate-specific antigen in patients with untreated disease as a measure of increasing cancer volume,
+Cancer 71 (1993), 2031–2040.
+[56] T. Stylianopoulos, J. D. Martin, M. Snuderl, F. Mpekris, S. R. Jain, and R. K. Jain, Coevolution of solid
+stress and interstitial fluid pressure in tumors during progression: implications for vascular collapse, Cancer
+Res. 73 (2013), 3833–3841.
+[57] S. Subramanian, A. Ghafouri, K. M. Scheufele, N. Himthani, C. Davatzikos, and G. Biros, Ensemble inversion
+for brain tumor growth models with mass effect, IEEE transactions on medical imaging 42 (2022), 982–995.
+[58] S. Subramanian, K. Scheufele, M. Mehl, and G. Biros, Where did the tumor start? An inverse solver with
+sparse localization for tumor growth models, Inverse problems 36 (2020), 045006.
+[59] A. Tudorica, K. Y. Oh, S. Y. Chui, N. Roy, M. L. Troxell, et al., Early prediction and evaluation of breast
+cancer response to neoadjuvant chemotherapy using quantitative dce-mri, Translational oncology 9 (2016),
+8–17.
+[60] V. Vavourakis, T. Stylianopoulos, and P. A. Wijeratne, In-silico dynamic analysis of cytotoxic drug admin-
+istration to solid tumours: Effect of binding affinity and vessel permeability, PLoS Comput. Biol. 14 (2018),
+e1006460.
+[61] G. Vilanova, M. Burés, I. Colominas, and H. Gomez, Computational modelling suggests complex interactions
+between interstitial flow and tumour angiogenesis, J. R. Soc. Interface 15 (2018), 20180415.
+[62] S. Wise, J. Lowengrub, H. Frieboes, and V. Cristini, Three-dimensional multispecies nonlinear tumor growth-
+I: Model and numerical method, J. Theor. Biol. 253 (2008), 524–543.
+[63] K. C. Wong, R. M. Summers, E. Kebebew, and J. Yao, Pancreatic tumor growth prediction with elastic-
+growth decomposition, image-derived motion, and FDM-FEM coupling, IEEE Trans. Med. Imaging 36 (2016),
+111–123.
+[64] C. Wu, A. M. Jarrett, Z. Zhou, N. Elshafeey, B. E. Adrada, et al., MRI-based digital models forecast patient-
+specific treatment responses to neoadjuvant chemotherapy in triple-negative breast cancer, Cancer Res. 82
+(2022), 3394–3404.
+[65] C. Wu, G. Lorenzo, D. A. Hormuth, E. A. Lima, K. P. Slavkova, et al., Integrating mechanism-based modeling
+with biomedical imaging to build practical digital twins for clinical oncology, Biophys. Rev. 3 (2022), 021304.
+[66] J. Xu, G. Vilanova, and H. Gomez, A mathematical model coupling tumor growth and angiogenesis, PloS
+One 11 (2016), e0149422.
+Reconstructing early states of prostate cancer
+37
+[67] E. Y. Yang, G. R. Howard, A. Brock, T. E. Yankeelov, and G. Lorenzo, Mathematical characterization of
+population dynamics in breast cancer cells treated with doxorubicin, Front. Mol. Biosci. 9 (2022), 972146.
+[68] T. E. Yankeelov, D. A. Hormuth, E. A. Lima, G. Lorenzo, C. Wu, L. C. Okereke, G. M. Rauch, A. M.
+Venkatesan, and C. Chung, Designing clinical trials for patients who are not average, Iscience 27 (2024),
+108589.
+[69] A. Yin, D. J. A. Moes, J. G. van Hasselt, J. J. Swen, and H.-J. Guchelaar, A review of mathematical models
+for tumor dynamics and treatment resistance evolution of solid tumors, CPT: pharmacometrics & systems
+pharmacology 8 (2019), 720–737.
+[70] M. Ziu, B. Y. Kim, W. Jiang, T. Ryken, and J. J. Olson, The role of radiation therapy in treatment of
+adults with newly diagnosed glioblastoma multiforme: a systematic review and evidence-based clinical practice
+guideline update, Journal of Neuro-oncology 150 (2020), 215–267.
