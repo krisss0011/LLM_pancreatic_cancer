@@ -1,3043 +1,0 @@
-A convex formulation of covariate-adjusted Gaussian
-graphical models via natural parametrization
-Ruobin Liu and Guo Yu
-Department of Statistics and Applied Probability, University of California, Santa Barbara, Santa Barbara, CA, USA
-October 10, 2024
-Abstract
-Gaussian graphical models (GGMs) are widely used for recovering the conditional inde-
-pendence structure among random variables. Recently, several key advances have been made
-to exploit an additional set of variables for better estimating the GGMs of the variables of
-interest. For example, in co-expression quantitative trait locus (eQTL) studies, both the mean
-expression level of genes as well as their pairwise conditional independence structure may
-be adjusted by genetic variants local to those genes. Existing methods to estimate covariate-
-adjusted GGMs either allow only the mean to depend on covariates or suffer from poor scaling
-assumptions due to the inherent non-convexity of simultaneously estimating the mean and
-precision matrix. In this paper, we propose a convex formulation that jointly estimates the
-covariate-adjusted mean and precision matrix by utilizing the natural parametrization of the
-multivariate Gaussian likelihood. This convexity yields theoretically better performance as
-the sparsity and dimension of the covariates grow large relative to the number of samples. We
-verify our theoretical results with numerical simulations and perform a reanalysis of an eQTL
-study of glioblastoma multiforme (GBM), an aggressive form of brain cancer.
-1
-Introduction
-Graphical models are used to represent the distribution of a random vector X = (X1, . . . , Xp) by
-relating its conditional independence structure to a graph. This correspondence is particularly
-salient when X is Gaussian. Letting Ω= Σ−1 be the precision matrix of a Gaussian random vector
-X, for i ̸= j, the components Xi and Xj are conditionally independent given X{1,...,p}\{i,j} if and
-only if Ωij = 0 [Lauritzen, 1996]. Models that estimate the conditional independence structure by
-imposing sparsity on Ωare known as Gaussian graphical models (GGMs).
-There has been considerable research on GGMs and their estimation in the high-dimensional
-setting [Yuan and Lin, 2007, Friedman et al., 2007, Meinshausen and Bühlmann, 2006]. GGMs find
-major applications in genomics where the network structure of genes is of interest. Such a setting is
-typically high-dimensional such that the number of genes exceeds the number of samples [Schäfer
-and Strimmer, 2005]. Of particular interest in genomics are co-expression quantitative trait locus
-(eQTL) studies. In these studies, gene expression data are analyzed alongside information about
-1
-arXiv:2410.06326v1  [stat.ME]  8 Oct 2024
-external genetic markers that are known to confound the expression levels of genes. In order
-to use GGMs for eQTL studies, one must allow the GGM framework to incorporate covariate
-information.
-Let X ∈Rp be the vector of responses and U ∈Rq the associated vector of covariates. We
-consider a general model
-X | U = u ∼N(µ(u), Ω−1(u))
-(1)
-and a specification given by
-µ(u) = Γu,
-Ω(u) = B0.
-(2)
-Note that in this specification, the error covariance matrix does not depend on covariates. Multi-
-variate regression models specify (2) with the goal to improve estimation of Γ by also estimating
-B0; see for example Yuan et al. [2007] and references therein for this well-studied setting. By
-contrast, the focus of the covariate-adjusted GGM framework is to estimate the sparsity pattern of
-the precision matrix while accounting for covariate information through B0. Several methods exist
-in this framework that employ sparse penalization to the negative log-likelihood of (1) [Rothman
-et al., 2010, Yin and Li, 2011, Cai et al., 2013, Chen et al., 2016, Wang, 2015, Chen et al., 2018]. These
-models also are termed “conditional Gaussian graphical models” in Yin and Li [2011].
-Estimating (1) with (2) is challenging because the negative log-likelihood of (1) is not jointly
-convex in Γ and B0. Therefore, covariate-adjusted GGM methods use either alternating [Rothman
-et al., 2010, Yin and Li, 2011, Chen et al., 2018] or two-stage [Cai et al., 2013, Chen et al., 2016]
-estimation algorithms. Despite these challenges, minimax-optimal error rates in jointly estimating
-(2) have been established [Chen et al., 2018, Lv et al., 2022].
-Although there has been progress in allowing heterogeneous means in GGMs, there is little
-work on allowing the graph structure of Ωto also depend on covariates; indeed the aforementioned
-methods all assume that B0 is fixed across subjects. Yet subject-specific graph structures are
-plausible in applications such as eQTL analyses. For example, gene C may mediate the co-expression
-of genes A and B, but only in the presence of a single-nucleotide polymorphism (SNP) local to
-gene C. In other words, the expression of genes A and B may be conditionally independent given
-the rest of the network unless a genetic variant is present near gene C [Fehrmann et al., 2011,
-Kolberg et al., 2020, Rockman and Kruglyak, 2006]. To capture this additional structure, Zhang
-and Li [2022] extends (2) to allow both the mean and the network structure of the responses to be
-adjusted by covariates. Their model specifies (1) by taking
-µ(u) = Γu,
-Ω(u) = B0 +
-q
-X
-h=1
-Bhuh
-(3)
-where Bh, h = 0, 1 . . . , q are sparse, symmetric matrices. Like previous works in covariate-adjusted
-GGMs, the joint estimation of the parameters (Γ, B0, B1, . . . , Bh) in (3) involves a non-jointly-
-convex objective. Therefore Zhang and Li [2022] use a two-stage estimation procedure like in
-preceding methods.
-In this work, we contribute a jointly convex formulation of (1) such that both the mean and the
-graph structure may depend on covariates. Like Zhang and Li [2022], our method uses nodewise
-regression to estimate the covariate-adjusted graph structure [Meinshausen and Bühlmann, 2006].
-However, we base our formulation upon a natural parametrization of the multivariate Gaussian
-likelihood such that each nodewise regression is a convex optimization problem.
-2
-1.1
-Previous work
-Our method is inspired by the penalized likelihood-based method of Zhang and Li [2022]. Bayesian
-approaches to subject-level precision matrix adjustment have been considered before. In Niu et al.
-[2024], a Bayesian method is developed where a discrete set of precision matrices Ω1, . . . , ΩK
-is determined for a partition of n samples into K sets, with the partition depending on external
-covariates. However, this approach does not immediately allow for a covariate-adjusted mean,
-nor is it easy to interpret how each covariate affects the overall graph structure through the Ωi.
-Wang et al. [2022] develops a Bayesian approach to solve similar nodewise regression problems as
-Zhang and Li [2022], utilizing sparsity-inducing priors to estimate the sparse component matrices.
-Their method also does not allow a covariate-adjusted mean, nor does it identify group structures.
-Convex formulations of covariate-adjusted GGMs have been proposed before. Wang [2015]
-remarks on the non-convex nature of existing covariate-adjusted GGM methods and suggests a
-convex formulation of (1) with (2). However, their method achieves convexity by relying on an
-initial estimate of Γ, thereby placing it in the category of two-stage methods. A related line of
-work is the conditional Gaussian random field, which is also sometimes called the conditional
-Gaussian graphical model [Sohn and Kim, 2012, Yuan and Zhang, 2014]. This class of methods
-investigates estimating a sparse B0 in (1) and (2) by penalizing a convex negative log-likelihood.
-This parametrization is made possible by the additional assumption that (X, U) is jointly Gaussian.
-In Zhu [2020], the matrix Γ in (2) is written as Γ = ˜ΓΩleading to a negative log-likelihood of
-X that is jointly convex in ˜Γ and Ω. However, their method does not immediately allow for
-covariate-adjusted network structures.
-Our proposed method differs from these works as it allows both the mean and the precision
-matrix to depend on external covariates while also offering the advantage of solving a convex
-optimization problem.
-1.2
-Outline
-We recall the Gaussian graphical regression framework of Zhang and Li [2022] and motivate
-the natural parametrization in Section 2. In Section 3 we provide the model specification and
-algorithm to induce a sparse-group structure in the graph. Our theoretical results are discussed in
-Section 4, namely that the natural parametrization allows for better theoretical scaling of p and q
-relative to n under the same assumptions as in Zhang and Li [2022]. This is demonstrated through
-extensive simulations in Section 5. Finally we apply our method to perform a reanalysis of data
-from glioblastoma microforme (GBM) tissue samples in Section 6.
-2
-Parametrizations for Covariate-adjusted Graphical Models
-Let X ∈Rp be a random vector of responses and U ∈Rq the corresponding covariates. In
-Zhang and Li [2022], the dependence of X on U is given by (1) and (3) so that both the mean
-and precision matrix are covariate-dependent. Write Γ = (γ1, . . . , γp)⊤and let Ωjk(u) denote
-the (j, k)-th element of Ω(u), keeping in mind its dependence on u. Then (3) may be estimated
-via a neighborhood regression method [Meinshausen and Bühlmann, 2006], which amounts to
-3
-estimating p separate linear regression models of the form
-Xj = u⊤γj +
-p
-X
-k̸=j
-βjk0(Xk −u⊤γk) +
-p
-X
-k̸=j
-q
-X
-h=1
-βjkhuh(Xk −u⊤γk) + εj
-(4)
-where βjkh = −[Bh]jk/Ωjj and εj ∼N(0, 1/Ωjj) for all j, k, and h. This is termed Gaussian
-graphical regression in Zhang and Li [2022].
-Note that a least squares criterion based on (4) is not jointly convex owing to the cross term
-βjkh×u⊤γk. Hence, Zhang and Li [2022] uses a two-stage estimation method. First, γj is estimated
-for all j via the model
-Xj = u⊤γj + ξj,
-E ξj = 0,
-(5)
-and ℓ1 penalization is added so that ˆγj is sparse. Second, the observed response vectors xj are
-centered using ˆγj and the coefficients βjkh in (4) are estimated with ˆγj in place of γj for all j ∈[p].
-As with other two-stage methods, the above procedure incurs an estimation error in the first stage
-because (5) ignores the dependence on the βjkh terms in (4). Assumptions on the scaling of the
-ambient dimensions p and q and the sparsity of the coefficient vectors are needed to suppress the
-model misspecification errors. Next, we will present a formulation of (1) so that the corresponding
-least squares criterion is convex, obviating the need for a two-stage procedure.
-2.1
-Convex formulation
-Recall the form of the p-dimensional multivariate Gaussian likelihood expressed in terms of the
-natural parameters (˜θ, ˜Θ) where ˜θ = Ωµ and ˜Θ = −Ω:
-L(˜θ, ˜Θ | x) = exp
-
-˜θ
-⊤x −1
-2x⊤˜Θx −A(˜θ, ˜Θ)
-
-.
-Our formulation is motivated by the fact that the cumulant function A is jointly convex in (˜θ, ˜Θ)
-and therefore so is −log L(˜θ, ˜Θ | x). Define
-θ = diag(Ω)−1Ωµ
-and
-Θ = −diag(Ω)−1Ω,
-(6)
-where diag(Ω) is the p × p diagonal matrix of Ω. Our model is to incorporate covariates as in (3)
-to (θ, Θ) instead of (µ, Ω), namely
-θ(u) = Γu,
-Θ(u) = B0 +
-q
-X
-h=1
-Bhuh.
-(7)
-To see that this leads to jointly convex nodewise regression problems, fix j ∈[p] and consider
-the partial regression of component Xj against the covariates U and the remaining components
-X−j in the general setting (1). For a matrix M and sets of indices I and J , denote by MI,J the
-sub-matrix of M consisting of rows indexed by I and columns indexed by J . Letting −j indicate
-all indices excluding j, we have the conditional distribution
-Xj −µj | X−j, U ∼N
- Σj,−jΣ−1
-−j,−j(X−j −µ−j), Σjj −Σj,−jΣ−1
-−j,−jΣ−j,j
-
-,
-(8)
-4
-suppressing the dependence of Σ and µ on the covariates u for notational convenience. Defining
-the error terms εj ∼N(0, σ2
-εj) where σ2
-εj = 1/Ωjj, by the matrix block inversion formula we may
-write (8) as the linear model
-Xj = µj −Ω−1
-jj Ωj,−j(X−j −µ−j) + εj = θj + Θj,−jX−j + εj,
-which is readily seen to be jointly convex in the parameters θj and Θj,−j as defined in (6). In light
-of the specification of covariate dependence (7) and with Γ = (γ1, . . . , γp)⊤and βjkh = [Bh]jk,
-the above leads to the nodewise regression model
-Xj = u⊤γj +
-p
-X
-k̸=j
-βjk0Xk +
-p
-X
-k̸=j
-q
-X
-h=1
-βjkhuhXk + εj,
-εj ∼N(0, σ2
-εj)
-(9)
-which allows for simultaneous estimation of the parameters γj and βjkh in a jointly convex setting.
-Implicit in (6) is that Θjj = −1 for all j ∈[p]. This is satisfied in (7) by letting [B0]jj = −1 and
-[Bh]jj = 0 for all h ∈[q] and j ∈[p]. By doing so, we assume as in Zhang and Li [2022] that the
-residual variance σ2
-εj is not covariate-dependent, allowing us to write Ωjj = Ωjj(u) for j ∈[p].
-3
-Estimation
-Suppose we collect n independent observations {(x(i), u(i))}n
-i=1 of responses and covariates that
-follow the joint distribution in (1) with (6) and (7). Let U =
-
-u(1), . . . , u(n)⊤∈Rn×q be the matrix
-of covariates and X =
-
-x(1), . . . , x(n)⊤the matrix of responses with xj ∈Rn denoting the j-th
-column of X and uj ∈Rn the j-th column of U. For j ∈[p], let W−j be the n × (p −1)(q + 1)
-matrix of interactions of the remaining responses with the covariates. Concretely,
-W−j,0 = [x1, . . . , xj−1, xj+1, . . . , xp] ∈Rn×(p−1),
-W−j,h = [x1 ⊙uh, . . . , xj−1 ⊙uh, xj+1 ⊙uh, . . . , xp ⊙uh] for h ∈[q],
-W−j = [W−j,0, W−j,1, . . . , W−j,q] ∈Rn×(p−1)(q+1),
-(10)
-where ⊙denotes the elementwise product of two vectors. By writing
-βj,h = (βj1h, . . . , βj,j−1,h, βj,j+1,h, . . . , βjph)⊤∈Rp−1 and βj = (βj,0, βj,1, . . . , βj,q)⊤∈R(p−1)(q+1),
-we can view βj as q + 1 blocks of (p −1)-element vectors βj,h for h = {0, 1, . . . q} so that (9)
-may be written in the block form
-Xj = u⊤γj + X⊤
-−jβj,0 +
-q
-X
-h=1
-(uhX−j)⊤βj,h + εj,
-εj ∼N(0, σ2
-εj).
-(11)
-Figure 1 relates the blocks βj,h to Θ in (7).
-The joint convexity of (11) in (γj, βj) allows for simultaneous estimation of the penalized
-problem
-minimize
-γj, βj
-1
-2n
-xj −Uγj −W−jβj
-2
-2 + gj(γj, βj)
-(12)
-where gj is an arbitrary convex penalty function. Moreover, by the relationship between βj and
-rows of Θ, sparsity-inducing penalties gj in (12) will give us sparse estimates of Θ. From (6),
-we see that Θ has the same sparsity pattern as Ω. Hence we keep the conditional independence
-interpretation of the sparsity in Θ as in Ω.
-5
-Figure 1: Decomposition of Θ into components Bh according to (7). The block βj,h corresponds
-to the effects of covariate uh on the partial correlations of response Xj while βj,0 describes the
-population effect.
-3.1
-Estimating covariate-adjusted graphs
-In the nodewise regression approach to GGMs, a symmetrization step is needed to ensure that
-the estimate of Ωis symmetric because each regression is fit independently [Meinshausen and
-Bühlmann, 2006]. In our approach, the nodewise regressions target Θ, which is not necessarily
-symmetric due to the different scaling factor for each row in (6). To ensure symmetry in the estimate
-of Ω, we perform a similar symmetrization step after performing all nodewise regressions. First,
-specify an estimate ˆσ2
-εj of the error variance in (11). Then for an estimate ˆβj, set ˜βj = −ˆβj/ˆσ2
-εj
-and define for all h = 0, 1, . . . , q the symmetric matrix
-[ ˜Bh]jk = [ ˜Bh]kj = ˜βjkh
-h
-|˜βjkh| < |˜βkjh|
-i
-+ ˜βkjh
-h
-|˜βjkh| > |˜βkjh|
-i
-,
-(13)
-where the expression [P] is equal to 1 if P is true and 0 otherwise. The mean vector and precision
-matrix may then be estimated by (6) via
-ˆΩ(u(i)) = ˜B0 +
-q
-X
-h=1
-˜Bhu(i)
-h
-and
-ˆµ(u(i)) = ( ˆΩ(u(i)))−1 diag( ˆΩ)ˆΓu(i).
-(14)
-The preceding steps are summarized in Algorithm 1 in Section S1.
-Equation (13) is the “and-rule” to symmetrize the matrices ˜Bh for h = 0, 1, . . . , q; [ ˜Bh]jk is
-nonzero if both ˜βjkh and ˜βkjh are nonzero. A less conservative estimate would be given by the
-“or-rule”, namely
-[ ˜Bh]jk = [ ˜Bh]kj = ˜βjkh
-h
-|˜βjkh| ≥|˜βkjh|
-i
-+ ˜βkjh
-h
-|˜βjkh| ≤|˜βkjh|
-i
-,
-so that [ ˜Bh]jk is nonzero if either ˜βjkh or ˜βkjh is nonzero. We elect to use the more conservative
-rule and note that both approaches are asymptotically equivalent [Meinshausen and Bühlmann,
-2006] and that the and-rule has been considered before in covariate-adjusted graphical models
-[Cai et al., 2013, Zhang and Li, 2022].
-3.2
-Sparsity structure
-With the application to eQTL studies in mind, we will focus on a particular sparsity-inducing
-penalty gj in (15). We wish to identify elementwise sparsity within a group h, amounting to sparsity
-in the coefficient vector βj,h. We may interpret sparse entries in βj,h to mean that the covariate
-uh affects the conditional independence between Xj and some, but not all other responses Xk.
-6
-Meanwhile, we wish to identify groupwise sparsity, where βj,h = 0 for a group h. This means
-that uh has no effect on the conditional independence between Xj and the other responses.
-We consider the following convex problem:
-minimize
-γj, βj
-1
-2n
-xj −Uγj −W−jβj
-2
-2 + λ∥γj∥1 + λ∥βj∥1 + λg∥βj,−0∥1,2
-(15)
-where λ ≥0 and λg ≥0 are tuning parameters and ∥βj,−0∥1,2 = Pq
-h=1∥βj,h∥2 is the group lasso
-penalty. Together, the penalty on βj is the sparse-group lasso penalty developed in Simon et al.
-[2013]. The group lasso penalty is not applied βj,0 nor to γj.
-We considered the following two estimates of σ2
-εj,
-ˆσ2
-1 = ∥xj −Uˆγj −W−j ˆβj∥2
-2
-n −ˆsβj −ˆsγj
-and
-ˆσ2
-2 = ∥xj −Uˆγj −W−j ˆβj∥2
-2
-n −ˆsβj −1
-,
-where ˆsγj and ˆsβj are the number of nonzero elements of ˆγj and ˆβj. Following the lasso literature
-[Reid et al., 2016, Yu and Bien, 2019], a straightforward estimate is given by ˆσ2
-1 as the value ˆsβj +ˆsγj
-roughly approximates the degrees of freedom of (15). In our experimentation, we have found ˆσ2
-2
-to be slightly more consistent.
-3.3
-Implementation
-We use block coordinate descent to solve (15) where the blocks are given by {γj, βj,0, . . . , βj,q}.
-Since (15) is convex and separable in these blocks, this approach is guaranteed to converge to the
-optimal solution [Tseng, 2001]. Our R implementation uses the sparsegl package to solve (15)
-[Liang et al., 2024]. We use k-fold cross-validation to select the tuning parameter pair (λ, λg). To
-do so, we set a parameter λ0 > 0 and mixture parameter αs ∈[0, 1] so that the penalty in (15)
-may be written as
-αsλ0(∥γj∥1 + ∥βj∥1) + (1 −αs)λ0∥βj,−0∥1,2.
-(16)
-Then for each αs, we run the method on a path of λ0.
-4
-Theoretical Properties
-In this section we will analyze the estimation error and support recovery of (15). For two sequences
-of real numbers an and bn, we write an ≾bn if an = O(bn), i.e. there exists constants C > 0 and
-N > 0 so that an < Cbn for all n ≥N. If an ≾bn and bn ≾an, we write an ≍bn. We write
-an = o(bn) if limn→∞an/bn = 0. With the understanding that j is fixed, we will suppress the
-subscript j when referring to γj, βj and εj for notational convenience.
-Let (ˆγ, ˆβ) be the solution to (15) and let (γ, β) be the true parameters. Denote by Sγ and
-Sβ the support sets of γ and β respectively. Further let Sβ,g index the active groups of β, that
-is Sβ,g =
-
-h : βj,h ̸= 0, h ∈[q]
-	
-. Denote by sγ, sβ and sβ,g the cardinalities of these sets. For
-a square matrix M, denote by λmin(M) and λmax(M) its minimum and maximum eigenvalue,
-respectively.
-We require the following assumptions on the model (1) with specification (7).
-7
-Assumption 1. The covariates {u(i)}n
-i=1 are i.i.d. mean zero random vectors with covariance matrix
-satisfying
-ϕ0 ≤λmin(Cov(u(i))) ≤λmax(Cov(u(i))) ≤ϕ1
-for some constants 0 < ϕ0 ≤ϕ1 < ∞. Furthermore, there exists a constant M > 0 such that
-|u(i)
-j | ≤M for all j ∈[q] and i ∈[n].
-Assumption 1 is the same as Assumptions 1 and 5 in Zhang and Li [2022] without requiring a
-bound on ∥β∥1. The boundedness of the covariates is not restrictive in the eQTL setting since
-SNPs are often binary coded.
-Denote by [U, W−j] the n × (p(q + 1) −1) matrix that is the concatenation of the covariate
-matrix U with the interaction matrix W−j. Define the following Gram matrix of covariates,
-responses, and interactions:
-ΣUW = E
-[U, W−j]⊤[U, W−j]
-n
-
-.
-Our next assumption bounds the eigenvalues of ΣUW, which is needed to characterize the joint
-distribution of u(i), x(i), and their interactions.
-Assumption 2. We assume there exist positive constants m0, M0 such that
-m0 ≤λmin(ΣUW) ≤λmax(ΣUW) ≤M0.
-Elementwise boundedness in Assumption 1 implies that u(i) is elementwise sub-Gaussian. Our
-theoretical analysis further requires that our design matrix [U, W−j] is elementwise sub-Gaussian.
-Assumption 3 ensures this since each entry of W−j is the product of a sub-Gaussian and a bounded
-random variable.
-Assumption 3. The marginal distribution of X is elementwise sub-Gaussian with bounded sub-
-Gaussian norm.
-The following assumption controls how the sparsity of the true parameters may scale with
-the sample size n.
-Assumption 4. Let p and q be the number of responses and covariates, respectively. The true sparsities
-sγ and sβ satisfy
-1. (sγ + sβ)
-p
-log(pq) = o(√n),
-2. (sγ + sβ) log(pq) = o(n/ log n).
-In practice we consider estimates (ˆγ, ˆβ) of varying sparsities and select from this pool of
-candidate models via cross-validation. Define ˆsmax
-γ
-and ˆsmax
-β
-to be the maximum sparsity of γ
-and β out of all candidate models, chosen so that sγ < smax
-γ
-and sβ < smax
-β
-. Our first theorem
-describes the ℓ2 estimation error of the nodewise solution.
-8
-Theorem 1. Under Assumptions 1-4, with (ˆsmax
-γ
-+ ˆsmax
-β
-) log(pq) = O(√n), and with
-λ = C σε
-√n
-sγ log(eq/sγ) + sβ log(ep)
-sγ + sβ
-+
-sβ,g
-sγ + sβ
-log(eq/sβ,g)
-1/2
-and
-λg = λ
-s
-sγ + sβ
-sβ,g
-(17)
-we have
-∥ˆγ −γ∥2
-2 + ∥ˆβ −β∥2
-2 ≾σ2
-ε
-n (sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g)).
-with probability at least 1 −C1 exp{−C2(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))} where
-C, C1, and C2 are positive constants.
-The bound on the sparsity of candidate models helps to bound the errors in Theorem 1 and is
-also assumed in Zhang and Li [2022].
-Our second result proves that our method achieves support recovery with high probability
-under some additional conditions. Denote the (k, ℓ)-th entry of ΣUW by ΣUW(k, ℓ).
-Assumption 5. Define τj = 1+
-p
-(sγ + sβ)/sβ,g. We assume that there exists a constant c0 > 2/m0
-such that
-max
-k̸=ℓ|ΣUW(k, ℓ)| ≤
-1
-c0(1 + 8τj)(sβ + sγ).
-Theorem 2. Suppose Assumptions 1-5 hold. Additionally, suppose log p ≍log q and that
-n ≥A1(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))
-for some constant A1 > 0. Then with λ and λg defined as in Theorem 1, we have
-max
-n
-∥ˆγ −γ∥∞, ∥ˆβ −β∥∞
-o
-≤3
-m0
-(λ + λg)
-
-1 +
-6(1 + 4τj)2
-(1 + 8τj)(c0m0 −2)
-
-with probability at least 1 −C3 exp(−C4 log p) for some positive constants C3, C4.
-Theorem 2 implies that our method achieves support recovery with high probability if γ and
-β satisfy a minimal signal strength condition.
-Corollary 1. Define
-κ0 = 3
-m0
-(λ + λg)
-
-1 +
-6(1 + 4τj)2
-(1 + 8τj)(c0m0 −2)
-
-,
-˜Sγ = {k : |ˆγk| > κ0},
-and
-˜Sβ =
-n
-k : |ˆβk| > κ0
-o
-.
-If it holds that
-min
-
-min
-ℓ∈Sγ|γℓ|, min
-k∈Sβ|βk|
-
-≥2κ0,
-we have that P(Sγ = ˜Sγ and Sβ = ˜Sβ) ≥1 −C3 exp(−C4 log p).
-9
-Zhang and Li [2022] provides two theorems related to the estimation error of ˆβ; an oracle rate
-where the true Γ in (3) is known and a rate where ˆΓ is estimated via independent regressions in
-stage 1 of the procedure. It is shown that the oracle rate, given by
-∥ˆβ −β∥2
-2 ≾
-σ2
-εj
-n (sβ log(ep) + sβ,g log(eq/sβ,g)),
-can be achieved by the two-stage rate under the assumptions log(pq) = O(n1/6), sβ = o(n1/6),
-and sγ = o(n1/3). By comparison, Theorem 1 shows that our method achieves the oracle rate
-under milder assumptions; more explicitly, Assumption 4 is satisfied when log(pq) = O(n1/3) and
-sγ + sβ = o(n1/3). The milder scaling assumptions in log(pq) and sβ in our formulation stems
-from the fact that (15) is jointly convex in (γ, β), allowing for their simultaneous estimation. By
-comparison, a more stringent scaling assumption is needed to control the estimation error of γj
-incurred in stage 1 of Zhang and Li [2022]. These comments apply as well to the support recovery
-results in Theorem 2.
-5
-Simulation Study
-In this section, we compare our method Covariate-adjusted Sparse Precision with Natural Estimation
-(cspine) with the Gaussian graphical model regression method developed in Zhang and Li [2022]
-(RegGMM) under extensive simulations. We are interested in the behavior of the two methods under
-data generated according to both models.
-For each simulation setting, we generate a sparse Γ ∈Rp×q by independently determining
-if Γjk is non-zero with probability 0.3. The non-zero entries are sampled from N(0, 1). Then
-Γ is scaled by a constant to ensure that the signal-to-noise ratio is approximately 1 for each
-observation.
-We generate the population graph B0 using a preferential attachment algorithm [Barabási
-and Albert, 1999] with power 1. We select qe = 5 out of q covariates to have nonzero effects
-and generate the covariate-adjusted components Bh for h ∈[qe] as Erdős-Renyi graphs [Erdős
-and Rényi, 1959] with edge probability ve = 0.01. This choice of graph structure ensures that
-the covariate-dependent graphs are more sparse than the population graph; see Clauset et al.
-[2009] in particular for a discussion of power law graph models in applications. After determining
-the graph structure, we generate entries in {Bh} by independently and uniformly sampling
-from [−0.5, −0.35] ∪[0.35, 0.5] and then dividing each row j by P
-h
-P
-k̸=j|βjkh| × 1.5 before
-symmetrizing each {Bh} by taking the average of βjkh and βkjh. These steps help ensure a
-diagonally dominant precision matrix, and mirror the data model of Zhang and Li [2022].
-We select half of the q covariates to be binary and half to be continuous from Unif(0, 1) and
-then standardize the continuous covariates across the n observations to have zero mean and unit
-variance. With Γ and {Bh} in hand, we generate a precision matrix Ω(i) = B0 + Pq
-h=1 Bhu(i)
-h .
-Then we generate a dataset under the original model (3) by setting µ(i) = Γu(i) and and a second
-dataset under (7), termed the “natural model”, via µ(i) = Σ(i)Γu(i). Finally, we sample a vector of
-responses x(i) ∼Np(µ(i), Σ(i)) for i ∈[n]. In both models, we set diag(Ω(i)) = 1 so that σ2
-εj = 1.
-For each of the settings p = 25, q = 50 and p = 25, q = 100, we generate 100 independent
-data sets of n = 200 and n = 400 samples and run both RegGMM and cspine on each data set. For
-a fair comparison, both methods have two tuning parameters selected via 5-fold cross-validation
-10
-on a path of 100 λ parameters and 10 mixture parameters. With the notation in (16), this means
-cross-validating over 100 values of λ0 and αs = 0.1, 0.2, . . . , 1.
-We report the mean and standard error of the following metrics after applying (13): TPR, the
-true positive rate of detected edges across all {Bh}; TPRpop, the true positive rate of detected
-edges in the population graph B0; FPRpop, the false positive rate of detected edges in B0; TPRcov,
-the true positive rate of detected edges in covariate graphs Bh, h ∈[q]; the nodewise estimation
-error given by βerr = Pp
-j=1∥ˆβj −βj∥2; and the average error of the estimated precision matrix
-given by Ωerr = Pn
-i=1∥ˆΩ
-(i) −Ω(i)∥2
-F,off/n, where the norm is taken over off-diagonal entries. The
-overall false positive rate of detected edges is less than 0.005 in all cases.
-In Table 1, we see that cspine outperforms RegGMM under the natural model setting across all
-metrics. Table 2 compares the two methods under the setting (3) where RegGMM is correctly specified
-and cspine is misspecified. We see that despite the misspecification, cspine is competitive with
-RegGMM in edge detection and estimation error due to the convex formulation of the nodewise
-regressions. Both methods are conservative in their detection of edges in the covariate networks.
-n
-(p, q)
-Method
-TPR
-TPRpop
-FPRpop
-TPRcov
-βerr
-Ωerr
-200
-(25, 50)
-cspine
-0.73 (0.08)
-0.89 (0.07)
-0.07 (0.02)
-0.45 (0.21)
-5.66 (0.50)
-1.09 (0.15)
-RegGMM
-0.62 (0.09)
-0.80 (0.10)
-0.16 (0.06)
-0.30 (0.18)
-7.43 (0.61)
-1.82 (0.26)
-(25, 100)
-cspine
-0.66 (0.10)
-0.82 (0.09)
-0.05 (0.02)
-0.40 (0.24)
-5.98 (0.55)
-1.22 (0.17)
-RegGMM
-0.55 (0.08)
-0.71 (0.08)
-0.14 (0.05)
-0.28 (0.19)
-7.73 (0.56)
-1.95 (0.28)
-400
-(25, 50)
-cspine
-0.77 (0.10)
-0.96 (0.04)
-0.09 (0.02)
-0.52 (0.24)
-4.50 (0.59)
-0.66 (0.08)
-RegGMM
-0.67 (0.08)
-0.86 (0.07)
-0.17 (0.07)
-0.41 (0.20)
-5.99 (0.55)
-1.22 (0.17)
-(25, 100)
-cspine
-0.72 (0.09)
-0.94 (0.05)
-0.08 (0.02)
-0.44 (0.21)
-4.96 (0.60)
-0.76 (0.09)
-RegGMM
-0.62 (0.08)
-0.85 (0.08)
-0.22 (0.07)
-0.32 (0.17)
-6.80 (0.58)
-1.40 (0.20)
-Table 1: Mean and standard error of performance metrics over 100 data sets.
-n
-(p, q)
-Method
-TPR
-TPRpop
-FPRpop
-TPRcov
-βerr
-Ωerr
-200
-(25, 50)
-cspine
-0.53 (0.06)
-0.77 (0.08)
-0.12 (0.02)
-0.09 (0.10)
-7.70 (0.29)
-2.18 (0.24)
-RegGMM
-0.50 (0.07)
-0.70 (0.10)
-0.14 (0.05)
-0.12 (0.11)
-8.02 (0.41)
-2.20 (0.25)
-(25, 100)
-cspine
-0.44 (0.07)
-0.67 (0.09)
-0.09 (0.02)
-0.04 (0.06)
-7.97 (0.32)
-2.43 (0.25)
-RegGMM
-0.39 (0.07)
-0.59 (0.12)
-0.19 (0.07)
-0.05 (0.06)
-8.80 (0.45)
-2.69 (0.32)
-400
-(25, 50)
-cspine
-0.60 (0.05)
-0.92 (0.05)
-0.18 (0.03)
-0.12 (0.10)
-6.71 (0.28)
-1.54 (0.18)
-RegGMM
-0.59 (0.07)
-0.80 (0.10)
-0.14 (0.05)
-0.28 (0.15)
-6.64 (0.42)
-1.49 (0.19)
-(25, 100)
-cspine
-0.55 (0.06)
-0.88 (0.07)
-0.15 (0.02)
-0.12 (0.10)
-6.83 (0.26)
-1.69 (0.22)
-RegGMM
-0.55 (0.07)
-0.81 (0.09)
-0.22 (0.07)
-0.19 (0.14)
-7.15 (0.42)
-1.69 (0.23)
-Table 2: Performance metrics over 100 data sets under specification (3).
-Next, we explore the error bound in Theorem 1 through simulations. We fixed p = 25, q = 10,
-and n = 300. In the first set of simulations, we fixed a collection {Bh} and generated 300 data
-sets from Γ matrices of varying sparsities. In the second set of simulations, we fixed a sparse
-Γ and generated data sets from 300 different collections of {Bh} with varying sparsity levels.
-In Figure 2, we plot the error γerr + βerr where γerr = Pp
-j=1∥ˆγj −γj∥2 against the number of
-non-zero entries in Γ and {Bh} The shape of the plot verifies the theoretical results of Section 4,
-that the ℓ2 error scales with the square-root of the sparsity levels.
-11
-(a)
-(b)
-Figure 2: Estimation error of cspine over 300 data sets plotted against the number of non-zero
-entries in (a) Γ and (b) {Bh}. In both cases, the ℓ2 estimation error bound increases at a rate that
-is roughly the square-root of the sparsity level.
-6
-GBM eQTL Reanalysis
-Glioblastoma multiforme (GBM) is the most malignant type of brain cancer and patient prognosis is
-typically very poor. Although there has been research on the genetic signaling pathways involved
-in the proliferation of GBM, it remains largely incurable; see Hanif et al. [2017] for a survey. It
-is important to understand the conditional independence structure of genes involved in GBM in
-order to discover new drug therapies [Kwiatkowska et al., 2013]. Our estimated graphs describe
-the conditional independence of co-expressions in a gene network; hence, we refer to estimated
-networks and effects of SNPs on this network.
-We reanalyze a GBM eQTL data set that was reported in Zhang and Li [2022]. The data set
-contains microarray and SNP profiling data of n = 401 GBM patients from the REMBRANDT trial
-(GSE108476) We use the expression levels of p = 73 genes known to belong to the human glioma
-pathway according to the Kyoto Encyclopedia of Genes and Genomes (KEGG) database [Kanehisa
-and Goto, 2000]; the genes and pathways are detailed in Table S3. We also consider q = 118 SNPs
-that are local to these 73 genes. The SNPs are binary-coded, with 0 indicating homozygous major
-alleles at that locus and 1 otherwise. Our data set is slightly different from the one used in Zhang
-and Li [2022]; we have a larger cohort size (compared to n = 178 in Zhang and Li 2022) and do
-not include age and sex as covariates.
-We ran cspine on the data set using 5-fold cross-validation over αs = 0.1, 0.2, . . . , 1, and
-100 values of λ0. Our method identified 56 SNPs that potentially modify expressions in the
-network. However, many of the identified edges in these networks have small weights. Since
-cross-validation tends to select dense models, we focus on interpreting those entries of { ˜Bh} above
-0.005 in magnitude. With this threshold, 10 SNPs are estimated to have effects on the network;
-see Table S4.
-We also ran RegGMM on the data set for comparison, using 5-fold cross-validation for a path of
-100 λ parameters and 10 mixture parameters. RegGMM identified 16 SNPs with nonzero effects on
-12
-the network. However, similarly to cspine, many of the estimated edges have very small weights.
-We choose to threshold these edges as well.
-Figure 3 shows the estimated population (covariate-independent) network from cspine and
-RegGMM. It can be seen that many estimated edges overlap and that cspine estimates a somewhat
-denser network. For example, SHC4 and CALML4 are highly connected nodes in both population
-networks.
-Figure 3: Population network from GBM eQTL data estimated by cspine (left) and RegGMM (right).
-The graph structure is determined by the estimates of B0 in (3) and (7). Solid blue lines and dashed
-red lines indicate positive and negative edge weights, respectively.
-Four SNPs are identified by RegGMM to affect the network of co-expressions. Out of the four,
-rs1267622 is also identified by cspine to have a nonzero effect. It is interesting to look at the
-estimated effect of rs1267622, a variant of the BRAF gene, by the two methods, shown in Figure 4.
-The results from both methods suggest that this SNP may modify the co-expressions of PDGFRA
-and PDGFB as well as PDGFRA and SOS2. This is plausible since all three of these genes lie
-in the Ras-Raf-MEK-ERK pathway along with BRAF (Table S3). There is evidence that variants
-on this pathway are associated with the proliferation of certain cancers [Gonzalez-Hormazabal
-et al., 2019]. Beyond this, the two methods differ; cspine estimates this variant to modify the
-co-expressions of GADD45A and GADD45B while RegGMM suggests that the co-expressions of
-PDGFRA and CAMK1 are modified.
-We now focus on the connections between four genes in particular, namely PIK3CA, CALML5,
-E2F1, and E2F3. PIK3CA is one of the most highly mutated oncogenes in a variety of cancers and
-resides in the PI3K/Akt/mTOR signaling pathway [Samuels and Velculescu, 2004]. CALML5 is a
-calcium-binding protein that is part of the calcium (Ca+2) signaling pathway, which is known to
-have diverse roles in explaining GBM biology and is a topic of active research [Azab et al., 2020,
-Cheng et al., 2021]. E2F1 and E2F3 are oncogenic transcription factors. The over-expression of
-13
-Figure 4: Estimated covariate networks for the SNP rs1267622, a variant local to the BRAF gene.
-The graph structure corresponds to the sparsity pattern of the matrix Bh corresponding to this
-SNP in (3) and (7). Solid blue lines and dashed red lines indicate positive and negative effects of
-this SNP on the partial correlation of co-expressions. An effect on the co-expression of GADD45A
-and GADD45B is detected by cspine while RegGMM detects an effect between PDGFRA and SOS2.
-The remaining two edges, between PDGRFA and PDGFB and PDGRFA and SOS2, are detected by
-both methods.
-14
-E2F3 is known to be vital in the development of various types of cancers including GBM [Zhang
-et al., 2019, Wu et al., 2021, Feng et al., 2018].
-The estimated connections among these four genes in the population network are shown in
-Figure 5. While RegGMM and cspine detect mostly the same edges in the population, only cspine
-finds that these co-expressions are modified by the presence of SNPs. These effects are summarized
-in Figure 5 (right). For instance, it is estimated that a variant local to the CALML4 gene may
-mediate the induction of the PI3K/Akt/mTOR pathway by expressions in E2F1. PIK3CA and E2F1
-are part of interconnected signaling pathways implicated in cancer progression; E2F1 is involved
-in regulating the expression of PIK3CA and downstream signaling components [Ladu et al., 2008].
-Hence, this discovery may give a clue for the role of CALML4 on regulating this pathway.
-Figure 5: Estimated population network from cspine (left) and RegGMM (middle) highlighting
-four select genes. An edge indicates the partial correlation between the expressions of two genes
-conditional on the rest of the network (not shown). Right: the estimated effect of SNPs on co-
-expressions among the selected genes according to cspine. The gene to which the SNP is local is
-given in parentheses. Solid blue lines and dashed red lines indicate positive and negative edges,
-respectively. RegGMM did not detected any effects of SNPs on these co-expressions.
-7
-Discussion
-In this work, we contributed to the covariate-adjusted Gaussian graphical model literature by
-developing a framework allowing for jointly convex optimization of the mean and precision
-matrix. Our theoretical work implies that the convex formulation allows for more relaxed scaling
-assumptions in the sparsities of βj in relation to the sample size n and this is confirmed by
-our simulation results. Our method relies on tuning the pair (αs, λ0) over a grid as described
-in 3.3, which may be too computationally intensive for large datasets. If the practitioner has
-preconceptions about how many covariates are relevant in explaining the network structure of
-the responses, he may fix αs to specify a desired group sparsity level. Alternatively, adapting
-tuning-free methods such as the square-root lasso [Belloni et al., 2011] to our method would be an
-important contribution for large datasets. A direction for theoretical work would be to establish
-the minimax rate of (15). Although our estimator achieves the same rate as in Zhang and Li [2022],
-15
-the optimality of this rate has yet to be established. Our R package cspine is available on GitHub1.
-Acknowledgements
-We are grateful to Emma Zhang for generously making the RegGMM software and GBM eQTL data
-set available to us.
-Use was made of computational facilities purchased with funds from the National Science
-Foundation (CNS-1725797) and administered by the Center for Scientific Computing (CSC). The
-CSC is supported by the California NanoSystems Institute and the Materials Research Science and
-Engineering Center (MRSEC; NSF DMR 2308708) at UC Santa Barbara.
-References
-Steffen L. Lauritzen. Graphical Models. Oxford University Press, 1996. ISBN 0-19-852219-3.
-Ming Yuan and Yi Lin. Model selection and estimation in the gaussian graphical model. Biometrika,
-94(1):19–35, 2007. ISSN 00063444, 14643510. URL http://www.jstor.org/stable/20441351.
-Jerome Friedman, Trevor Hastie, and Robert Tibshirani. Sparse inverse covariance estimation
-with the graphical lasso. Biostatistics, 9(3):432–441, 12 2007. ISSN 1465-4644. doi: 10.1093/
-biostatistics/kxm045. URL https://doi.org/10.1093/biostatistics/kxm045.
-Nicolai Meinshausen and Peter Bühlmann. High-dimensional graphs and variable selection with
-the Lasso. The Annals of Statistics, 34(3):1436 – 1462, 2006. doi: 10.1214/009053606000000281.
-URL https://doi.org/10.1214/009053606000000281.
-Juliane Schäfer and Korbinian Strimmer. A shrinkage approach to large-scale covariance matrix
-estimation and implications for functional genomics. Statistical Applications in Genetics and
-Molecular Biology, 4(1), 2005. doi: doi:10.2202/1544-6115.1175. URL https://doi.org/10.
-2202/1544-6115.1175.
-Ming Yuan, Ali Ekici, Zhaosong Lu, and Renato Monteiro. Dimension reduction and coefficient
-estimation in multivariate linear regression. Journal of the Royal Statistical Society. Series B
-(Statistical Methodology), 69(3):329–346, 2007. ISSN 13697412, 14679868.
-Adam J. Rothman, Elizaveta Levina, and Ji Zhu. Sparse multivariate regression with covariance
-estimation. Journal of Computational and Graphical Statistics, 19(4):947–962, 2010. ISSN 10618600.
-URL http://www.jstor.org/stable/25765382.
-Jianxin Yin and Hongzhe Li. A sparse conditional gaussian graphical model for analysis of genetical
-genomics data. The Annals of Applied Statistics, 5(4):2630–2650, 2011. ISSN 19326157, 19417330.
-URL http://www.jstor.org/stable/23069344.
-1https://github.com/roobnloo/cspine
-16
-T. Tony Cai, Hongzhe Li, Weidong Liu, and Jichun Xie. Covariate-adjusted precision matrix
-estimation with an application in genetical genomics. Biometrika, 100(1):139–156, 2013. ISSN
-00063444. URL http://www.jstor.org/stable/43304542.
-Mengjie Chen, Zhao Ren, Hongyu Zhao, and Harrison Zhou. Asymptotically normal and efficient
-estimation of covariate-adjusted gaussian graphical model. Journal of the American Statistical
-Association, 111(513):394–406, 2016. doi: 10.1080/01621459.2015.1010039.
-Junhui Wang. Joint Estimation of Sparse Multivariate Regression and Conditional Graphical
-Models. Statistica Sinica, 25(3):831–851, 2015. ISSN 1017-0405. Publisher: Institute of Statistical
-Science, Academia Sinica.
-Jinghui Chen, Pan Xu, Lingxiao Wang, Jian Ma, and Quanquan Gu. Covariate adjusted precision
-matrix estimation via nonconvex optimization. In Jennifer Dy and Andreas Krause, editors,
-Proceedings of the 35th International Conference on Machine Learning, volume 80 of Proceedings
-of Machine Learning Research, pages 922–931. PMLR, July 2018.
-Xiao Lv, Wei Cui, and Yulong Liu. A sharp analysis of covariate adjusted precision matrix estimation
-via alternating projected gradient descent. IEEE Signal Processing Letters, 29:877–881, 2022. doi:
-10.1109/LSP.2022.3159402.
-Rudolf S. N. Fehrmann, Ritsert C. Jansen, Jan H. Veldink, Harm-Jan Westra, Danny Arends,
-Marc Jan Bonder, Jingyuan Fu, Patrick Deelen, Harry J. M. Groen, Asia Smolonska, Rinse K.
-Weersma, Robert M. W. Hofstra, Wim A. Buurman, Sander Rensen, Marcel G. M. Wolfs, Mathieu
-Platteel, Alexandra Zhernakova, Clara C. Elbers, Eleanora M. Festen, Gosia Trynka, Marten H.
-Hofker, Christiaan G. J. Saris, Roel A. Ophoff, Leonard H. van den Berg, David A. van Heel,
-Cisca Wijmenga, Gerard J. te Meerman, and Lude Franke. Trans-eqtls reveal that independent
-genetic variants associated with a complex phenotype converge on intermediate genes, with
-a major role for the hla. PLoS Genetics, 7(8):e1002197, August 2011. ISSN 1553-7404. doi:
-10.1371/journal.pgen.1002197. URL http://dx.doi.org/10.1371/journal.pgen.1002197.
-Liis Kolberg, Nurlan Kerimov, Hedi Peterson, and Kaur Alasoo. Co-expression analysis reveals
-interpretable gene modules controlled by trans-acting genetic variants. eLife, 9, September 2020.
-ISSN 2050-084X. doi: 10.7554/elife.58705. URL http://dx.doi.org/10.7554/eLife.58705.
-Matthew Rockman and Leonid Kruglyak. Genetics of global gene expression. Nature reviews.
-Genetics, 7:862–72, 12 2006. doi: 10.1038/nrg1964.
-Jingfei Zhang and Yi Li. High-dimensional gaussian graphical regression models with covariates.
-Journal of the American Statistical Association, 0(0):1–13, 2022. doi: 10.1080/01621459.2022.
-2034632. URL https://doi.org/10.1080/01621459.2022.2034632.
-Yabo Niu, Yang Ni, Debdeep Pati, and Bani K. Mallick. Covariate-Assisted Bayesian Graph
-Learning for Heterogeneous Data. Journal of the American Statistical Association, 119(547):
-1985–1999, July 2024. ISSN 0162-1459. doi: 10.1080/01621459.2023.2233744. URL https:
-//doi.org/10.1080/01621459.2023.2233744.
-17
-Zeya Wang, Veerabhadran Baladandayuthapani, Ahmed O. Kaseb, Hesham M. Amin, Manal M.
-Hassan, Wenyi Wang, and Jeffrey S. Morris. Bayesian Edge Regression in Undirected Graphical
-Models to Characterize Interpatient Heterogeneity in Cancer. Journal of the American Statistical
-Association, 117(538):533–546, April 2022. ISSN 0162-1459. doi: 10.1080/01621459.2021.2000866.
-URL https://doi.org/10.1080/01621459.2021.2000866. Publisher: ASA Website _eprint:
-https://doi.org/10.1080/01621459.2021.2000866.
-Kyung-Ah Sohn and Seyoung Kim. Joint Estimation of Structured Sparsity and Output Structure
-in Multiple-Output Regression via Inverse-Covariance Regularization. In Proceedings of the
-Fifteenth International Conference on Artificial Intelligence and Statistics, pages 1081–1089. PMLR,
-March 2012. ISSN: 1938-7228.
-Xiao-Tong Yuan and Tong Zhang. Partial Gaussian Graphical Model Estimation. IEEE Transactions
-on Information Theory, 60(3):1673–1687, March 2014. ISSN 1557-9654. doi: 10.1109/TIT.2013.
-2296784. Conference Name: IEEE Transactions on Information Theory.
-Yunzhang Zhu.
-A convex optimization formulation for multivariate regression.
-In Ad-
-vances in Neural Information Processing Systems, volume 33, pages 17652–17661. Curran As-
-sociates, Inc., 2020. URL https://proceedings.neurips.cc/paper_files/paper/2020/
-hash/ccd2d123f4ec4d777fc6ef757d0fb642-Abstract.html.
-Noah Simon, Jerome Friedman, Trevor Hastie, and Robert Tibshirani. A sparse-group lasso. Journal
-of Computational and Graphical Statistics, 22(2):231–245, 2013. doi: 10.1080/10618600.2012.681250.
-URL https://doi.org/10.1080/10618600.2012.681250.
-Stephen Reid, Robert Tibshirani, and Jerome Friedman. A study of error variance estimation in
-lasso regression. Statistica Sinica, 26(1):35–67, 2016. ISSN 10170405, 19968507.
-Guo Yu and Jacob Bien.
-Estimating the error variance in a high-dimensional linear model.
-Biometrika, 106(3):533–546, May 2019. ISSN 1464-3510. doi: 10.1093/biomet/asz017.
-P. Tseng. Convergence of a block coordinate descent method for nondifferentiable minimization.
-Journal of Optimization Theory and Applications, 109(3):475–494, June 2001. ISSN 1573-2878.
-doi: 10.1023/a:1017501703105.
-Xiaoxuan Liang, Aaron Cohen, Anibal Sólon Heinsfeld, Franco Pestilli, and Daniel J. McDonald.
-sparsegl : An R Package for Estimating Sparse Group Lasso. Journal of Statistical Software,
-110(6), 2024. ISSN 1548-7660. doi: 10.18637/jss.v110.i06. URL https://www.jstatsoft.org/
-v110/i06/.
-Albert-László Barabási and Réka Albert. Emergence of scaling in random networks. Science, 286
-(5439):509–512, 1999. doi: 10.1126/science.286.5439.509. URL https://www.science.org/
-doi/abs/10.1126/science.286.5439.509.
-P. Erdős and A. Rényi. On random graphs. i. Publicationes Mathematicae Debrecen, 6(3–4):290–297,
-1959. ISSN 0033-3883. doi: 10.5486/pmd.1959.6.3-4.12.
-18
-Aaron Clauset, Cosma Rohilla Shalizi, and M. E. J. Newman. Power-law distributions in empirical
-data. SIAM Review, 51(4):661–703, 2009. ISSN 00361445, 10957200. URL http://www.jstor.
-org/stable/25662336.
-Farina Hanif, Kanza Muzaffar, kahkashan Perveen, Saima Malhi, and Shabana Simjee. Glioblastoma
-multiforme: A review of its epidemiology and pathogenesis through clinical presentation and
-treatment. Asian Pacific Journal of Cancer Prevention, 18(1), January 2017. doi: 10.22034/APJCP.
-2017.18.1.3. URL https://doi.org/10.22034/APJCP.2017.18.1.3.
-Aneta Kwiatkowska, Mohan Nandhu, Prajna Behera, E. Chiocca, and Mariano Viapiano. Strategies
-in gene therapy for glioblastoma. Cancers, 5(4):1271–1305, October 2013. ISSN 2072-6694. doi:
-10.3390/cancers5041271. URL http://dx.doi.org/10.3390/cancers5041271.
-Minoru Kanehisa and Susumu Goto. KEGG: Kyoto Encyclopedia of Genes and Genomes. Nucleic
-Acids Research, 28(1):27–30, 01 2000. ISSN 0305-1048. doi: 10.1093/nar/28.1.27.
-Patricio Gonzalez-Hormazabal, Maher Musleh, Marco Bustamante, Juan Stambuk, Raul Pisano,
-Hector Valladares, Enrique Lanzarini, Hector Chiong, Jorge Rojas, Jose Suazo, V. Gonzalo Castro,
-Lilian Jara, and Zoltan Berger. Polymorphisms in ras/raf/mek/erk pathway are associated
-with gastric cancer. Genes, 10(1), 2019. ISSN 2073-4425. doi: 10.3390/genes10010020. URL
-https://www.mdpi.com/2073-4425/10/1/20.
-Yardena Samuels and Victor E. Velculescu. Oncogenic mutations of pik3ca in human cancers.
-Cell Cycle, 3(10):1221–1224, October 2004. ISSN 1551-4005. doi: 10.4161/cc.3.10.1164. URL
-http://dx.doi.org/10.4161/cc.3.10.1164.
-Mohammed A Azab, Abdulraheem Alomari, and Ahmed Y Azzam.
-Featuring how calcium
-channels and calmodulin affect glioblastoma behavior. a review article. Cancer Treatment
-and Research Communications, 25:100255, 2020.
-ISSN 2468-2942.
-doi: https://doi.org/10.
-1016/j.ctarc.2020.100255. URL https://www.sciencedirect.com/science/article/pii/
-S2468294220300903.
-Quan Cheng, Anliu Tang, Zeyu Wang, Ning Fang, Zhuojing Zhang, Liyang Zhang, Chuntao Li,
-and Yu Zeng. Cald1 modulates gliomas progression via facilitating tumor angiogenesis. Cancers,
-13(11), 2021. ISSN 2072-6694. doi: 10.3390/cancers13112705. URL https://www.mdpi.com/
-2072-6694/13/11/2705.
-Guoxin Zhang, Zhen Dong, Briana C. Prager, Leo J.K. Kim, Qiulian Wu, Ryan C. Gimple, Xiuxing
-Wang, Shideng Bao, Petra Hamerlik, and Jeremy N. Rich. Chromatin remodeler hells maintains
-glioma stem cells through e2f3 and myc. JCI Insight, 4(7), 4 2019. doi: 10.1172/jci.insight.126140.
-URL https://insight.jci.org/articles/view/126140.
-Lei Wu, Jinfan Li, Yiying Xu, Xiaoli Lou, Maomin Sun, and Shouli Wang. Expression and prognostic
-value of e2f3 transcription factor in non-small cell lung cancer. Oncology letters, 21:411, 05 2021.
-doi: 10.3892/ol.2021.12672.
-Zhicai Feng, Cheng Peng, Daojiang Li, Danhua Zhang, Xu Li, Fengran Cui, Yanhong Chen, and
-Quanyong He. E2f3 promotes cancer growth and is overexpressed through copy number
-variation in human melanoma. OncoTargets and therapy, pages 5303–5313, 2018.
-19
-Sara Ladu, Diego F. Calvisi, Elizabeth A. Conner, Miriam Farina, Valentina M. Factor, and Snorri S.
-Thorgeirsson. E2f1 inhibits c-myc-driven apoptosis via pik3ca/akt/mtor and cox-2 in a mouse
-model of human liver cancer. Gastroenterology, 135(4):1322–1332, 2008. ISSN 0016-5085. doi:
-https://doi.org/10.1053/j.gastro.2008.07.012.
-A. Belloni, V. Chernozhukov, and L. Wang. Square-root lasso: pivotal recovery of sparse signals
-via conic programming. Biometrika, 98(4):791–806, November 2011. ISSN 1464-3510. doi:
-10.1093/biomet/asr043. URL http://dx.doi.org/10.1093/biomet/asr043.
-Cancer Genome Atlas Research Network. Comprehensive genomic characterization defines human
-glioblastoma genes and core pathways. Nature, 455(7216):1061–1068, September 2008. ISSN
-1476-4687. doi: 10.1038/nature07385. URL http://dx.doi.org/10.1038/nature07385.
-Cameron W. Brennan, Roel G.W. Verhaak, Aaron McKenna, Benito Campos, Houtan Noushmehr,
-Sofie R. Salama, Siyuan Zheng, Debyani Chakravarty, J. Zachary Sanborn, Samuel H. Berman,
-Rameen Beroukhim, Brady Bernard, Chang-Jiun Wu, Giannicola Genovese, Ilya Shmulevich,
-Jill Barnholtz-Sloan, Lihua Zou, Rahulsimham Vegesna, Sachet A. Shukla, Giovanni Ciriello,
-W.K. Yung, and Zhang. The somatic genomic landscape of glioblastoma. Cell, 155(2):462–477,
-October 2013. ISSN 0092-8674. doi: 10.1016/j.cell.2013.09.034. URL http://dx.doi.org/10.
-1016/j.cell.2013.09.034.
-Ahmed Maklad, Anjana Sharma, and Iman Azimi. Calcium signaling in brain cancers: Roles
-and therapeutic targeting. Cancers, 11(2):145, January 2019. ISSN 2072-6694. doi: 10.3390/
-cancers11020145. URL http://dx.doi.org/10.3390/cancers11020145.
-Pierre C. Bellec, Arnak S. Dalalyan, Edwin Grappin, and Quentin Paris. On the prediction loss of
-the lasso in the partially labeled setting. Electronic Journal of Statistics, 12(2):3443 – 3472, 2018.
-doi: 10.1214/18-EJS1457. URL https://doi.org/10.1214/18-EJS1457.
-Franklin A. Graybill and George Marsaglia. Idempotent matrices and quadratic forms in the
-general linear hypothesis. The Annals of Mathematical Statistics, 28(3):678–686, 1957. ISSN
-00034851. URL http://www.jstor.org/stable/2237227.
-B. Laurent and P. Massart. Adaptive estimation of a quadratic functional by model selection.
-The Annals of Statistics, 28(5):1302–1338, 2000. ISSN 00905364. URL http://www.jstor.org/
-stable/2674095.
-Roman Vershynin. Introduction to the non-asymptotic analysis of random matrices, 2011.
-Arun Kuchibhotla and Abhishek Chakrabortty.
-Moving beyond sub-gaussianity in high-
-dimensional statistics: Applications in covariance estimation and linear regression. Information
-and Inference A Journal of the IMA, 11:1389–1456, 06 2022. doi: 10.1093/imaiai/iaac012.
-Po-Ling Loh and Martin J. Wainwright. High-dimensional regression with noisy and missing data:
-Provable guarantees with nonconvexity. The Annals of Statistics, 40(3):1637 – 1664, 2012. doi:
-10.1214/12-AOS1018. URL https://doi.org/10.1214/12-AOS1018.
-20
-Supplemental Materials
-A convex formulation of covariate-adjusted Gaussian graphical
-models via natural parametrization
-S1
-Algorithm outline
-Algorithm 1: Covariate-adjusted Sparse Precision with Natural Estimation (cspine)
-Input
-: U ∈Rn×q matrix of covariates.
-X ∈Rn×p matrix of responses.
-gj : Rq × R(p−1)(q+1) →R convex penalty functions for j ∈[p].
-H(ˆγj, ˆβj) a function to estimate the error variance σ2
-εj.
-Output
-: ˆΓ ∈Rp×q, ˜B0, ˜B1, . . . ˜Bq ∈Rp×p, and ˆσ2
-εj for j ∈[p].
-for j = 1, 2, . . . , p do
-Define W−j as in (10) and solve
-(ˆγj, ˆβj) = arg min
-γj, βj
-1
-2n
-xj −Uγj −W−jβj
-2
-2 + gj(γj, βj).
-Set ˆσ2
-εj = H(ˆγj, ˆβj) and ˜βjkh = −ˆβjkh/ˆσ2
-εj for k ̸= j, h = 0, 1, . . . , q.
-end
-Set ˆΓ = [ˆγ1, . . . , ˆγp]⊤.
-Initialize ˜B0 = ˜B1 = · · · = ˜Bq = 0.
-for h = 0, 1, . . . , q do
-Apply the and-rule:
-[ ˜Bh]jk = [ ˜Bh]kj = ˜βjkh1{|˜βjkh|<|˜βkjh|} + ˜βkjh1{|˜βjkh|>|˜βkjh|},
-j ̸= k
-end
-return ˆΓ, ˜B0, ˜B1, . . . , ˜Bq, ˆσ2
-ε1, . . . , ˆσ2
-εp.
-S2
-Additional Simulation Results
-In addition to the metrics reported in Table 1, we report here the support recovery metrics for the
-estimated precision matrix and the estimation error of the mean given by µerr = Pn
-i=1∥ˆµi−µi∥2
-2/n
-where ˆµi is computed from (14). The results are shown in Table S1 for data generated under the
-natural model (7) and in Table S2 for data generated under the original model (3). We see that
-cspine underperforms in mean prediction error in both data models. This is a reasonable finding
-since our method does not focus on estimating the mean. Instead, our method targets the precision
-matrix and its components {Bh} while incorporating the covariate effects on the mean.
-21
-n
-(p, q)
-Method
-ΩTPR
-ΩFPR
-Ωerr
-µerr
-200
-(25, 50)
-cspine
-0.84 (0.06)
-0.10 (0.03)
-1.09 (0.15)
-10.14 (1.49)
-RegGMM
-0.74 (0.08)
-0.18 (0.06)
-1.82 (0.26)
-8.28 (1.13)
-(25, 100)
-cspine
-0.79 (0.07)
-0.08 (0.02)
-1.22 (0.17)
-11.94 (1.12)
-RegGMM
-0.68 (0.07)
-0.17 (0.04)
-1.95 (0.28)
-10.11 (1.01)
-400
-(25, 50)
-cspine
-0.93 (0.04)
-0.12 (0.03)
-0.66 (0.08)
-5.80 (1.05)
-RegGMM
-0.83 (0.06)
-0.20 (0.07)
-1.22 (0.17)
-4.96 (0.72)
-(25, 100)
-cspine
-0.89 (0.04)
-0.11 (0.03)
-0.76 (0.09)
-7.98 (1.05)
-RegGMM
-0.79 (0.06)
-0.24 (0.07)
-1.40 (0.20)
-6.76 (0.91)
-Table S1: Additional metrics under the natural model setting (7).
-n
-(p, q)
-Method
-ΩTPR
-ΩFPR
-Ωerr
-µerr
-200
-(25, 50)
-cspine
-0.69 (0.07)
-0.14 (0.03)
-2.18 (0.24)
-6.20 (0.67)
-RegGMM
-0.65 (0.09)
-0.16 (0.05)
-2.20 (0.25)
-5.89 (0.66)
-(25, 100)
-cspine
-0.54 (0.07)
-0.12 (0.02)
-2.43 (0.25)
-9.95 (1.16)
-RegGMM
-0.51 (0.09)
-0.21 (0.06)
-2.69 (0.32)
-9.58 (1.12)
-400
-(25, 50)
-cspine
-0.79 (0.06)
-0.20 (0.03)
-1.54 (0.18)
-3.34 (0.36)
-RegGMM
-0.75 (0.07)
-0.16 (0.05)
-1.49 (0.19)
-3.07 (0.31)
-(25, 100)
-cspine
-0.73 (0.06)
-0.16 (0.03)
-1.69 (0.22)
-5.83 (0.63)
-RegGMM
-0.74 (0.07)
-0.24 (0.07)
-1.69 (0.23)
-5.58 (0.54)
-Table S2: Additional metrics under specification (3).
-S3
-Additional Results from GBM eQTL Analysis
-Table S3 displays the genes belonging to known signaling pathways associated with GBM. The
-table is copied from Zhang and Li [2022]. Table S4 lists the SNPs that are detected by cspine to
-affect network co-expression.
-22
-name
-genes
-references
-PI3K/Akt/mTOR
-PIK3CA, PIK3CB, PIK3CD,
-Network [2008]
-signaling pathway
-PIK3R3, PTEN, AKT1, AKT2, AKT3
-MTOR, IGF1, PRKCA
-EGF, EGFR, GRB2,
-Brennan et al. [2013]
-SOS1, SOS2, IGF1
-Ras-Raf-MEK-ERK
-SHC1, SHC2, SHC3, SHC4
-signaling pathway
-MAPK1, MAPK3, MAP2K1, MAP2K2
-HRAS, KRAS, NRAS,
-RAF1, ARAF, BRAF, PRKCA
-CALM1,CALML3, CALML4, CALML5,
-Maklad et al. [2019]
-calcium (Ca+2)
-CALML6, CAMK1,CAMK4, CAMK1D,
-signaling pathway
-CAMK1G,CAMK2A, CAMK2B,
-CAMK2D,CAMK2G, PRKCA
-p53
-TP53, MDM2, DDB2, PTEN, IGF1
-Network [2008]
-signaling pathway
-CDK4, CDK6, CDKN1A, CDKN2A
-Table S3: Gene signaling pathways related to GBM.
-SNP
-co-expressed genes
-rs1267622
-(PDGFRA, PDGFB), (PDGRFA, SOS2), (GADD45A, GADD45B)
-rs10519201
-(E2F3, PIK3CA), (E2F3, BAX)
-rs10488141
-(SOS2, E2F1), (SOS2, GADD45B)
-rs2076655
-(E2F1, CALML5)
-rs10509346
-(E2F3, CALML5)
-rs10518759
-(E2F1, PIK3CA)
-rs10512510
-(E2F3, BRAF)
-rs9303504
-(E2F1, CALML5)
-rs4834352
-(E2F1, E2F3)
-rs2075109
-(PIK3CA, CALML5)
-Table S4: Estimated SNP effects on gene co-expressions according to cspine.
-S4
-Proofs
-Our proof strategies for Theorems 1 and 2 follow that of Zhang and Li [2022], with modifications
-made to accommodate our concatenated design matrix [U, W]. First we state a few lemmas.
-Lemma 1 (Bellec et al. [2018] Lemma 1). Let g : Rd →R be any convex function and let
-ˆβ ∈arg min
-β∈Rd
-
-∥y −Hβ∥2
-2 + g(β)
-	
-where H ∈Rn×d and y ∈Rn. Then for all β ∈Rd,
-1
-2n∥y −Hˆβ∥2
-2 + g(ˆβ) + 1
-2n∥H(ˆβ −β)∥2
-2 ≤1
-2n∥y −Hβ∥2
-2 + g(β).
-Lemma 2 (Graybill and Marsaglia [1957] Theorem F). Let ε ∼Np(0, σ2Ip) and let A be a p × p
-idempotent matrix with rank r ≤p. Then ε⊤Aε/σ2 ∼χ2
-r.
-23
-Lemma 3 (Laurent and Massart [2000] Lemma 1). Suppose that U ∼χ2
-r. For any x > 0 it holds
-that
-P(U −r ≥2√rx + 2x) ≤e−x.
-Lemma 4 (Vershynin [2011] Proposition 5.16). Let X1, . . . , Xn be independent, mean zero sub-
-exponential random variables. Let v1 = maxi∥Xi∥ψ1 where ∥·∥ψ1 is the sub-exponential norm. Then
-there exists a constant c such that for any t > 0 we have
-P
- 
-n
-X
-i=1
-Xi
- ≥t
-!
-≤2 exp
-
-−c min
- t2
-v2
-1n, t
-v1
-
-.
-Lemma 5 comes from Theorem 4.1 in Kuchibhotla and Chakrabortty [2022] applied to marginally
-sub-Gaussian random vectors.
-Lemma 5 (Kuchibhotla and Chakrabortty [2022] Theorem 4.1). Let Z1, . . . , Zn be independent
-random vectors in Rp. Assume each element of Zi is sub-Gaussian with bounded sub-Gaussian norm
-for all i ∈[n]. Let ˆΣZ = Z⊤Z/n and ΣZ = E[Z⊤Z/n]. Define
-Υn = max
-j,k
-1
-n
-n
-X
-i=1
-Var(ZijZik).
-Then we have
-sup
-∥v∥0≤k,∥v∥2≤1
-v⊤( ˆΣZ −ΣZ)v
- ≾k
-r
-Υn log p
-n
-+ k log n log p
-n
-with probability at least 1 −O(1/p).
-We may apply Lemma 5 because by Assumption 3, [U, W−j] is elementwise sub-Gaussian,
-each entry being the product of a sub-Gaussian and a bounded random variable. Furthermore, we
-have by the Cauchy-Schwarz inequality that
-max
-ℓ,k
-1
-n
-n
-X
-i=1
-Var([U, W−j]iℓ[U, W−j]ik) ≤
-max
-ℓ1,ℓ2,ℓ3,ℓ4 E
-
-X(1)2
-ℓ1 X(1)2
-ℓ2 U (1)2
-ℓ3
-U (1)2
-ℓ4
-
-= O(1)
-since the entries of X(1) and U(1) have bounded moments. Thus Υn = O(1) in our setting.
-Lemma 6 (Loh and Wainwright [2012] Lemma 12). Let Σ ∈Rp×p be a symmetric matrix such
-that |v⊤Σv| ≤δ1 for all v ∈Rp with ∥v∥2 = 1 and ∥v∥0 ≤2s. It holds for all v ∈Rp that
-|v⊤Σv| ≤27δ1
-
-∥v∥2
-2 + 1
-s∥v∥2
-1
-
-.
-Define the matrices:
-ˆΣUW = 1
-n[U, W−j]⊤[U, W−j],
-ΣUW = E( ˆΣU,W).
-24
-Lemma 7. For a set of indices S ⊂[p(q + 1) −1], denote by [U, W−j]S the submatrix of [U, W−j]
-with columns indexed by S. Let ∥·∥op denote the matrix operator norm. Under Assumptions 1-4, there
-exist constants Muw and C0 such that with probability at least 1 −C0 exp(−log(pq)) we have
-1
-n∥[U, W−j]S∥2
-op ≤Muw
-for all S satisfying |S| ≤ˆsmax
-γ
-+ ˆsmax
-β
-, provided that (ˆsmax
-γ
-+ ˆsmax
-β
-) log(pq) = O(√n), as assumed
-in Theorem 1.
-Proof. Letting k = |S|, it suffices to show that sup∥v∥0≤k, ∥v∥2≤1 v⊤ˆΣUWv is bounded. We may
-write
-sup
-∥v∥0≤k, ∥v∥2≤1
-v⊤ˆΣUWv =
-sup
-∥v∥0≤k, ∥v∥2≤1
-n
-v⊤
-ˆΣUW −ΣUW
-
-v + v⊤ΣUWv
-o
-.
-By Assumption 2, the second term is bounded. For the first term, by Lemma 5 we have
-sup
-∥v∥0≤k, ∥v∥2≤1
-n
-v⊤
-ˆΣUW −ΣUW
-
-v
-o
-≾
-k2 log(pq)
-n
-1/2
-+ k log(pq)
-n/ log n
-with probability at least 1 −C0 exp(−log(pq)) and we see that the right-hand side is bounded by
-Assumption 4.
-S4.1
-Proof of Theorem 1
-For ease of notation, we will drop the dependence of γj, βj, εj and W−j on j. Let Sβ, Sγ, ˆSβ, ˆSγ
-be the support sets of β, γ, ˆβ, ˆγ, respectively. Let Sβ,g = {h ∈[q] : βh ̸= 0} index the blocks
-βh of β that are not identically zero and let ˆSβ,g be the corresponding block indices for ˆβ. For
-any vector v and set of block indices S, let v(S) denote the sub-vector containing blocks in S. Let
-sβ, sγ, sβ,g, ˆsβ, ˆsγ, ˆsβ,g be the number of elements in Sβ, Sγ, Sβ,g, ˆSβ, ˆSγ, ˆSβ,g, respectively. Our
-proof occurs in three steps.
-Step 1
-In this step we bound the error ∥Uν +W∆∥2
-2/n by the stochastic term ⟨ε, Uν +W∆⟩/n, which
-is then bounded by a projection of ε onto the columns of [U, W].
-Since our penalty function
-g(γ, β) = λ∥γ∥1 + λ∥β∥1 + λg∥β−0∥1,2
-is convex, by Lemma 1 we have
-1
-2n∥x −Uˆγ −Wˆβ∥2
-2 + g(ˆγ, ˆβ) + 1
-2n∥Uν + W∆∥2
-2 ≤1
-2n∥x −Uγ −Wβ∥2
-2 + g(γ, β)
-where ν = ˆγ −γ and ∆= ˆβ −β. Since ε = x −Uγ −Wβ we may write
-1
-2n∥x −Uˆγ −Wˆβ∥2
-2 = 1
-2n∥ε −Uν −W∆∥2
-2
-= 1
-2n∥ε∥2
-2 −1
-n⟨ε, Uν + W∆⟩+ 1
-2n∥Uν + W∆∥2
-2.
-25
-Plugging this into the previous expression and substituting the penalty expression then yields
-1
-n∥Uν + W∆∥2
-2 + λ∥ˆγ∥1 + λ∥ˆβ∥1 + λg∥ˆβ−0∥1,2
-≤1
-n⟨ε, Uν + W∆⟩+ λ∥γ∥1 + λ∥β∥1 + λg∥β−0∥1,2.
-Notice that ∥∆Sc
-β∥1 = ∥ˆβSc
-β∥1, ∥ˆβ∥1 = ∥ˆβSβ∥1 + ∥ˆβSc
-β∥1, and ∥β∥1 = ∥βSβ∥1. Hence we can
-express the above as
-1
-n∥Uν + W∆∥2
-2 + λ∥ˆγ∥1 + λ∥ˆβSβ∥1 + λ∥∆Sc
-β∥1
-|
-{z
-}
-λ∥ˆβ∥1
-+λg∥ˆβ−0∥1,2
-≤1
-n⟨ε, Uν + W∆⟩+ λ∥γ∥1 + λ∥βSβ∥1
-|
-{z
-}
-λ∥β∥1
-+λg∥β−0∥1,2.
-Thus we have
-1
-n∥Uν + W∆∥2
-2 + λ∥ˆγ∥1 + λ∥∆Sc
-β∥1 + λg∥ˆβ−0∥1,2
-≤1
-n⟨ε, Uν + W∆⟩+ λ∥γ∥1 + λ(∥βSβ∥1 −∥ˆβSβ∥1) + λg∥β−0∥1,2
-≤1
-n⟨ε, Uν + W∆⟩+ λ∥γ∥1 + λ∥∆Sβ∥1 + λg∥β−0∥1,2
-using the triangle inequality for the ℓ1 norm. The same development holds for λ∥ˆγ∥1. Finally,
-notice that
-∥∆(Sc
-β,g)∥1,2 = ∥ˆβ(Sc
-β,g)∥1,2, ∥ˆβ−0∥1,2 = ∥ˆβ(Sβ,g)∥1,2 + ∥ˆβ(Sc
-β,g)∥1,2, and ∥β−0∥1,2 = ∥β(Sβ,g)∥1,2.
-Hence the previous development holds for the λg∥ˆβ−0∥1,2 term by the triangle inequality of ∥·∥1,2.
-All in all we have
-1
-n∥Uν + W∆∥2
-2 + λ∥νScγ∥1 + λ∥∆Sc
-β∥1 + λg∥∆(Sc
-β,g)∥1,2
-≤1
-n⟨ε, Uν + W∆⟩+ λ∥νSγ∥1 + λ∥∆Sβ∥1 + λg∥∆(Sβ,g)∥1,2.
-(S1)
-Now let I and J be arbitrary index sets of the columns of U and W respectively. Denote by
-PI,J the orthogonal projection onto the columns of [U, W] indexed by (I, J ). Let I0 = Sγ ∪ˆSγ
-and J0 = Sβ ∪ˆSβ denote the unions of the true and estimated support sets of γ and β. We seek
-to bound the stochastic term
-⟨ε, Uν + W∆⟩= ⟨PI0,J0(ε), Uν + W∆⟩
-≤∥PI0,J0(ε)∥2∥Uν + W∆∥2 ≤
-1
-2a1
-∥Uν + W∆∥2
-2 + a1
-2 ∥PI0,J0(ε)∥2
-2. (S2)
-The last inequality follows from the fact that 2xy ≤ax2 + y2/a holds for any constant a > 0 and
-real numbers x and y.
-26
-Following Zhang and Li [2022], we first bound the term ∥PI0,J0(ε)∥2
-2 with a counting argument.
-For fixed s′
-γ, s′
-β, and s′
-β,g, we will bound the cardinality of the set
-H(s′
-γ, s′
-β, s′
-β,g) = {(I, J ) ⊂[q] × [(p −1)(q + 1)] : |I| = s′
-γ, |J | = s′
-β, |g(J )| = s′
-β,g}
-where g(J ) is the number of nonzero groups of βJ . For ease of notation, we will write H while
-keeping in mind its dependence on s′
-γ, s′
-β, and s′
-β,g. We will show that
-log|H| ≤s′
-γ log eq
-s′
-γ
-+ s′
-β,g log eq
-s′
-β,g
-+ s′
-β log(ep)
-by considering the two cases s′
-β = s′
-β,g and s′
-β > s′
-β,g separately. These are the only cases since
-we cannot have more nonzero groups than nonzero elements.
-1. s′
-β = s′
-β,g: In this case, we have |H| ≤
-  q
-s′γ
-  q
-s′
-β,g
-
-(p −1)s′
-β. Hence
-log|H| ≤log
- q
-s′
-γ
-
-+ log
- q
-s′
-β,g
-
-+ s′
-β log(p −1)
-≤s′
-γ log eq
-s′
-γ
-+ s′
-β,g log eq
-s′
-β,g
-+ s′
-β log(ep)
-where we use log
- n
-k
-
-≤k log(en/k) which follows from Stirling’s approximation.
-2. s′
-β > s′
-β,g: In this case, the cardinality is bounded by
-|H| ≤
- q
-s′
-γ
- q
-s′
-β,g
-(p −1)(s′
-β,g + 1)
-s′
-β
-
-.
-Since by Stirling’s approximation
-log
-(p −1)(s′
-β,g + 1)
-s′
-β
-
-≤s′
-β log e(p −1)(s′
-β,g + 1)
-s′
-β
-≤s′
-β log(ep),
-we have
-log|H| ≤s′
-γ log eq
-s′
-γ
-+ s′
-β,g log eq
-s′
-β,g
-+ s′
-β log(ep)
-as desired.
-Define k0 to be the exponential of the right hand side of the above inequality, so that |H| ≤k0.
-For any (I, J ) ∈H, since PI,J is idempotent, Lemma 2 implies
-∥PI,J (ε)∥2
-2/σ2
-ε ∼χ2
-d
-where d ≤|I| + |J | = s′
-γ + s′
-β is the rank of PI,J . By Lemma 3 we have for arbitrary t′ > 0 that
-P
-
-∥PI,J (ε)∥2
-2 ≥σ2
-ε(2
-√
-dt′ + d + 2t′)
-
-≤e−t′.
-27
-Since 2
-√
-dt′ ≤d + t′ and d ≤s′
-γ + s′
-β ≤log k0, we have
-P
- ∥PI,J (ε)∥2
-2 ≥σ2
-ε(2 log k0 + 3t′)
-
-≤e−t′.
-Taking the supremum over H and applying the union bound yields
-P
- 
-sup
-(I,J )∈H
-∥PI,J (ε)∥2
-2 ≥σ2
-ε(2 log k0 + 3t′)
-!
-≤|H|e−t′.
-Now set t′ = t/3 + log k0 for t > 0. Then |H|e−t′ = |H|/k0 · e−t/3 ≤e−t/3 since |H| ≤k0.
-Substituting these expressions into the previous bound (and recalling that we have fixed s′
-γ, s′
-β,
-and s′
-β,g) yields
-P
- 
-sup
-(I,J )∈H(s′γ,s′
-β,s′
-β,g)
-∥PI,J (ε)∥2
-2 ≥5σ2
-ε
-"
-s′
-γ log eq
-s′
-γ
-+ s′
-β,g log eq
-s′
-β,g
-+ s′
-β log(ep)
-#
-+ σ2
-εt
-!
-≤e−t/3,
-(S3)
-recalling that
-log k0 = s′
-γ log eq
-s′
-γ
-+ s′
-β,g log eq
-s′
-β,g
-+ s′
-β log(ep).
-This gives a concentration bound of ∥PI,J (ε)∥2
-2 over all possible subsets I of columns of U and
-J of columns of W satisfying |I| = s′
-γ, |J | = s′
-β, and |g(J )| = s′
-β,g. Recalling that I0 and J0 are
-the support sets of ν and ∆, we can now bound ∥PI0,J0(ε)∥2
-2. Define
-r(s′
-γ, s′
-β, s′
-β,g) =
- 
-sup
-(I,J )∈H(s′γ,s′
-β,s′
-β,g)
-∥PI,J (ε)∥2
-2 −5σ2
-ε
-(
-s′
-γ log eq
-s′
-γ
-+ s′
-β,g log eq
-s′
-β,g
-+ s′
-β log(ep)
-)!
-+
-and
-r =
-sup
-s′γ,s′
-β,s′
-β,g
-r(s′
-γ, s′
-β, s′
-β,g).
-It is clear that
-|I0| ≤sγ + ˆsγ, |J0| ≤sβ + ˆsβ, and |g(J0)| ≤sβ,g + ˆsβ,g.
-Thus we have
-∥PI0,J0(ε)∥2
-2 ≤5σ2
-ε
-
-(sγ + ˆsγ) log eq
-sγ
-+ (sβ + ˆsβ) log(ep) + (sβ,g + ˆsβ,g) log eq
-sβ,g
-
-+ r.
-(S4)
-We also have the following concentration inequality on r for t > 0, which comes from the
-definition of r(s′
-γ, s′
-β, s′
-β,g) along with (S3):
-P(r ≥tσ2
-ε) ≤
-X
-s′γ,s′
-β,s′
-β,g
-P(r(s′
-γ, s′
-β, s′
-β,g) ≥tσ2
-ε) ≤
-X
-s′γ,s′
-β,s′
-β,g
-e−t/3 ≤q3p c1e−t/3,
-where c1 > 0 is a constant and the sum is taken over s′
-γ ∈[q], s′
-β ∈[(p −1)(q + 1)], s′
-β,g ∈[q].
-Then for a sufficiently large constant ˜
-M and some c2 > 0, by letting
-t = ˜
-M(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))
-we have
-P
-n
-r ≥˜
-Mσ2
-ε(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))
-o
-≤c1 exp{−c2(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))}.
-(S5)
-28
-Step 2
-We now use the KKT optimality conditions to bound ∥PI0,J0(ε)∥2
-2 in terms of ∥Uν + W∆∥2
-2.
-This takes care of the stochastic term after plugging back into (S1) and (S2). To ease the notation
-when describing the conditions, define the vectors
-rγ = 1
-nU⊤(xj −Uˆγ −Wˆβ),
-rβ = 1
-nW⊤(xj −Uˆγ −Wˆβ)
-Let ˆβh be the h-th block of ˆβ. By the KKT conditions, we know that an optimizer (ˆγ, ˆβ) of (15)
-must satisfy
-(rγ)ℓ= λ sign(ˆγℓ)
-for ˆγℓ̸= 0
-(S6)
-(rβ)ℓ= λ sign((ˆβ0)ℓ)
-for (ˆβ0)ℓ̸= 0
-(S7)
-(rβ)ℓ= λ sign((ˆβh)ℓ) + λg
-(ˆβh)ℓ
-∥ˆβh∥2
-for (ˆβh)ℓ̸= 0, h ∈[q].
-(S8)
-Squaring both sides of (S6) and summing over ℓgives
-λ2ˆsγ = 1
-n2∥U⊤
-ˆSγ(xj −Uˆγ −Wˆβ)∥2
-2
-and doing the same for (S7) and (S8) gives
-λ2ˆsβ + λ2
-gˆsβ,g ≤1
-n2∥W⊤
-ˆSβ(xj −Uˆγ −Wˆβ)∥2
-2
-since in (S8) the cross term sign((ˆβj,h)ℓ) × (ˆβj,h)ℓis nonnegative. We have shown that
-λ2ˆsγ + λ2ˆsβ + λ2
-gˆsβ,g ≤1
-n2
-[U ˆSγ, W ˆSβ]⊤(xj −Uˆγ −Wˆβ)
-
-2
-2
-= 1
-n2
-[U ˆSγ, W ˆSβ]⊤(ε −Uν −W∆)
-
-2
-2.
-(S9)
-Using that ∥a −b∥2
-2 ≤2∥a∥2
-2 + 2∥b∥2
-2 for any vectors a and b along with Lemma 7, we have
-with probability at least 1 −C0 exp(−log(pq)) that
-λ2ˆsγ + λ2ˆsβ + λ2
-gˆsβ,g ≤2
-n2
-[U ˆSγ, W ˆSβ]⊤ε
-
-2
-2 + 2
-n2
-[U ˆSγ, W ˆSβ]⊤(Uν + W∆)
-
-2
-2
-≤2
-nMuw∥PI0,J0(ε)∥2
-2 + 2
-nMuw∥Uν + W∆∥2
-2,
-(S10)
-where the last inequality uses that ˆSγ ⊂I0 and ˆSβ ⊂J0.
-Now let
-λ = C σε
-√n
-sγ log(eq/sγ) + sβ log(ep)
-sγ + sβ
-+
-sβ,g
-sγ + sβ
-log(eq/sβ,g)
-1/2
-,
-λg = C σε
-√n
-sγ log(eq/sγ) + sβ log(ep)
-sβ,g
-+ log(eq/sβ,g)
-1/2
-,
-29
-where C = √5Muwa2 for some a2 > 2. Combining (S10) and (S4) gives
-
-1 −2
-a2
-
-∥PI0,J0(ε)∥2
-2
-≤5σ2
-ε(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g)) + 2
-a2
-∥Uν + W∆∥2
-2 + r
-(S11)
-It is then straightforward to multiply both sides by a1a2/(2(a2 −2)) and plug into (S1) and (S2)
-to get
-1
-n∥Uν + W∆∥2
-2 + λ∥νScγ∥1 + λ∥∆Sc
-β∥1 + λg∥∆Sc
-β,g∥1,2
-≤
-1
-2a1
-· 1
-n∥Uν + W∆∥2
-2 +
-5a1a2
-2(a2 −2) · Ej +
-a1
-a2 −2 · 1
-n∥Uν + W∆∥2
-2
-+
-a1a2
-2(a2 −2) · r
-n + λ∥νSγ∥1 + λ∥∆Sβ∥1 + λg∥∆Sβ,g∥1,2
-(S12)
-where Ej = (σ2
-ε/n) · (sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g)).
-We also have that
-∥νSγ∥1 + ∥∆Sβ∥1
-√sγ + sβ
-+ ∥∆Sβ,g∥1,2
-√sβ,g
-≤
-
-ν
-∆
-
-2
-+ ∥∆Sβ,g∥2
-≤2
-
-ν
-∆
-
-2
-≤2m−1/2
-0
-Σ1/2
-UW
-ν
-∆
-
-2
-where the last inequality follows from Assumption 2. With our chosen values of λ and λg, we
-have after multiplying through by C
-p
-Ej that
-λ∥νSγ∥1 + λ∥∆Sβ∥1 + λg∥∆Sβ,g∥1,2 ≤2Cm−1/2
-0
-p
-Ej
-Σ1/2
-UW
-ν
-∆
-
-2
-≤a3
-C2
-m0
-Ej + 1
-a3
-Σ1/2
-UW
-ν
-∆
-
-2
-2
-for any a3 > 0. Plugging this into (S12) gives
-
-1 −1
-2a1
-−
-a1
-a2 −2
-1
-n∥Uν + W∆∥2
-2
-≤
-
-5a1a2
-2(a2 −2) + a3
-C2
-m0
-
-Ej + 1
-a3
-Σ1/2
-UW
-ν
-∆
-
-2
-2
-+
-a1a2
-2(a2 −2) · r
-n.
-(S13)
-Step 3
-We now bound the difference between ∥Uν + W∆∥2
-2/n and
-Σ1/2
-UW
-ν
-∆
-
-2
-2
-. Let L > 0 be an
-arbitrarily large constant. By Assumption 4 and Lemma 5, we have with probability at least
-1 −C′ exp(−log(pq)) that
-sup
-∥v∥0≤2(sγ+sβ), ∥v∥2=1
-v⊤
-[U, W]⊤[U, W]
-n
-−ΣUW
-
-v
- ≤
-1
-27L
-30
-for sufficiently large n. By Lemma 6, it holds with probability at least 1 −C′ exp(−log(pq)) that
-(ν⊤, ∆⊤)
-[U, W]⊤[U, W]
-n
-−ΣUW
- ν
-∆
-
-≤1
-L
-
-∥ν∥2
-2 + ∥∆∥2
-2 + ∥ν∥2
-1 + ∥∆∥2
-1
-sγ + sβ
-
-(S14)
-for sufficiently large n. Plugging this into (S13) gives
-
-1 −1
-2a1
-−
-a1
-a2 −2 −1
-a3
-Σ1/2
-UW
-ν
-∆
-
-2
-2
-≤
-
-5a1a2
-2(a2 −2) + a3
-C2
-m0
-
-Ej +
-a1a2
-2(a2 −2) · r
-n
-+
-
-1 −1
-2a1
-−
-a1
-a2 −2
- Σ1/2
-UW
-ν
-∆
-
-2
-2
-−1
-n∥Uν + W∆∥2
-2
-!
-≤
-
-5a1a2
-2(a2 −2) + a3
-C2
-m0
-
-Ej +
-a1a2
-2(a2 −2) · r
-n
-+
-
-1 −1
-2a1
-−
-a1
-a2 −2
-
-· 1
-L
-
-∥ν∥2
-2 + ∥∆∥2
-2 + ∥ν∥2
-1 + ∥∆∥2
-1
-sγ + sβ
-
-.
-Recalling that the above holds for any a1 > 0, a2 > 2, and a3 > 0, choose a1 = 2, a2 = 6, and
-a3 = 6 to get
-1
-2
-Σ1/2
-UW
-ν
-∆
-
-2
-2
-≾Ej + 1
-L
-
-∥ν∥2
-2 + ∥∆∥2
-2 + ∥ν∥2
-1 + ∥∆∥2
-1
-sγ + sβ
-
-+ r
-n.
-By the concentration bound on r in (S5), we in fact have
-1
-2
-Σ1/2
-UW
-ν
-∆
-
-2
-2
-≾Ej + 1
-L
-
-∥ν∥2
-2 + ∥∆∥2
-2 + ∥ν∥2
-1 + ∥∆∥2
-1
-sγ + sβ
-
-(S15)
-with probability at least 1 −c1 exp{−c2(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))}. Then
-by Assumption 2 we have with the same high probability
-m0
-2 (∥ν∥2
-2 + ∥∆∥2
-2) ≾Ej + 1
-L
-
-∥ν∥2
-2 + ∥∆∥2
-2 + ∥ν∥2
-1 + ∥∆∥2
-1
-sγ + sβ
-
-.
-(S16)
-Next, taking a1 = 2 −
-√
-2, a2 = 6 in (S12) cancels out the ∥Uν + W∆∥2
-2/n terms. Appealing
-again to (S5) yields
-∥νScγ∥1 + ∥∆Sc
-β∥1
-√sγ + sβ
-+
-∥∆(Sc
-β,g)∥1,2
-√sβ,g
-≤
-p
-Ej + ∥νSγ∥1 + ∥∆Sβ∥1
-√sγ + sβ
-+ ∥∆(Sβ,g)∥1,2
-√sβ,g
-.
-with probability at least 1 −c1 exp{−c2(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))}.
-31
-Adding (∥νSγ∥1 + ∥∆Sβ∥1)/√sγ + sβ to both sides and using
-∥νSγ∥1 + ∥∆Sβ∥1 ≤
-p
-sγ + sβ(∥ν∥2 + ∥∆∥2)
-and
-∥∆(Sβ,g)∥1,2 ≤√sβ,g∥∆∥2
-yields
-∥ν∥1 + ∥∆∥1
-√sγ + sβ
-≤
-p
-Ej + 2∥ν∥2 + 3∥∆∥2
-and after squaring both sides we have
-∥ν∥2
-1 + ∥∆∥2
-1
-sγ + sβ
-≤k0Ej + k1∥ν∥2
-2 + k2∥∆∥2
-2
-(S17)
-for some absolute constants k0, k1, k2 > 0. Plugging (S17) into the right-hand side of (S16) yields
-m0
-2 (∥ν∥2
-2 + ∥∆∥2
-2) ≾
-
-1 + k0
-L
-
-Ej + k1 + 1
-L
-∥ν∥2
-2 + k2 + 1
-L
-∥∆∥2
-2
-Finally, plugging in the expression for Ej and recalling that L is arbitrarily large yields
-∥ν∥2
-2 + ∥∆∥2
-2 ≾σ2
-ε
-n (sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))
-with probability at least 1 −C1 exp{−C2(sγ log(eq/sγ) + sβ log(ep) + sβ,g log(eq/sβ,g))} for
-some positive constants C1, C2 as desired. □
-S4.2
-Proof of Theorem 2
-The proof of Theorem 2 occurs in three steps.
-Step 1
-Recall that ˆΣUW = [U, W]⊤[U, W]/n. We wish to show that with high probability
- ˆΣUW
-ν
-∆
-
-∞
-≤3
-2(λ + λg).
-(S18)
-To ease the notation for this step, define the vectors
-rγ = 1
-nU⊤(xj −Uˆγ −Wˆβ),
-rβ = 1
-nW⊤(xj −Uˆγ −Wˆβ)
-Let ˆβh indicate the h-th block of ˆβ. By the KKT conditions, we know that an optimizer (ˆγ, ˆβ) of
-(15) must satisfy
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(rγ)ℓ= λ sign(ˆγℓ)
-ˆγℓ̸= 0
-|(rγ)ℓ| ≤λ
-ˆγℓ= 0
-(rβ)ℓ= λ sign((ˆβ0)ℓ)
-(ˆβ0)ℓ̸= 0
-(rβ)ℓ= λ sign((ˆβh)ℓ) + λg
-(ˆβh)ℓ
-∥ˆβh∥2
-(ˆβh)ℓ̸= 0, h ∈[q]
-|(rβ)ℓ| ≤λ + λg
-(ˆβh)ℓ= 0, h ∈[q]
-32
-so we have for all ℓ∈[p(q + 1) −1]
-
-
-[U, W]⊤(xj −Uˆγ −Wˆβ)/n
-
-ℓ
- ≤λ + λg.
-Recalling that
-xj −Uˆγ −Wˆβ = xj −Uν −W∆−Uγ −Wβ = ε −Uν −W∆,
-it follows by the triangle inequality that
- ˆΣUW
-ν
-∆
-
-∞
-−
-
-1
-n[U, W]⊤ε
-
-∞
-≤
-
-1
-n[U, W]⊤ε −1
-n[U, W]⊤[U, W]
-ν
-∆
-
-∞
-=
-
-1
-n[U, W]⊤(xj −Uˆγ −Wˆβ)
-
-∞
-≤λ + λg.
-Thus to show (S18) it suffices to show that with high probability
-
-1
-n[U, W]⊤ε
-
-∞
-≤λ + λg
-2
-.
-(S19)
-To see this, let MΣ denote the bound on the sub-Gaussian norm of elements of X as assumed in
-Assumption 3. Recall that each element of U is bounded by a constant M by Assumption 1. Then
-the products of random variables Uℓand Xℓwith the random noise ε are sub-exponential with
-norm satisfying
-max
-ℓ∥Uℓε∥ψ1 ≤max
-ℓ∥Uℓ∥ψ2∥ε∥ψ2 ≤Mσε
-max
-ℓ∥Xℓε∥ψ1 ≤max
-ℓ∥Uℓ∥ψ2 max
-ℓ∥Xℓ∥ψ2∥ε∥ψ2 ≤MMΣσε.
-Define the vector v = [U, W]⊤ε/n, where each element vi is a sum of sub-exponential functions
-with bounded norm. By Lemma 4 we have
-P
-
-|vi| > 1
-2(λ + λg)
-
-≤2 exp
-
-−c min
-n(λ + λg)2
-4M 2M 2
-Σσ2
-ε
-, n(λ + λg)
-2MMΣσε
-
-.
-where c > 0 is a constant coming from Lemma 4. Since by (17)
-λ + λg ≥Cσε
-r
-log p
-n
-⇐⇒(λ + λg)2n
-C2σ2
-ε
-≥log p,
-we have
-(λ + λg)2n
-C2σ2
-ε
-· C′′
-0 ≥C′′
-0 log p
-where C′′
-0 = C2/(4M 2M 2
-Σ). Similarly, the inequality
-(λ + λg)n
-Cσε
-≥
-p
-n log p
-33
-implies
-(λ + λg)n
-Cσε
-·
-p
-C′′
-0 ≥
-p
-C′′
-0 ·
-p
-n log p ≥˜A−1/2p
-C′′
-0 log p
-provided that log p ≤˜An for some constant ˜A > 0, which we assumed in the hypothesis of
-Theorem 2. The above shows that we can pick either argument of the minimum in Lemma 4 to
-develop and hence
-P
-
-|vi| > 1
-2(λ + λg)
-
-≤2 exp(−C′
-0 log p).
-for some constant C′
-0 that increases with C, recalling that C comes from (17). Then by the union
-bound we have
-P
-1
-n
-[U, W]⊤ε
-
-∞≥λ + λg
-2
-
-= P
-
-max
-i |vi| ≥λ + λg
-2
-
-≤(p(q + 1)) · 2 exp(−C′
-0 log p)
-≤2 exp(−C′
-0 log p + log p + log(q + 1))
-≤2 exp(−c3 log p)
-for some c3 > 0. In the last step we used log p ≍log q. This shows (S19) holds with high probability.
-Next we will show the cone condition
-∥νScγ∥1 + ∥∆Sc
-β∥1 ≤4τj(∥νSγ∥1 + ∥∆Sβ∥1)
-(S20)
-holds with high probability, where τj = 1 +
-p
-(sγ + sβ)/sβ,g as defined in Assumption 5. Since
-(ˆγ, ˆβ) is optimal, we have that
-1
-2n∥xj −Uˆγ−Wˆβ∥2
-2+λ∥ˆγ∥1+λ∥ˆβ∥1+λg∥ˆβ−0∥1,2 ≤1
-2n∥εj∥2
-2+λ∥γ∥1+λ∥β∥1+λg∥β−0∥1,2.
-Rearranging the above leads to
-λ∥ˆγ∥1 + λ∥ˆβ∥1 + λg∥ˆβ−0∥1,2 ≤λ∥γ∥1 + λ∥β∥1 + λg∥β−0∥1,2 + 1
-n⟨Uν + W∆, ε⟩.
-(S21)
-By the same argument leading to (S19), the events
-A1 =
-1
-n
-U⊤ε
-
-∞≤λ
-2
-
-and
-A2 =
-1
-n
-W⊤ε
-
-∞≤λ
-2
-
-hold with probability at least 1 −2 exp(−c4 log p) and 1 −2 exp(−c5 log p) respectively for some
-constants c4 > 0 and c5 > 0.
-Conditional on A1 and A2, we have by Hölder’s inequality
-1
-n⟨Uν + W∆, ε⟩= 1
-n⟨Uν, ε⟩+ 1
-n⟨W∆, ε⟩
-≤1
-n∥U⊤ε∥∞∥ν∥1 + 1
-n∥W⊤ε∥∞∥∆∥1
-≤λ
-2∥ν∥1 + λ
-2∥∆∥1
-34
-so that (S21) becomes
-λ∥ˆγ∥1 + λ∥ˆβ∥1 + λg∥ˆβ−0∥1,2 ≤λ∥γ∥1 + λ∥β∥1 + λg∥β−0∥1,2 + λ
-2∥ν∥1 + λ
-2∥∆∥1.
-Since λg/λ =
-p
-(sγ + sβ)/sβ,g, we have
-2∥ˆγ∥1 + 2∥ˆβ∥1 + 2
-s
-sγ + sβ
-sβ,g
-∥ˆβ−0∥1,2 ≤2∥γ∥1 + 2∥β∥1 + 2
-s
-sγ + sβ
-sβ,g
-∥β−0∥1,2 + ∥ν∥1 + ∥∆∥1.
-Now subtract by the left-hand side and add ∥ν∥1, ∥∆∥1, and
-p
-(sγ + sβ)/sβ,g∥∆−0∥1,2 to find
-∥ν∥1 + ∥∆∥1 +
-s
-sγ + sβ
-sβ,g
-∥∆−0∥1,2 ≤2(∥γ∥1 −∥ˆγ∥1 + ∥ν∥1)
-+ 2
-
-∥β∥1 −∥ˆβ∥1 + ∥∆∥1
-
-+ 2
-s
-sγ + sβ
-sβ,g
-
-∥β−0∥1,2 −∥ˆβ−0∥1,2 + ∥∆−0∥1,2
-
-,
-Then using the triangle inequality and the fact that the terms in parentheses vanish outside of the
-respective support sets Sγ, Sβ, and Sβ,g, we have
-∥ν∥1 + ∥∆∥1 ≤4∥νSγ∥1 + 4∥∆Sβ∥1 + 4
-s
-sγ + sβ
-sβ,g
-∥∆(Sβ,g)∥1,2.
-Since ∥∆(Sβ,g)∥1,2 ≤∥∆Sβ∥1, the above yields
-∥νScγ∥1 + ∥∆Sc
-β∥1 ≤4τj(∥νSγ∥1 + ∥∆Sβ∥1)
-as desired, recalling again that τj = 1 +
-p
-(sγ + sβ)/sβ,g as defined in Assumption 5
-Step 2
-In this step, we bound the diagonal difference | ˆΣUW(ℓ, ℓ) −ΣUW(ℓ, ℓ)|. Notice that ˆΣUW(ℓ, ℓ)
-is a sum of sub-exponential random variables with sub-exponential norm bounded by M 2M 2
-Σ,
-where M is from Assumption 1 and MΣ from Assumption 3. We have by Lemma 4
-P
-
-| ˆΣUW(ℓ, ℓ) −ΣUW(ℓ, ℓ)| > 1
-2ΣUW(ℓ, ℓ)
-
-≤2 exp
-
-−cn min
-ΣUW(ℓ, ℓ)2
-4M 2M 2
-Σ
-, ΣUW(ℓ, ℓ)
-2MMΣ
-
-≤2 exp
-
-−cn min
-
-m2
-0
-4M 2M 2
-Σ
-,
-m0
-2MMΣ
-
-≤2 exp(−c6n)
-where we used m0 ≤ΣUW(ℓ, ℓ) by Assumption 2. Since
-| ˆΣUW(ℓ, ℓ) −ΣUW(ℓ, ℓ)| ≤1
-2ΣUW(ℓ, ℓ)
-35
-implies
-1
-2ΣUW(ℓ, ℓ) ≤ˆΣUW(ℓ, ℓ) ≤2ΣUW(ℓ, ℓ)
-which by Assumption 2 implies
-m0
-2 ≤ˆΣUW(ℓ, ℓ) ≤2M0,
-it follows from the above concentration bound that
-P
-m0
-2 ≤ˆΣUW(ℓ, ℓ) ≤2M0
-
-≥1 −2 exp(−c6n).
-(S22)
-Next we bound the off-diagonal terms. Again by Lemma 4
-P
-
-| ˆΣUW(ℓ, k) −ΣUW(ℓ, k)| ≥2ΣUW(ℓ, k)
-
-≤2 exp
-
-−cn min
-4ΣUW(ℓ, k)2
-M 2M 2
-Σ
-, 2ΣUW(ℓ, k)
-MMΣ
-
-≤2 exp
-
-−cn min
- 4M 2
-0
-M 2M 2
-Σ
-, 4M0
-MMΣ
-
-≤2 exp(−c7n).
-By Assumption 5, we have
-−2ΣUW(k, ℓ) ≤ˆΣUW(k, ℓ) −ΣUW(k, ℓ) ≤2ΣUW(k, ℓ)
-=⇒−ΣUW(k, ℓ) ≤ˆΣUW(k, ℓ) ≤3ΣUW(k, ℓ)
-=⇒−
-1
-c0(1 + 8τj)(sβ + sγ) ≤ˆΣUW(k, ℓ) ≤
-3
-c0(1 + 8τj)(sβ + sγ)
-Combining this with the above concentration bound yields
-P
-
-−
-1
-c0(1 + 8τj)(sβ + sγ) ≤ΣUW(k, ℓ) ≤
-3
-c0(1 + 8τj)(sβ + sγ)
-
-≥1 −2 exp(−c7n).
-(S23)
-Step 3
-Define the index set ˜S = Sγ ∪{q + i | i ∈Sβ}. The set {q + i | i ∈Sβ} indexes the columns of
-the submatrix W of the matrix [U, W] corresponding to the support set of β. With slight abuse
-of notation, for a vector v ∈Rp(q+1)−1 let v ˜S ∈Rp(q+1)−1 be the vector that equals v on the set ˜S
-and is zero on ˜Sc, so that it has sγ + sβ nonzero elements. Define v ˜Sc analogously.
-We will show that conditional on A1, A2, and the bounds
-m0
-2 ≤ˆΣUW(ℓ, ℓ) ≤2M0,
-−
-1
-c0(1 + 8τj)(sβ + sγ) ≤ˆΣUW(k, ℓ) ≤
-3
-c0(1 + 8τj)(sβ + sγ),
-(S24)
-we have
-inf
-v∈V
-∥[U, W]v∥2
-√n∥v ˜S∥2
-≥
-r
-m0
-2 −1
-c0
-> 0.
-36
-where V = {v ∈Rp(q+1)−1 | ∥v ˜Sc∥1 ≤4τj∥v ˜S∥1}
-First we have that
-∥[U, W]v ˜S∥2
-2
-n∥v ˜S∥2
-2
-=
-v⊤
-˜S diag( ˆΣUW)v ˜S
-∥v ˜S∥2
-2
-+
-v⊤
-˜S ( ˆΣUW −diag( ˆΣUW))v ˜S
-∥v ˜S∥2
-2
-≥m0
-2 −
-1
-c0(1 + 8τj)(sβ + sγ)
-∥v ˜S∥2
-1
-∥v ˜S∥2
-2
-.
-Then by ∥a + b∥2
-2 = ∥a∥2
-2 + 2a⊤b + ∥b∥2
-2 we have
-∥[U, W]v∥2
-2
-n∥v ˜S∥2
-2
-≥∥[U, W]v ˜S∥2
-2
-n∥v ˜S∥2
-2
-+ 2
-v⊤
-˜S ˆΣUWv ˜Sc
-n∥v ˜S∥2
-2
-≥m0
-2 −
-1
-c0(1 + 8τj)(sβ + sγ)
-∥v ˜S∥2
-1
-∥v ˜S∥2
-2
-−
-2
-c0(1 + 8τj)(sβ + sγ)
-∥v ˜S∥1∥v ˜Sc∥1
-∥v ˜S∥2
-2
-≥m0
-2 −
-1
-c0(1 + 8τj)(sβ + sγ)
-∥v ˜S∥2
-1
-∥v ˜S∥2
-2
-−
-8τj
-c0(1 + 8τj)(sβ + sγ)
-∥v ˜S∥2
-1
-∥v ˜S∥2
-2
-≥m0
-2 −
-1 + 8τj
-c0(1 + 8τj)(sβ + sγ)
-∥v ˜S∥2
-1
-∥v ˜S∥2
-2
-≥m0
-2 −(1 + 8τj)(sβ + sγ)
-c0(1 + 8τj)(sβ + sγ) = m0
-2 −1
-c0
-> 0.
-In the last step we used that c0 > 2/m0 in Assumption 5. We have shown that
-1
-n
-[U, W]
-ν
-∆
-
-2
-2
-≥
-m0
-2 −1
-c0
-
-ν
-∆
-
-˜S
-
-2
-2
-(S25)
-Final step
-It is true that for ℓ∈[p(q + 1) −1] we have
-
-ˆΣUW
-ν
-∆
-
-ℓ
-= ˆΣUW(ℓ, ℓ)
-ν
-∆
-
-ℓ
-+
-X
-k̸=ℓ
-ˆΣUW(k, ℓ)
-ν
-∆
-
-k
-.
-Then by (S24) and the triangle inequality we have
- ˆΣUW(ℓ, ℓ)
-ν
-∆
-
-ℓ
- −
-
-
-ˆΣUW
-ν
-∆
-
-ℓ
- ≤
- ˆΣUW(ℓ, ℓ)
-ν
-∆
-
-ℓ
-−
-
-ˆΣUW
-ν
-∆
-
-ℓ
-
-≤
-
-X
-k̸=ℓ
-ˆΣUW(k, ℓ)
-ν
-∆
-
-k
-
-≤
-3
-c0(1 + 8τj)(sγ + sβ)
-X
-k̸=ℓ
-
-ν
-∆
-
-k
-.
-Rearranging terms and applying (S24) yields
-m0
-2
-
-ν
-∆
-
-ℓ
- ≤
-
-
-ˆΣUW
-ν
-∆
-
-ℓ
- +
-3
-c0(1 + 8τj)(sγ + sβ)
-
-ν
-∆
-
-1
-.
-37
-Since this holds for all ℓ∈[p(q + 1) −1], we have shown that
-
-ν
-∆
-
-∞
-≤2
-m0
- ˆΣUW
-ν
-∆
-
-∞
-+
-6
-c0m0(1 + 8τj)(sγ + sβ)
-
-ν
-∆
-
-1
-.
-(S26)
-Combining (S18) and (S20) we have
-1
-n
-[U, W]
-ν
-∆
-
-2
-2
-≤
- ˆΣUW
-ν
-∆
-
-∞
-
-ν
-∆
-
-1
-≤3
-2(λ + λg) · (1 + 4τj)
-
-ν
-∆
-
-˜S
-
-1
-≤3
-2(λ + λg) · (1 + 4τj)
-p
-sγ + sβ
-
-ν
-∆
-
-˜S
-
-2
-and combining this with (S25) gives us
-
-ν
-∆
-
-˜S
-
-2
-2
-≤3
-2(λ + λg) · (1 + 4τj)
-
-2c0
-c0m0 −2
-p
-sγ + sβ
-
-ν
-∆
-
-˜S
-
-2
-and therefore
-
-ν
-∆
-
-˜S
-
-2
-≤3(λ + λg)(1 + 4τj)
-
-c0
-c0m0 −2
-p
-sγ + sβ.
-On the other hand, by (S20) we have
-
-ν
-∆
-
-1
-≤(1 + 4τj)
-
-ν
-∆
-
-˜S
-
-1
-≤(1 + 4τj)
-p
-sβ + sγ
-
-ν
-∆
-
-˜S
-
-2
-so combining this with the above yields
-
-ν
-∆
-
-1
-≤3(λ + λg)(1 + 4τj)2
-
-c0
-c0m0 −2
-
-(sγ + sβ)
-Finally, plugging this into (S26) and with (S18) yields
-
-ν
-∆
-
-∞
-≤3
-m0
-(λ + λg) + 18(λ + λg)(1 + 4τj)2
-c0m0(1 + 8τj)
-
-c0
-c0m0 −2
-
-= 3
-m0
-(λ + λg)
-
-1 +
-6(1 + 4τj)2
-(1 + 8τj)(c0m0 −2)
-
-as desired. □
-38
